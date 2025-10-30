@@ -1,0 +1,66 @@
+Metadata-Version: 2.4
+Name: voyant-udb
+Version: 0.1.0
+Summary: Universal Data Box API (Voyant)
+Author: Voyant
+License: Apache-2.0
+Requires-Python: >=3.13
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Provides-Extra: all
+Dynamic: license-file
+
+# Universal Data Box (UDB)
+
+Production-grade, Kubernetes-native "black box" service providing agent-accessible data source discovery, ingestion, normalization, automated exploratory & quality analysis, KPI computation, and artifact publication through both MCP tools and REST APIs.
+
+## Key Features (v1 Scope)
+- Hot-plug connectivity to new data sources at runtime via simple hints (URL, path, domain).
+- Auto-detection of provider, auth type, and required Airbyte source spec.
+- Unified ingestion through Airbyte into DuckDB (primary analytical store) and/or Postgres.
+- Automated analysis: ydata-profiling (EDA), Evidently (quality/drift), KPI SQL & Plotly charts.
+- Unstructured document parsing to tabular/text rows.
+- MCP tools and REST API symmetry for agent and non-agent clients.
+- Secure-by-default: scoped credentials, network policies, PII/PHI guards, audit logs.
+
+## High-Level Architecture
+Core components:
+- udb-api (FastAPI + MCP server) orchestrating detection → connect → sync → analyze.
+- Airbyte OSS (connectors) + Postgres metadata DB.
+- DuckDB analytical store + artifacts persistent volume.
+- Redis (cache/status), Kafka (event bus), optional Dagster (orchestration), optional Superset/Metabase.
+- Analysis stack: ydata-profiling, Evidently, Plotly, Unstructured.
+
+See `docs/ARCHITECTURE.md` for detailed diagrams & flows.
+
+## Roadmap & Sprints
+A rapid development roadmap is maintained in `docs/ROADMAP.md` with sprint goals (Foundations, Auto-Detection & OAuth, Analysis & Artifacts, Hardening & Observability, etc.).
+
+## Core Principles
+See `docs/PRINCIPLES.md` – Truth, No Mocking Core Paths, Elegance, Simplicity, Security, Observability, Reproducibility.
+
+## Getting Started (Developer)
+1. Clone repository & create virtual env.
+2. Install dependencies.
+3. Launch dev stack (Airbyte, Postgres, Redis, Kafka) via `docker compose` (coming soon) or Helm.
+4. Run `uvicorn udb_api.app:app --reload`.
+
+Detailed instructions in `docs/DEVELOPMENT.md` (to be added).
+
+## MCP Tools (Preview)
+- `udb.discover_connect`
+- `udb.analyze`
+- `udb.status`
+- `udb.artifact`
+- `udb.sql`
+
+Schema contracts documented in `docs/MCP_INTERFACE.md`.
+
+## License
+Apache 2.0 (see `LICENSE`).
+
+## Contributing
+Please read `CONTRIBUTING.md` and `CODE_OF_CONDUCT.md` (to be added).
+
+---
+This is an early scaffold; core functionality will be implemented per the roadmap. Initial project structure and core documentation (Architecture, Roadmap, Security, Operations, Kubernetes, MCP Interface) have been added.

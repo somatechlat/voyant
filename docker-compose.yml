@@ -1,0 +1,62 @@
+version: '3.9'
+services:
+  kafka:
+    image: bitnami/kafka:3.7
+    environment:
+      - KAFKA_ENABLE_KRAFT=yes
+      - KAFKA_CFG_PROCESS_ROLES=broker,controller
+      - KAFKA_CFG_NODE_ID=1
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+    ports:
+      - "9092:9092"
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  kestra:
+    image: kestra/kestra:latest
+    environment:
+      - KESTRA_CONFIGURATION=/app/application.yml
+    ports:
+      - "8080:8080"
+
+  airbyte:
+    image: airbyte/airbyte:0.50.48
+    command: ["bash", "-c", "./run_ab_platform.sh"]
+    ports:
+      - "8001:8001"
+
+  udb-api:
+    build: .
+    environment:
+      AIRBYTE_URL: http://airbyte:8001
+      DUCKDB_PATH: /data/warehouse.duckdb
+      ARTIFACTS_ROOT: /artifacts
+      UDB_ENABLE_EVENTS: 1
+      KAFKA_BROKERS: kafka:9092
+      REDIS_URL: redis://redis:6379/0
+      UDB_DISABLE_RATE_LIMIT: 1
+      UDB_ENABLE_KESTRA: 1
+      KESTRA_BASE_URL: http://kestra:8080
+    depends_on:
+      - kafka
+      - redis
+      - kestra
+      - airbyte
+    ports:
+      - "8000:8000"
+    volumes:
+      - duckdb_data:/data
+      - artifacts_data:/artifacts
+    command: ["uvicorn", "udb_api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+
+volumes:
+  duckdb_data:
+  artifacts_data:

@@ -1,0 +1,29 @@
+{{- if .Values.persistence.duckdb.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "voyant-udb.name" . }}-duckdb
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: {{ .Values.persistence.duckdb.size }}
+  {{- if .Values.persistence.duckdb.storageClass }}
+  storageClassName: {{ .Values.persistence.duckdb.storageClass }}
+  {{- end }}
+{{- end }}
+---
+{{- if .Values.persistence.artifacts.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "voyant-udb.name" . }}-artifacts
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: {{ .Values.persistence.artifacts.size }}
+  {{- if .Values.persistence.artifacts.storageClass }}
+  storageClassName: {{ .Values.persistence.artifacts.storageClass }}
+  {{- end }}
+{{- end }}

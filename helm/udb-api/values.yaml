@@ -1,0 +1,34 @@
+replicaCount: 2
+image:
+  repository: ghcr.io/yourorg/udb-api
+  tag: latest
+  pullPolicy: IfNotPresent
+service:
+  type: ClusterIP
+  port: 8000
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: udb.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+resources: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+env:
+  AIRBYTE_URL: http://airbyte-server:8001
+  AIRBYTE_WORKSPACE_ID: ""
+  DUCKDB_PATH: /data/warehouse.duckdb
+  ARTIFACTS_ROOT: /artifacts
+persistence:
+  data:
+    enabled: true
+    size: 10Gi
+  artifacts:
+    enabled: true
+    size: 20Gi

@@ -1,0 +1,39 @@
+{{- if .Values.prune.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "voyant-udb.name" . }}-prune
+spec:
+  schedule: {{ .Values.prune.schedule | quote }}
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: prune
+              image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              command: ["/bin/sh", "-c"]
+              args:
+                - "apk add --no-cache curl >/dev/null 2>&1 || true; curl -s -X POST http://{{ include \"voyant-udb.name\" . }}:80/admin/prune -H 'X-Role: admin' || echo 'prune call failed'"
+              env:
+                - name: UDB_ARTIFACT_RETENTION_DAYS
+                  value: {{ .Values.prune.retentionDays | quote }}
+                - name: DUCKDB_PATH
+                  value: /data/warehouse.duckdb
+                - name: ARTIFACTS_ROOT
+                  value: /artifacts
+              volumeMounts:
+                - name: duckdb
+                  mountPath: /data
+                - name: artifacts
+                  mountPath: /artifacts
+          volumes:
+            - name: duckdb
+              persistentVolumeClaim:
+                claimName: {{ include "voyant-udb.name" . }}-duckdb
+            - name: artifacts
+              persistentVolumeClaim:
+                claimName: {{ include "voyant-udb.name" . }}-artifacts
+{{- end }}

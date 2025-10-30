@@ -1,0 +1,86 @@
+image:
+  repository: ghcr.io/yourorg/udb-api
+  tag: latest
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+service:
+  type: ClusterIP
+  port: 80
+
+features:
+  quality: true
+  charts: true
+  unstructured: false
+  events: true
+  tracing: false
+  rbac: true
+  narrative: true
+  kestra: false
+
+kestra:
+  baseUrl: "http://kestra:8080"
+  apiToken: ""
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 1Gi
+  requests:
+    cpu: 200m
+    memory: 512Mi
+
+affinity: {}
+nodeSelector: {}
+tolerations: []
+
+persistence:
+  duckdb:
+    enabled: true
+    size: 20Gi
+    storageClass: ""
+  artifacts:
+    enabled: true
+    size: 20Gi
+    storageClass: ""
+
+redis:
+  enabled: true
+  image: redis:7
+
+kafka:
+  enabled: true
+  image: bitnami/kafka:3.7
+  kraft:
+    enabled: true
+    nodeId: 1
+    controllerPort: 9093
+
+postgres:
+  enabled: true
+  image: postgres:15
+  storage: 10Gi
+
+airbyte:
+  enabled: true
+  version: 0.50.48
+
+ingress:
+  enabled: false
+  className: nginx
+  host: udb.local
+  annotations: {}
+  tls: []
+
+metrics:
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+
+prune:
+  enabled: true
+  schedule: "0 3 * * *"
+  retentionDays: 7
+
+extraEnv: []

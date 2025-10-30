@@ -1,0 +1,56 @@
+{
+  "__inputs": [],
+  "__requires": [
+    {"type": "datasource", "id": "prometheus", "name": "Prometheus", "version": "1.0.0"},
+    {"type": "panel", "id": "timeseries", "name": "Time series", "version": "9.0.0"}
+  ],
+  "title": "UDB Analysis Overview",
+  "uid": "udb-overview",
+  "schemaVersion": 39,
+  "version": 1,
+  "panels": [
+    {
+      "id": 1,
+      "title": "Analyze Duration (s)",
+      "type": "timeseries",
+      "targets": [
+        {"expr": "histogram_quantile(0.95, sum(rate(udb_job_duration_seconds_bucket{type=\"analyze\"}[5m])) by (le))", "legendFormat": "p95"},
+        {"expr": "sum(rate(udb_job_duration_seconds_sum{type=\"analyze\"}[5m])) / sum(rate(udb_job_duration_seconds_count{type=\"analyze\"}[5m]))", "legendFormat": "avg"}
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Analyze KPI Rowsets",
+      "type": "timeseries",
+      "targets": [
+        {"expr": "sum(rate(udb_analyze_kpi_rowsets_bucket[5m])) by (le)", "legendFormat": "distribution"}
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Quality Runs (success/error)",
+      "type": "timeseries",
+      "targets": [
+        {"expr": "sum(increase(udb_quality_runs_total{status=\"success\"}[10m]))", "legendFormat": "quality success"},
+        {"expr": "sum(increase(udb_quality_runs_total{status=\"error\"}[10m]))", "legendFormat": "quality error"}
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Drift Runs (success/error)",
+      "type": "timeseries",
+      "targets": [
+        {"expr": "sum(increase(udb_drift_runs_total{status=\"success\"}[10m]))", "legendFormat": "drift success"},
+        {"expr": "sum(increase(udb_drift_runs_total{status=\"error\"}[10m]))", "legendFormat": "drift error"}
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Job States",
+      "type": "timeseries",
+      "targets": [
+        {"expr": "sum(increase(udb_jobs_total[5m])) by (type,state)", "legendFormat": "{{type}}-{{state}}"}
+      ]
+    }
+  ]
+}

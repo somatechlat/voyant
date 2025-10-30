@@ -1,0 +1,37 @@
+id: ingest-and-analyze
+namespace: udb
+
+labels:
+  system: udb
+  purpose: demo
+
+description: >
+  Demonstration flow that (placeholder) triggers an ingest step and then calls the UDB analyze endpoint.
+
+inputs:
+  - id: kpi_sql
+    type: STRING
+    defaults: "SELECT 1 as value"
+
+variables:
+  udb_base: "http://udb-api:8000"
+
+tasks:
+  - id: prepare
+    type: io.kestra.plugin.core.debug.Return
+    format: "Preparing analyze request"
+
+  - id: analyze
+    type: io.kestra.plugin.core.http.Request
+    uri: "{{ vars.udb_base }}/analyze"
+    method: POST
+    contentType: application/json
+    body: |
+      {"kpiSql": "{{ inputs.kpi_sql }}"}
+    timeout: PT5M
+
+  - id: wait
+    type: io.kestra.plugin.core.debug.Return
+    format: "Analyze triggered: {{ outputs.analyze.body }}"
+
+triggers: []

@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "voyant-udb.name" . }}
+  labels:
+    app: {{ include "voyant-udb.name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "voyant-udb.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "voyant-udb.name" . }}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: api
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: AIRBYTE_URL
+              value: {{ ternary (printf "http://%s-airbyte-server:8001" (include "voyant-udb.name" .)) (.Values.airbyte.externalUrl | default "http://airbyte-server:8001") .Values.airbyte.enabled }}
+            - name: DUCKDB_PATH
+              value: /data/warehouse.duckdb
+            - name: ARTIFACTS_ROOT
+              value: /artifacts
+            - name: UDB_ENABLE_QUALITY
+              value: {{ .Values.features.quality | ternary "1" "0" | quote }}
+            - name: UDB_ENABLE_CHARTS
+              value: {{ .Values.features.charts | ternary "1" "0" | quote }}
+            - name: UDB_ENABLE_UNSTRUCTURED
+              value: {{ .Values.features.unstructured | ternary "1" "0" | quote }}
+            - name: UDB_ENABLE_EVENTS
+              value: {{ .Values.features.events | ternary "1" "0" | quote }}
+            - name: UDB_ENABLE_TRACING
+              value: {{ .Values.features.tracing | ternary "1" "0" | quote }}
+            - name: UDB_ENABLE_RBAC
+              value: {{ .Values.features.rbac | ternary "1" "0" | quote }}
+            - name: UDB_ENABLE_NARRATIVE
+              value: {{ .Values.features.narrative | ternary "1" "0" | quote }}
+            - name: UDB_METRICS_MODE
+              value: "full"
+            - name: UDB_ARTIFACT_RETENTION_DAYS
+              value: {{ .Values.prune.retentionDays | quote }}
+            - name: UDB_DISABLE_RATE_LIMIT
+              value: "1" # disable by default in chart; adjust as desired
+            - name: UDB_ENV
+              value: prod
+            {{- if .Values.features.events }}
+            - name: KAFKA_BROKERS
+              value: kafka:9092
+            {{- end }}
+            {{- if .Values.redis.enabled }}
+            - name: REDIS_URL
+              value: redis://redis:6379/0
+            {{- end }}
+            {{- if .Values.features.kestra }}
+            - name: UDB_ENABLE_KESTRA
+              value: "1"
+            - name: KESTRA_BASE_URL
+              value: {{ .Values.kestra.baseUrl | quote }}
+            - name: KESTRA_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: kestra-api
+                  key: token
+            {{- end }}
+            {{- range .Values.extraEnv }}
+            - name: {{ .name }}
+              value: {{ .value | quote }}
+            {{- end }}
+          ports:
+            - containerPort: 8000
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          volumeMounts:
+            - name: duckdb
+              mountPath: /data
+            - name: artifacts
+              mountPath: /artifacts
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: duckdb
+          persistentVolumeClaim:
+            claimName: {{ include "voyant-udb.name" . }}-duckdb
+        - name: artifacts
+          persistentVolumeClaim:
+            claimName: {{ include "voyant-udb.name" . }}-artifacts

@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: udb-api
+  namespace: udb
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  rules:
+    - host: udb.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: udb-api
+                port:
+                  number: 80

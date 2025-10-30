@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: udb-api
+  namespace: udb
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: udb-api }
+  template:
+    metadata:
+      labels: { app: udb-api }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: udb-api
+          image: ghcr.io/yourorg/udb-api:latest
+          env:
+            - { name: AIRBYTE_URL, value: http://airbyte-server:8001 }
+            - { name: DUCKDB_PATH, value: /data/warehouse.duckdb }
+            - { name: ARTIFACTS_ROOT, value: /artifacts }
+          ports:
+            - containerPort: 8000
+          readinessProbe:
+            httpGet: { path: /readyz, port: 8000 }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /healthz, port: 8000 }
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          volumeMounts:
+            - { name: data, mountPath: /data }
+            - { name: artifacts, mountPath: /artifacts }
+          resources:
+            limits: { memory: "1Gi", cpu: "500m" }
+            requests: { memory: "512Mi", cpu: "200m" }
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: duckdb-pvc }
+        - name: artifacts
+          persistentVolumeClaim: { claimName: artifacts-pvc }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: udb-api
+  namespace: udb
+spec:
+  selector: { app: udb-api }
+  ports:
+    - port: 80
+      targetPort: 8000
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: udb-api-egress
+  namespace: udb
+spec:
+  podSelector:
+    matchLabels: { app: udb-api }
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector: { matchLabels: { app.kubernetes.io/part-of: udb } }
+      ports:
+        - { protocol: TCP, port: 8001 }
+        - { protocol: TCP, port: 5432 }
+        - { protocol: TCP, port: 6379 }
+        - { protocol: TCP, port: 9092 }
+    - to:
+        - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: kube-system } }
+      ports:
+        - { protocol: UDP, port: 53 }

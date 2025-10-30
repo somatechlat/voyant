@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "voyant-udb"
+version = "0.1.0"
+description = "Universal Data Box API (Voyant)"
+authors = [{name="Voyant"}]
+license = {text = "Apache-2.0"}
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = []
+
+[project.optional-dependencies]
+# Placeholder groups; dependencies primarily managed via requirements.txt for now.
+all = []
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["udb_api*"]

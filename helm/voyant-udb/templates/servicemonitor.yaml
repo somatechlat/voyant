@@ -1,0 +1,16 @@
+{{- if and .Values.metrics.serviceMonitor.enabled (.Capabilities.APIVersions.Has "monitoring.coreos.com/v1") }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "voyant-udb.name" . }}
+  labels:
+    app: {{ include "voyant-udb.name" . }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ include "voyant-udb.name" . }}
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: {{ .Values.metrics.serviceMonitor.interval | default "30s" }}
+{{- end }}

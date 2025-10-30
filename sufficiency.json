@@ -1,0 +1,13 @@
+{
+  "score": 0.5981,
+  "components": {
+    "rowCount": 0.2158,
+    "cleanliness": 1.0,
+    "joinability": 0.6667,
+    "freshness": 0.5
+  },
+  "needs": [
+    "Increase data volume (row coverage low)",
+    "Refresh source data (staleness detected)"
+  ]
+}

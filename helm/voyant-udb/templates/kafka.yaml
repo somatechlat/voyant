@@ -1,0 +1,62 @@
+{{- if and .Values.kafka.enabled .Values.features.events }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "voyant-udb.name" . }}-kafka
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: {{ include "voyant-udb.name" . }}-kafka }
+  template:
+    metadata:
+      labels: { app: {{ include "voyant-udb.name" . }}-kafka }
+    spec:
+      containers:
+        - name: kafka
+          image: {{ .Values.kafka.image }}
+          env:
+            - name: KAFKA_ENABLE_KRAFT
+              value: "yes"
+            - name: KAFKA_CFG_PROCESS_ROLES
+              value: broker,controller
+            - name: KAFKA_CFG_NODE_ID
+              value: {{ .Values.kafka.kraft.nodeId | quote }}
+            - name: KAFKA_CFG_CONTROLLER_QUORUM_VOTERS
+              value: "{{ .Values.kafka.kraft.nodeId }}@localhost:{{ .Values.kafka.kraft.controllerPort }}"
+            - name: KAFKA_CFG_LISTENERS
+              value: "PLAINTEXT://:9092,CONTROLLER://:{{ .Values.kafka.kraft.controllerPort }}"
+            - name: KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP
+              value: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT"
+            - name: KAFKA_CFG_CONTROLLER_LISTENER_NAMES
+              value: CONTROLLER
+            - name: KAFKA_CFG_INTER_BROKER_LISTENER_NAME
+              value: PLAINTEXT
+            - name: KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE
+              value: "true"
+            - name: KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR
+              value: "1"
+            - name: KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR
+              value: "1"
+            - name: KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR
+              value: "1"
+          ports:
+            - containerPort: 9092
+          resources:
+            limits:
+              cpu: 600m
+              memory: 1Gi
+            requests:
+              cpu: 200m
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "voyant-udb.name" . }}-kafka
+spec:
+  selector:
+    app: {{ include "voyant-udb.name" . }}-kafka
+  ports:
+    - port: 9092
+      targetPort: 9092
+{{- end }}

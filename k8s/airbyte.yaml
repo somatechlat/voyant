@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: airbyte-server
+  namespace: udb
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: airbyte-server }
+  template:
+    metadata:
+      labels: { app: airbyte-server }
+    spec:
+      containers:
+        - name: server
+          image: airbyte/airbyte-server:0.50.48
+          env:
+            - { name: DATABASE_USER, value: airbyte }
+            - { name: DATABASE_PASSWORD, value: airbyte }
+            - { name: DATABASE_URL, value: jdbc:postgresql://postgres:5432/airbyte }
+          ports:
+            - containerPort: 8001
+          resources:
+            limits: { memory: "1Gi", cpu: "500m" }
+            requests: { memory: "512Mi", cpu: "200m" }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: airbyte-worker
+  namespace: udb
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: airbyte-worker }
+  template:
+    metadata:
+      labels: { app: airbyte-worker }
+    spec:
+      containers:
+        - name: worker
+          image: airbyte/airbyte-worker:0.50.48
+          env:
+            - { name: AIRBYTE_ROLE, value: worker }
+            - { name: DATABASE_USER, value: airbyte }
+            - { name: DATABASE_PASSWORD, value: airbyte }
+            - { name: DATABASE_URL, value: jdbc:postgresql://postgres:5432/airbyte }
+          resources:
+            limits: { memory: "2Gi", cpu: "1000m" }
+            requests: { memory: "1Gi", cpu: "300m" }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: airbyte-server
+  namespace: udb
+spec:
+  selector: { app: airbyte-server }
+  ports:
+    - port: 8001
+      targetPort: 8001
