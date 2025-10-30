@@ -1,11 +1,109 @@
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+PIPFILE.lock
+
+# Virtual Environments
 .env
 .venv/
 venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+# IDEs
 .idea/
 .vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Databases
 *.db
+*.sqlite
+*.sqlite3
+.duckdb*
+*.duckdb
+
+# Data & Artifacts (heavy files)
 /data/
 /artifacts/
-.duckdb*
+*.parquet
+*.csv.gz
+*.json.gz
+
+# Docker
+*.tar
+*.tar.gz
+docker-compose.override.yml
+
+# Logs
+*.log
+logs/
+
+# Testing
+.pytest_cache/
+.coverage
+.tox/
+.nox/
+htmlcov/
+.hypothesis/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+.cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+*.pem
+*.key
+*.crt
+secrets/
+.secrets/
+
+# Kubernetes
+*.kubeconfig
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+# Local overrides
+config_overrides.yaml
+.local/
+
+# Build artifacts
+*.whl
+*.egg
