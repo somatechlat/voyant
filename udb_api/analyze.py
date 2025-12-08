@@ -4,7 +4,10 @@ import duckdb
 from typing import Optional, List, Dict
 import os
 
-from ydata_profiling import ProfileReport  # type: ignore
+try:
+    from ydata_profiling import ProfileReport  # type: ignore
+except ImportError:
+    ProfileReport = None
 
 try:  # Evidently optional (present in requirements but keep safe)
     from evidently.report import Report  # type: ignore
@@ -32,6 +35,9 @@ def _pick_table(con: duckdb.DuckDBPyConnection, explicit: Optional[str]) -> Opti
 
 
 def _generate_profile(df, job_dir: str) -> Dict[str, Optional[str]]:
+    if ProfileReport is None:
+        return {"profileHtml": None, "profileJson": None}
+
     profile_html_path = os.path.join(job_dir, "profile.html")
     profile_json_path = os.path.join(job_dir, "profile.json")
     profile = ProfileReport(df, title="Profile", minimal=True)
