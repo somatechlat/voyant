@@ -7,6 +7,8 @@ from typing import Dict, Any, Callable, List, Optional
 from pydantic import BaseModel
 import duckdb
 import re
+import math
+from scipy import stats  # We use scipy for t-test distributions if needed, or pure SQL
 
 class AlgorithmParam(BaseModel):
     name: str
@@ -192,4 +194,184 @@ def algo_summary_stats(con: duckdb.DuckDBPyConnection, table: str, params: Dict[
         "median": row[4],
         "q25": row[5],
         "q75": row[6]
+    }
+
+@AlgorithmRegistry.register(
+    name="z_score",
+    description="Add a new column with z-score normalization: (x - mean) / stddev.",
+    params=[
+        AlgorithmParam(name="column", type="string", description="The column to normalize"),
+        AlgorithmParam(name="new_column", type="string", description="Name of the new column to create")
+    ],
+    tags=["transform", "normalization"]
+)
+def algo_z_score(con: duckdb.DuckDBPyConnection, table: str, params: Dict[str, Any]):
+    col = params["column"]
+    new_col = params["new_column"]
+
+    _validate_columns(con, table, [col])
+
+    quoted_table = _quote_identifier(table)
+    qcol = _quote_identifier(col)
+    qnew = _quote_identifier(new_col)
+
+    # 1. Check if column exists, if so error (or replace?) - let's error for safety
+    try:
+        con.execute(f"SELECT {qnew} FROM {quoted_table} LIMIT 1")
+        return {"error": f"Column {new_col} already exists"}
+    except Exception:
+        pass # Good, it doesn't exist
+
+    # 2. Add column
+    try:
+        con.execute(f"ALTER TABLE {quoted_table} ADD COLUMN {qnew} DOUBLE")
+    except Exception as e:
+        return {"error": f"Failed to add column: {e}"}
+
+    # 3. Update with Z-Score
+    # DuckDB window functions make this easy: (x - AVG(x) OVER()) / STDDEV(x) OVER()
+    sql = f"""
+        UPDATE {quoted_table}
+        SET {qnew} = (
+            {qcol} - (SELECT avg({qcol}) FROM {quoted_table})
+        ) / NULLIF((SELECT stddev({qcol}) FROM {quoted_table}), 0)
+    """
+    con.execute(sql)
+
+    return {"status": "success", "new_column": new_col}
+
+@AlgorithmRegistry.register(
+    name="moving_average",
+    description="Calculate simple moving average for a column over a time window.",
+    params=[
+        AlgorithmParam(name="value_column", type="string", description="Column to smooth"),
+        AlgorithmParam(name="date_column", type="string", description="Column to order by"),
+        AlgorithmParam(name="window", type="integer", description="Number of periods (e.g., 7)"),
+        AlgorithmParam(name="new_column", type="string", description="Name of the new column")
+    ],
+    tags=["time_series", "transform"]
+)
+def algo_moving_average(con: duckdb.DuckDBPyConnection, table: str, params: Dict[str, Any]):
+    val_col = params["value_column"]
+    date_col = params["date_column"]
+    window = int(params["window"])
+    new_col = params["new_column"]
+
+    _validate_columns(con, table, [val_col, date_col])
+
+    quoted_table = _quote_identifier(table)
+    qval = _quote_identifier(val_col)
+    qdate = _quote_identifier(date_col)
+    qnew = _quote_identifier(new_col)
+
+    try:
+        con.execute(f"SELECT {qnew} FROM {quoted_table} LIMIT 1")
+        return {"error": f"Column {new_col} already exists"}
+    except Exception:
+        pass
+
+    try:
+        con.execute(f"ALTER TABLE {quoted_table} ADD COLUMN {qnew} DOUBLE")
+    except Exception as e:
+         return {"error": f"Failed to add column: {e}"}
+
+    # CTE update approach is complex in DuckDB for generic tables lacking primary keys.
+    # However, DuckDB supports UPDATE FROM...
+    # But to do it safely without a PK is hard.
+    # PROPOSAL: We will create a VIEW or a NEW TABLE instead?
+    # The prompt implies "add a new column".
+    # Let's assume we can match on rowid if needed, but DuckDB exposes rowid.
+
+    sql = f"""
+        UPDATE {quoted_table}
+        SET {qnew} = calc.ma
+        FROM (
+            SELECT
+                rowid,
+                avg({qval}) OVER (
+                    ORDER BY {qdate}
+                    ROWS BETWEEN {window - 1} PRECEDING AND CURRENT ROW
+                ) as ma
+            FROM {quoted_table}
+        ) as calc
+        WHERE {quoted_table}.rowid = calc.rowid
+    """
+    con.execute(sql)
+    return {"status": "success", "new_column": new_col}
+
+@AlgorithmRegistry.register(
+    name="t_test_ind",
+    description="Independent T-Test to compare means of two groups (e.g., A/B test).",
+    params=[
+        AlgorithmParam(name="value_column", type="string", description="Metric to compare (e.g., sales)"),
+        AlgorithmParam(name="group_column", type="string", description="Column defining groups (e.g., campaign_id)"),
+        AlgorithmParam(name="group_a", type="string", description="Value for Group A"),
+        AlgorithmParam(name="group_b", type="string", description="Value for Group B")
+    ],
+    tags=["hypothesis_test", "statistics"]
+)
+def algo_t_test_ind(con: duckdb.DuckDBPyConnection, table: str, params: Dict[str, Any]):
+    val_col = params["value_column"]
+    grp_col = params["group_column"]
+    ga = params["group_a"]
+    gb = params["group_b"]
+
+    _validate_columns(con, table, [val_col, grp_col])
+    quoted_table = _quote_identifier(table)
+    qval = _quote_identifier(val_col)
+    qgrp = _quote_identifier(grp_col)
+
+    # Calculate stats for A
+    sql_a = f"""
+        SELECT count({qval}), avg({qval}), stddev({qval})
+        FROM {quoted_table}
+        WHERE {qgrp} = ?
+    """
+    stats_a = con.execute(sql_a, [ga]).fetchone()
+
+    # Calculate stats for B
+    sql_b = f"""
+        SELECT count({qval}), avg({qval}), stddev({qval})
+        FROM {quoted_table}
+        WHERE {qgrp} = ?
+    """
+    stats_b = con.execute(sql_b, [gb]).fetchone()
+
+    n1, m1, s1 = stats_a
+    n2, m2, s2 = stats_b
+
+    if n1 < 2 or n2 < 2:
+         return {"error": "Insufficient sample size (need >= 2 per group)"}
+
+    # Welch's T-Test (does not assume equal variance)
+    # t = (m1 - m2) / sqrt(s1^2/n1 + s2^2/n2)
+
+    numerator = m1 - m2
+    denominator = math.sqrt((s1**2 / n1) + (s2**2 / n2))
+
+    if denominator == 0:
+        return {"t_statistic": 0.0, "p_value": 1.0, "significant": False}
+
+    t_stat = numerator / denominator
+
+    # Degrees of freedom (Welch-Satterthwaite equation)
+    v1 = s1**2 / n1
+    v2 = s2**2 / n2
+    dof = ((v1 + v2)**2) / ((v1**2 / (n1-1)) + (v2**2 / (n2-1)))
+
+    # P-value from scipy if available, else approximate or return t-stat only
+    # We imported stats from scipy above
+    try:
+        from scipy import stats
+        p_value = 2 * (1 - stats.t.cdf(abs(t_stat), dof)) # Two-tailed
+    except ImportError:
+        p_value = None # Fallback if scipy missing
+
+    return {
+        "group_a": {"n": n1, "mean": m1, "std": s1},
+        "group_b": {"n": n2, "mean": m2, "std": s2},
+        "t_statistic": t_stat,
+        "dof": dof,
+        "p_value": p_value,
+        "significant": bool(p_value < 0.05) if p_value is not None else None
     }
