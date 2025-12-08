@@ -57,6 +57,8 @@ from .security import validate_sql
 from .sufficiency import compute_sufficiency
 from .startup_checks import ensure_startup, latest as startup_latest, run_checks
 from .kestra_client import get_kestra_client
+from .catalog.algorithms import AlgorithmRegistry, AlgorithmSpec
+from fastapi.concurrency import run_in_threadpool
 
 # Environment / config (lightweight for now)
 settings = get_settings()
@@ -183,6 +185,71 @@ class LineageResponse(BaseModel):
     jobId: str
     nodes: List[LineageNode]
     edges: List[LineageEdge]
+
+class AlgorithmExecuteRequest(BaseModel):
+    algorithm: str
+    params: dict
+    table: Optional[str] = None
+
+class AlgorithmExecuteResponse(BaseModel):
+    algorithm: str
+    result: dict
+
+@app.get("/catalog/algorithms", response_model=List[AlgorithmSpec])
+async def list_algorithms():
+    return AlgorithmRegistry.list_algorithms()
+
+@app.post("/catalog/algorithms/execute", response_model=AlgorithmExecuteResponse)
+@require_role("analyst")
+async def execute_algorithm(req: AlgorithmExecuteRequest, request: Request):
+    tenant = _tenant_from_request(request)
+    table = req.table
+
+    # If table not provided, try to find a default one (similar to analyze)
+    waiter = _asyncio_duck.get_event_loop().create_future()
+    _DUCK_WAITERS.append(waiter)
+    duckdb_queue_length.set(len(_DUCK_WAITERS))
+    async with _DUCK_LOCK:
+        _DUCK_WAITERS.remove(waiter)
+        duckdb_queue_length.set(len(_DUCK_WAITERS))
+
+        # Offload blocking DuckDB operations to thread pool
+        def _blocking_execute():
+            # Create connection inside the thread to avoid threading issues if shared
+            # Note: DuckDB connections are not thread-safe if shared across threads without care,
+            # but creating a fresh one here is safe.
+            con = duckdb.connect(DUCKDB_PATH)
+            try:
+                # Resolve table
+                target_table = table
+                if not target_table:
+                    tbls = con.execute("SHOW TABLES").fetchall()
+                    if not tbls:
+                         raise HTTPException(status_code=404, detail="No tables found")
+                    target_table = tbls[0][0]
+
+                # Check existance is handled by validation in AlgorithmRegistry or implicit fail
+                # But we do a quick check here to be friendly
+                try:
+                    # quoting is handled inside execute now, but we need to check existence
+                    # using SQL that handles quotes if we did it manually.
+                    # Let's rely on AlgorithmRegistry.execute to handle validation/quoting.
+                    pass
+                except Exception:
+                     pass
+
+                return AlgorithmRegistry.execute(req.algorithm, con, target_table, req.params), target_table
+            finally:
+                con.close()
+
+        try:
+            result, _ = await run_in_threadpool(_blocking_execute)
+            return AlgorithmExecuteResponse(algorithm=req.algorithm, result=result)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        except Exception as e:
+            logger.error(f"Algorithm execution failed: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/kestra/trigger", response_model=KestraTriggerResponse)
 async def kestra_trigger(req: KestraTriggerRequest):
