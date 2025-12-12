@@ -1,0 +1,178 @@
+{
+    "realm": "voyant",
+    "enabled": true,
+    "sslRequired": "external",
+    "registrationAllowed": true,
+    "loginWithEmailAllowed": true,
+    "duplicateEmailsAllowed": false,
+    "resetPasswordAllowed": true,
+    "editUsernameAllowed": false,
+    "bruteForceProtected": true,
+    "permanentLockout": false,
+    "maxFailureWaitSeconds": 900,
+    "minimumQuickLoginWaitSeconds": 60,
+    "waitIncrementSeconds": 60,
+    "quickLoginCheckMilliSeconds": 1000,
+    "maxDeltaTimeSeconds": 43200,
+    "failureFactor": 5,
+    "accessTokenLifespan": 300,
+    "accessTokenLifespanForImplicitFlow": 300,
+    "ssoSessionIdleTimeout": 1800,
+    "ssoSessionMaxLifespan": 28800,
+    "offlineSessionIdleTimeout": 2592000,
+    "offlineSessionMaxLifespan": 5184000,
+    "accessCodeLifespan": 60,
+    "accessCodeLifespanLogin": 1800,
+    "accessCodeLifespanUserAction": 300,
+    "passwordPolicy": "length(8) and upperCase(1) and lowerCase(1) and digits(1)",
+    "roles": {
+        "realm": [
+            {
+                "name": "voyant-admin",
+                "description": "Full system administrator",
+                "composite": true,
+                "composites": {
+                    "realm": [
+                        "voyant-engineer",
+                        "voyant-analyst",
+                        "voyant-viewer"
+                    ]
+                }
+            },
+            {
+                "name": "voyant-engineer",
+                "description": "Data engineer - can create sources, run jobs",
+                "composite": true,
+                "composites": {
+                    "realm": [
+                        "voyant-analyst"
+                    ]
+                }
+            },
+            {
+                "name": "voyant-analyst",
+                "description": "Analyst - can run queries, view reports",
+                "composite": true,
+                "composites": {
+                    "realm": [
+                        "voyant-viewer"
+                    ]
+                }
+            },
+            {
+                "name": "voyant-viewer",
+                "description": "Read-only access to dashboards"
+            }
+        ]
+    },
+    "clients": [
+        {
+            "clientId": "voyant-api",
+            "name": "Voyant API",
+            "enabled": true,
+            "protocol": "openid-connect",
+            "publicClient": false,
+            "secret": "voyant-api-secret",
+            "standardFlowEnabled": false,
+            "directAccessGrantsEnabled": true,
+            "serviceAccountsEnabled": true,
+            "authorizationServicesEnabled": false
+        },
+        {
+            "clientId": "voyant-mcp",
+            "name": "Voyant MCP Server",
+            "enabled": true,
+            "protocol": "openid-connect",
+            "publicClient": false,
+            "secret": "voyant-mcp-secret",
+            "directAccessGrantsEnabled": true,
+            "serviceAccountsEnabled": true
+        },
+        {
+            "clientId": "voyant-web",
+            "name": "Voyant Web Application",
+            "enabled": true,
+            "protocol": "openid-connect",
+            "publicClient": true,
+            "standardFlowEnabled": true,
+            "implicitFlowEnabled": false,
+            "directAccessGrantsEnabled": false,
+            "redirectUris": [
+                "http://localhost:3000/*",
+                "http://localhost:8000/*"
+            ],
+            "webOrigins": [
+                "http://localhost:3000",
+                "http://localhost:8000"
+            ]
+        },
+        {
+            "clientId": "datahub",
+            "name": "DataHub",
+            "enabled": true,
+            "protocol": "openid-connect",
+            "publicClient": false,
+            "secret": "datahub-secret",
+            "standardFlowEnabled": true,
+            "redirectUris": [
+                "http://localhost:9002/*"
+            ]
+        }
+    ],
+    "users": [
+        {
+            "username": "admin",
+            "enabled": true,
+            "email": "admin@voyant.local",
+            "emailVerified": true,
+            "firstName": "Admin",
+            "lastName": "User",
+            "credentials": [
+                {
+                    "type": "password",
+                    "value": "admin",
+                    "temporary": false
+                }
+            ],
+            "realmRoles": [
+                "voyant-admin"
+            ]
+        },
+        {
+            "username": "engineer",
+            "enabled": true,
+            "email": "engineer@voyant.local",
+            "emailVerified": true,
+            "firstName": "Data",
+            "lastName": "Engineer",
+            "credentials": [
+                {
+                    "type": "password",
+                    "value": "engineer",
+                    "temporary": false
+                }
+            ],
+            "realmRoles": [
+                "voyant-engineer"
+            ]
+        },
+        {
+            "username": "analyst",
+            "enabled": true,
+            "email": "analyst@voyant.local",
+            "emailVerified": true,
+            "firstName": "Data",
+            "lastName": "Analyst",
+            "credentials": [
+                {
+                    "type": "password",
+                    "value": "analyst",
+                    "temporary": false
+                }
+            ],
+            "realmRoles": [
+                "voyant-analyst"
+            ]
+        }
+    ]
+}

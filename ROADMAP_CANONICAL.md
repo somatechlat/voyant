@@ -1,393 +1,666 @@
-# VOYANT UDB - CANONICAL ROADMAP
-## Autonomous Black Box Data Intelligence System
+# VOYANT - CANONICAL ROADMAP
+## The Data Clairvoyant: Next-Generation Autonomous Data Intelligence Black Box
 
-**Vision**: Voyant is an autonomous data intelligence black box. You give it a high-level request, it discovers, ingests, curates, analyzes, and returns the exact data you need—automatically.
-
-**Status**: 🟡 Foundation Complete → 🟢 Black Box Transformation In Progress
-
----
-
-## CURRENT STATE (v0.1.0-alpha)
-
-### ✅ What We Have
-- **REST API**: FastAPI service with endpoints for ingestion, analysis, status
-- **Data Ingestion**: Airbyte integration with 300+ connectors
-- **Analytical Engine**: DuckDB for SQL queries and transformations
-- **Analysis Stack**: ydata-profiling (EDA), Evidently (quality), KPI engine, Plotly charts
-- **Infrastructure**: Kubernetes manifests, Helm charts, Docker Compose
-- **Observability**: Prometheus metrics, Kafka events, structured logging
-- **Security**: RBAC, OIDC, PII masking, SQL guards
-- **Documentation**: Architecture, operations, security, scaling guides
-
-### ❌ What We're Missing (Black Box Requirements)
-- **Natural Language Understanding**: Cannot parse "get me Q4 sales data"
-- **Autonomous Discovery**: No automatic source scanning/cataloging
-- **Intelligent Data Selection**: Cannot map request → relevant sources
-- **Dynamic Workflow Generation**: Pre-defined flows only, no runtime orchestration
-- **MCP Server Interface**: No agent-to-agent communication protocol
-- **Internal Agent System**: No autonomous decision-making agents
-- **Self-Contained Orchestration**: Relies on external triggers
+**Version**: 2.0  
+**Last Updated**: 2024-10-30  
+**Status**: 🎯 Architecture Defined → 🚀 Ready for Implementation
 
 ---
 
-## TARGET STATE (v1.0.0 - Black Box)
+## EXECUTIVE SUMMARY
 
-### 🎯 Core Capabilities
+**VOYANT** (French: "seer, clairvoyant") is an autonomous data intelligence system that gives AI agents supernatural data powers. It's a completely isolated black box that:
 
-**INPUT**: Natural language or structured request
+- **Consumes ANY data source** (URL, PDF, XLS, API, database, etc.)
+- **Auto-discovers and connects** to data sources without human intervention
+- **Applies standard statistical processes** (benchmarks, regression, forecasting, etc.)
+- **Returns complete analyzed results** (data + insights + charts + predictions)
+
+**Integration**: Voyant operates as an MCP tool in the SomaAgentHub ecosystem, using shared infrastructure (Postgres, Redis, Kafka, Temporal) but maintaining complete functional isolation.
+
+---
+
+## THE VISION
+
+### What Voyant Is
+
+**A Data Clairvoyant for AI Agents**
+
 ```
-"Get me customer revenue analysis for Q4 2024"
-"Find all product performance metrics"
-"I need sales data from Salesforce and Stripe"
-```
+WITHOUT VOYANT:
+User: "Benchmark my brand vs Nike"
+Agent: "I need a developer to write code for this..."
+Result: Takes days, manual work, error-prone
 
-**OUTPUT**: Complete, analyzed, validated dataset ready to use
-```json
-{
-  "dataset_id": "customer_revenue_q4_2024",
-  "sources_used": ["salesforce_crm", "stripe_payments", "internal_warehouse"],
-  "rows": 15420,
-  "quality_score": 0.94,
-  "artifacts": ["profile.html", "quality_report.json", "revenue_chart.png"],
-  "insights": ["Revenue up 23% vs Q3", "Top region: North America"],
-  "query_ready": true
-}
+WITH VOYANT:
+User: "Benchmark my brand vs Nike"
+Agent: "Let me ask Voyant"
+Voyant: [Automatically discovers 23 data sources, connects, ingests 2.3M data points, 
+         analyzes market position, creates 8 charts, generates insights]
+Result: Complete benchmark report in 3 minutes
 ```
 
-**INTERNAL (Hidden from User)**:
-1. Parse request → extract intent, entities, time ranges, metrics
-2. Scan data catalog → identify relevant sources
-3. Generate ingestion plan → prioritize sources, determine joins
-4. Execute workflow → connect, sync, transform, validate
-5. Analyze & curate → quality checks, profiling, KPI calculation
-6. Return result → final dataset + artifacts + insights
+### Core Capabilities
+
+1. **AUTONOMOUS**: Discovers APIs, generates connectors, handles auth automatically
+2. **UNIVERSAL**: Consumes any format (PDF, XLS, CSV, JSON, API, database, web, etc.)
+3. **INTELLIGENT**: Auto-selects statistical methods, charts, and insights
+4. **PRESET-DRIVEN**: 40+ standard workflows (benchmarks, forecasting, quality fixes)
+5. **CUSTOM-CAPABLE**: Build custom workflows when presets don't fit
+6. **ISOLATED**: Zero dependency on agent logic, pure data intelligence
 
 ---
 
-## TRANSFORMATION PHASES
+## ARCHITECTURE OVERVIEW
 
-### 🔵 PHASE 1: MCP SERVER FOUNDATION (Weeks 1-2)
-**Goal**: Enable agent-to-agent communication
+### System Layers
 
-#### Deliverables
-- [ ] MCP server implementation (SSE/HTTP transport)
-- [ ] 5 core MCP tools exposed:
-  - `voyant_discover_connect` - Connect to data source
-  - `voyant_sync` - Trigger data sync
-  - `voyant_analyze` - Run analysis
-  - `voyant_sql` - Execute SQL query
-  - `voyant_status` - Check job status
-- [ ] Tool schema definitions (JSON Schema)
-- [ ] MCP client test harness
-- [ ] Integration with existing REST endpoints
-
-#### Acceptance Criteria
-- Standalone MCP client can discover and call all 5 tools
-- Tools return structured responses matching schemas
-- Error handling with proper MCP error codes
-
-#### Files to Create/Modify
-- `udb_api/mcp_server.py` - MCP server implementation
-- `udb_api/mcp_tools.py` - Tool definitions and handlers
-- `tests/test_mcp_server.py` - MCP integration tests
-- `docs/MCP_INTERFACE.md` - Update with implementation details
-
----
-
-### 🟢 PHASE 2: DATA CATALOG & DISCOVERY (Weeks 3-4)
-**Goal**: Automatic source discovery and cataloging
-
-#### Deliverables
-- [ ] Data catalog schema (DuckDB tables):
-  - `catalog_sources` - All available data sources
-  - `catalog_datasets` - Discovered datasets with metadata
-  - `catalog_schemas` - Table schemas and column info
-  - `catalog_quality` - Quality scores and freshness
-- [ ] Discovery agents (continuous background scanning):
-  - `FileSystemWatcher` - Monitor directories for new files
-  - `S3BucketPoller` - Poll S3 buckets for new objects
-  - `DatabaseSchemaScanner` - Scan database schemas
-  - `APIEndpointProber` - Check API endpoints for data
-- [ ] Discovery configuration system (`voyant-config.yaml`)
-- [ ] Catalog update workflow (Temporal)
-- [ ] Semantic search over catalog (keyword + schema matching)
-
-#### Acceptance Criteria
-- Discovery agents run continuously in background
-- New data sources automatically added to catalog within 60s
-- Catalog queryable via SQL and search API
-- Quality scores updated on each scan
-
-#### Files to Create
-- `udb_api/catalog/` - Catalog management module
-- `udb_api/discovery/` - Discovery agents
-  - `filesystem_watcher.py`
-  - `s3_poller.py`
-  - `database_scanner.py`
-  - `api_prober.py`
-- `udb_api/workflows/catalog_update.py` - Temporal workflow
-- `config/voyant-config.yaml` - Discovery configuration
-- `tests/test_discovery_agents.py`
-
----
-
-### 🟡 PHASE 3: REQUEST INTELLIGENCE (Weeks 5-6)
-**Goal**: Parse natural language requests and map to data sources
-
-#### Deliverables
-- [ ] Request parser:
-  - Extract intent (analysis, query, export)
-  - Extract entities (customers, products, regions)
-  - Extract time ranges (Q4 2024, last month)
-  - Extract metrics (revenue, count, growth)
-- [ ] Semantic matcher:
-  - Map request terms → catalog sources
-  - Score relevance of each source
-  - Identify required joins
-- [ ] Query planner:
-  - Generate SQL from request
-  - Determine aggregations and filters
-  - Optimize query execution
-- [ ] LLM integration (optional):
-  - Use local LLM for request parsing
-  - Fallback to rule-based parser
-
-#### Acceptance Criteria
-- Parse "customer revenue Q4" → {entity: customer, metric: revenue, time: Q4}
-- Map request → relevant sources with confidence scores
-- Generate executable SQL from natural language
-- Handle ambiguous requests with clarification prompts
-
-#### Files to Create
-- `udb_api/intelligence/` - Request intelligence module
-  - `request_parser.py`
-  - `semantic_matcher.py`
-  - `query_planner.py`
-  - `llm_integration.py` (optional)
-- `udb_api/intelligence/patterns.yaml` - Pattern library
-- `tests/test_request_intelligence.py`
-
----
-
-### 🟣 PHASE 4: AUTONOMOUS WORKFLOW ENGINE (Weeks 7-9)
-**Goal**: Dynamic workflow generation and execution
-
-#### Deliverables
-- [ ] Workflow generator:
-  - Create Temporal workflow from request
-  - Determine activity sequence
-  - Set timeouts and retry policies
-- [ ] Internal agents (Temporal activities):
-  - `ScopeAgent` - Understand request scope
-  - `DiscoveryAgent` - Find relevant sources
-  - `IngestionAgent` - Pull data from sources
-  - `TransformAgent` - Clean, join, normalize
-  - `AnalysisAgent` - Profile, validate, compute KPIs
-  - `QualityAgent` - Check data quality
-- [ ] Workflow orchestrator:
-  - Execute workflows durably
-  - Handle failures and retries
-  - Track progress and emit events
-- [ ] Result assembler:
-  - Combine outputs from all agents
-  - Generate final dataset
-  - Create artifacts and insights
-
-#### Acceptance Criteria
-- Single request triggers complete workflow automatically
-- Workflow adapts to data availability (skip missing sources)
-- Failures handled gracefully with partial results
-- Progress visible via status API
-
-#### Files to Create
-- `udb_api/workflows/` - Workflow definitions
-  - `autonomous_ingest.py` - Main workflow
-  - `activities/` - Agent activities
-    - `scope_activity.py`
-    - `discovery_activity.py`
-    - `ingestion_activity.py`
-    - `transform_activity.py`
-    - `analysis_activity.py`
-    - `quality_activity.py`
-- `udb_api/orchestrator.py` - Workflow orchestrator
-- `udb_api/result_assembler.py` - Result assembly
-- `tests/test_autonomous_workflow.py`
-
----
-
-### 🔴 PHASE 5: BLACK BOX INTERFACE (Weeks 10-11)
-**Goal**: Single unified interface for all interactions
-
-#### Deliverables
-- [ ] Unified request endpoint:
-  - `POST /request` - Single entry point
-  - Accepts natural language or structured JSON
-  - Returns job_id for async tracking
-- [ ] Streaming response support:
-  - Server-Sent Events for progress updates
-  - WebSocket for real-time status
-- [ ] Result retrieval:
-  - `GET /result/{job_id}` - Get final result
-  - `GET /result/{job_id}/stream` - Stream partial results
-- [ ] MCP tool consolidation:
-  - `voyant_request` - Single MCP tool for all operations
-  - Backward compatibility with existing tools
-- [ ] CLI tool:
-  - `voyant request "get me sales data"`
-  - `voyant status <job_id>`
-  - `voyant result <job_id>`
-
-#### Acceptance Criteria
-- Single request triggers entire pipeline
-- Progress visible in real-time
-- Results available immediately when ready
-- CLI tool works end-to-end
-
-#### Files to Create
-- `udb_api/request_handler.py` - Unified request handler
-- `udb_api/streaming.py` - SSE/WebSocket support
-- `cli/voyant.py` - CLI tool
-- `tests/test_black_box_interface.py`
-
----
-
-### 🟠 PHASE 6: OPTIMIZATION & HARDENING (Weeks 12-14)
-**Goal**: Production-ready performance and reliability
-
-#### Deliverables
-- [ ] Performance optimization:
-  - Parallel source ingestion
-  - Incremental sync (only new data)
-  - Query result caching
-  - Artifact compression
-- [ ] Reliability improvements:
-  - Circuit breakers for external services
-  - Graceful degradation (partial results)
-  - Automatic retry with backoff
-  - Dead letter queue for failed jobs
-- [ ] Observability enhancements:
-  - Distributed tracing (OpenTelemetry)
-  - Detailed metrics per workflow stage
-  - Audit log for all requests
-  - Performance profiling
-- [ ] Security hardening:
-  - Request validation and sanitization
-  - Rate limiting per tenant
-  - Credential rotation
-  - Encrypted artifact storage
-
-#### Acceptance Criteria
-- Handle 100 concurrent requests
-- P95 latency < 5s for catalog queries
-- 99.9% uptime for core services
-- Zero credential leaks in logs/metrics
-
-#### Files to Modify
-- All workflow files - Add parallelization
-- `udb_api/cache.py` - Result caching
-- `udb_api/circuit_breaker.py` - Fault tolerance
-- `udb_api/security.py` - Enhanced security
-
----
-
-## ARCHITECTURE EVOLUTION
-
-### Current Architecture (v0.1.0)
 ```
-User → REST API → Airbyte → DuckDB → Analysis → Artifacts
-```
-
-### Target Architecture (v1.0.0)
-```
-User/Agent
-    ↓
-[MCP Server] ← Agent-to-Agent Communication
-    ↓
-[Request Intelligence] ← Parse & Understand
-    ↓
-[Data Catalog] ← Semantic Search
-    ↓
-[Workflow Generator] ← Dynamic Orchestration
-    ↓
-[Internal Agents] ← Autonomous Execution
-    ├─ Discovery Agent
-    ├─ Ingestion Agent
-    ├─ Transform Agent
-    ├─ Analysis Agent
-    └─ Quality Agent
-    ↓
-[Result Assembler] ← Combine Outputs
-    ↓
-Final Dataset + Artifacts + Insights
+┌─────────────────────────────────────────────────────────────┐
+│                    SOMAAGENT HUB                             │
+│  Gateway → Orchestrator (Temporal) → Agent → MCP Handler    │
+└────────────────────────────────┬─────────────────────────────┘
+                                 │ MCP over SSE
+┌────────────────────────────────▼─────────────────────────────┐
+│                      VOYANT BLACK BOX                         │
+│                                                              │
+│  API LAYER (FastAPI + FastMCP)                              │
+│    ↓                                                         │
+│  ORCHESTRATION (Temporal/Airflow)                           │
+│    ↓                                                         │
+│  INGESTION (Airbyte + Unstructured + Scrapy)                │
+│    ↓                                                         │
+│  PROCESSING (Spark + Pandas + DuckDB + Great Expectations)  │
+│    ↓                                                         │
+│  STATISTICS (R + SciPy + Scikit-learn + XGBoost + Prophet)  │
+│    ↓                                                         │
+│  VISUALIZATION (Plotly + Superset)                          │
+│    ↓                                                         │
+│  STORAGE (DuckDB + Postgres + MinIO + Parquet)              │
+└──────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## INTEGRATION WITH SOMAAGENT HUB
+## COMPLETE FEATURE SET
 
-### Voyant as a Tool in the Ecosystem
+### TIER 1: Universal Data Ingestion
 
-**SomaAgentHub Agent Flow**:
-```python
-# Agent receives user request
-user: "Analyze our customer churn"
+#### 1.1 Data Source Connectors
+- **Airbyte** (300+ connectors): APIs, databases, cloud storage, SaaS
+- **Unstructured.io**: PDF, Word, PowerPoint, HTML, images (OCR)
+- **Scrapy**: Web scraping for any website
+- **Custom connectors**: Auto-generated for unknown APIs
 
-# Agent decides to use Voyant
-agent.execute_tool("voyant_request", {
-    "query": "Get customer churn analysis with retention metrics"
-})
+#### 1.2 Format Support
+- **Structured**: CSV, Excel, JSON, XML, Parquet, Avro, ORC
+- **Documents**: PDF, Word, PowerPoint, Text
+- **Databases**: Postgres, MySQL, MongoDB, Cassandra, etc.
+- **APIs**: REST, GraphQL, SOAP, gRPC
+- **Streaming**: Kafka, Kinesis, Pub/Sub
+- **Cloud**: S3, GCS, Azure Blob
+- **Social**: Twitter, Reddit, LinkedIn APIs
 
-# Voyant autonomously:
-# 1. Discovers customer data in Salesforce + internal DB
-# 2. Ingests both sources
-# 3. Joins on customer_id
-# 4. Calculates churn rate, retention cohorts
-# 5. Generates quality report + charts
-# 6. Returns complete analysis
+#### 1.3 Auto-Detection
+- File format detection (magic bytes)
+- Encoding detection (UTF-8, Latin-1, etc.)
+- Delimiter detection (comma, tab, pipe)
+- Schema inference
+- Data type detection
+- API pattern recognition (OpenAPI/Swagger)
+- Authentication method detection (OAuth, API key, Basic)
 
-# Agent receives result and continues workflow
-result = voyant.get_result(job_id)
-agent.respond(f"Churn rate is {result['kpis']['churn_rate']}%")
-```
-
-**Key Integration Points**:
-- Voyant exposes MCP server (port 8000/mcp)
-- SomaAgentHub agents discover Voyant via service registry
-- Agents call Voyant tools via MCP protocol
-- Voyant runs autonomously, agents just consume results
-- No tight coupling - Voyant works standalone or with agents
+#### 1.4 Auto-Connection
+- Connector generation (Airbyte configs or custom Python)
+- Authentication handler generation
+- Rate limiter setup
+- Retry logic implementation
+- Error handling
+- Credential management (secure storage in Redis/Vault)
 
 ---
 
-## MILESTONES & TIMELINE
+### TIER 2: Data Processing & Quality
 
-| Milestone | Target | Status | Deliverables |
-|-----------|--------|--------|--------------|
-| M0: Foundation | ✅ Complete | Done | REST API, Airbyte, DuckDB, Analysis |
-| M1: MCP Server | Week 2 | 🟡 In Progress | MCP tools, agent communication |
-| M2: Discovery | Week 4 | 🟢 Planned | Catalog, discovery agents |
-| M3: Intelligence | Week 6 | 🟢 Planned | Request parsing, semantic matching |
-| M4: Autonomy | Week 9 | 🟢 Planned | Workflow engine, internal agents |
-| M5: Black Box | Week 11 | 🟢 Planned | Unified interface, CLI |
-| M6: Production | Week 14 | 🟢 Planned | Optimization, hardening |
-| **v1.0.0 Release** | **Week 14** | 🎯 Target | **Full Black Box System** |
+#### 2.1 Data Quality Engine (Great Expectations)
+- **Completeness**: Missing value detection and scoring
+- **Consistency**: Duplicate detection, format validation
+- **Accuracy**: Cross-source verification
+- **Timeliness**: Freshness scoring
+- **Validity**: Range validation, format checks
+- **Overall DQS**: Data Quality Score (target ≥ 90%)
+
+#### 2.2 Data Cleaning
+- **Outlier Detection**: IQR method, Z-score, Modified Z-score
+- **Outlier Treatment**: Winsorization, transformation, removal, flagging
+- **Missing Data Imputation**: Mean/median, regression, K-NN, MICE
+- **Deduplication**: Fuzzy matching, entity resolution
+- **Standardization**: Format normalization, unit conversion
+
+#### 2.3 Data Transformation (Spark + Pandas/Polars)
+- **Normalization**: Min-max, Z-score, robust scaling
+- **Transformation**: Log, Box-Cox, power transforms
+- **Encoding**: One-hot, label, target encoding
+- **Feature Engineering**: Binning, aggregation, derived features
+- **Schema Mapping**: Field alignment across sources
+- **Temporal Alignment**: Time period harmonization
+
+#### 2.4 Data Integration (DuckDB)
+- **Entity Resolution**: Fuzzy matching (Levenshtein distance)
+- **Join Operations**: Inner, outer, left, right joins
+- **Conflict Resolution**: Weighted average, most recent, majority vote
+- **Data Harmonization**: Unified schema creation
+
+---
+
+### TIER 3: Statistical Analysis
+
+#### 3.1 Descriptive Statistics (R + SciPy)
+- **Central Tendency**: Mean, median, mode, trimmed mean
+- **Dispersion**: Variance, std dev, range, IQR, CV
+- **Shape**: Skewness, kurtosis
+- **Percentiles**: P5, P10, P25, P50, P75, P90, P95
+- **Correlation**: Pearson, Spearman, Kendall's Tau
+- **Distribution Fitting**: Normal, log-normal, exponential, gamma, etc.
+
+#### 3.2 Hypothesis Testing (R + StatsModels)
+- **t-tests**: One-sample, two-sample, paired
+- **ANOVA**: One-way, two-way, repeated measures
+- **Non-parametric**: Mann-Whitney U, Kruskal-Wallis, Wilcoxon
+- **Chi-square**: Independence, goodness-of-fit
+- **Proportion tests**: Z-test for proportions
+
+#### 3.3 Regression Analysis (R + Scikit-learn)
+- **Linear Regression**: Simple, multiple, polynomial
+- **Regularization**: Ridge, Lasso, Elastic Net
+- **Logistic Regression**: Binary, multinomial
+- **Non-linear**: Spline, GAM
+- **Diagnostics**: R², adjusted R², VIF, residual plots
+
+#### 3.4 Time Series Analysis (R forecast + Prophet)
+- **Decomposition**: Trend, seasonal, residual (STL)
+- **Stationarity**: ADF test, KPSS test
+- **Forecasting**: ARIMA, ETS, Prophet, Holt-Winters
+- **Anomaly Detection**: STL + residual analysis
+- **Seasonality**: ACF, PACF, seasonal strength
+
+#### 3.5 Machine Learning (Scikit-learn + XGBoost)
+- **Classification**: Random Forest, XGBoost, LightGBM, CatBoost
+- **Regression**: Gradient Boosting, Random Forest
+- **Clustering**: K-means, DBSCAN, Hierarchical, GMM
+- **Dimensionality Reduction**: PCA, t-SNE, UMAP
+- **Anomaly Detection**: Isolation Forest, LOF, Autoencoder
+- **Feature Importance**: SHAP, permutation importance
+
+#### 3.6 NLP & Sentiment (spaCy + Transformers)
+- **Sentiment Analysis**: VADER, BERT-based models
+- **Topic Modeling**: LDA, NMF
+- **Entity Recognition**: Named entities, custom entities
+- **Text Classification**: Multi-class, multi-label
+- **Embeddings**: Word2Vec, BERT, sentence transformers
+
+---
+
+### TIER 4: Preset Workflows
+
+#### 4.1 Analytical Presets (15 Standard)
+1. **BENCHMARK_MY_BRAND**: Competitive brand analysis
+2. **PREDICT_SALES**: Sales forecasting with confidence intervals
+3. **FORECAST_DEMAND**: Demand prediction with seasonality
+4. **DETECT_ANOMALIES**: Outlier and anomaly detection
+5. **SEGMENT_CUSTOMERS**: Customer clustering and profiling
+6. **ANALYZE_SENTIMENT**: Social media and review sentiment
+7. **IDENTIFY_TRENDS**: Trend detection and analysis
+8. **PREDICT_CHURN**: Customer churn prediction
+9. **OPTIMIZE_PRICING**: Price elasticity and optimization
+10. **MEASURE_IMPACT**: Causal impact analysis
+11. **LINEAR_REGRESSION_ANALYSIS**: Full regression workflow
+12. **CORRELATION_ANALYSIS**: Correlation matrix and drivers
+13. **MARKET_SHARE_ANALYSIS**: Market share calculation and trends
+14. **COMPETITIVE_ANALYSIS**: Competitive positioning
+15. **PRICE_ELASTICITY**: Price sensitivity analysis
+
+#### 4.2 Operational Presets (10 Standard)
+16. **FIX_DATA_QUALITY**: Auto-clean and validate data
+17. **MERGE_DATASETS**: Join multiple datasets intelligently
+18. **ENRICH_DATA**: Add external data sources
+19. **STANDARDIZE_FORMATS**: Convert to unified schema
+20. **VALIDATE_COMPLIANCE**: GDPR, HIPAA, SOX checks
+21. **DEDUPLICATE_RECORDS**: Fuzzy matching and merging
+22. **TRANSFORM_SCHEMA**: Migrate to new schema
+23. **MIGRATE_DATA**: Move data between systems
+24. **MASK_SENSITIVE_DATA**: PII/PHI masking
+25. **GENERATE_SYNTHETIC_DATA**: Privacy-preserving data generation
+
+#### 4.3 Discovery Presets (10 Standard)
+26. **DISCOVER_APIS**: Find and catalog APIs
+27. **MAP_DATA_SOURCES**: Inventory all data sources
+28. **CATALOG_DATABASES**: Schema discovery
+29. **INDEX_FILES**: File system indexing
+30. **SCAN_ENDPOINTS**: API endpoint discovery
+31. **DETECT_SCHEMAS**: Schema inference
+32. **FIND_RELATIONSHIPS**: Foreign key detection
+33. **BUILD_LINEAGE**: Data lineage mapping
+34. **TRACE_DEPENDENCIES**: Dependency graph
+35. **AUDIT_ACCESS**: Access pattern analysis
+
+#### 4.4 Advanced Presets (5 Standard)
+36. **CAUSAL_INFERENCE**: Causal effect estimation
+37. **SURVIVAL_ANALYSIS**: Time-to-event analysis
+38. **NETWORK_ANALYSIS**: Graph analytics
+39. **RECOMMENDATION_ENGINE**: Collaborative filtering
+40. **AB_TEST_ANALYSIS**: Experiment analysis
+
+#### 4.5 Custom Workflow Builder
+- Drag-and-drop workflow designer
+- Statistical process library (100+ operations)
+- Custom Python/R code injection
+- Conditional logic and loops
+- Error handling and retries
+- Workflow versioning and templates
+
+---
+
+### TIER 5: Visualization & Reporting
+
+#### 5.1 Auto-Chart Selection (Plotly)
+- **Bar Chart**: Categorical comparisons
+- **Line Chart**: Time series trends
+- **Scatter Plot**: Correlations
+- **Histogram**: Distributions
+- **Box Plot**: Distributions with outliers
+- **Heatmap**: Correlation matrices
+- **Radar Chart**: Multi-dimensional comparisons
+- **Pie Chart**: Proportions
+- **Waterfall Chart**: Cumulative effects
+- **Sankey Diagram**: Flow analysis
+
+#### 5.2 Interactive Dashboards (Superset)
+- SQL editor for ad-hoc queries
+- Chart builder with 40+ chart types
+- Dashboard creator with drag-and-drop
+- Filters and drill-down
+- Role-based access control
+- Embedding support
+
+#### 5.3 Report Generation
+- **HTML Reports**: Self-contained with embedded charts
+- **PDF Reports**: Executive summaries
+- **Excel Reports**: Data + charts
+- **Markdown Reports**: Technical documentation
+- **Jupyter Notebooks**: Reproducible analysis
+
+---
+
+### TIER 6: Intelligence & Automation
+
+#### 6.1 Smart Defaults Engine
+- Auto-select statistical tests based on data type
+- Auto-choose transformations based on distribution
+- Auto-determine chart types based on variables
+- Auto-calculate relevant metrics
+- Auto-train appropriate models
+- Auto-set thresholds based on data
+
+#### 6.2 Recommendation Engine
+- Data quality improvement recommendations
+- Analysis method recommendations
+- Visualization recommendations
+- Action recommendations based on insights
+- Risk warnings and alerts
+
+#### 6.3 Self-Healing System
+- Auto-retry with exponential backoff
+- Token refresh for expired credentials
+- Fallback to alternative sources
+- Web scraping when API fails
+- Cached data when source unavailable
+- Error recovery and continuation
+
+---
+
+### TIER 7: Orchestration & Execution
+
+#### 7.1 Workflow Engine (Temporal + Airflow)
+- DAG-based workflow execution
+- Parallel task execution
+- Conditional branching
+- Error handling and retries
+- Checkpointing and resume
+- Long-running workflow support
+
+#### 7.2 Resource Management
+- Memory management (Spark memory pools)
+- CPU allocation (worker pools)
+- Disk I/O optimization (caching)
+- Network bandwidth management
+- Concurrent job limits
+- Priority queues
+
+---
+
+### TIER 8: Observability & Control
+
+#### 8.1 Progress Tracking (SSE)
+- Real-time progress updates
+- Stage completion status
+- ETA calculations
+- Resource usage metrics
+- Current operation details
+
+#### 8.2 Audit Trail
+- Data sources accessed
+- Transformations applied
+- Statistical tests performed
+- Models trained
+- Results generated
+- Errors encountered
+- Execution time per stage
+
+#### 8.3 Metrics (Prometheus)
+- Job success/failure rates
+- Execution duration per preset
+- Data quality scores
+- Resource utilization
+- API call counts
+- Error rates
+
+---
+
+## TECHNOLOGY STACK (100% Open Source)
+
+### Core Components
+
+| Layer | Technology | Purpose | License |
+|-------|-----------|---------|---------|
+| **API** | FastAPI + FastMCP | MCP server, REST API | MIT |
+| **Orchestration** | Temporal + Airflow | Workflow engine | MIT + Apache 2.0 |
+| **Ingestion** | Airbyte + Unstructured + Scrapy | Universal data ingestion | MIT + Apache 2.0 |
+| **Processing** | Spark + Pandas/Polars + DuckDB | Data transformation | Apache 2.0 + MIT |
+| **Quality** | Great Expectations | Data validation | Apache 2.0 |
+| **Statistics** | R + Rserve + SciPy + StatsModels | Statistical analysis | GPL + BSD |
+| **ML** | Scikit-learn + XGBoost + LightGBM | Machine learning | BSD + Apache 2.0 |
+| **Forecasting** | Prophet | Time series forecasting | MIT |
+| **NLP** | spaCy + Transformers | Text analysis | MIT + Apache 2.0 |
+| **Visualization** | Plotly + Superset | Charts and dashboards | MIT + Apache 2.0 |
+| **Storage** | DuckDB + Postgres + MinIO + Parquet | Data storage | MIT + PostgreSQL + AGPL |
+
+### Why R is Critical
+
+**R provides the most comprehensive statistical library in existence:**
+- 19,000+ packages on CRAN
+- Every statistical method exists
+- Industry standard for statistics
+- Better statistical graphics
+- More rigorous implementations
+- Academic/research standard
+
+**Integration**: Run R via Rserve, call from Python via rpy2
+
+**Key R Packages**:
+- `stats`, `MASS`, `car` (statistics)
+- `forecast`, `prophet`, `tseries` (time series)
+- `caret`, `randomForest`, `xgboost` (ML)
+- `ggplot2`, `plotly` (visualization)
+
+---
+
+## STATISTICAL PROCESSES (Standard Workflows)
+
+### Example: BENCHMARK_MY_BRAND
+
+**Complete Statistical Pipeline:**
+
+#### Phase 1: Data Collection (6 processes)
+1. Data acquisition from multiple sources
+2. Data quality assessment (DQS calculation)
+3. Outlier detection and treatment
+4. Missing data imputation
+5. Normalization and standardization
+6. Data integration and harmonization
+
+#### Phase 2: Descriptive Statistics (8 processes)
+1. Univariate analysis (mean, median, std, etc.)
+2. Bivariate analysis (correlations)
+3. Distribution analysis (normality tests, fitting)
+4. Time series decomposition (trend, seasonal, residual)
+5. Market share calculation (absolute, relative, HHI)
+6. Price analysis (positioning, elasticity)
+7. Sentiment analysis (NLP + scoring)
+8. Brand health metrics (NPS, CSAT, awareness)
+
+#### Phase 3: Comparative Analysis (6 processes)
+1. Hypothesis testing (t-tests, ANOVA)
+2. Benchmarking metrics (RPI, gap analysis)
+3. Positioning analysis (MDS, PCA)
+4. Competitive intensity (concentration ratios)
+5. Performance gap analysis (importance-performance matrix)
+6. Share of wallet analysis
+
+#### Phase 4: Predictive Analytics (5 processes)
+1. Trend forecasting (ARIMA, Prophet)
+2. Regression analysis (drivers identification)
+3. Scenario analysis (Monte Carlo simulation)
+4. Market simulation (agent-based models)
+5. Risk assessment (VaR, stress testing)
+
+#### Phase 5: Insight Generation (4 processes)
+1. Driver analysis (relative importance)
+2. Segmentation analysis (clustering)
+3. Anomaly detection (outliers, changes)
+4. Recommendation engine (prioritized actions)
+
+**Total: 29 standard statistical processes per benchmark**
+
+---
+
+## IMPLEMENTATION ROADMAP
+
+### Phase 1: Foundation (Weeks 1-4)
+
+#### Week 1-2: Core Infrastructure
+- [ ] FastAPI + FastMCP server setup
+- [ ] Temporal workflow integration
+- [ ] DuckDB setup for analytics
+- [ ] Postgres metadata schema
+- [ ] MinIO artifact storage
+- [ ] Basic MCP tools (execute_preset, status, result)
+
+#### Week 3-4: Basic Ingestion
+- [ ] Airbyte integration (5 connectors: CSV, Postgres, REST API, S3, MySQL)
+- [ ] File upload support (CSV, Excel, JSON)
+- [ ] Schema detection
+- [ ] Data quality checks (Great Expectations)
+- [ ] Basic data cleaning
+
+**Deliverable**: Can ingest data from 5 sources, store in DuckDB, return quality report
+
+---
+
+### Phase 2: Statistical Engine (Weeks 5-8)
+
+#### Week 5-6: R Integration
+- [ ] Rserve setup
+- [ ] Python-R bridge (rpy2)
+- [ ] Basic statistical functions (mean, median, correlation)
+- [ ] Hypothesis testing (t-test, ANOVA)
+- [ ] Distribution fitting
+
+#### Week 7-8: First Preset
+- [ ] BENCHMARK_MY_BRAND preset implementation
+- [ ] Market share calculation
+- [ ] Price analysis
+- [ ] Sentiment analysis (VADER)
+- [ ] Basic charts (Plotly)
+- [ ] HTML report generation
+
+**Deliverable**: Working BENCHMARK_MY_BRAND preset end-to-end
+
+---
+
+### Phase 3: ML & Forecasting (Weeks 9-12)
+
+#### Week 9-10: Machine Learning
+- [ ] Scikit-learn integration
+- [ ] XGBoost integration
+- [ ] Clustering (K-means, DBSCAN)
+- [ ] Classification (Random Forest)
+- [ ] Feature importance
+
+#### Week 11-12: Time Series
+- [ ] Prophet integration
+- [ ] ARIMA implementation (R forecast package)
+- [ ] Trend decomposition
+- [ ] Anomaly detection
+- [ ] PREDICT_SALES preset
+- [ ] FORECAST_DEMAND preset
+
+**Deliverable**: 3 working presets (BENCHMARK, PREDICT_SALES, FORECAST_DEMAND)
+
+---
+
+### Phase 4: Auto-Discovery (Weeks 13-16)
+
+#### Week 13-14: API Discovery
+- [ ] Web search for APIs
+- [ ] OpenAPI/Swagger parsing
+- [ ] Auth method detection
+- [ ] Connector generation
+- [ ] API catalog
+
+#### Week 15-16: Auto-Connection
+- [ ] Credential management
+- [ ] OAuth flow handling
+- [ ] Rate limiting
+- [ ] Retry logic
+- [ ] Fallback to web scraping
+
+**Deliverable**: Auto-discovers and connects to unknown APIs
+
+---
+
+### Phase 5: Advanced Features (Weeks 17-20)
+
+#### Week 17-18: More Presets
+- [ ] FIX_DATA_QUALITY
+- [ ] SEGMENT_CUSTOMERS
+- [ ] DETECT_ANOMALIES
+- [ ] ANALYZE_SENTIMENT (advanced)
+- [ ] LINEAR_REGRESSION_ANALYSIS
+
+#### Week 19-20: Dashboards
+- [ ] Superset integration
+- [ ] Interactive dashboards
+- [ ] Custom chart builder
+- [ ] Report templates
+
+**Deliverable**: 8 working presets + interactive dashboards
+
+---
+
+### Phase 6: Production Hardening (Weeks 21-24)
+
+#### Week 21-22: Performance
+- [ ] Spark integration for big data
+- [ ] Parallel execution
+- [ ] Caching layer
+- [ ] Query optimization
+
+#### Week 23-24: Reliability
+- [ ] Comprehensive error handling
+- [ ] Circuit breakers
+- [ ] Health checks
+- [ ] Monitoring and alerting
+- [ ] Load testing
+
+**Deliverable**: Production-ready v1.0.0
 
 ---
 
 ## SUCCESS METRICS
 
 ### Technical KPIs
-- **Request-to-Result Time**: < 2 minutes for simple queries (< 1M rows)
-- **Discovery Latency**: New sources cataloged within 60 seconds
-- **Accuracy**: 95%+ correct source selection for requests
+- **Ingestion Speed**: > 100K rows/second
+- **Analysis Time**: < 5 minutes for standard preset (< 1M rows)
+- **Accuracy**: 95%+ correct statistical method selection
 - **Reliability**: 99.9% uptime, 99% job success rate
-- **Concurrency**: Handle 100+ concurrent requests
+- **Concurrency**: Handle 50+ concurrent jobs
 
 ### User Experience KPIs
-- **Onboarding Time**: < 5 minutes from install to first result
-- **Request Clarity**: < 10% requests need clarification
-- **Result Quality**: 90%+ users satisfied with data quality
-- **Autonomy**: 95%+ requests handled without manual intervention
+- **Onboarding**: < 5 minutes from install to first result
+- **Autonomy**: 95%+ requests handled without intervention
+- **Quality**: 90%+ users satisfied with results
+- **Clarity**: < 10% requests need clarification
+
+---
+
+## INTEGRATION WITH SOMAAGENT HUB
+
+### What Voyant Uses from SomaAgentHub
+- ✅ Postgres (metadata storage)
+- ✅ Redis (caching + credentials)
+- ✅ Kafka (event bus)
+- ✅ Temporal (workflow orchestration)
+- ✅ MinIO (artifact storage)
+- ✅ Observability stack (Prometheus, Grafana)
+
+### What Voyant Provides
+- ❌ MCP server (tool interface)
+- ❌ Preset library (40+ workflows)
+- ❌ Statistical engine (R + Python)
+- ❌ Auto-discovery system
+- ❌ Data catalog
+- ❌ Visualization engine
+
+### Communication Protocol
+- **MCP over SSE** for real-time progress updates
+- **Agents discover Voyant** via existing MCP handler
+- **Voyant executes independently** from agent logic
+- **Complete functional isolation** maintained
+
+---
+
+## EXAMPLE USAGE
+
+### Agent Workflow
+
+```python
+# Agent 1 discovers available presets
+presets = agent.execute_tool("voyant_list_presets")
+
+# Agent 1 executes benchmark
+result = agent.execute_tool("voyant_execute_preset", {
+    "preset": "BENCHMARK_MY_BRAND",
+    "params": {
+        "brand": "MyBrand",
+        "competitors": ["Nike", "Adidas"],
+        "period": "Q4_2024"
+    }
+})
+# Returns: {"job_id": "job_xyz123", "status": "running"}
+
+# Agent 1 polls for completion
+status = agent.execute_tool("voyant_status", {"job_id": "job_xyz123"})
+# Returns: {"status": "completed", "progress": 100}
+
+# Agent 1 retrieves result
+final = agent.execute_tool("voyant_result", {"job_id": "job_xyz123"})
+# Returns: Complete benchmark with insights, charts, data
+```
+
+### What Voyant Does Internally
+
+```
+1. Understands request: Need brand benchmark data
+2. Discovers sources: Finds 23 relevant APIs and data sources
+3. Connects: Auto-generates connectors, handles auth
+4. Ingests: Pulls 2.3M data points in parallel
+5. Cleans: Fixes quality issues, removes outliers
+6. Analyzes: Runs 29 statistical processes
+7. Visualizes: Creates 8 charts automatically
+8. Generates insights: "MyBrand is #3 with 12% share, growing 15%/year"
+9. Returns: Complete report with data, charts, insights, predictions
+```
 
 ---
 
@@ -395,21 +668,21 @@ agent.respond(f"Churn rate is {result['kpis']['churn_rate']}%")
 
 | Risk | Impact | Probability | Mitigation |
 |------|--------|-------------|------------|
-| LLM dependency for parsing | High | Medium | Rule-based fallback parser |
-| Catalog grows too large | Medium | High | Partitioning, archival, search optimization |
-| Workflow complexity explosion | High | Medium | Template library, workflow simplification |
-| Source authentication failures | Medium | High | Credential validation, clear error messages |
-| Performance degradation | Medium | Medium | Caching, parallelization, incremental sync |
+| R integration complexity | High | Medium | Use Rserve, extensive testing |
+| API discovery accuracy | Medium | Medium | Fallback to manual config |
+| Performance with big data | High | Medium | Spark integration, sampling |
+| Statistical method selection | High | Low | Expert system + validation |
+| Credential security | High | Low | Vault integration, encryption |
 
 ---
 
 ## OPEN QUESTIONS
 
-1. **LLM Integration**: Use local LLM (Ollama) or external API (OpenAI)?
-2. **Catalog Storage**: Keep in DuckDB or move to dedicated search engine (Elasticsearch)?
-3. **Workflow Engine**: Continue with Temporal or explore alternatives (Prefect, Dagster)?
-4. **Multi-Tenancy**: How to isolate data and workflows per tenant?
-5. **Pricing Model**: Open source core + paid enterprise features?
+1. **LLM for request parsing**: Use local LLM (Ollama) or rule-based?
+2. **Spark deployment**: Standalone or integrate with existing cluster?
+3. **R package management**: Docker image with pre-installed packages?
+4. **Custom preset storage**: Database or file-based?
+5. **Multi-tenancy**: How to isolate data per tenant?
 
 ---
 
@@ -417,9 +690,9 @@ agent.respond(f"Churn rate is {result['kpis']['churn_rate']}%")
 
 This roadmap is a living document. To propose changes:
 
-1. Open an issue with `[ROADMAP]` prefix
-2. Discuss in community meetings (bi-weekly)
-3. Submit PR with rationale and impact analysis
+1. Open issue with `[ROADMAP]` prefix
+2. Discuss in community meetings
+3. Submit PR with rationale
 4. Requires 2+ maintainer approvals
 
 ---
@@ -428,12 +701,13 @@ This roadmap is a living document. To propose changes:
 
 - **Architecture**: `docs/ARCHITECTURE.md`
 - **MCP Interface**: `docs/MCP_INTERFACE.md`
-- **Security**: `docs/SECURITY.md`
-- **Operations**: `docs/OPERATIONS.md`
-- **Principles**: `docs/PRINCIPLES.md`
+- **Statistical Methods**: `docs/STATISTICAL_PROCESSES.md`
+- **Technology Stack**: `docs/TECHNOLOGY_STACK.md`
+- **Preset Catalog**: `docs/PRESET_CATALOG.md`
 
 ---
 
-**Last Updated**: 2024-10-30
-**Next Review**: 2024-11-15
-**Maintainers**: @somatechlat
+**Last Updated**: 2024-10-30  
+**Next Review**: 2024-11-15  
+**Maintainers**: @somatechlat  
+**Status**: 🎯 Ready for Phase 1 Implementation

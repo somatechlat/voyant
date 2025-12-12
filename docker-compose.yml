@@ -1,62 +1,538 @@
+# =============================================================================
+# VOYANT - Docker Compose (Single Source of Truth)
+# =============================================================================
+# Version: 3.0.0 (aligned with SRS)
+# Environment: DEV-LOCAL (Production-grade with 10GB memory constraint)
+#
+# Usage:
+#   docker compose up -d              # Start all services
+#   docker compose up -d voyant-api   # Start only API
+#   docker compose logs -f voyant-api # View logs
+#   docker compose down -v            # Stop and remove volumes
+#
+# Memory Budget: 10GB Total
+# =============================================================================
+
 version: '3.9'
+
+# -----------------------------------------------------------------------------
+# Common configurations
+# -----------------------------------------------------------------------------
+x-common: &common
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+x-healthcheck: &healthcheck
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 40s
+
+# -----------------------------------------------------------------------------
+# Environment variables (can be overridden via .env file)
+# -----------------------------------------------------------------------------
+x-postgres-env: &postgres-env
+  POSTGRES_USER: ${POSTGRES_USER:-voyant}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-voyant}
+
+x-redis-env: &redis-env
+  REDIS_PASSWORD: ${REDIS_PASSWORD:-voyant}
+
+x-minio-env: &minio-env
+  MINIO_ROOT_USER: ${MINIO_ROOT_USER:-voyant}
+  MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-voyant123}
+
 services:
-  kafka:
-    image: bitnami/kafka:3.7
-    environment:
-      - KAFKA_ENABLE_KRAFT=yes
-      - KAFKA_CFG_PROCESS_ROLES=broker,controller
-      - KAFKA_CFG_NODE_ID=1
-      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
-      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093
-      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
-      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
-      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
-      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+  # ===========================================================================
+  # CORE: Voyant API & MCP Server
+  # ===========================================================================
+
+  voyant-api:
+    <<: *common
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: voyant-api
     ports:
-      - "9092:9092"
+      - "${VOYANT_API_PORT:-8000}:8000"
+    environment:
+      # Environment
+      VOYANT_ENV: ${VOYANT_ENV:-local}
+      VOYANT_SECRETS_BACKEND: ${VOYANT_SECRETS_BACKEND:-env}
+
+      # Database
+      DATABASE_URL: postgresql://${POSTGRES_USER:-voyant}:${POSTGRES_PASSWORD:-voyant}@postgres:5432/voyant
+
+      # Redis (Sessions & Cache)
+      REDIS_URL: redis://:${REDIS_PASSWORD:-voyant}@redis:6379/0
+
+      # Kafka
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+
+      # MinIO (S3-compatible)
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-voyant}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-voyant123}
+
+      # DataHub
+      DATAHUB_GMS_URL: http://datahub-gms:8080
+
+      # Trino
+      TRINO_URL: http://trino:8080
+
+      # Keycloak
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: voyant
+      KEYCLOAK_CLIENT_ID: voyant-api
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-voyant-api-secret}
+
+      # Lago Billing
+      LAGO_API_URL: http://lago-api:3000
+      LAGO_API_KEY: ${LAGO_API_KEY:-lago-api-key}
+
+      # Feature Flags
+      VOYANT_ENABLE_QUALITY: ${VOYANT_ENABLE_QUALITY:-true}
+      VOYANT_ENABLE_BILLING: ${VOYANT_ENABLE_BILLING:-true}
+      VOYANT_ENABLE_DATAHUB: ${VOYANT_ENABLE_DATAHUB:-true}
+    volumes:
+      - ./udb_api:/app/udb_api:ro
+      - ./artifacts:/app/artifacts
+      - ./data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    healthcheck:
+      <<: *healthcheck
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - voyant-net
+
+  voyant-mcp:
+    <<: *common
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: voyant-mcp
+    command: [ "python", "-m", "voyant.mcp.server" ]
+    ports:
+      - "${VOYANT_MCP_PORT:-8001}:8001"
+    environment:
+      VOYANT_API_URL: http://voyant-api:8000
+      VOYANT_ENV: ${VOYANT_ENV:-local}
+    depends_on:
+      voyant-api:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    networks:
+      - voyant-net
+
+  voyant-worker:
+    <<: *common
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: voyant-worker
+    command: [ "celery", "-A", "voyant.worker", "worker", "-l", "info", "-c", "2" ]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-voyant}:${POSTGRES_PASSWORD:-voyant}@postgres:5432/voyant
+      REDIS_URL: redis://:${REDIS_PASSWORD:-voyant}@redis:6379/0
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - voyant-net
+
+  # ===========================================================================
+  # DATA INFRASTRUCTURE
+  # ===========================================================================
+
+  postgres:
+    <<: *common
+    image: postgres:16-alpine
+    container_name: voyant-postgres
+    environment:
+      <<: *postgres-env
+      POSTGRES_DB: voyant
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      <<: *healthcheck
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-voyant}" ]
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - voyant-net
 
   redis:
-    image: redis:7
+    <<: *common
+    image: redis:7-alpine
+    container_name: voyant-redis
+    command: redis-server --requirepass ${REDIS_PASSWORD:-voyant} --maxmemory 100mb --maxmemory-policy allkeys-lru
     ports:
-      - "6379:6379"
-
-  kestra:
-    image: kestra/kestra:latest
-    environment:
-      - KESTRA_CONFIGURATION=/app/application.yml
-    ports:
-      - "8080:8080"
-
-  airbyte:
-    image: airbyte/airbyte:0.50.48
-    command: ["bash", "-c", "./run_ab_platform.sh"]
-    ports:
-      - "8001:8001"
-
-  udb-api:
-    build: .
-    environment:
-      AIRBYTE_URL: http://airbyte:8001
-      DUCKDB_PATH: /data/warehouse.duckdb
-      ARTIFACTS_ROOT: /artifacts
-      UDB_ENABLE_EVENTS: 1
-      KAFKA_BROKERS: kafka:9092
-      REDIS_URL: redis://redis:6379/0
-      UDB_DISABLE_RATE_LIMIT: 1
-      UDB_ENABLE_KESTRA: 1
-      KESTRA_BASE_URL: http://kestra:8080
-    depends_on:
-      - kafka
-      - redis
-      - kestra
-      - airbyte
-    ports:
-      - "8000:8000"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
-      - duckdb_data:/data
-      - artifacts_data:/artifacts
-    command: ["uvicorn", "udb_api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+      - redis_data:/data
+    healthcheck:
+      <<: *healthcheck
+      test: [ "CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-voyant}", "ping" ]
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    networks:
+      - voyant-net
 
+  kafka:
+    <<: *common
+    image: bitnami/kafka:3.6
+    container_name: voyant-kafka
+    environment:
+      KAFKA_CFG_NODE_ID: 1
+      KAFKA_CFG_PROCESS_ROLES: controller,broker
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_CFG_LOG_RETENTION_HOURS: 24
+      KAFKA_KRAFT_CLUSTER_ID: voyant-local-cluster
+      KAFKA_HEAP_OPTS: -Xmx512m -Xms256m
+    ports:
+      - "${KAFKA_PORT:-9092}:9092"
+    volumes:
+      - kafka_data:/bitnami/kafka
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    networks:
+      - voyant-net
+
+  minio:
+    <<: *common
+    image: minio/minio:latest
+    container_name: voyant-minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    environment:
+      <<: *minio-env
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      <<: *healthcheck
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - voyant-net
+
+  minio-init:
+    image: minio/mc
+    container_name: voyant-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c " mc alias set voyant http://minio:9000 ${MINIO_ROOT_USER:-voyant} ${MINIO_ROOT_PASSWORD:-voyant123}; mc mb voyant/artifacts --ignore-existing; mc mb voyant/warehouse --ignore-existing; mc mb voyant/staging --ignore-existing; exit 0; "
+    networks:
+      - voyant-net
+
+  # ===========================================================================
+  # PROCESSING (Spark)
+  # ===========================================================================
+
+  spark-master:
+    <<: *common
+    image: bitnami/spark:3.5
+    container_name: voyant-spark-master
+    environment:
+      SPARK_MODE: master
+      SPARK_MASTER_HOST: spark-master
+      SPARK_RPC_AUTHENTICATION_ENABLED: "no"
+      SPARK_RPC_ENCRYPTION_ENABLED: "no"
+      SPARK_MASTER_WEBUI_PORT: 8088
+      SPARK_DAEMON_MEMORY: 512m
+    ports:
+      - "${SPARK_UI_PORT:-8088}:8088"
+      - "7077:7077"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    networks:
+      - voyant-net
+
+  spark-worker:
+    <<: *common
+    image: bitnami/spark:3.5
+    container_name: voyant-spark-worker
+    environment:
+      SPARK_MODE: worker
+      SPARK_MASTER_URL: spark://spark-master:7077
+      SPARK_WORKER_MEMORY: 1G
+      SPARK_WORKER_CORES: 2
+      SPARK_RPC_AUTHENTICATION_ENABLED: "no"
+      SPARK_RPC_ENCRYPTION_ENABLED: "no"
+    depends_on:
+      - spark-master
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    networks:
+      - voyant-net
+
+  # ===========================================================================
+  # ANALYTICS (Trino)
+  # ===========================================================================
+
+  trino:
+    <<: *common
+    image: trinodb/trino:434
+    container_name: voyant-trino
+    ports:
+      - "${TRINO_PORT:-8090}:8080"
+    volumes:
+      - ./config/trino:/etc/trino:ro
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    networks:
+      - voyant-net
+
+  # ===========================================================================
+  # GOVERNANCE (DataHub)
+  # ===========================================================================
+
+  elasticsearch:
+    <<: *common
+    image: elasticsearch:7.17.16
+    container_name: voyant-elasticsearch
+    environment:
+      discovery.type: single-node
+      ES_JAVA_OPTS: -Xms256m -Xmx256m
+      xpack.security.enabled: "false"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      <<: *healthcheck
+      test: [ "CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1" ]
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - voyant-net
+
+  datahub-gms:
+    <<: *common
+    image: linkedin/datahub-gms:v0.12.1
+    container_name: voyant-datahub-gms
+    environment:
+      DATAHUB_GMS_PORT: 8080
+      EBEAN_DATASOURCE_URL: jdbc:postgresql://postgres:5432/datahub
+      EBEAN_DATASOURCE_USERNAME: ${POSTGRES_USER:-voyant}
+      EBEAN_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-voyant}
+      KAFKA_BOOTSTRAP_SERVER: kafka:9092
+      ELASTICSEARCH_HOST: elasticsearch
+      ELASTICSEARCH_PORT: 9200
+      JAVA_OPTS: -Xms256m -Xmx512m
+    ports:
+      - "${DATAHUB_GMS_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      elasticsearch:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    networks:
+      - voyant-net
+
+  datahub-frontend:
+    <<: *common
+    image: linkedin/datahub-frontend-react:v0.12.1
+    container_name: voyant-datahub-frontend
+    environment:
+      DATAHUB_GMS_HOST: datahub-gms
+      DATAHUB_GMS_PORT: 8080
+    ports:
+      - "${DATAHUB_UI_PORT:-9002}:9002"
+    depends_on:
+      - datahub-gms
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - voyant-net
+
+  # ===========================================================================
+  # SECURITY (Keycloak)
+  # ===========================================================================
+
+  keycloak:
+    <<: *common
+    image: quay.io/keycloak/keycloak:23.0
+    container_name: voyant-keycloak
+    command: start-dev --import-realm
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: ${POSTGRES_USER:-voyant}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-voyant}
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "true"
+    ports:
+      - "${KEYCLOAK_PORT:-8180}:8080"
+    volumes:
+      - ./config/keycloak/realm-voyant.json:/opt/keycloak/data/import/realm-voyant.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      <<: *healthcheck
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/health/ready" ]
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - voyant-net
+
+  # ===========================================================================
+  # BILLING (Lago)
+  # ===========================================================================
+
+  lago-api:
+    <<: *common
+    image: getlago/api:v0.50.0
+    container_name: voyant-lago-api
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-voyant}:${POSTGRES_PASSWORD:-voyant}@postgres:5432/lago
+      REDIS_URL: redis://:${REDIS_PASSWORD:-voyant}@redis:6379/1
+      LAGO_API_URL: http://localhost:3000
+      SECRET_KEY_BASE: ${LAGO_SECRET_KEY:-lago-secret-key-base-min-32-chars-here}
+      ENCRYPTION_PRIMARY_KEY: ${LAGO_ENCRYPTION_KEY:-encryption-key-32-characters-min}
+      LAGO_WEBHOOK_ATTEMPTS: 3
+      RAILS_ENV: development
+    ports:
+      - "${LAGO_API_PORT:-3000}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - voyant-net
+
+  lago-worker:
+    <<: *common
+    image: getlago/api:v0.50.0
+    container_name: voyant-lago-worker
+    command: bundle exec sidekiq
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-voyant}:${POSTGRES_PASSWORD:-voyant}@postgres:5432/lago
+      REDIS_URL: redis://:${REDIS_PASSWORD:-voyant}@redis:6379/1
+      SECRET_KEY_BASE: ${LAGO_SECRET_KEY:-lago-secret-key-base-min-32-chars-here}
+      ENCRYPTION_PRIMARY_KEY: ${LAGO_ENCRYPTION_KEY:-encryption-key-32-characters-min}
+    depends_on:
+      - lago-api
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    networks:
+      - voyant-net
+
+# =============================================================================
+# NETWORKS
+# =============================================================================
+networks:
+  voyant-net:
+    driver: bridge
+    name: voyant-net
+
+# =============================================================================
+# VOLUMES
+# =============================================================================
 volumes:
-  duckdb_data:
-  artifacts_data:
+  postgres_data:
+    name: voyant-postgres-data
+  redis_data:
+    name: voyant-redis-data
+  kafka_data:
+    name: voyant-kafka-data
+  minio_data:
+    name: voyant-minio-data
+  elasticsearch_data:
+    name: voyant-elasticsearch-data
+
+# =============================================================================
+# RESOURCE SUMMARY (DEV-LOCAL 10GB Limit)
+# =============================================================================
+#
+# Service             Memory    Purpose
+# ------------------  --------  --------------------------------
+# voyant-api          512M      FastAPI Backend
+# voyant-mcp          256M      MCP Server for AI Agents
+# voyant-worker       512M      Celery Workers
+# postgres            512M      Metadata, Keycloak, Lago DBs
+# redis               128M      Sessions, Cache, Celery Broker
+# kafka               1G        Event Streaming
+# minio               512M      Object Storage (S3-compatible)
+# spark-master        1G        Spark Master
+# spark-worker        1G        Spark Worker
+# trino               1G        SQL Federation
+# elasticsearch       512M      DataHub Search
+# datahub-gms         1G        DataHub Backend
+# datahub-frontend    512M      DataHub UI
+# keycloak            512M      Identity & Auth
+# lago-api            512M      Billing API
+# lago-worker         256M      Billing Workers
+# ------------------  --------  --------------------------------
+# TOTAL               ~10GB
+# =============================================================================
