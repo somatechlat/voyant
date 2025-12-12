@@ -58,7 +58,7 @@ services:
       dockerfile: Dockerfile
     container_name: voyant-api
     ports:
-      - "${VOYANT_API_PORT:-8000}:8000"
+      - "${VOYANT_API_PORT:-45000}:8000"
     environment:
       # Environment
       VOYANT_ENV: ${VOYANT_ENV:-local}
@@ -99,7 +99,7 @@ services:
       VOYANT_ENABLE_BILLING: ${VOYANT_ENABLE_BILLING:-true}
       VOYANT_ENABLE_DATAHUB: ${VOYANT_ENABLE_DATAHUB:-true}
     volumes:
-      - ./udb_api:/app/udb_api:ro
+      - ./voyant:/app/voyant:ro
       - ./artifacts:/app/artifacts
       - ./data:/app/data
     depends_on:
@@ -127,7 +127,7 @@ services:
     container_name: voyant-mcp
     command: [ "python", "-m", "voyant.mcp.server" ]
     ports:
-      - "${VOYANT_MCP_PORT:-8001}:8001"
+      - "${VOYANT_MCP_PORT:-45001}:8001"
     environment:
       VOYANT_API_URL: http://voyant-api:8000
       VOYANT_ENV: ${VOYANT_ENV:-local}
@@ -176,7 +176,7 @@ services:
       <<: *postgres-env
       POSTGRES_DB: voyant
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${POSTGRES_PORT:-45432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
@@ -196,7 +196,7 @@ services:
     container_name: voyant-redis
     command: redis-server --requirepass ${REDIS_PASSWORD:-voyant} --maxmemory 100mb --maxmemory-policy allkeys-lru
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "${REDIS_PORT:-45379}:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -226,7 +226,7 @@ services:
       KAFKA_KRAFT_CLUSTER_ID: voyant-local-cluster
       KAFKA_HEAP_OPTS: -Xmx512m -Xms256m
     ports:
-      - "${KAFKA_PORT:-9092}:9092"
+      - "${KAFKA_PORT:-45092}:9092"
     volumes:
       - kafka_data:/bitnami/kafka
     deploy:
@@ -242,8 +242,8 @@ services:
     container_name: voyant-minio
     command: server /data --console-address ":9001"
     ports:
-      - "${MINIO_API_PORT:-9000}:9000"
-      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+      - "${MINIO_API_PORT:-45900}:9000"
+      - "${MINIO_CONSOLE_PORT:-45901}:9001"
     environment:
       <<: *minio-env
     volumes:
@@ -285,8 +285,8 @@ services:
       SPARK_MASTER_WEBUI_PORT: 8088
       SPARK_DAEMON_MEMORY: 512m
     ports:
-      - "${SPARK_UI_PORT:-8088}:8088"
-      - "7077:7077"
+      - "${SPARK_UI_PORT:-45088}:8088"
+      - "45077:7077"
     deploy:
       resources:
         limits:
@@ -323,7 +323,7 @@ services:
     image: trinodb/trino:434
     container_name: voyant-trino
     ports:
-      - "${TRINO_PORT:-8090}:8080"
+      - "${TRINO_PORT:-45090}:8080"
     volumes:
       - ./config/trino:/etc/trino:ro
     deploy:
@@ -371,7 +371,7 @@ services:
       ELASTICSEARCH_PORT: 9200
       JAVA_OPTS: -Xms256m -Xmx512m
     ports:
-      - "${DATAHUB_GMS_PORT:-8080}:8080"
+      - "${DATAHUB_GMS_PORT:-45080}:8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -394,7 +394,7 @@ services:
       DATAHUB_GMS_HOST: datahub-gms
       DATAHUB_GMS_PORT: 8080
     ports:
-      - "${DATAHUB_UI_PORT:-9002}:9002"
+      - "${DATAHUB_UI_PORT:-45002}:9002"
     depends_on:
       - datahub-gms
     deploy:
@@ -423,7 +423,7 @@ services:
       KC_HEALTH_ENABLED: "true"
       KC_METRICS_ENABLED: "true"
     ports:
-      - "${KEYCLOAK_PORT:-8180}:8080"
+      - "${KEYCLOAK_PORT:-45180}:8080"
     volumes:
       - ./config/keycloak/realm-voyant.json:/opt/keycloak/data/import/realm-voyant.json:ro
     depends_on:
@@ -456,7 +456,7 @@ services:
       LAGO_WEBHOOK_ATTEMPTS: 3
       RAILS_ENV: development
     ports:
-      - "${LAGO_API_PORT:-3000}:3000"
+      - "${LAGO_API_PORT:-45300}:3000"
     depends_on:
       postgres:
         condition: service_healthy
