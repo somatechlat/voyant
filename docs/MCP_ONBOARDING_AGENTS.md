@@ -25,10 +25,62 @@ docker compose ps
 
 ### 2. Connection Details
 
+#### If Agent is Running on Host Machine:
+
 | Endpoint | URL |
 |----------|-----|
 | **MCP Server (HTTP)** | `http://localhost:45001` |
 | **REST API** | `http://localhost:45000` |
+
+#### If Agent is Running in Docker (Same Network):
+
+Connect your agent container to the `voyant-net` network:
+
+```bash
+docker run --network voyant-net your-agent-image
+```
+
+Then use **internal container hostnames** (no port mapping needed):
+
+| Endpoint | URL |
+|----------|-----|
+| **MCP Server** | `http://voyant-mcp:8001` |
+| **REST API** | `http://voyant-api:8000` |
+
+#### If Agent is in a Different Docker Network:
+
+Use the **host machine IP** (not localhost):
+
+```bash
+# Get your host IP
+ifconfig | grep "inet " | grep -v 127.0.0.1
+
+# Or on Mac:
+ipconfig getifaddr en0
+```
+
+| Endpoint | URL |
+|----------|-----|
+| **MCP Server** | `http://<HOST_IP>:45001` |
+| **REST API** | `http://<HOST_IP>:45000` |
+
+#### Docker Compose Addition (Recommended):
+
+Add your agent to the same docker-compose.yml:
+
+```yaml
+services:
+  your-agent:
+    image: your-agent-image
+    environment:
+      VOYANT_MCP_URL: http://voyant-mcp:8001
+      VOYANT_API_URL: http://voyant-api:8000
+    networks:
+      - voyant-net
+    depends_on:
+      voyant-api:
+        condition: service_healthy
+```
 
 ---
 
