@@ -55,6 +55,10 @@ class Settings(BaseSettings):
     trino_user: str = Field(default="voyant")
     trino_catalog: str = Field(default="iceberg")
     trino_schema: str = Field(default="voyant")
+
+    # R Engine (Statistical Analysis)
+    r_engine_host: str = Field(default="localhost")
+    r_engine_port: int = Field(default=6311)
     
     # DataHub
     datahub_gms_url: str = Field(default="http://localhost:8080")

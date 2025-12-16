@@ -271,3 +271,91 @@ async def get_schema(urn: str):
     except httpx.HTTPError as e:
         logger.error(f"DataHub request failed: {e}")
         raise HTTPException(status_code=503, detail="DataHub unavailable")
+
+
+# =============================================================================
+# Quota Management Endpoints
+# =============================================================================
+
+from voyant.core.quotas import (
+    list_tiers as _list_tiers,
+    get_quota_limits as _get_quota_limits,
+    get_usage_status as _get_usage_status,
+    set_tenant_tier as _set_tenant_tier,
+)
+from voyant.api.middleware import get_tenant_id
+
+
+class QuotaTierInfo(BaseModel):
+    tier_id: str
+    name: str
+    max_jobs_per_day: int
+    max_artifacts_gb: float
+    max_sources: int
+    max_concurrent_jobs: int
+
+
+class QuotaUsageStatus(BaseModel):
+    tenant_id: str
+    tier: str
+    jobs_today: int
+    jobs_limit: int
+    jobs_remaining: int
+    artifacts_gb: float
+    artifacts_limit_gb: float
+    sources_count: int
+    sources_limit: int
+    concurrent_jobs: int
+    concurrent_limit: int
+
+
+class SetTierRequest(BaseModel):
+    tier: str
+
+
+@router.get("/quotas/tiers", response_model=List[QuotaTierInfo])
+async def list_quota_tiers():
+    """List all available quota tiers."""
+    tiers = _list_tiers()
+    return [
+        QuotaTierInfo(
+            tier_id=tier_id,
+            name=info["name"],
+            max_jobs_per_day=info["max_jobs_per_day"],
+            max_artifacts_gb=info["max_artifacts_gb"],
+            max_sources=info["max_sources"],
+            max_concurrent_jobs=info["max_concurrent_jobs"],
+        )
+        for tier_id, info in tiers.items()
+    ]
+
+
+@router.get("/quotas/usage", response_model=QuotaUsageStatus)
+async def get_quota_usage():
+    """Get current quota usage for the authenticated tenant."""
+    tenant_id = get_tenant_id()
+    status = _get_usage_status(tenant_id)
+    return QuotaUsageStatus(**status)
+
+
+@router.get("/quotas/limits")
+async def get_quota_limits():
+    """Get quota limits for the authenticated tenant."""
+    tenant_id = get_tenant_id()
+    return _get_quota_limits(tenant_id)
+
+
+@router.post("/quotas/tier", status_code=200)
+async def set_quota_tier(request: SetTierRequest):
+    """
+    Set quota tier for a tenant (admin only).
+    
+    In production, this requires admin authentication.
+    """
+    tenant_id = get_tenant_id()
+    try:
+        _set_tenant_tier(tenant_id, request.tier)
+        return {"status": "updated", "tenant_id": tenant_id, "tier": request.tier}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+

@@ -217,3 +217,90 @@ async def execute_preset(preset_name: str, request: PresetExecuteRequest):
         status="queued",
         created_at=now,
     )
+
+
+# =============================================================================
+# KPI Templates Endpoints
+# =============================================================================
+
+from voyant.core.kpi_templates import (
+    list_templates as _list_kpi_templates,
+    get_template as _get_kpi_template,
+    render_template as _render_kpi_template,
+    get_categories as _get_kpi_categories,
+)
+
+
+class KPITemplateInfo(BaseModel):
+    name: str
+    category: str
+    description: str
+    required_columns: List[str]
+    optional_columns: Dict[str, str] = Field(default_factory=dict)
+    output_columns: List[str] = Field(default_factory=list)
+
+
+class KPIRenderRequest(BaseModel):
+    parameters: Dict[str, str]
+
+
+class KPIRenderResponse(BaseModel):
+    template_name: str
+    sql: str
+
+
+@router.get("/kpi-templates", response_model=List[KPITemplateInfo])
+async def list_kpi_templates(category: Optional[str] = None):
+    """
+    List available KPI SQL templates.
+    
+    These templates provide standard SQL patterns for common KPI calculations
+    that can be applied to any compatible dataset.
+    
+    Args:
+        category: Optional filter by category (financial, customer, quality, etc.)
+    """
+    templates = _list_kpi_templates(category=category)
+    return [KPITemplateInfo(**t) for t in templates]
+
+
+@router.get("/kpi-templates/categories", response_model=List[str])
+async def list_kpi_categories():
+    """List available KPI template categories."""
+    return _get_kpi_categories()
+
+
+@router.get("/kpi-templates/{template_name}", response_model=KPITemplateInfo)
+async def get_kpi_template(template_name: str):
+    """Get details for a specific KPI template."""
+    template = _get_kpi_template(template_name)
+    if not template:
+        raise HTTPException(status_code=404, detail=f"Template not found: {template_name}")
+    
+    return KPITemplateInfo(
+        name=template.name,
+        category=template.category,
+        description=template.description,
+        required_columns=template.required_columns,
+        optional_columns=template.optional_columns,
+        output_columns=template.output_columns,
+    )
+
+
+@router.post("/kpi-templates/{template_name}/render", response_model=KPIRenderResponse)
+async def render_kpi_template(template_name: str, request: KPIRenderRequest):
+    """
+    Render a KPI template with provided parameters.
+    
+    Returns the generated SQL query ready for execution.
+    
+    Args:
+        template_name: Name of the template to render
+        request: Parameters to substitute in the template (table names, column names)
+    """
+    try:
+        sql = _render_kpi_template(template_name, request.parameters)
+        return KPIRenderResponse(template_name=template_name, sql=sql)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+

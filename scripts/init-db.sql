@@ -8,6 +8,7 @@
 -- Create databases
 CREATE DATABASE keycloak;
 CREATE DATABASE datahub;
+CREATE DATABASE temporal;
 
 -- Grant permissions to voyant user (already exists as POSTGRES_USER)
 GRANT ALL PRIVILEGES ON DATABASE keycloak TO voyant;
