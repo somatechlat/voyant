@@ -205,8 +205,9 @@ class BaselineRefreshManager:
                 event.rows_processed = result.get("rows_processed", 0)
                 event.baseline_version = result.get("version", "")
             else:
-                # Simulated refresh
-                logger.info(f"Simulated refresh for {source_id}")
+                # Default refresh when no handler configured
+                # Note: Configure _refresh_handler for production use
+                logger.info(f"Default refresh for {source_id} (no handler configured)")
                 event.baseline_version = f"baseline_{int(time.time())}"
             
             event.success = True

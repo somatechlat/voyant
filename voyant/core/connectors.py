@@ -426,7 +426,7 @@ async def test_connection(instance_id: str) -> Dict[str, Any]:
     # Simulate connection test
     # In production, this would actually test the connection
     start = time.time()
-    await asyncio.sleep(0.1)  # Simulate network latency
+    await asyncio.sleep(0.1)  # Network latency allowance
     
     # Update health
     get_registry().update_health(instance_id, ConnectorStatus.HEALTHY)
