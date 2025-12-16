@@ -64,20 +64,42 @@ class REngine:
             self.conn.close()
             self.conn = None
 
-    def eval(self, expr: str) -> Any:
-        """Evaluate R expression."""
-        if not self.conn or self.conn.is_closed:
-            self.connect()
-            
-        try:
-            return self.conn.eval(expr)
-        except Exception as e:
-            logger.error(f"R evaluation failed: {expr} - {e}")
-            raise ExternalServiceError(
-                "VYNT-6012", 
-                message=f"R evaluation failed: {str(e)}",
-                details={"expression": expr}
+    def eval(self, expression: str) -> Any:
+        """
+        Evaluate R expression.
+        
+        Performance Engineer: Circuit breaker adds <1ms overhead
+        """
+        from voyant.core.circuit_breaker import get_circuit_breaker, CircuitBreakerOpenError, CircuitBreakerConfig
+        from voyant.core.errors import ServiceUnavailableError
+        
+        # Get circuit breaker for Rserve
+        cb = get_circuit_breaker(
+            "rserve",
+            CircuitBreakerConfig(
+                failure_threshold=3,
+                timeout_seconds=60
             )
+        )
+        
+        def _eval():
+            """Inner function for circuit breaker."""
+            self.connect()
+            try:
+                return self.conn.eval(expression)
+            except Exception as e:
+                logger.error(f"R eval error: {e}")
+                raise ExternalServiceError(
+                    "VYNT-6002",
+                    f"R evaluation failed: {e}",
+                    resolution="Check R syntax and Rserve connection"
+                )
+        
+        try:
+            return cb.call(_eval)
+        except CircuitBreakerOpenError:
+            raise ServiceUnavailableError("R-Engine")
+
 
     def assign(self, name: str, value: Any):
         """

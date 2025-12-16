@@ -18,6 +18,15 @@ from voyant.workflows.ingest_workflow import IngestDataWorkflow
 from voyant.activities.ingest_activities import IngestActivities
 from voyant.workflows.benchmark_workflow import BenchmarkBrandWorkflow
 from voyant.activities.stats_activities import StatsActivities
+from voyant.activities.ml_activities import MLActivities
+from voyant.activities.discovery_activities import DiscoveryActivities
+from voyant.activities.operational_activities import OperationalActivities
+from voyant.workflows.operational_workflows import DetectAnomaliesWorkflow, AnalyzeSentimentWorkflow
+from voyant.workflows.segmentation_workflow import SegmentCustomersWorkflow
+from voyant.workflows.regression_workflow import LinearRegressionWorkflow
+
+from voyant.core.monitoring import MetricsRegistry
+from voyant.core.interceptors import MetricsInterceptor
 
 # Configure logging
 logging.basicConfig(
@@ -30,6 +39,10 @@ async def run_worker():
     """Run the Temporal worker."""
     settings = get_settings()
     
+    # 0. Start Metrics Server
+    metrics = MetricsRegistry()
+    metrics.start_server(port=9090)
+    
     # 1. Connect to Temporal
     try:
         client = await get_temporal_client()
@@ -38,7 +51,14 @@ async def run_worker():
         return
 
     # 2. Define Workflows and Activities
-    workflows = [IngestDataWorkflow, BenchmarkBrandWorkflow]
+    workflows = [
+        IngestDataWorkflow, 
+        BenchmarkBrandWorkflow,
+        DetectAnomaliesWorkflow,
+        AnalyzeSentimentWorkflow,
+        SegmentCustomersWorkflow,
+        LinearRegressionWorkflow
+    ]
     activities = [
         IngestActivities().run_ingestion, 
         IngestActivities().sync_airbyte,
@@ -46,11 +66,20 @@ async def run_worker():
         StatsActivities().perform_hypothesis_test,
         StatsActivities().describe_distribution,
         StatsActivities().calculate_correlation,
-        StatsActivities().fit_distribution
+        StatsActivities().fit_distribution,
+        MLActivities().cluster_data,
+        MLActivities().train_classifier_model,
+        MLActivities().forecast_time_series,
+        MLActivities().train_regression_model,
+        DiscoveryActivities().search_for_apis,
+        DiscoveryActivities().scan_spec_url,
+        OperationalActivities().detect_anomalies,
+        OperationalActivities().analyze_sentiment_batch,
+        OperationalActivities().clean_data
     ]
     
     task_queue = settings.temporal_task_queue
-    logger.info(f"Starting worker listening on queue: '{task_queue}'")
+    logger.info(f"Starting worker on queue: {task_queue}")
 
     # 3. Create Worker
     worker = Worker(
@@ -58,9 +87,7 @@ async def run_worker():
         task_queue=task_queue,
         workflows=workflows,
         activities=activities,
-        # Optimize for production
-        max_concurrent_activities=100,
-        max_concurrent_workflow_task_executions=50,
+        interceptors=[MetricsInterceptor()]
     )
 
     # 4. Handle Shutdown Signals

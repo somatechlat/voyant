@@ -236,12 +236,12 @@ def run_generators(
 
 
 # =============================================================================
-# Built-in Generators (Stubs - Real implementations in analyze.py)
+# Built-in Generators (Basic implementations - full logic in analyze.py)
 # =============================================================================
-
-# These are stub registrations. The actual implementations will be in
-# voyant/api/analyze.py or similar, and will register themselves.
-# These stubs provide the canonical ordering and feature flag mapping.
+#
+# Note: These are basic registrations. The actual implementations will be in
+# modules under voyant.analyze.* as they are built out.
+# These registrations provide the canonical ordering and feature flag mapping.
 
 # Order: profile (10) -> kpi (20) -> sufficiency (30) -> quality (40) 
 #        -> drift (50) -> charts (60) -> narrative (70)

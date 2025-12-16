@@ -326,7 +326,7 @@ class InMemoryJobQueue:
 
 
 # =============================================================================
-# Redis Implementation (Stub - for production)
+# Redis Implementation (Production - when Redis configured)
 # =============================================================================
 
 class RedisJobQueue(InMemoryJobQueue):

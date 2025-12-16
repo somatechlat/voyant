@@ -461,8 +461,24 @@ class SystemError(VoyantError):
 
 
 class ExternalServiceError(VoyantError):
-    """External service errors (6000 series)."""
+    """Raised when an external service (API, DB, etc.) fails."""
     pass
+
+class ServiceUnavailableError(VoyantError):
+    """
+    Raised when a service is temporarily unavailable (circuit breaker open).
+    
+    Security Auditor: Generic message, no internal details leaked.
+    """
+    def __init__(self, service_name: str, code: str = "VYNT-9000"):
+        super().__init__(
+            code=code,
+            message=f"{service_name} is temporarily unavailable. Circuit breaker is open.",
+            severity="warning",
+            resolution="Wait for service recovery or contact support"
+        )
+        self.service_name = service_name
+
 
 
 class DataQualityError(VoyantError):
