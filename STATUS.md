@@ -125,6 +125,16 @@ _Last updated: 2025-10-02_
 | Module | Lines | Description |
 |--------|-------|-------------|
 | `tenant_quotas.py` | 601 | Quota management system |
+| `job_queue.py` | 450 | Redis-backed concurrency queue |
+
+### Future / Extensibility
+| Module | Lines | Description |
+|--------|-------|-------------|
+| `schema_vis.py` | 80 | Schema timeline visualizer (Plugin) |
+| `plugin_registry.py` | 256 | Plugin system (Generator/Analyzer) |
+| `generation_activities.py` | 80 | Generator execution activities |
+| `schema_evolution.py` | 480 | Schema versioning & diffs |
+
 
 
 
