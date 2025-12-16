@@ -97,7 +97,7 @@ class JobRecord:
     artifact_paths: List[str] = field(default_factory=list)
 
 
-# Simulated stores (replace with actual DB queries)
+# In-memory stores for development/testing (integrate with DuckDB in production)
 _jobs: Dict[str, JobRecord] = {}
 _artifacts: Dict[str, Dict[str, Any]] = {}  # artifact_key -> metadata
 

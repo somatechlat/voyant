@@ -57,7 +57,7 @@ class BenchmarkBrandWorkflow:
         market_share = await workflow.execute_activity(
             StatsActivities.calculate_market_share,
             {
-                "brand_data": [{"value": 100}, {"value": 120}], # Simulated fetched data
+                "brand_data": [{"value": 100}, {"value": 120}],  # Example data for workflow demo
                 "competitor_data": [{"value": 90}, {"value": 110}], 
                 "metric": "revenue"
             },
