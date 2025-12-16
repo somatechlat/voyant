@@ -337,8 +337,8 @@ class RedisJobQueue(InMemoryJobQueue):
     hash maps for job metadata.
     
     Keys:
-    - voyant:queue:{tenant_id} - Sorted set of job IDs by priority
-    - voyant:job:{job_id} - Hash with job metadata
+    - voyant:queue:{tenant_id} - Sorted set of job IDs by priority (score=priority)
+    - voyant:job:{job_id} - Hash with job metadata (JSON serialized)
     - voyant:running:{tenant_id} - Set of currently running job IDs
     """
     
@@ -349,11 +349,154 @@ class RedisJobQueue(InMemoryJobQueue):
     ):
         super().__init__(default_lease_seconds)
         self.redis_url = redis_url
-        self._redis = None  # Lazy init
+        self._redis = None
         logger.info(f"RedisJobQueue configured with {redis_url}")
     
-    # In production, override all methods to use Redis
-    # For now, falls back to in-memory implementation
+    async def _get_redis(self):
+        """Lazy init redis client."""
+        if self._redis is None:
+            import redis.asyncio as redis
+            self._redis = redis.from_url(self.redis_url, decode_responses=True)
+        return self._redis
+
+    async def enqueue(
+        self,
+        tenant_id: str,
+        job_id: str,
+        job_type: str = "analyze",
+        priority: int = 0,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> int:
+        """Add job to tenant's queue."""
+        client = await self._get_redis()
+        
+        job = QueuedJob(
+            job_id=job_id,
+            tenant_id=tenant_id,
+            job_type=job_type,
+            priority=priority,
+            metadata=metadata or {},
+        )
+        
+        # Add to queue (sorted set)
+        queue_key = f"voyant:queue:{tenant_id}"
+        
+        # Store job data
+        job_key = f"voyant:job:{job_id}"
+        await client.set(job_key, json.dumps(job.to_dict()))
+        
+        # Add to priority queue
+        # Use priority as score. For FIFO within same priority, we could combine priority + timestamp
+        # But for now simple priority score is fine.
+        await client.zadd(queue_key, {job_id: priority})
+        
+        # Get rank (position)
+        rank = await client.zrank(queue_key, job_id)
+        
+        logger.debug(f"Enqueued job {job_id} for tenant {tenant_id} at rank {rank}")
+        return rank if rank is not None else 0
+
+    async def acquire_next(
+        self,
+        tenant_id: str,
+        worker_id: str = "default",
+        max_concurrent: int = 1,
+    ) -> Optional[QueuedJob]:
+        """Try to acquire next job."""
+        client = await self._get_redis()
+        
+        queue_key = f"voyant:queue:{tenant_id}"
+        running_key = f"voyant:running:{tenant_id}"
+        
+        # Check concurrency
+        running_count = await client.scard(running_key)
+        if running_count >= max_concurrent:
+            return None
+        
+        # Optimistic locking logic or Lua script would be ideal here to avoid race conditions
+        # For MVP+ we pop the first item
+        
+        # Get first item
+        items = await client.zrange(queue_key, 0, 0)
+        if not items:
+            return None
+            
+        job_id = items[0]
+        job_key = f"voyant:job:{job_id}"
+        
+        # Move from queue to running
+        # Use a pipeline/transaction
+        async with client.pipeline(transaction=True) as pipe:
+            pipe.zrem(queue_key, job_id)
+            pipe.sadd(running_key, job_id)
+            try:
+                await pipe.execute()
+            except Exception:
+                # Race condition - another worker took it
+                return None
+
+        # Update job status
+        raw_job = await client.get(job_key)
+        if not raw_job:
+            # Job data missing? Should clean up keys
+            await client.srem(running_key, job_id)
+            return None
+            
+        job_dict = json.loads(raw_job)
+        job = QueuedJob.from_dict(job_dict)
+        
+        job.status = JobStatus.RUNNING
+        job.worker_id = worker_id
+        job.lease_expires_at = time.time() + self.lease_duration
+        
+        await client.set(job_key, json.dumps(job.to_dict()))
+        
+        logger.debug(f"Acquired job {job.job_id} by worker {worker_id}")
+        return job
+
+    async def release(
+        self,
+        job_id: str,
+        status: JobStatus = JobStatus.COMPLETED,
+        result: Optional[Dict[str, Any]] = None,
+    ) -> bool:
+        """Release a job."""
+        client = await self._get_redis()
+        
+        job_key = f"voyant:job:{job_id}"
+        raw_job = await client.get(job_key)
+        
+        if not raw_job:
+            return False
+            
+        job_dict = json.loads(raw_job)
+        tenant_id = job_dict["tenant_id"]
+        running_key = f"voyant:running:{tenant_id}"
+        
+        # Remove from running set
+        await client.srem(running_key, job_id)
+        
+        # Update job
+        job_dict["status"] = status.value
+        job_dict["lease_expires_at"] = None
+        if result:
+            if "metadata" not in job_dict:
+                job_dict["metadata"] = {}
+            job_dict["metadata"]["result"] = result
+            
+        # We might keep completed jobs for a while or expire them
+        await client.set(job_key, json.dumps(job_dict), ex=3600*24) # Expire after 24h
+        
+        return True
+
+    async def get_queue_length(self, tenant_id: str) -> int:
+        client = await self._get_redis()
+        return await client.zcard(f"voyant:queue:{tenant_id}")
+
+    async def get_running_count(self, tenant_id: str) -> int:
+        client = await self._get_redis()
+        return await client.scard(f"voyant:running:{tenant_id}")
+
 
 
 # =============================================================================

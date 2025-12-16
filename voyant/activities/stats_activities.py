@@ -8,7 +8,7 @@ import logging
 import pandas as pd
 from typing import Any, Dict, List
 
-from datetime import timedelta
+from datetime import timedelta, datetime
 from temporalio import activity
 
 from voyant.core.r_bridge import REngine
@@ -17,6 +17,7 @@ from voyant.core.circuit_breaker import CircuitBreakerOpenError
 from voyant.core.retry_config import EXTERNAL_SERVICE_RETRY, TIMEOUTS
 
 from voyant.core.stats_primitives import RStatsPrimitives
+from voyant.core.schema_evolution import track_schema, TableSchema, ColumnSchema
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,28 @@ class StatsActivities:
                     "No data provided for distribution analysis",
                     non_retryable=True
                 )
+            # Infer and track schema if table_name provided
+            if "table_name" in params:
+                 # Simple schema inference from data snippet
+                 columns = []
+                 if isinstance(data, list) and len(data) > 0:
+                     if isinstance(data[0], dict):
+                         # Dict rows
+                         for k, v in data[0].items():
+                             dtype = type(v).__name__
+                             columns.append(ColumnSchema(name=k, data_type=dtype))
+                     else:
+                         # Single list = single column
+                         columns.append(ColumnSchema(name="value", data_type=type(data[0]).__name__))
+                 
+                 if columns:
+                     track_schema(
+                         table_name=params["table_name"],
+                         schema=TableSchema(name=params["table_name"], columns=columns),
+                         version=datetime.now().strftime("%Y.%m.%d-%H%M%S"), # Timestamp version
+                         description="Auto-detected during distribution analysis"
+                     )
+
             return self.primitives.describe_column(data)
         except CircuitBreakerOpenError:
             raise activity.ApplicationError(
