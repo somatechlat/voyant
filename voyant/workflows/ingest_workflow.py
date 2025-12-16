@@ -1,39 +1,45 @@
-from datetime import timedelta
-from temporalio import workflow
-from .types import IngestParams, IngestResult
+"""
+Ingestion Workflow
 
-# Import activity interface (stub) - actual implementation is in activities/
+Orchestrates the data ingestion process.
+"""
+from datetime import timedelta
+from typing import Any, Dict
+
+from temporalio import workflow
+
+# Import activity definition (for type hints only if available, or use string names)
 with workflow.unsafe.imports_passed_through():
     from voyant.activities.ingest_activities import IngestActivities
 
 @workflow.defn
-class IngestWorkflow:
+class IngestDataWorkflow:
     @workflow.run
-    async def run(self, params: IngestParams) -> IngestResult:
-        workflow.logger.info(f"Starting Ingest Workflow for job {params.job_id}")
+    async def run(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Run the ingestion workflow.
         
-        # Configure activities options
-        activities = workflow.new_activity_stub(
-            IngestActivities,
-            start_to_close_timeout=timedelta(hours=1),
-            retry_policy=workflow.RetryPolicy(
-                initial_interval=timedelta(seconds=5),
-                maximum_interval=timedelta(minutes=5),
-                maximum_attempts=5
-            )
+        Args:
+            params: Dictionary containing job_id, source_id, etc.
+        """
+        workflow.logger.info(f"IngestWorkflow started for job {params.get('job_id')}")
+        
+        # Retry policy
+        retry_policy = workflow.RetryPolicy(
+            initial_interval=timedelta(seconds=1),
+            backoff_coefficient=2.0,
+            maximum_interval=timedelta(seconds=60),
+            maximum_attempts=3,
         )
-
-        # Step 1: Validate Source & Configuration
-        # (This could be a separate activity if it takes time/IO)
-        workflow.logger.info("Validating source connection...")
         
-        # Step 2: Execute Ingestion
-        # This calls the activity which handles Airbyte/Beam logic
-        result = await activities.run_ingestion(params)
+        # Execute Activity
+        # We assume the activity is registered as "run_ingestion" or method name
+        result = await workflow.execute_activity(
+            IngestActivities.run_ingestion,
+            params,
+            start_to_close_timeout=timedelta(minutes=10),
+            retry_policy=retry_policy,
+        )
         
-        workflow.logger.info(f"Ingestion completed: {result}")
-        
-        # Step 3: Register Lineage (Optional step, can be part of ingestion or separate)
-        # await activities.register_lineage(result)
-        
+        workflow.logger.info(f"IngestWorkflow completed for job {params.get('job_id')}")
         return result
