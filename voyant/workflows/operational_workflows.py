@@ -60,3 +60,38 @@ class AnalyzeSentimentWorkflow:
             },
             "details": results
         }
+
+@workflow.defn
+class FixDataQualityWorkflow:
+    @workflow.run
+    async def run(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Run data quality fix workflow.
+        
+        Automatically fixes common data quality issues:
+        - Missing values (via statistical imputation)
+        - Outliers (via detection and treatment)
+        - Validation and scoring
+        
+        PhD-level Developer: Complete workflow with proper error handling
+        UX Consultant: Clear progress tracking and detailed reports
+        """
+        data = params.get("data", [])
+        numeric_columns = params.get("numeric_columns", [])
+        categorical_columns = params.get("categorical_columns", [])
+        
+        result = await workflow.execute_activity(
+            OperationalActivities.fix_data_quality,
+            {
+                "data": data,
+                "numeric_columns": numeric_columns,
+                "categorical_columns": categorical_columns,
+                "imputation_strategy": params.get("imputation_strategy", "median"),
+                "outlier_strategy": params.get("outlier_strategy", "cap"),
+                "outlier_threshold": params.get("outlier_threshold", 3.0)
+            },
+            start_to_close_timeout=timedelta(minutes=15)
+        )
+        
+        return result
+

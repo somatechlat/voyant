@@ -8,10 +8,13 @@ import logging
 import pandas as pd
 from typing import Any, Dict, List
 
+from datetime import timedelta
 from temporalio import activity
 
 from voyant.core.r_bridge import REngine
-from voyant.core.errors import ExternalServiceError
+from voyant.core.errors import ExternalServiceError, AnalysisError
+from voyant.core.circuit_breaker import CircuitBreakerOpenError
+from voyant.core.retry_config import EXTERNAL_SERVICE_RETRY, TIMEOUTS
 
 from voyant.core.stats_primitives import RStatsPrimitives
 
@@ -22,27 +25,90 @@ class StatsActivities:
         self.r_engine = REngine()
         self.primitives = RStatsPrimitives(self.r_engine)
 
-    @activity.defn
+    @activity.defn(
+        name="describe_distribution",
+        start_to_close_timeout=TIMEOUTS["stats_short"],
+        retry_policy=EXTERNAL_SERVICE_RETRY
+    )
     def describe_distribution(self, params: Dict[str, Any]) -> Dict[str, Any]:
-        """Get descriptive stats for a column."""
-        data = params.get("data", [])
-        return self.primitives.describe_column(data)
+        """
+        Get descriptive stats for a column.
+        
+        Performance Engineer: 5 min timeout sufficient for simple stats
+        QA Engineer: Retries on transient R-Engine failures
+        """
+        try:
+            data = params.get("data", [])
+            if not data:
+                raise activity.ApplicationError(
+                    "No data provided for distribution analysis",
+                    non_retryable=True
+                )
+            return self.primitives.describe_column(data)
+        except CircuitBreakerOpenError:
+            raise activity.ApplicationError(
+                "R-Engine circuit breaker is open",
+                non_retryable=True
+            )
 
-    @activity.defn
+    @activity.defn(
+        name="calculate_correlation",
+        start_to_close_timeout=TIMEOUTS["stats_short"],
+        retry_policy=EXTERNAL_SERVICE_RETRY
+    )
     def calculate_correlation(self, params: Dict[str, Any]) -> Dict[str, Any]:
-        """Calculate correlation matrix."""
-        data = params.get("data", {})
-        method = params.get("method", "pearson")
-        return self.primitives.correlation_matrix(data, method)
+        """
+        Calculate correlation matrix.
+        
+        PhD Analyst: Correlation computation is O(n²) but fast in R
+        """
+        try:
+            data = params.get("data", {})
+            method = params.get("method", "pearson")
+            if not data:
+                raise activity.ApplicationError(
+                    "No data provided for correlation analysis",
+                    non_retryable=True
+                )
+            return self.primitives.correlation_matrix(data, method)
+        except CircuitBreakerOpenError:
+            raise activity.ApplicationError(
+                "R-Engine circuit breaker is open",
+                non_retryable=True
+            )
 
-    @activity.defn
+    @activity.defn(
+        name="fit_distribution",
+        start_to_close_timeout=TIMEOUTS["stats_long"],
+        retry_policy=EXTERNAL_SERVICE_RETRY
+    )
     def fit_distribution(self, params: Dict[str, Any]) -> Dict[str, Any]:
-        """Fit distribution to data."""
-        data = params.get("data", [])
-        dist = params.get("dist", "normal")
-        return self.primitives.fit_distribution(data, dist)
+        """
+        Fit distribution to data.
+        
+        Performance Engineer: 10 min timeout - distribution fitting can be iterative
+        """
+        try:
+            data = params.get("data", [])
+            dist = params.get("dist", "normal")
+            if not data:
+                raise activity.ApplicationError(
+                    "No data provided for distribution fitting",
+                    non_retryable=True
+                )
+            return self.primitives.fit_distribution(data, dist)
+        except CircuitBreakerOpenError:
+            raise activity.ApplicationError(
+                "R-Engine circuit breaker is open",
+                non_retryable=True
+            )
 
-    @activity.defn
+    @activity.defn(
+        name="calculate_market_share",
+        start_to_close_timeout=TIMEOUTS["stats_long"],
+        heartbeat_timeout=timedelta(seconds=30),
+        retry_policy=EXTERNAL_SERVICE_RETRY
+    )
     def calculate_market_share(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Calculate market share metrics using R.
@@ -95,11 +161,26 @@ class StatsActivities:
             # 4. Return result
             return dict(result)
 
+        except CircuitBreakerOpenError:
+            raise activity.ApplicationError(
+                "R-Engine circuit breaker is open",
+                non_retryable=True
+            )
+        except ValueError as e:
+            # Input validation errors are not retryable
+            raise activity.ApplicationError(
+                f"Invalid input data: {e}",
+                non_retryable=True
+            )
         except Exception as e:
             activity.logger.error(f"R Calculation failed: {e}")
             raise ExternalServiceError("VYNT-6020", f"R Execution Error: {e}")
 
-    @activity.defn
+    @activity.defn(
+        name="perform_hypothesis_test",
+        start_to_close_timeout=TIMEOUTS["stats_short"],
+        retry_policy=EXTERNAL_SERVICE_RETRY
+    )
     def perform_hypothesis_test(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Perform t-test or ANOVA using R.
@@ -123,6 +204,19 @@ class StatsActivities:
             else:
                 raise NotImplementedError(f"Test type {test_type} not supported yet")
                 
+        except CircuitBreakerOpenError:
+            raise activity.ApplicationError(
+                "R-Engine circuit breaker is open",
+                non_retryable=True
+            )
+        except ValueError as e:
+            raise activity.ApplicationError(
+                f"Invalid test parameters: {e}",
+                non_retryable=True
+            )
+        except NotImplementedError as e:
+            # Feature not implemented - non-retryable
+            raise activity.ApplicationError(str(e), non_retryable=True)
         except Exception as e:
-             activity.logger.error(f"Hypothesis test failed: {e}")
-             raise
+            activity.logger.error(f"Hypothesis test failed: {e}")
+            raise

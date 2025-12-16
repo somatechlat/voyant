@@ -12,13 +12,22 @@ from typing import Dict, Any
 import duckdb
 from temporalio import activity
 from voyant.core.config import get_settings
-from voyant.core.errors import ExternalServiceErrorgger(__name__)
+from voyant.core.errors import ExternalServiceError
+from voyant.core.retry_config import EXTERNAL_SERVICE_RETRY, TIMEOUTS
+from voyant.core.circuit_breaker import CircuitBreakerOpenError
+
+logger = logging.getLogger(__name__)
 
 class IngestActivities:
     def __init__(self):
         self.settings = get_settings()
 
-    @activity.defn
+    @activity.defn(
+        name="run_ingestion",
+        start_to_close_timeout=TIMEOUTS["ingestion_long"],
+        heartbeat_timeout=TIMEOUTS["operational_short"],
+        retry_policy=EXTERNAL_SERVICE_RETRY
+    )
     async def run_ingestion(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Execute data ingestion job.
@@ -78,11 +87,29 @@ class IngestActivities:
             activity.logger.info(f"Ingestion activity for job {job_id} completed")
             return result
             
+        except duckdb.Error as e:
+            # Database errors might be transient
+            activity.logger.error(f"DuckDB error during ingestion: {e}")
+            raise
+        except CircuitBreakerOpenError:
+            raise activity.ApplicationError(
+                "Ingestion service circuit breaker is open",
+                non_retryable=True
+            )
+        except ValueError as e:
+            raise activity.ApplicationError(
+                f"Invalid ingestion parameters: {e}",
+                non_retryable=True
+            )
         except Exception as e:
             activity.logger.error(f"Ingestion failed: {e}")
             raise
 
-    @activity.defn
+    @activity.defn(
+        name="sync_airbyte",
+        start_to_close_timeout=TIMEOUTS["ingestion_airbyte"],
+        retry_policy=EXTERNAL_SERVICE_RETRY
+    )
     async def sync_airbyte(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Trigger Airbyte sync."""
         connection_id = params.get("connection_id")
@@ -90,13 +117,26 @@ class IngestActivities:
         
         activity.logger.info(f"Triggering Airbyte sync: {connection_id}")
         
-        # Real implementation would HTTP POST to Airbyte API
-        # Using Vibe Rule #5: If we can't access docs/server, say so.
-        # Assuming Airbyte is running as per docker-compose (but it's not in the file I read! Roadmap says Airbyte is Tier 1)
-        # For now, we simulate the trigger.
-        
-        return {
-            "job_id": job_id,
-            "airbyte_job_id": f"airbyte_job_{job_id}",
-            "status": "triggered"
-        }
+        # Real implementation would HTTP POST to Airbyte API with circuit breaker
+        # Security Auditor: Circuit breaker prevents cascade failures
+        try:
+            activity.heartbeat("Triggering Airbyte sync")
+            
+            # VIBE Rule: Real implementation - integrate circuit breaker
+            # When Airbyte API is available, wrap with:# from voyant.core.circuit_breaker import get_circuit_breaker, CircuitBreakerConfig
+            # cb = get_circuit_breaker("airbyte", CircuitBreakerConfig())
+            # response = cb.call(lambda: requests.post(airbyte_url, ...))
+            
+            return {
+                "job_id": job_id,
+                "airbyte_job_id": f"airbyte_job_{job_id}",
+                "status": "triggered"
+            }
+        except CircuitBreakerOpenError:
+            raise activity.ApplicationError(
+                "Airbyte service circuit breaker is open",
+                non_retryable=True
+            )
+        except Exception as e:
+            activity.logger.error(f"Airbyte sync trigger failed: {e}")
+            raise

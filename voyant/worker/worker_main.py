@@ -21,7 +21,11 @@ from voyant.activities.stats_activities import StatsActivities
 from voyant.activities.ml_activities import MLActivities
 from voyant.activities.discovery_activities import DiscoveryActivities
 from voyant.activities.operational_activities import OperationalActivities
-from voyant.workflows.operational_workflows import DetectAnomaliesWorkflow, AnalyzeSentimentWorkflow
+from voyant.workflows.operational_workflows import (
+    DetectAnomaliesWorkflow,
+    AnalyzeSentimentWorkflow,
+    FixDataQualityWorkflow
+)
 from voyant.workflows.segmentation_workflow import SegmentCustomersWorkflow
 from voyant.workflows.regression_workflow import LinearRegressionWorkflow
 
@@ -56,6 +60,7 @@ async def run_worker():
         BenchmarkBrandWorkflow,
         DetectAnomaliesWorkflow,
         AnalyzeSentimentWorkflow,
+        FixDataQualityWorkflow,
         SegmentCustomersWorkflow,
         LinearRegressionWorkflow
     ]
@@ -75,6 +80,7 @@ async def run_worker():
         DiscoveryActivities().scan_spec_url,
         OperationalActivities().detect_anomalies,
         OperationalActivities().analyze_sentiment_batch,
+        OperationalActivities().fix_data_quality,
         OperationalActivities().clean_data
     ]
     
