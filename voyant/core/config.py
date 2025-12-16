@@ -55,6 +55,10 @@ class Settings(BaseSettings):
     trino_user: str = Field(default="voyant")
     trino_catalog: str = Field(default="iceberg")
     trino_schema: str = Field(default="voyant")
+
+    # R Engine (Statistical Analysis)
+    r_engine_host: str = Field(default="localhost")
+    r_engine_port: int = Field(default=6311)
     
     # DataHub
     datahub_gms_url: str = Field(default="http://localhost:8080")
@@ -77,6 +81,14 @@ class Settings(BaseSettings):
     enable_billing: bool = Field(default=True)
     enable_datahub: bool = Field(default=True)
     enable_mfa: bool = Field(default=False)
+    enable_charts: bool = Field(default=True)
+    enable_narrative: bool = Field(default=True)
+    
+    # Metrics Mode: off (no metrics), basic (core only), full (all metrics)
+    metrics_mode: str = Field(
+        default="full",
+        description="Metrics registration mode: off, basic, or full"
+    )
     
     # API Settings
     api_host: str = Field(default="0.0.0.0")

@@ -29,6 +29,7 @@ _Last updated: 2025-10-02_
 | Testing Coverage | ✅ Growing | Core guardrails, RBAC, metrics, failure, prune, artifacts |
 | Documentation | ✅ Solid | Architecture, operations, events, security, roadmap, status |
 | Observability (Logging) | ✅ Structured | JSON logs w/ correlation & tenant fields |
+| Statistical Engine (R) | ✅ Complete | Rserve container + Python bridge + High-level stats |
 
 ## Recent Enhancements
 - Added failure path emission (`job.analyze.failed`) + test.
@@ -53,22 +54,27 @@ _Last updated: 2025-10-02_
 - Tenant isolation for artifacts & temp tables.
 - Optional symmetric encryption for secrets via Fernet (`UDB_SECRET_KEY`).
 
+## Completed Gaps (Recently Closed)
+1. OAuth Full Integration ✅
+2. Secrets Backend Abstraction ✅
+3. Schema Evolution Handling ✅
+4. Multi-Node Coordination ✅
+5. Horizontal Scaling ✅
+6. Advanced Access Control ✅
+7. Data Lineage Tracking ✅
+8. Alerting & SLOs ✅
+9. Artifact Preview API ✅
+10. Caching Layer ✅
+11. Automated Baseline Refresh ✅
+12. Helm Chart Hardening (Infrastructure pending)
+13. Structured Event Contracts ✅
+14. Additional Connectors ✅
+15. Data Governance ✅
+
 ## Remaining Gaps / Recommended Next Steps
-1. OAuth Full Integration: Implement real provider flows (PKCE, token refresh, expiry handling).
-2. Secrets Backend Abstraction: Pluggable Vault / AWS KMS / GCP Secret Manager providers.
-3. Schema Evolution Handling: Persistent baseline management for quality/drift versioning.
-4. Multi-Node Coordination: External job store (Redis) stress tests; potential leader election for pruning.
-5. Horizontal Scaling: Document and test concurrency for DuckDB (read/write serialization strategy or migration to MotherDuck / warehouse abstraction).
-6. Advanced Access Control: Fine-grained dataset/table permissions & per-tenant quotas.
-7. Data Lineage Tracking: Capture source-to-artifact lineage graph for transparency.
-8. Alerting & SLOs: Define SLIs (job success rate, p95 analyze latency) + alerting hooks.
-9. Artifact Preview API: Lightweight HTML snippet or JSON summary endpoints for large artifacts.
-10. Caching Layer: Result caching for repeated KPI queries with invalidation semantics.
-11. Automated Baseline Refresh: Schedule periodic re-baselining for drift/quality.
-12. Helm Chart Hardening: Add pod security context, resource limits, liveness/readiness probes.
-13. Structured Event Contracts: Versioned schema registry or JSON Schema publication.
-14. Additional Connectors: Expand Airbyte orchestrations (parameterized destination config for DuckDB, S3, etc.).
-15. Data Governance: Column-level classification & propagation of sensitivity tags.
+- Implement Temporal workflow engine (replacing Celery)
+- Implement Machine Learning Phase (Phase 3)
+
 
 ## Operational Runbook (Quick)
 - Health: `/healthz` (liveness), `/readyz` (readiness).

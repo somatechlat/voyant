@@ -33,6 +33,8 @@ dependencies = [
     "httpx>=0.25.0",
     "trino>=0.327.0",
     "minio>=7.2.0",
+    "pyRserve>=1.0.0",
+    "temporalio>=1.4.0",
 ]
 
 [project.optional-dependencies]

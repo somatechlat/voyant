@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900;
+  }
+}
+
+.glass-card {
+  @apply bg-white border border-slate-100 shadow-sm rounded-xl;
+}
+
+.glass-card-dark {
+  @apply bg-slate-900 border border-slate-800 shadow-xl rounded-xl text-white;
+}
+
+.live-indicator {
+  @apply relative flex h-3 w-3;
+}
+
+.live-indicator-ping {
+  @apply animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75;
+}
+
+.live-indicator-dot {
+  @apply relative inline-flex rounded-full h-3 w-3 bg-red-500;
+}

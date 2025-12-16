@@ -14,6 +14,9 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel, Field
 
 from voyant.api.middleware import get_tenant_id
+from voyant.core.temporal import get_temporal_client
+from voyant.workflows.ingest_workflow import IngestWorkflow
+from voyant.workflows.types import IngestParams
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/jobs")
@@ -95,9 +98,26 @@ async def trigger_ingest(request: IngestRequest, background_tasks: BackgroundTas
         "tables": request.tables,
     })
     
-    # Queue to Celery/Beam worker
-    # background_tasks.add_task(run_ingestion_job, job["job_id"])
-    
+    # Trigger Temporal Workflow
+    try:
+        client = await get_temporal_client()
+        await client.start_workflow(
+            IngestWorkflow.run,
+            IngestParams(
+                job_id=job["job_id"],
+                source_id=request.source_id,
+                mode=request.mode,
+                tables=request.tables
+            ),
+            id=f"ingest-{job['job_id']}",
+            task_queue="voyant-tasks",
+        )
+        job["status"] = "running" # Optimistic update
+    except Exception as e:
+        logger.error(f"Failed to start workflow: {e}")
+        job["status"] = "failed"
+        job["error_message"] = str(e)
+
     return JobResponse(
         job_id=job["job_id"],
         tenant_id=job["tenant_id"],

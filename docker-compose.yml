@@ -13,8 +13,6 @@
 # Memory Budget: 10GB Total
 # =============================================================================
 
-version: '3.9'
-
 # -----------------------------------------------------------------------------
 # Common configurations
 # -----------------------------------------------------------------------------
@@ -141,22 +139,66 @@ services:
     networks:
       - voyant-net
 
+  temporal:
+    <<: *common
+    image: temporalio/auto-setup:1.24.2
+    container_name: voyant-temporal
+    environment:
+      - DB=postgresql
+      - DB_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-voyant}
+      - POSTGRES_PWD=${POSTGRES_PASSWORD:-voyant}
+      - POSTGRES_SEEDS=postgres
+    ports:
+      - "7233:7233"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - voyant-net
+
+  temporal-ui:
+    <<: *common
+    image: temporalio/ui:latest
+    container_name: voyant-temporal-ui
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+    ports:
+      - "8088:8080"
+    depends_on:
+      - temporal
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    networks:
+      - voyant-net
+
   voyant-worker:
     <<: *common
     build:
       context: .
       dockerfile: Dockerfile
     container_name: voyant-worker
-    command: [ "celery", "-A", "voyant.worker", "worker", "-l", "info", "-c", "2" ]
+    command: [ "python", "-m", "voyant.worker.temporal_main" ]
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-voyant}:${POSTGRES_PASSWORD:-voyant}@postgres:5432/voyant
       REDIS_URL: redis://:${REDIS_PASSWORD:-voyant}@redis:6379/0
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      TEMPORAL_HOST: temporal:7233
+      TEMPORAL_TASK_QUEUE: voyant-tasks
     depends_on:
       redis:
         condition: service_healthy
       postgres:
         condition: service_healthy
+      temporal:
+        condition: service_started
     deploy:
       resources:
         limits:
@@ -211,7 +253,7 @@ services:
 
   kafka:
     <<: *common
-    image: bitnami/kafka:3.6
+    image: bitnami/kafka:latest
     container_name: voyant-kafka
     environment:
       KAFKA_CFG_NODE_ID: 1
@@ -311,6 +353,21 @@ services:
       resources:
         limits:
           memory: 1G
+    networks:
+      - voyant-net
+
+  r-engine:
+    <<: *common
+    build:
+      context: .
+      dockerfile: docker/r-engine/Dockerfile
+    container_name: voyant-r-engine
+    ports:
+      - "127.0.0.1:${R_ENGINE_PORT:-46311}:6311"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     networks:
       - voyant-net
 
@@ -445,7 +502,7 @@ services:
 
   lago-api:
     <<: *common
-    image: getlago/api:v0.50.0
+    image: getlago/api:v1.15.0-alpha
     container_name: voyant-lago-api
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-voyant}:${POSTGRES_PASSWORD:-voyant}@postgres:5432/lago
@@ -471,7 +528,7 @@ services:
 
   lago-worker:
     <<: *common
-    image: getlago/api:v0.50.0
+    image: getlago/api:v1.15.0-alpha
     container_name: voyant-lago-worker
     command: bundle exec sidekiq
     environment:
@@ -526,6 +583,7 @@ volumes:
 # minio               512M      Object Storage (S3-compatible)
 # spark-master        1G        Spark Master
 # spark-worker        1G        Spark Worker
+# r-engine            512M      Statistical Engine (Rserve)
 # trino               1G        SQL Federation
 # elasticsearch       512M      DataHub Search
 # datahub-gms         1G        DataHub Backend

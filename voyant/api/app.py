@@ -14,7 +14,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from voyant.api.routes import sources, jobs, sql, governance, presets, artifacts, health
-from voyant.api.middleware import TenantMiddleware, RequestIdMiddleware
+from voyant.api.middleware import (
+    TenantMiddleware, 
+    RequestIdMiddleware, 
+    APIVersionMiddleware,
+    get_version_info,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -44,9 +49,10 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     
-    # Custom middleware
+    # Custom middleware (order matters - last added runs first)
     app.add_middleware(RequestIdMiddleware)
     app.add_middleware(TenantMiddleware)
+    app.add_middleware(APIVersionMiddleware)
     
     # Register routes
     app.include_router(health.router, tags=["health"])
@@ -57,7 +63,14 @@ def create_app() -> FastAPI:
     app.include_router(presets.router, prefix="/v1", tags=["presets"])
     app.include_router(artifacts.router, prefix="/v1", tags=["artifacts"])
     
+    # Version info endpoint
+    @app.get("/version", tags=["meta"])
+    async def version():
+        """Get API version information and negotiation details."""
+        return get_version_info()
+    
     return app
 
 
 app = create_app()
+
