@@ -480,10 +480,20 @@ class ServiceUnavailableError(VoyantError):
         self.service_name = service_name
 
 
+class AnalysisError(VoyantError):
+    """
+    Analysis/ML-related errors.
+    
+    Used for failures in statistical analysis, ML model training, forecasting, etc.
+    PhD-level Developer: Dedicated exception for analysis domain errors.
+    """
+    pass
+
 
 class DataQualityError(VoyantError):
     """Data quality errors (7000 series)."""
     pass
+
 
 
 # =============================================================================
