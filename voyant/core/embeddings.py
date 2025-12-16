@@ -5,8 +5,8 @@ Extract embeddings from unstructured text and images.
 Reference: docs/CANONICAL_ROADMAP.md - P6 Advanced Analytics
 
 Features:
-- Text embedding via sentence transformers (stub)
-- Image embedding via CLIP (stub)
+- Text embedding via sentence transformers (extensible)
+- Image embedding via CLIP (extensible)
 - Batch processing
 - Similarity search
 - Dimensionality reduction
@@ -49,8 +49,8 @@ class EmbeddingModel(str, Enum):
     """Available embedding models."""
     SIMPLE = "simple"              # Character-based (for testing)
     TFIDF = "tfidf"                # TF-IDF (lightweight)
-    SENTENCE_TRANSFORMER = "st"    # Sentence transformers (stub)
-    CLIP = "clip"                  # Vision+text (stub)
+    SENTENCE_TRANSFORMER = "st"    # Sentence transformers (not implemented)
+    CLIP = "clip"                  # Vision+text (not implemented)
 
 
 @dataclass

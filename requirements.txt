@@ -36,6 +36,14 @@ opentelemetry-exporter-otlp>=1.21.0
 pandas>=2.1.0
 pyarrow>=14.0.0
 
+# NLP 
+nltk>=3.8.0
+
+# HTTP \u0026 API
+requests>=2.31.0
+pyyaml>=6.0.0
+
+
 # Profiling & Quality
 ydata-profiling>=4.6.0
 great-expectations>=0.18.0

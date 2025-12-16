@@ -1,16 +1,16 @@
 """
-Time Series Forecasting Module
+Forecasting Engine
 
-Statistical forecasting for time series data.
-Reference: docs/CANONICAL_ROADMAP.md - P6 Advanced Analytics
+Basic time series forecasting methods implemented natively in Python.
+Supports:
+- Naive forecast
+- Simple Moving Average (SMA)
+- Exponential Moving Average (EMA)
+- Linear trend extrapolation
+- Seasonal decomposition (extensible for Prophet)
 
-Features:
-- Simple moving average
-- Exponential smoothing
-- Linear trend projection
-- Seasonal decomposition (stub for Prophet)
-- Confidence intervals
-
+Note: Prophet implementation is in forecast_primitives.py
+"""
 Usage:
     from voyant.core.forecasting import (
         forecast, Forecaster,
@@ -42,7 +42,7 @@ class ForecastMethod(str, Enum):
     SMA = "sma"                  # Simple Moving Average
     EMA = "ema"                  # Exponential Moving Average
     LINEAR = "linear"            # Linear regression trend
-    HOLT = "holt"                # Holt's linear trend (stub)
+    HOLT = "holt"                # Holt's linear trend (not implemented yet)
 
 
 @dataclass

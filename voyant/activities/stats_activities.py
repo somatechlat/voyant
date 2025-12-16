@@ -23,27 +23,27 @@ class StatsActivities:
         self.primitives = RStatsPrimitives(self.r_engine)
 
     @activity.defn
-    async def describe_distribution(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    def describe_distribution(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Get descriptive stats for a column."""
         data = params.get("data", [])
         return self.primitives.describe_column(data)
 
     @activity.defn
-    async def calculate_correlation(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    def calculate_correlation(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Calculate correlation matrix."""
         data = params.get("data", {})
         method = params.get("method", "pearson")
         return self.primitives.correlation_matrix(data, method)
 
     @activity.defn
-    async def fit_distribution(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    def fit_distribution(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Fit distribution to data."""
         data = params.get("data", [])
         dist = params.get("dist", "normal")
         return self.primitives.fit_distribution(data, dist)
 
     @activity.defn
-    async def calculate_market_share(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    def calculate_market_share(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Calculate market share metrics using R.
         
@@ -100,7 +100,7 @@ class StatsActivities:
             raise ExternalServiceError("VYNT-6020", f"R Execution Error: {e}")
 
     @activity.defn
-    async def perform_hypothesis_test(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    def perform_hypothesis_test(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Perform t-test or ANOVA using R.
         """

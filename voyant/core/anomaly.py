@@ -41,7 +41,7 @@ class AnomalyMethod(str, Enum):
     ZSCORE = "zscore"            # Standard z-score
     IQR = "iqr"                  # Interquartile range
     MAD = "mad"                  # Median Absolute Deviation
-    ISOLATION_FOREST = "iforest" # ML-based (stub)
+    ISOLATION_FOREST = "iforest" # ML-based (implemented in ml_primitives.py)
 
 
 @dataclass

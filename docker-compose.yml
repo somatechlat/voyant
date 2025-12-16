@@ -186,6 +186,8 @@ services:
       dockerfile: Dockerfile
     container_name: voyant-worker
     command: [ "python", "-m", "voyant.worker.worker_main" ]
+    ports:
+      - "9090:9090"
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-voyant}:${POSTGRES_PASSWORD:-voyant}@postgres:5432/voyant
       REDIS_URL: redis://:${REDIS_PASSWORD:-voyant}@redis:6379/0
