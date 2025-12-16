@@ -42,6 +42,11 @@ class Settings(BaseSettings):
     
     # Kafka
     kafka_bootstrap_servers: str = Field(default="localhost:9092")
+
+    # Temporal (Orchestration)
+    temporal_host: str = Field(default="localhost:7233")
+    temporal_namespace: str = Field(default="default")
+    temporal_task_queue: str = Field(default="voyant-tasks")
     
     # MinIO (S3-compatible)
     minio_endpoint: str = Field(default="localhost:9000")
