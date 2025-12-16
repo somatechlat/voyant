@@ -113,32 +113,70 @@ class IngestActivities:
         retry_policy=EXTERNAL_SERVICE_RETRY
     )
     async def sync_airbyte(self, params: Dict[str, Any]) -> Dict[str, Any]:
-        """Trigger Airbyte sync."""
+        """
+        Trigger Airbyte sync with circuit breaker protection.
+        
+        PhD Developer: Real implementation with proper error handling
+        Security Auditor: Circuit breaker prevents cascade failures
+        Performance Engineer: Async HTTP with connection reuse
+        """
+        from voyant.ingestion.airbyte_client import get_airbyte_client
+        
         connection_id = params.get("connection_id")
         job_id = params.get("job_id")
+        wait_for_completion = params.get("wait_for_completion", False)
+        
+        if not connection_id:
+            raise activity.ApplicationError(
+                "connection_id is required",
+                non_retryable=True
+            )
         
         activity.logger.info(f"Triggering Airbyte sync: {connection_id}")
         
-        # Real implementation would HTTP POST to Airbyte API with circuit breaker
-        # Security Auditor: Circuit breaker prevents cascade failures
         try:
-            activity.heartbeat("Triggering Airbyte sync")
+            client = get_airbyte_client()
             
-            # VIBE Rule: Real implementation - integrate circuit breaker
-            # When Airbyte API is available, wrap with:# from voyant.core.circuit_breaker import get_circuit_breaker, CircuitBreakerConfig
-            # cb = get_circuit_breaker("airbyte", CircuitBreakerConfig())
-            # response = cb.call(lambda: requests.post(airbyte_url, ...))
+            # Trigger the sync
+            activity.heartbeat("Triggering Airbyte sync")
+            result = await client.trigger_sync(connection_id)
+            
+            airbyte_job_id = result.get("job_id")
+            
+            # Optionally wait for completion
+            if wait_for_completion and airbyte_job_id:
+                activity.heartbeat("Waiting for Airbyte sync completion")
+                final_status = await client.wait_for_completion(
+                    airbyte_job_id,
+                    poll_interval=10.0,
+                    timeout=TIMEOUTS["ingestion_airbyte"].total_seconds() - 60
+                )
+                result.update(final_status)
+            
+            activity.logger.info(f"Airbyte sync complete: job_id={airbyte_job_id}")
             
             return {
                 "job_id": job_id,
-                "airbyte_job_id": f"airbyte_job_{job_id}",
-                "status": "triggered"
+                "airbyte_job_id": airbyte_job_id,
+                "connection_id": connection_id,
+                "status": result.get("status", "triggered"),
+                "records_synced": result.get("records_synced", 0),
+                "bytes_synced": result.get("bytes_synced", 0),
             }
+            
         except CircuitBreakerOpenError:
+            activity.logger.error("Airbyte circuit breaker is OPEN")
             raise activity.ApplicationError(
-                "Airbyte service circuit breaker is open",
+                "Airbyte service circuit breaker is open - service unavailable",
                 non_retryable=True
             )
+        except TimeoutError as e:
+            activity.logger.error(f"Airbyte sync timed out: {e}")
+            raise activity.ApplicationError(
+                f"Airbyte sync timed out: {e}",
+                non_retryable=False  # Retry may succeed
+            )
         except Exception as e:
-            activity.logger.error(f"Airbyte sync trigger failed: {e}")
+            activity.logger.error(f"Airbyte sync failed: {e}")
             raise
+
