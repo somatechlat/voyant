@@ -126,6 +126,7 @@ _Last updated: 2025-10-02_
 |--------|-------|-------------|
 | `tenant_quotas.py` | 601 | Quota management system |
 | `job_queue.py` | 450 | Redis-backed concurrency queue |
+| `namespace_analyzer.py` | 150 | Table isolation enforcement |
 
 ### Future / Extensibility
 | Module | Lines | Description |
@@ -134,6 +135,7 @@ _Last updated: 2025-10-02_
 | `plugin_registry.py` | 256 | Plugin system (Generator/Analyzer) |
 | `generation_activities.py` | 80 | Generator execution activities |
 | `schema_evolution.py` | 480 | Schema versioning & diffs |
+| `middleware.py` | 141 | API Versioning (Accept header) |
 
 
 
