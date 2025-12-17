@@ -79,7 +79,9 @@ _Last updated: 2025-10-02_
 - ANALYZE_SENTIMENT (VADER)
 - SEGMENT_CUSTOMERS (K-Means clustering)
 - LINEAR_REGRESSION_ANALYSIS
+- LINEAR_REGRESSION_ANALYSIS
 - FIX_DATA_QUALITY (imputation, outlier treatment, validation)
+- PROFILE_DATA (Adaptive Sampling optimized)
 
 ## Phase 6: Production Hardening ✅ Complete
 - Circuit Breakers (R-Engine, Serper API, external calls)
@@ -138,6 +140,14 @@ _Last updated: 2025-10-02_
 | `tenant_quotas.py` | 601 | Quota management system |
 | `job_queue.py` | 450 | Redis-backed concurrency queue |
 | `namespace_analyzer.py` | 150 | Table isolation enforcement |
+
+### Optimization & API Exposure (P7)
+| Module | Lines | Description |
+|--------|-------|-------------|
+| `profile_activities.py` | 120 | Adaptive sampling based profiling |
+| `profile_workflow.py` | 45 | Profiling orchestration |
+| `discovery.py` | 85 | Service discovery API routes |
+| `search.py` | 75 | Semantic search API routes |
 
 ### Future / Extensibility
 | Module | Lines | Description |

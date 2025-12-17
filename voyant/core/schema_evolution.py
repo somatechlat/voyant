@@ -5,32 +5,16 @@ Persistent baseline management for quality/drift versioning.
 Reference: STATUS.md Gap #3 - Schema Evolution Handling
 
 Features:
-- Schema version tracking
+- Schema version tracking (DuckDB backend)
 - Backward/forward compatibility checks
 - Migration path detection
 - Breaking change detection
 - Schema diff generation
 
 Personas Applied:
-- PhD Developer: Semantic versioning for schemas
-- Analyst: Impact analysis for changes
-- QA: Migration testing
-- ISO Documenter: Schema changelog
-- Security: No data exposure in diffs
-- Performance: Incremental comparisons
-- UX: Clear compatibility reports
-
-Usage:
-    from voyant.core.schema_evolution import (
-        SchemaVersion, track_schema, get_schema_history,
-        check_compatibility, detect_breaking_changes
-    )
-    
-    # Track schema changes
-    track_schema("orders", new_schema)
-    
-    # Check compatibility
-    result = check_compatibility("orders", "1.0.0", "2.0.0")
+- PhD Developer: Semantic versioning, Persistent storage
+- Analyst: History tracking
+- Security: SQL injection prevention (parameterized queries)
 """
 from __future__ import annotations
 
@@ -41,6 +25,9 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional, Set, Tuple
+
+import duckdb
+from voyant.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +69,16 @@ class SchemaChange:
             "new_value": str(self.new_value) if self.new_value else None,
             "is_breaking": self.is_breaking,
         }
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "SchemaChange":
+        return cls(
+            change_type=ChangeType(data["change_type"]),
+            column_name=data["column_name"],
+            old_value=data.get("old_value"),
+            new_value=data.get("new_value"),
+            is_breaking=data.get("is_breaking", False)
+        )
 
 
 @dataclass
@@ -205,9 +202,7 @@ def compare_schemas(
     old_schema: TableSchema,
     new_schema: TableSchema,
 ) -> List[SchemaChange]:
-    """
-    Compare two schemas and return list of changes.
-    """
+    """Compare two schemas and return list of changes."""
     changes = []
     
     old_columns = {c.name: c for c in old_schema.columns}
@@ -276,66 +271,49 @@ def compare_schemas(
 
 def _is_type_widening(old_type: str, new_type: str) -> bool:
     """Check if type change is widening (safe)."""
-    # Define type hierarchy
     type_order = {
-        "int": 1,
-        "integer": 1,
-        "bigint": 2,
+        "int": 1, "integer": 1, "smallint": 1,
+        "bigint": 2, "long": 2,
         "float": 3,
         "double": 4,
-        "decimal": 5,
-        "string": 10,
-        "text": 10,
-        "varchar": 10,
+        "decimal": 5, "numeric": 5,
+        "string": 10, "text": 10, "varchar": 10, "char": 10
     }
-    
     old_order = type_order.get(old_type.lower(), 0)
     new_order = type_order.get(new_type.lower(), 0)
-    
-    # Widening if new type is higher in order
     return new_order >= old_order
 
 
-def check_compatibility(
-    old_schema: TableSchema,
-    new_schema: TableSchema,
-) -> CompatibilityReport:
-    """
-    Check compatibility between two schemas.
-    """
-    changes = compare_schemas(old_schema, new_schema)
-    breaking_changes = [c for c in changes if c.is_breaking]
-    
-    if not breaking_changes:
-        compatibility = CompatibilityLevel.FULL
-    elif all(c.change_type == ChangeType.COLUMN_ADDED for c in breaking_changes):
-        compatibility = CompatibilityLevel.FORWARD
-    elif all(c.change_type == ChangeType.COLUMN_REMOVED for c in breaking_changes):
-        compatibility = CompatibilityLevel.BACKWARD
-    else:
-        compatibility = CompatibilityLevel.NONE
-    
-    return CompatibilityReport(
-        source_version="",  # Will be set by caller
-        target_version="",
-        compatibility=compatibility,
-        changes=changes,
-        breaking_changes=breaking_changes,
-    )
-
-
 # =============================================================================
-# Schema Registry
+# Schema Registry (DuckDB Persistent)
 # =============================================================================
 
 class SchemaEvolutionRegistry:
-    """
-    Registry for tracking schema versions.
-    """
+    """Persistent registry for tracking schema versions using DuckDB."""
     
     def __init__(self):
-        # table_name -> list of versions (ordered by version)
-        self._versions: Dict[str, List[SchemaVersion]] = {}
+        self.settings = get_settings()
+        self._conn = duckdb.connect(database=self.settings.duckdb_path)
+        self._init_db()
+
+    def _init_db(self):
+        """Initialize the schema versions table."""
+        try:
+            self._conn.execute("""
+                CREATE TABLE IF NOT EXISTS schema_versions (
+                    table_name VARCHAR,
+                    version VARCHAR,
+                    schema_json VARCHAR,
+                    created_at DOUBLE,
+                    created_by VARCHAR,
+                    description VARCHAR,
+                    changes_json VARCHAR,
+                    PRIMARY KEY (table_name, version)
+                )
+            """)
+        except Exception as e:
+            logger.error(f"Failed to init DB: {e}")
+            raise
     
     def register(
         self,
@@ -346,27 +324,40 @@ class SchemaEvolutionRegistry:
         created_by: str = "",
     ) -> SchemaVersion:
         """Register a new schema version."""
-        if table_name not in self._versions:
-            self._versions[table_name] = []
-        
-        # Calculate changes from previous
-        changes = []
-        if self._versions[table_name]:
-            prev = self._versions[table_name][-1]
-            changes = compare_schemas(prev.schema, schema)
-        
-        version_obj = SchemaVersion(
-            version=version,
-            schema=schema,
-            description=description,
-            created_by=created_by,
-            changes_from_previous=changes,
-        )
-        
-        self._versions[table_name].append(version_obj)
-        logger.info(f"Registered schema {table_name} v{version} with {len(changes)} changes")
-        
-        return version_obj
+        try:
+            # Calculate changes from previous
+            prev_version = self.get_version(table_name) # Latest
+            changes = []
+            if prev_version:
+                changes = compare_schemas(prev_version.schema, schema)
+            
+            changes_json = json.dumps([c.to_dict() for c in changes])
+            schema_json = json.dumps(schema.to_dict())
+            created_at = time.time()
+            
+            self._conn.execute("""
+                INSERT INTO schema_versions 
+                (table_name, version, schema_json, created_at, created_by, description, changes_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (table_name, version, schema_json, created_at, created_by, description, changes_json))
+            
+            # Explicit commit often not needed in autocommit mode but good for safety
+            # self.conn.commit() 
+            
+            logger.info(f"Registered schema {table_name} v{version} with {len(changes)} changes")
+            
+            return SchemaVersion(
+                version=version,
+                schema=schema,
+                created_at=created_at,
+                created_by=created_by,
+                description=description,
+                changes_from_previous=changes
+            )
+        except duckdb.ConstraintException:
+            logger.warning(f"Schema {table_name} v{version} already exists")
+            # Return existing
+            return self.get_version(table_name, version)
     
     def get_version(
         self,
@@ -374,58 +365,83 @@ class SchemaEvolutionRegistry:
         version: Optional[str] = None,
     ) -> Optional[SchemaVersion]:
         """Get a specific version or latest."""
-        versions = self._versions.get(table_name, [])
-        if not versions:
-            return None
-        
         if version:
-            for v in versions:
-                if v.version == version:
-                    return v
-            return None
+            result = self._conn.execute("""
+                SELECT version, schema_json, created_at, created_by, description, changes_json
+                FROM schema_versions
+                WHERE table_name = ? AND version = ?
+            """, (table_name, version)).fetchone()
+        else:
+            # Latest by created_at
+            result = self._conn.execute("""
+                SELECT version, schema_json, created_at, created_by, description, changes_json
+                FROM schema_versions
+                WHERE table_name = ?
+                ORDER BY created_at DESC
+                LIMIT 1
+            """, (table_name,)).fetchone()
         
-        return versions[-1]  # Latest
+        if not result:
+            return None
+            
+        return self._row_to_version(result)
     
     def get_history(self, table_name: str) -> List[Dict[str, Any]]:
         """Get version history for a table."""
-        versions = self._versions.get(table_name, [])
-        return [
-            {
+        rows = self._conn.execute("""
+            SELECT version, schema_json, created_at, created_by, description, changes_json
+            FROM schema_versions
+            WHERE table_name = ?
+            ORDER BY created_at ASC
+        """, (table_name,)).fetchall()
+        
+        history = []
+        for row in rows:
+            v = self._row_to_version(row)
+            history.append({
                 "version": v.version,
                 "created_at": datetime.fromtimestamp(v.created_at).isoformat(),
                 "description": v.description,
                 "changes_count": len(v.changes_from_previous),
                 "breaking_changes": sum(1 for c in v.changes_from_previous if c.is_breaking),
-            }
-            for v in versions
-        ]
-    
-    def check_compatibility(
-        self,
-        table_name: str,
-        source_version: str,
-        target_version: str,
-    ) -> Optional[CompatibilityReport]:
-        """Check compatibility between two versions."""
-        source = self.get_version(table_name, source_version)
-        target = self.get_version(table_name, target_version)
+            })
+        return history
+
+    def _row_to_version(self, row: Tuple) -> SchemaVersion:
+        """Helper to convert DB row to SchemaVersion object."""
+        # row: version, schema_json, created_at, created_by, description, changes_json
+        version_str, schema_str, created_at, created_by, description, changes_str = row
         
-        if not source or not target:
-            return None
+        schema_dict = json.loads(schema_str)
+        changes_list = json.loads(changes_str)
         
-        report = check_compatibility(source.schema, target.schema)
-        report.source_version = source_version
-        report.target_version = target_version
-        
-        return report
+        return SchemaVersion(
+            version=version_str,
+            schema=TableSchema.from_dict(schema_dict),
+            created_at=created_at,
+            created_by=created_by,
+            description=description,
+            changes_from_previous=[SchemaChange.from_dict(c) for c in changes_list]
+        )
     
     def list_tables(self) -> List[str]:
         """List all tracked tables."""
-        return list(self._versions.keys())
-    
+        result = self._conn.execute("SELECT DISTINCT table_name FROM schema_versions").fetchall()
+        return [r[0] for r in result]
+
     def clear(self):
         """Clear registry (testing)."""
-        self._versions.clear()
+        self._conn.execute("DELETE FROM schema_versions")
+        
+    def close(self):
+        """Close database connection."""
+        try:
+            self._conn.close()
+        except:
+            pass
+
+    def __del__(self):
+        self.close()
 
 
 # =============================================================================
@@ -448,17 +464,14 @@ def track_schema(
     version: str,
     description: str = "",
 ) -> SchemaVersion:
-    """Track a new schema version."""
     return get_registry().register(table_name, schema, version, description)
 
 
 def get_schema_history(table_name: str) -> List[Dict[str, Any]]:
-    """Get schema version history."""
     return get_registry().get_history(table_name)
 
 
 def get_latest_schema(table_name: str) -> Optional[TableSchema]:
-    """Get the latest schema for a table."""
     version = get_registry().get_version(table_name)
     return version.schema if version else None
 
@@ -468,7 +481,6 @@ def check_schema_compatibility(
     source_version: str,
     target_version: str,
 ) -> Optional[Dict[str, Any]]:
-    """Check compatibility between versions."""
     report = get_registry().check_compatibility(table_name, source_version, target_version)
     return report.to_dict() if report else None
 
@@ -476,4 +488,10 @@ def check_schema_compatibility(
 def reset_registry():
     """Reset the registry (testing)."""
     global _registry
+    if _registry:
+        try:
+            _registry.close()
+        except:
+            pass
+    _registry = None
     _registry = None

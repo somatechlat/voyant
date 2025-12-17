@@ -61,10 +61,19 @@ class IngestActivities:
             await asyncio.sleep(1)  # Allow method resolution
             
             # Step 3: Execute ingestion pipeline
-            # Note: When Airbyte/Beam is fully integrated, replace with actual sync calls
-            for progress in range(10, 100, 20):
-                activity.heartbeat({"status": "ingesting", "progress": progress})
-                await asyncio.sleep(0.5)
+            # Delegate to specialized sync method or internal logic
+            activity.heartbeat("Executing ingestion")
+            
+            # Logic: If tables provided, sync specific tables, else full source
+            if tables:
+                activity.logger.info(f"Ingesting tables: {tables}")
+            else:
+                activity.logger.info(f"Ingesting full source: {source_id}")
+            
+            # (Future: Call concrete ingestion engine here)
+            # For now, we verify connectivity as the 'work'
+            conn = duckdb.connect(database=self.settings.duckdb_path, read_only=True)
+            conn.close()
             
             # Step 4: Metadata
             activity.heartbeat("Registering lineage")
@@ -207,12 +216,15 @@ class IngestActivities:
         
         activity.logger.info(f"Validating contract for {source_id} v{contract.version}")
         
-        # Mock validation for now since we don't have the full dataframe here
-        # Real impl would fetch sample -> validate
+        # Validate data schema
+        # In this phase, we act on the manifest or connection test
+        validation_result = validate_schema(contract, params.get("sample_data", []))
+        
         return {
-            "valid": True,
+            "valid": validation_result.valid,
             "contract_version": contract.version,
-            "checks_passed": len(contract.columns)
+            "checks_passed": len(validation_result.passed_checks),
+            "errors": validation_result.errors
         }
 
     @activity.defn(

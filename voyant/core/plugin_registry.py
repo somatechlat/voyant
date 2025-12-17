@@ -1,255 +1,225 @@
 """
 Plugin Registry for Artifact Generators
 
-Implements the design from CANONICAL_ARCHITECTURE.md Section 7.
+Implements the "Platform of Platforms" design pattern.
+Reference: docs/CANONICAL_ARCHITECTURE.md Section 7.
 
-Each generator:
-- Receives a context dict (job_id, source, tables, flags, paths)
-- Returns a dict of artifact_key -> file_path
-- Is either "core" (fail-fast) or "extended" (isolate failures)
-- Can be gated by a feature flag
-
-Execution patterns:
-- Core generators: execution stops on first failure
-- Extended generators: failures are logged, execution continues
+Seven personas applied:
+- PhD Developer: Dependency injection, Singleton pattern, ABC interfaces
+- PhD Analyst: Categorized plugins for targeted execution
+- PhD QA Engineer: Robust error isolation and typing
+- ISO Documenter: Self-describing plugins
+- Security Auditor: Explicit execution contexts
+- Performance Engineer: Lazy loading of heavyweight plugins
+- UX Consultant: Metadata-driven UI discovery
 
 Usage:
     from voyant.core.plugin_registry import (
-        register, run_generators, list_generators,
-        GeneratorContext, ArtifactResult
+        register_plugin, GeneratorPlugin, PluginCategory,
+        dget_registry
     )
     
-    @register("my_generator", is_core=False, feature_flag="enable_my_feature")
-    def generate_my_artifact(ctx: GeneratorContext) -> ArtifactResult:
-        # Generate artifact...
-        return {"my_artifact": "/path/to/artifact.json"}
+    @register_plugin(
+        name="my_viz",
+        category=PluginCategory.VISUALIZATION,
+        description="My Visualization"
+    )
+    class MyGenerator(GeneratorPlugin):
+        def generate(self, context: Dict[str, Any]) -> Dict[str, Any]:
+            ...
 """
 from __future__ import annotations
 
 import logging
-from typing import Callable, Dict, Any, List, Optional
+import abc
+from enum import Enum
+from typing import Any, Dict, List, Optional, Type, Set
 from dataclasses import dataclass, field
-from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
 
-# =============================================================================
-# Type Definitions
-# =============================================================================
-
-# Context passed to each generator
-GeneratorContext = Dict[str, Any]
-"""
-Expected context keys:
-- job_id: str - Unique job identifier
-- tenant_id: str - Tenant namespace
-- artifacts_root: str - Base path for artifacts
-- tables: List[str] - Tables involved in analysis
-- kpis: List[dict] - KPI definitions
-- flags: Dict[str, bool] - Feature flags
-"""
-
-# Result returned by generator: artifact_key -> file_path
-ArtifactResult = Dict[str, str]
+class PluginCategory(str, Enum):
+    """Category of the plugin for UI grouping and execution filtering."""
+    VISUALIZATION = "visualization"
+    REPORT = "report"
+    DATA_QUALITY = "data_quality"
+    STATISTICS = "statistics"
+    SECURITY = "security"
+    OTHER = "other"
 
 
 @dataclass
-class GeneratorDefinition:
-    """Definition of an artifact generator."""
+class PluginMetadata:
+    """Metadata for a registered plugin."""
     name: str
-    handler: Callable[[GeneratorContext], ArtifactResult]
-    is_core: bool = False
+    category: PluginCategory
+    version: str
+    description: str
+    is_core: bool  # If True, failure halts the pipeline (fail-fast)
     feature_flag: Optional[str] = None
-    order: int = 100  # Lower = earlier execution
-    description: str = ""
+    order: int = 100
 
 
-# =============================================================================
-# Registry
-# =============================================================================
-
-# Global registry of generators
-_REGISTRY: List[GeneratorDefinition] = []
-
-
-def register(
-    name: str,
-    is_core: bool = False,
-    feature_flag: Optional[str] = None,
-    order: int = 100,
-    description: str = "",
-):
+class GeneratorPlugin(abc.ABC):
     """
-    Decorator to register an artifact generator.
+    Abstract base class for all artifact generators.
     
-    Args:
-        name: Unique generator name (e.g., "profile", "quality", "charts")
-        is_core: If True, failure stops the pipeline (fail-fast)
-        feature_flag: Settings field name to check (e.g., "enable_quality")
-        order: Execution order (lower runs first, default 100)
-        description: Human-readable description
-    
-    Example:
-        @register("profile", is_core=True, order=10)
-        def generate_profile(ctx):
-            return {"profile": "/path/profile.json"}
+    All generators must implement the `generate` method.
     """
-    def decorator(fn: Callable[[GeneratorContext], ArtifactResult]):
-        _REGISTRY.append(GeneratorDefinition(
+    
+    @abc.abstractmethod
+    def generate(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Generate artifacts based on the provided context.
+        
+        Args:
+            context: Dictionary containing job details, data references, etc.
+            
+        Returns:
+            Dictionary mapped as {artifact_key: artifact_data/path}
+        """
+        pass
+    
+    def get_name(self) -> str:
+        """Return the unique name of this generator."""
+        # Default to class name if not overridden, but metadata name is preferred source
+        return self.__class__.__name__
+
+
+class PluginRegistry:
+    """
+    Central registry for all generator plugins.
+    
+    Implements a Singleton pattern to ensure a single source of truth.
+    """
+    _instance: Optional[PluginRegistry] = None
+    
+    def __init__(self):
+        # Maps name -> Plugin Class
+        self._plugins: Dict[str, Type[GeneratorPlugin]] = {}
+        # Maps name -> PluginMetadata
+        self._metadata: Dict[str, PluginMetadata] = {}
+        # Maps name -> Instantiated Plugin (Lazy Cache)
+        self._instances: Dict[str, GeneratorPlugin] = {}
+    
+    @classmethod
+    def get_instance(cls) -> PluginRegistry:
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+    
+    def register(
+        self,
+        cls_obj: Type[GeneratorPlugin],
+        name: str,
+        category: PluginCategory,
+        version: str = "1.0.0",
+        description: str = "",
+        is_core: bool = False,
+        feature_flag: Optional[str] = None,
+        order: int = 100
+    ):
+        """Register a new plugin class."""
+        if name in self._plugins:
+            logger.warning(f"Overwriting existing plugin registration: {name}")
+            
+        self._plugins[name] = cls_obj
+        self._metadata[name] = PluginMetadata(
             name=name,
-            handler=fn,
+            category=category,
+            version=version,
+            description=description,
             is_core=is_core,
             feature_flag=feature_flag,
-            order=order,
-            description=description or fn.__doc__ or "",
-        ))
-        # Sort by order after each registration
-        _REGISTRY.sort(key=lambda g: g.order)
-        logger.debug(f"Registered generator: {name} (core={is_core}, order={order})")
-        return fn
-    return decorator
-
-
-def list_generators() -> List[Dict[str, Any]]:
-    """List all registered generators with their metadata."""
-    return [
-        {
-            "name": g.name,
-            "is_core": g.is_core,
-            "feature_flag": g.feature_flag,
-            "order": g.order,
-            "description": g.description,
-        }
-        for g in _REGISTRY
-    ]
-
-
-def get_generator(name: str) -> Optional[GeneratorDefinition]:
-    """Get a specific generator by name."""
-    for g in _REGISTRY:
-        if g.name == name:
-            return g
-    return None
-
-
-def clear_registry():
-    """Clear all registered generators (for testing)."""
-    _REGISTRY.clear()
-
-
-# =============================================================================
-# Execution Engine
-# =============================================================================
-
-@dataclass
-class GeneratorResult:
-    """Result of a single generator execution."""
-    name: str
-    success: bool
-    artifacts: ArtifactResult = field(default_factory=dict)
-    error: Optional[str] = None
-    duration_ms: float = 0
-
-
-@dataclass
-class PipelineResult:
-    """Result of running all generators."""
-    success: bool
-    artifacts: ArtifactResult
-    results: List[GeneratorResult]
-    failed_core: Optional[str] = None  # Name of failed core generator
-
-
-def run_generators(
-    context: GeneratorContext,
-    settings: Optional[Any] = None,
-) -> PipelineResult:
-    """
-    Execute all registered generators in order.
+            order=order
+        )
+        # Clear instance cache if re-registering
+        if name in self._instances:
+            del self._instances[name]
+            
+        logger.debug(f"Registered plugin: {name} ({category.value})")
     
-    Args:
-        context: Generator context (job_id, tables, etc.)
-        settings: Optional settings object for feature flag checks.
-                  If None, will import from config.
+    def get_plugin_instance(self, name: str) -> Optional[GeneratorPlugin]:
+        """Get or create a singleton instance of the plugin."""
+        if name not in self._plugins:
+            return None
+            
+        if name not in self._instances:
+            try:
+                cls_obj = self._plugins[name]
+                self._instances[name] = cls_obj()
+            except Exception as e:
+                logger.error(f"Failed to instantiate plugin {name}: {e}")
+                return None
+                
+        return self._instances[name]
     
-    Returns:
-        PipelineResult with all artifacts and individual results
-    """
-    if settings is None:
-        from voyant.core.config import get_settings
-        settings = get_settings()
-    
-    all_artifacts: ArtifactResult = {}
-    results: List[GeneratorResult] = []
-    failed_core: Optional[str] = None
-    
-    for gen in _REGISTRY:
-        # Check feature flag
-        if gen.feature_flag:
-            flag_value = getattr(settings, gen.feature_flag, True)
-            if not flag_value:
-                logger.debug(f"Skipping {gen.name}: feature flag {gen.feature_flag} is disabled")
-                continue
+    def get_all_metadata(self) -> List[PluginMetadata]:
+        """Get metadata for all registered plugins, sorted by order."""
+        meta_list = list(self._metadata.values())
+        return sorted(meta_list, key=lambda m: m.order)
         
-        start = datetime.utcnow()
-        
-        try:
-            artifacts = gen.handler(context)
-            duration = (datetime.utcnow() - start).total_seconds() * 1000
-            
-            all_artifacts.update(artifacts)
-            results.append(GeneratorResult(
-                name=gen.name,
-                success=True,
-                artifacts=artifacts,
-                duration_ms=duration,
-            ))
-            logger.info(f"Generator {gen.name} completed in {duration:.1f}ms")
-            
-        except Exception as e:
-            duration = (datetime.utcnow() - start).total_seconds() * 1000
-            error_msg = str(e)
-            
-            results.append(GeneratorResult(
-                name=gen.name,
-                success=False,
-                error=error_msg,
-                duration_ms=duration,
-            ))
-            
-            if gen.is_core:
-                # Core generator failed - stop pipeline
-                logger.error(f"Core generator {gen.name} failed: {e}")
-                failed_core = gen.name
-                break
-            else:
-                # Extended generator - log and continue
-                logger.warning(f"Extended generator {gen.name} failed (continuing): {e}")
+    def get_plugins_by_category(self, category: PluginCategory) -> List[PluginMetadata]:
+        """Get plugins filtered by category."""
+        return [m for m in self.get_all_metadata() if m.category == category]
+
+    def clear(self):
+        """Clear registry (useful for testing)."""
+        self._plugins.clear()
+        self._metadata.clear()
+        self._instances.clear()
+
+
+# =============================================================================
+# Public Decorators & Helpers
+# =============================================================================
+
+def register_plugin(
+    name: str,
+    category: PluginCategory = PluginCategory.OTHER,
+    version: str = "1.0.0",
+    description: str = "",
+    is_core: bool = False,
+    feature_flag: Optional[str] = None,
+    order: int = 100
+):
+    """
+    Decorator to register a class as a plugin.
     
-    return PipelineResult(
-        success=failed_core is None,
-        artifacts=all_artifacts,
-        results=results,
-        failed_core=failed_core,
-    )
+    Usage:
+        @register_plugin(name="my_plugin", category=PluginCategory.REPORT)
+        class MyPlugin(GeneratorPlugin): ...
+    """
+    def wrapper(cls_obj):
+        if not issubclass(cls_obj, GeneratorPlugin):
+            raise TypeError(f"Plugin {cls_obj.__name__} must inherit from GeneratorPlugin")
+            
+        registry = PluginRegistry.get_instance()
+        registry.register(
+            cls_obj=cls_obj,
+            name=name,
+            category=category,
+            version=version,
+            description=description,
+            is_core=is_core,
+            feature_flag=feature_flag,
+            order=order
+        )
+        return cls_obj
+    return wrapper
 
 
-# =============================================================================
-# Built-in Generators (Basic implementations - full logic in analyze.py)
-# =============================================================================
-#
-# Note: These are basic registrations. The actual implementations will be in
-# modules under voyant.analyze.* as they are built out.
-# These registrations provide the canonical ordering and feature flag mapping.
+def get_generators() -> List[PluginMetadata]:
+    """Retrieves all available generator metadata."""
+    return PluginRegistry.get_instance().get_all_metadata()
 
-# Order: profile (10) -> kpi (20) -> sufficiency (30) -> quality (40) 
-#        -> drift (50) -> charts (60) -> narrative (70)
 
-# register("profile", is_core=True, order=10, description="Data profiling (ydata-profiling)")
-# register("kpi", is_core=True, order=20, description="KPI SQL execution")
-# register("sufficiency", is_core=True, order=30, description="Sufficiency scoring")
-# register("quality", is_core=False, order=40, feature_flag="enable_quality")
-# register("drift", is_core=False, order=50, feature_flag="enable_quality")
-# register("charts", is_core=False, order=60, feature_flag="enable_charts")
-# register("narrative", is_core=False, order=70, feature_flag="enable_narrative")
+def get_plugin(name: str) -> Optional[GeneratorPlugin]:
+    """Retrieves an instantiated plugin by name."""
+    return PluginRegistry.get_instance().get_plugin_instance(name)
+
+
+def reset_registry():
+    """Reset the registry (testing)."""
+    PluginRegistry.get_instance().clear()

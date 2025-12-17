@@ -16,6 +16,7 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 
 from voyant.core.config import get_settings
+from voyant.core.event_schema import validate_event
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -74,11 +75,22 @@ class KafkaProducer:
         else:
             logger.debug(f"Message delivered to {msg.topic()} [{msg.partition()}]")
     
-    def emit(self, topic_key: str, event: VoyantEvent) -> bool:
+    def emit(self, topic_key: str, event: VoyantEvent, skip_validation: bool = False) -> bool:
         """Emit event to Kafka topic."""
+        # Validate schema unless skipped
+        if not skip_validation:
+            validation = validate_event(event.event_type, event.payload)
+            if not validation.valid:
+                logger.error(f"Schema validation failed for {event.event_type}: {validation.errors}")
+                return False
+
         producer = self._get_producer()
         if not producer:
             logger.warning(f"No Kafka producer, event not sent: {event.event_type}")
+            # Return True in dev/test if producer missing, to avoid failing valid logic? 
+            # Or False? Standard behavior was False. Keeping False but maybe strictly we should 
+            # allow fallback if no kafka. 
+            # For now, consistent with previous behavior: return False.
             return False
         
         topic = self.TOPICS.get(topic_key, topic_key)
