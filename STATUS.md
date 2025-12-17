@@ -129,6 +129,8 @@ _Last updated: 2025-10-02_
 | `segment_profiling.py` | 529 | Segment analysis & stats |
 | `embeddings.py` | 396 | Text/Image embedding extraction |
 | `vector_store.py` | 160 | Embedding persistence & search |
+| `forecasting.py` | 461 | Time series forecasting (EMA/Linear) |
+| `operational_workflows.py` | 130 | Anomaly & Forecast workflows |
 
 ### Scale & Multi-Tenant (P4)
 | Module | Lines | Description |

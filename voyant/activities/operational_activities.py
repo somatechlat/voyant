@@ -11,6 +11,8 @@ from temporalio import activity
 from voyant.core.ml_primitives import MLPrimitives
 from voyant.core.nlp_primitives import NLPPrimitives
 from voyant.core.cleaning_primitives import DataCleaningPrimitives
+from voyant.core.forecasting import forecast, get_available_methods
+from voyant.core.forecast_primitives import ForecastPrimitives, PROPHET_AVAILABLE
 from voyant.core.retry_config import DATA_PROCESSING_RETRY, TIMEOUTS
 
 logger = logging.getLogger(__name__)
@@ -20,6 +22,7 @@ class OperationalActivities:
         self.ml = MLPrimitives()
         self.nlp = NLPPrimitives()
         self.cleaner = DataCleaningPrimitives()
+        self.prophet = ForecastPrimitives()
 
     @activity.defn(
         name="clean_data",
@@ -245,3 +248,69 @@ class OperationalActivities:
             "cleaned_data": cleaned_data,
             "quality_report": quality_report
         }
+
+    @activity.defn(
+        name="forecast_time_series",
+        start_to_close_timeout=TIMEOUTS["operational_medium"],
+        retry_policy=DATA_PROCESSING_RETRY
+    )
+    def forecast_time_series(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Generate time series forecast.
+        
+        Supports both native methods (EMA/Linear) and Prophet (if available).
+        
+        Args:
+            params: {
+                "values": List[float],
+                "dates": Optional[List[str]],
+                "periods": int,
+                "method": str ("ema", "linear", "prophet"),
+                "confidence_level": float
+            }
+        """
+        values = params.get("values", [])
+        dates = params.get("dates")
+        periods = params.get("periods", 7)
+        method = params.get("method", "ema")
+        confidence = params.get("confidence_level", 0.95)
+        
+        activity.logger.info(f"Forecasting {periods} periods using {method}")
+        
+        if not values:
+             raise activity.ApplicationError("No values provided for forecasting", non_retryable=True)
+
+        try:
+            # Use Prophet if requested and available
+            if method == "prophet":
+                if not PROPHET_AVAILABLE:
+                    # Fallback or error? VIBE says "Real implementations".
+                    # If user asked for Prophet and it's missing, we should probably fail or warn.
+                    # But if we want robust fallback, we could switch to EMA.
+                    # Let's stick to explicit failure for now to avoid surprises.
+                    raise RuntimeError("Prophet is not available")
+                    
+                if not dates:
+                    raise RuntimeError("Dates are required for Prophet forecasting")
+                    
+                return self.prophet.forecast_prophet(
+                    dates=dates,
+                    values=values,
+                    periods=periods
+                )
+            
+            # Use Native Methods
+            result = forecast(
+                values=values,
+                periods=periods,
+                method=method,
+                confidence_level=confidence,
+                dates=dates
+            )
+            
+            return result.to_dict()
+            
+        except Exception as e:
+            activity.logger.error(f"Forecasting failed: {e}")
+            raise activity.ApplicationError(f"Forecasting failed: {e}", non_retryable=True)
+
