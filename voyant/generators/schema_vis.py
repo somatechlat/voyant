@@ -35,14 +35,20 @@ class SchemaTimelineGenerator(GeneratorPlugin):
     def get_name(self) -> str:
         return "schema_timeline"
 
-    def generate(self, data: Any, **kwargs) -> Dict[str, Any]:
+    def generate(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """
         Generate timeline artifact.
         
         Args:
-            data: Dict containing 'table_name'
+            context: Dictionary containing 'table_name' or 'tables'
         """
-        table_name = data.get("table_name")
+        table_name = context.get("table_name")
+        if not table_name:
+            # Fallback for multi-table context
+            tables = context.get("tables", [])
+            if tables:
+                table_name = tables[0]
+        
         if not table_name:
             raise ValueError("table_name required for schema timeline")
             

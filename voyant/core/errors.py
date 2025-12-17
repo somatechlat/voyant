@@ -495,6 +495,11 @@ class DataQualityError(VoyantError):
     pass
 
 
+class ArtifactGenerationError(VoyantError):
+    """Raised when an artifact generator fails."""
+    pass
+
+
 
 # =============================================================================
 # Helper Functions

@@ -17,6 +17,7 @@ from voyant.api.middleware import get_tenant_id
 from voyant.core.temporal import get_temporal_client
 from voyant.core.namespace_analyzer import validate_table_access, NamespaceViolationError
 from voyant.workflows.ingest_workflow import IngestWorkflow
+from voyant.workflows.profile_workflow import ProfileWorkflow
 from voyant.workflows.types import IngestParams
 
 logger = logging.getLogger(__name__)
@@ -153,6 +154,27 @@ async def trigger_profile(request: ProfileRequest, background_tasks: BackgroundT
         "table": request.table,
         "sample_size": request.sample_size,
     })
+    
+    # Trigger Temporal Workflow
+    try:
+        client = await get_temporal_client()
+        await client.start_workflow(
+            ProfileWorkflow.run,
+            {
+                "source_id": request.source_id,
+                "table": request.table,
+                "sample_size": request.sample_size,
+                "job_id": job["job_id"],
+                "tenant_id": job["tenant_id"]
+            },
+            id=f"profile-{job['job_id']}",
+            task_queue="voyant-tasks",
+        )
+        job["status"] = "running"
+    except Exception as e:
+        logger.error(f"Failed to start profile workflow: {e}")
+        job["status"] = "failed"
+        job["error_message"] = str(e)
     
     return JobResponse(
         job_id=job["job_id"],

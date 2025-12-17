@@ -34,6 +34,12 @@ class Settings(BaseSettings):
         alias="DATABASE_URL",
     )
     
+    # DuckDB (Local Analytical DB)
+    duckdb_path: str = Field(
+        default="voyant.duckdb",
+        alias="DUCKDB_PATH",
+    )
+    
     # Redis (Sessions & Cache)
     redis_url: str = Field(
         default="redis://:voyant@localhost:6379/0",
