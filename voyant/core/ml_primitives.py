@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 try:
     from sklearn.cluster import KMeans, DBSCAN
     from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor, IsolationForest
+    from sklearn.linear_model import LinearRegression
     from sklearn.preprocessing import StandardScaler, LabelEncoder
     from sklearn.impute import SimpleImputer
     from sklearn.metrics import silhouette_score, accuracy_score, r2_score

@@ -95,3 +95,28 @@ class FixDataQualityWorkflow:
         
         return result
 
+@workflow.defn
+class ForecastWorkflow:
+    @workflow.run
+    async def run(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Run forecasting workflow.
+        
+        Orchestrates time series forecasting logic.
+        """
+        values = params.get("values", [])
+        dates = params.get("dates")
+        
+        result = await workflow.execute_activity(
+            OperationalActivities.forecast_time_series,
+            {
+                "values": values,
+                "dates": dates,
+                "periods": params.get("periods", 7),
+                "method": params.get("method", "ema"),
+                "confidence_level": params.get("confidence_level", 0.95),
+            },
+            start_to_close_timeout=timedelta(minutes=5)
+        )
+        
+        return result
