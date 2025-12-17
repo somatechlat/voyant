@@ -32,12 +32,34 @@ class IngestDataWorkflow:
             maximum_attempts=3,
         )
         
-        # Execute Activity
-        # We assume the activity is registered as "run_ingestion" or method name
+        # 1. Validate Contract (Governance P5)
+        # ---------------------------------------------------------
+        validation = await workflow.execute_activity(
+            IngestActivities.validate_contract_activity,
+            params,
+            start_to_close_timeout=timedelta(minutes=1),
+            retry_policy=retry_policy,
+        )
+        
+        if not validation.get("valid", True):
+             # Blocking validation failure
+             raise workflow.ApplicationError(f"Contract validation failed: {validation}")
+
+        # 2. Execute Ingestion
+        # ---------------------------------------------------------
         result = await workflow.execute_activity(
             IngestActivities.run_ingestion,
             params,
             start_to_close_timeout=timedelta(minutes=10),
+            retry_policy=retry_policy,
+        )
+        
+        # 3. Record Lineage (Governance P5)
+        # ---------------------------------------------------------
+        await workflow.execute_activity(
+            IngestActivities.record_lineage_activity,
+            params,
+            start_to_close_timeout=timedelta(minutes=1),
             retry_policy=retry_policy,
         )
         

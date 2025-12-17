@@ -115,11 +115,20 @@ _Last updated: 2025-10-02_
 | `airbyte_client.py` | 400 | HTTP client with circuit breaker |
 | `seven_personas_review.py` | 699 | Automated review system |
 
+### Governance & Contracts (P5)
+| Module | Lines | Description |
+|--------|-------|-------------|
+| `contracts.py` | 474 | Contract definitions & validation |
+| `lineage.py` | 381 | Lineage graph & querying |
+| `sensitivity_classifier.py` | 610 | PII Classification & detection |
+| `ingest_workflow.py` | 65 | **Wired:** Validates contracts & records lineage |
+
 ### Advanced Analytics (P6)
 | Module | Lines | Description |
 |--------|-------|-------------|
-| `segment_profiling.py` | 529 | Group-level statistics |
-| `sensitivity_classifier.py` | 610 | PII auto-detection |
+| `segment_profiling.py` | 529 | Segment analysis & stats |
+| `embeddings.py` | 396 | Text/Image embedding extraction |
+| `vector_store.py` | 160 | Embedding persistence & search |
 
 ### Scale & Multi-Tenant (P4)
 | Module | Lines | Description |
