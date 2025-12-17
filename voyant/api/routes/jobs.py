@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 
 from voyant.api.middleware import get_tenant_id
 from voyant.core.temporal import get_temporal_client
+from voyant.core.namespace_analyzer import validate_table_access, NamespaceViolationError
 from voyant.workflows.ingest_workflow import IngestWorkflow
 from voyant.workflows.types import IngestParams
 
@@ -93,6 +94,15 @@ def _create_job(job_type: str, source_id: str, params: Dict[str, Any]) -> Dict[s
 @router.post("/ingest", response_model=JobResponse)
 async def trigger_ingest(request: IngestRequest, background_tasks: BackgroundTasks):
     """Trigger data ingestion via Apache Beam/Airbyte."""
+    # Validate namespaces
+    try:
+        tenant_id = get_tenant_id()
+        if request.tables:
+            for table in request.tables:
+                validate_table_access(tenant_id, table)
+    except NamespaceViolationError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
     job = _create_job("ingest", request.source_id, {
         "mode": request.mode,
         "tables": request.tables,
@@ -131,6 +141,14 @@ async def trigger_ingest(request: IngestRequest, background_tasks: BackgroundTas
 @router.post("/profile", response_model=JobResponse)
 async def trigger_profile(request: ProfileRequest, background_tasks: BackgroundTasks):
     """Trigger data profiling via ydata-profiling."""
+    # Validate namespaces
+    try:
+        tenant_id = get_tenant_id()
+        if request.table:
+            validate_table_access(tenant_id, request.table)
+    except NamespaceViolationError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
     job = _create_job("profile", request.source_id, {
         "table": request.table,
         "sample_size": request.sample_size,
@@ -149,6 +167,14 @@ async def trigger_profile(request: ProfileRequest, background_tasks: BackgroundT
 @router.post("/quality", response_model=JobResponse)
 async def trigger_quality(request: QualityRequest, background_tasks: BackgroundTasks):
     """Trigger data quality checks via Great Expectations."""
+    # Validate namespaces
+    try:
+        tenant_id = get_tenant_id()
+        if request.table:
+            validate_table_access(tenant_id, request.table)
+    except NamespaceViolationError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
     job = _create_job("quality", request.source_id, {
         "table": request.table,
         "checks": request.checks,
