@@ -26,11 +26,7 @@ class StatsActivities:
         self.r_engine = REngine()
         self.primitives = RStatsPrimitives(self.r_engine)
 
-    @activity.defn(
-        name="describe_distribution",
-        start_to_close_timeout=TIMEOUTS["stats_short"],
-        retry_policy=EXTERNAL_SERVICE_RETRY
-    )
+    @activity.defn(name="describe_distribution")
     def describe_distribution(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Get descriptive stats for a column.
@@ -74,11 +70,7 @@ class StatsActivities:
                 non_retryable=True
             )
 
-    @activity.defn(
-        name="calculate_correlation",
-        start_to_close_timeout=TIMEOUTS["stats_short"],
-        retry_policy=EXTERNAL_SERVICE_RETRY
-    )
+    @activity.defn(name="calculate_correlation")
     def calculate_correlation(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Calculate correlation matrix.
@@ -100,11 +92,7 @@ class StatsActivities:
                 non_retryable=True
             )
 
-    @activity.defn(
-        name="fit_distribution",
-        start_to_close_timeout=TIMEOUTS["stats_long"],
-        retry_policy=EXTERNAL_SERVICE_RETRY
-    )
+    @activity.defn(name="fit_distribution")
     def fit_distribution(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Fit distribution to data.
@@ -126,12 +114,7 @@ class StatsActivities:
                 non_retryable=True
             )
 
-    @activity.defn(
-        name="calculate_market_share",
-        start_to_close_timeout=TIMEOUTS["stats_long"],
-        heartbeat_timeout=timedelta(seconds=30),
-        retry_policy=EXTERNAL_SERVICE_RETRY
-    )
+    @activity.defn(name="calculate_market_share")
     def calculate_market_share(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Calculate market share metrics using R.
@@ -199,11 +182,7 @@ class StatsActivities:
             activity.logger.error(f"R Calculation failed: {e}")
             raise ExternalServiceError("VYNT-6020", f"R Execution Error: {e}")
 
-    @activity.defn(
-        name="perform_hypothesis_test",
-        start_to_close_timeout=TIMEOUTS["stats_short"],
-        retry_policy=EXTERNAL_SERVICE_RETRY
-    )
+    @activity.defn(name="perform_hypothesis_test")
     def perform_hypothesis_test(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Perform t-test or ANOVA using R.

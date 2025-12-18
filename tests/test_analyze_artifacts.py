@@ -7,7 +7,7 @@ _tmp = tempfile.mkdtemp(prefix="udb_analyze_")
 os.environ["UDB_DUCKDB_PATH"] = os.path.join(_tmp, "warehouse.duckdb")
 os.environ["UDB_ARTIFACTS_ROOT"] = os.path.join(_tmp, "artifacts")
 
-from udb_api.app import app  # noqa: E402
+from voyant.api.app import app  # noqa: E402
 
 client = TestClient(app)
 

@@ -22,11 +22,7 @@ class MLActivities:
         self.ml = MLPrimitives()
         self.forecast = ForecastPrimitives()
 
-    @activity.defn(
-        name="cluster_data",
-        start_to_close_timeout=TIMEOUTS["ml_clustering"],
-        retry_policy=DATA_PROCESSING_RETRY
-    )
+    @activity.defn(name="cluster_data")
     def cluster_data(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Perform clustering on data.
@@ -58,12 +54,7 @@ class MLActivities:
                 non_retryable=True
             )
 
-    @activity.defn(
-        name="train_classifier_model",
-        start_to_close_timeout=TIMEOUTS["ml_training"],
-        heartbeat_timeout=timedelta(minutes=1),
-        retry_policy=DATA_PROCESSING_RETRY
-    )
+    @activity.defn(name="train_classifier_model")
     def train_classifier_model(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Train a classification model.
@@ -91,12 +82,7 @@ class MLActivities:
                 non_retryable=True
             )
 
-    @activity.defn(
-        name="forecast_time_series",
-        start_to_close_timeout=TIMEOUTS["ml_forecasting"],
-        heartbeat_timeout=timedelta(minutes=1),
-        retry_policy=DATA_PROCESSING_RETRY
-    )
+    @activity.defn(name="forecast_time_series")
     def forecast_time_series(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Generate time series forecast.
@@ -124,12 +110,7 @@ class MLActivities:
                 non_retryable=True
             )
     
-    @activity.defn(
-        name="train_regression_model",
-        start_to_close_timeout=TIMEOUTS["ml_training"],
-        heartbeat_timeout=timedelta(minutes=1),
-        retry_policy=DATA_PROCESSING_RETRY
-    )
+    @activity.defn(name="train_regression_model")
     def train_regression_model(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Train a linear regression model.

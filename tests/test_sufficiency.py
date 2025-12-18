@@ -12,7 +12,7 @@ _os.environ["UDB_DUCKDB_PATH"] = os.path.join(_tmp_dir, "warehouse.duckdb")
 _os.environ["UDB_ARTIFACTS_ROOT"] = os.path.join(_tmp_dir, "artifacts")
 _os.environ["UDB_DISABLE_RATE_LIMIT"] = "1"
 
-from udb_api.app import ARTIFACTS_ROOT, DUCKDB_PATH, app  # noqa: E402
+from voyant.api.app import ARTIFACTS_ROOT, DUCKDB_PATH, app  # noqa: E402
 
 client = TestClient(app)
 

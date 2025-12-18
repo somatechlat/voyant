@@ -2,7 +2,7 @@ import os
 import re
 
 from fastapi.testclient import TestClient
-from udb_api.app import app
+from voyant.api.app import app
 
 
 def test_recent_events_and_artifact_metric():

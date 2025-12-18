@@ -1,5 +1,5 @@
 import pytest
-from udb_api.airbyte_client import get_airbyte_client
+from voyant.ingestion.airbyte_client import get_airbyte_client
 
 @pytest.mark.asyncio
 async def test_airbyte_health():

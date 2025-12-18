@@ -25,12 +25,7 @@ class IngestActivities:
     def __init__(self):
         self.settings = get_settings()
 
-    @activity.defn(
-        name="run_ingestion",
-        start_to_close_timeout=TIMEOUTS["ingestion_long"],
-        heartbeat_timeout=TIMEOUTS["operational_short"],
-        retry_policy=EXTERNAL_SERVICE_RETRY
-    )
+    @activity.defn(name="run_ingestion")
     async def run_ingestion(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Execute data ingestion job.
@@ -119,11 +114,7 @@ class IngestActivities:
             activity.logger.error(f"Ingestion failed: {e}")
             raise
 
-    @activity.defn(
-        name="sync_airbyte",
-        start_to_close_timeout=TIMEOUTS["ingestion_airbyte"],
-        retry_policy=EXTERNAL_SERVICE_RETRY
-    )
+    @activity.defn(name="sync_airbyte")
     async def sync_airbyte(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Trigger Airbyte sync with circuit breaker protection.
@@ -192,11 +183,7 @@ class IngestActivities:
             activity.logger.error(f"Airbyte sync failed: {e}")
             raise
 
-    @activity.defn(
-        name="validate_contract_activity",
-        start_to_close_timeout=TIMEOUTS["operational_short"],
-        retry_policy=EXTERNAL_SERVICE_RETRY
-    )
+    @activity.defn(name="validate_contract_activity")
     async def validate_contract_activity(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Validate data contract before ingestion.
@@ -227,11 +214,7 @@ class IngestActivities:
             "errors": validation_result.errors
         }
 
-    @activity.defn(
-        name="record_lineage_activity",
-        start_to_close_timeout=TIMEOUTS["operational_short"],
-        retry_policy=EXTERNAL_SERVICE_RETRY
-    )
+    @activity.defn(name="record_lineage_activity")
     async def record_lineage_activity(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Record lineage for the ingestion job.

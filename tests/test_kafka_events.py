@@ -8,7 +8,7 @@ from aiokafka import AIOKafkaConsumer
 from fastapi.testclient import TestClient
 import pytest
 
-from udb_api.app import app
+from voyant.api.app import app
 
 
 @pytest.mark.integration

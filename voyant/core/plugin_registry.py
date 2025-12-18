@@ -61,35 +61,34 @@ class PluginMetadata:
     order: int = 100
 
 
-class GeneratorPlugin(abc.ABC):
-    """
-    Abstract base class for all artifact generators.
-    
-    All generators must implement the `generate` method.
-    """
-    
-    @abc.abstractmethod
-    def generate(self, context: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Generate artifacts based on the provided context.
-        
-        Args:
-            context: Dictionary containing job details, data references, etc.
-            
-        Returns:
-            Dictionary mapped as {artifact_key: artifact_data/path}
-        """
-        pass
+class VoyantPlugin(abc.ABC):
+    """Abstract base class for all plugins."""
     
     def get_name(self) -> str:
-        """Return the unique name of this generator."""
-        # Default to class name if not overridden, but metadata name is preferred source
+        """Return the unique name of this plugin."""
         return self.__class__.__name__
 
+class GeneratorPlugin(VoyantPlugin):
+    """
+    Abstract base class for artifact generators.
+    """
+    @abc.abstractmethod
+    def generate(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate artifacts."""
+        pass
+
+class AnalyzerPlugin(VoyantPlugin):
+    """
+    Abstract base class for data analyzers.
+    """
+    @abc.abstractmethod
+    def analyze(self, data: Any, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze data and return insights."""
+        pass
 
 class PluginRegistry:
     """
-    Central registry for all generator plugins.
+    Central registry for all plugins.
     
     Implements a Singleton pattern to ensure a single source of truth.
     """
@@ -97,11 +96,11 @@ class PluginRegistry:
     
     def __init__(self):
         # Maps name -> Plugin Class
-        self._plugins: Dict[str, Type[GeneratorPlugin]] = {}
+        self._plugins: Dict[str, Type[VoyantPlugin]] = {}
         # Maps name -> PluginMetadata
         self._metadata: Dict[str, PluginMetadata] = {}
         # Maps name -> Instantiated Plugin (Lazy Cache)
-        self._instances: Dict[str, GeneratorPlugin] = {}
+        self._instances: Dict[str, VoyantPlugin] = {}
     
     @classmethod
     def get_instance(cls) -> PluginRegistry:
@@ -111,7 +110,7 @@ class PluginRegistry:
     
     def register(
         self,
-        cls_obj: Type[GeneratorPlugin],
+        cls_obj: Type[VoyantPlugin],
         name: str,
         category: PluginCategory,
         version: str = "1.0.0",
@@ -140,7 +139,7 @@ class PluginRegistry:
             
         logger.debug(f"Registered plugin: {name} ({category.value})")
     
-    def get_plugin_instance(self, name: str) -> Optional[GeneratorPlugin]:
+    def get_plugin_instance(self, name: str) -> Optional[VoyantPlugin]:
         """Get or create a singleton instance of the plugin."""
         if name not in self._plugins:
             return None
@@ -192,8 +191,8 @@ def register_plugin(
         class MyPlugin(GeneratorPlugin): ...
     """
     def wrapper(cls_obj):
-        if not issubclass(cls_obj, GeneratorPlugin):
-            raise TypeError(f"Plugin {cls_obj.__name__} must inherit from GeneratorPlugin")
+        if not issubclass(cls_obj, VoyantPlugin):
+            raise TypeError(f"Plugin {cls_obj.__name__} must inherit from VoyantPlugin")
             
         registry = PluginRegistry.get_instance()
         registry.register(
@@ -212,7 +211,36 @@ def register_plugin(
 
 def get_generators() -> List[PluginMetadata]:
     """Retrieves all available generator metadata."""
-    return PluginRegistry.get_instance().get_all_metadata()
+    # Filter for Generators only
+    registry = PluginRegistry.get_instance()
+    all_meta = registry.get_all_metadata()
+    # Check class type of registered plugin?
+    # Metadata doesn't store class type directly, but registry._plugins does.
+    # simpler: just strictly use category or check inheritance if needed.
+    # For now, let's rely on the fact that we might want all plugins or filter by cat.
+    # But wait, get_generators was used assuming everything is a generator.
+    # Now we have mixed. We should filter.
+    
+    # Ideally we filter by inheritance, but metadata is lightweight.
+    # Let's check the _plugins dict.
+    gens = []
+    for meta in all_meta:
+        cls = registry._plugins.get(meta.name)
+        if cls and issubclass(cls, GeneratorPlugin):
+            gens.append(meta)
+    return gens
+
+
+def get_analyzers() -> List[PluginMetadata]:
+    """Retrieves all available analyzer metadata."""
+    registry = PluginRegistry.get_instance()
+    all_meta = registry.get_all_metadata()
+    analyzers = []
+    for meta in all_meta:
+        cls = registry._plugins.get(meta.name)
+        if cls and issubclass(cls, AnalyzerPlugin):
+            analyzers.append(meta)
+    return analyzers
 
 
 def get_plugin(name: str) -> Optional[GeneratorPlugin]:

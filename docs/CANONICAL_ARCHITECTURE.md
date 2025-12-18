@@ -29,7 +29,9 @@ Provide a stable, technology-agnostic reference model for how UDB ingests, norma
 +-----------------------------------------------------------+
 | Storage & Modeling: DuckDB | Views | Fragment Tables      |
 +-----------------------------------------------------------+
-| Analysis Layer: Profiling | KPI | Quality | Drift | Charts|
+| Analysis Services (Plugins): Anomaly | Forecast | Quality |
++-----------------------------------------------------------+
+| Analysis Layer: Profiling | KPI | Drift | Charts          |
 +-----------------------------------------------------------+
 | Artifact Layer: File System (HTML/JSON/PNG/CSV)           |
 +-----------------------------------------------------------+
@@ -44,68 +46,35 @@ Provide a stable, technology-agnostic reference model for how UDB ingests, norma
 |------------|------|----------|-------|
 | Airbyte sync | ✅ | – | Required for multi-source ingestion |
 | File upload (structured) | ✅ | – | CSV/Parquet/XLSX ingested to DuckDB |
-| Unstructured docs | – | ✅ | `unstructured` library → fragments table |
 | Profiling (EDA) | ✅ | – | ydata-profiling HTML & JSON |
 | KPI engine | ✅ | – | SQL-based metrics + masking |
-| Sufficiency scoring | ✅ | – | Coverage / cleanliness / joinability / freshness |
+| Anomaly Detection | – | ✅ | Scikit-learn Isolation Forest |
+| Forecasting | – | ✅ | Scikit-learn Linear Regression |
+| Data Quality | – | ✅ | Rule-based engine (Nulls, Ranges) |
 | Quality & drift | – | ✅ | Evidently; baseline mgmt |
-| Charts | – | ✅ | Plotly spec or heuristic |
-| Narrative summary | – | ✅ | Derived from KPI + profile deltas |
 | Events (Kafka) | – | ✅ | job.created/state.changed/analyze.* |
-| Metrics (basic) | ✅ | – | Job counts, durations |
 | Metrics (full) | – | ✅ | Quality, ingest, OAuth, prune |
-| Tracing | – | ✅ | OpenTelemetry spans |
-| RBAC | ✅ | – | Header-driven (disable for minimal mode) |
 | Rate limiting | ✅ | – | In-memory bucket, optional disable |
-| Pruning endpoint | ✅ | – | Manual cleanup |
-| Prune scheduler | – | ✅ | Interval-based maintenance |
-
-## 5. Data Lifecycle (Canonical Flow)
-1. Discover or select source(s).
-2. Initiate sync (connector → DuckDB tables).
-3. (Optional) Ingest uploaded / unstructured data.
-4. Apply virtual modeling (views / joins).
-5. Run analysis pipeline (profiling → KPI → scoring → optional quality/drift → charts → narrative).
-6. Persist artifacts & manifest.
-7. Emit metrics/events; update job store.
-8. Serve response + artifact links.
-
-## 6. Artifact Taxonomy
-| Type | Purpose | Example Filename |
-|------|---------|------------------|
-| Profile HTML | Human exploration | `profile.html` |
-| Profile JSON | Machine parsing | `profile.json` |
-| Quality HTML/JSON | Data health view | `quality.html` / `quality.json` |
-| Drift HTML/JSON | Distribution change | `drift.html` / `drift.json` |
-| KPI JSON | Tabular metrics | `kpis.json` |
-| KPI Chart(s) | Visual summaries | `chart_*.html` |
-| Sufficiency JSON | Readiness scoring | `sufficiency.json` |
-| Narrative TXT/MD | Human summary | `narrative.txt` |
-| Manifest JSON | Inventory | `manifest.json` |
 
 ## 7. Plugin / Generator Registry (Design)
 ```python
 # pseudo
-ARTIFACT_GENERATORS: list[Callable[Context, Result]] = []
+# Single Registry, two plugin types
+class VoyantPlugin: ...
+class GeneratorPlugin(VoyantPlugin): ...
+class AnalyzerPlugin(VoyantPlugin): ...
 
-def register(fn):
-    ARTIFACT_GENERATORS.append(fn)
+GENERATORS: list[GeneratorPlugin] = []
+ANALYZERS: list[AnalyzerPlugin] = []
 
-# Core registrations
-register(generate_profile)
-register(generate_kpis)
-register(generate_sufficiency)
-
-# Extended registrations (conditional)
-if flags.quality:
-    register(generate_quality)
-    register(generate_drift)
-if flags.charts:
-    register(generate_charts)
-if flags.narrative:
-    register(generate_narrative)
+def register_plugin(cls):
+    # Auto-detect type and register
+    ...
 ```
-Execution engine: iterate in declared order; each returns a dict of artifact keys → file paths + metadata. Fail-fast or continue-on-error configurable (default: fail-fast for core, isolate extended failures).
+Execution engine:
+1. `run_analyzers`: Execute `AnalyzerPlugin`s (Anomaly, Forecast) -> Return intermediate data.
+2. `run_generators`: Execute `GeneratorPlugin`s (Profile, KPI, Charts) -> Return artifact paths.
+Fail-fast or continue-on-failure is configurable per plugin metadata.
 
 ## 8. Feature Flag Specification
 | Env Var | Type | Default | Controls |

@@ -1,7 +1,7 @@
 import os
 import pytest
 from fastapi.testclient import TestClient
-from udb_api.app import _RATE_BUCKETS, app
+from voyant.api.app import _RATE_BUCKETS, app
 
 client = TestClient(app)
 

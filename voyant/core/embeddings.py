@@ -375,6 +375,23 @@ def get_available_models() -> List[str]:
     return list(_EMBEDDERS.keys())
 
 
+def get_embedding_extractor(model: str = "tfidf", dimensions: int = 64) -> EmbeddingExtractor:
+    """
+    Get an embedding extractor instance.
+    
+    Args:
+        model: Model name ("simple", "tfidf")
+        dimensions: Output dimensions
+        
+    Returns:
+        EmbeddingExtractor instance
+    """
+    if model not in _EMBEDDERS:
+        raise ValueError(f"Unknown model: {model}. Available: {list(_EMBEDDERS.keys())}")
+    
+    return _EMBEDDERS[model](dimensions=dimensions)
+
+
 def find_similar(
     query_embedding: List[float],
     corpus_embeddings: List[List[float]],
