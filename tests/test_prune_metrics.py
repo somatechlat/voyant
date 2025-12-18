@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 TEMP_ART_ROOT = tempfile.mkdtemp(prefix="udb_artifacts_")
 os.environ["UDB_ARTIFACTS_ROOT"] = TEMP_ART_ROOT  # must be set before app import
 
-from udb_api.app import ARTIFACTS_ROOT, app  # noqa: E402
+from voyant.api.app import ARTIFACTS_ROOT, app  # noqa: E402
 from udb_api.metrics import artifacts_pruned  # noqa: E402
 
 client = TestClient(app)

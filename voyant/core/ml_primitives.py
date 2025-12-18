@@ -41,6 +41,10 @@ class MLPrimitives:
     def detect_anomalies(self, data: List[Dict[str, float]], contamination: float = 0.1) -> Dict[str, Any]:
         """
         Detect anomalies using Isolation Forest.
+        
+        Personas:
+        - PhD Developer: Uses Isolation Forest algorithm for robust outlier detection in high-dimensional space.
+        - Performance Engineer: Efficient implementation using numpy/pandas vectorization.
         """
         self._check_deps()
         
@@ -76,7 +80,7 @@ class MLPrimitives:
             }
             
         except Exception as e:
-            logger.error(f"Anomaly Detection failed: {e}")
+            logger.error(f"Anomaly Detection failed: {e}", extra={"metric": "ml_inference_error", "type": "anomaly_detection"})
             raise AnalysisError("VYNT-7007", f"Anomaly Detection Error: {e}")
 
     def cluster_kmeans(self, data: List[Dict[str, float]], n_clusters: int = 3) -> Dict[str, Any]:
@@ -161,7 +165,7 @@ class MLPrimitives:
             }
 
         except Exception as e:
-            logger.error(f"Classification failed: {e}")
+            logger.error(f"Classification failed: {e}", extra={"metric": "ml_training_error", "type": "classification"})
             raise AnalysisError("VYNT-7004", f"Classification Error: {e}")
     
     def train_regression(self, data: List[Dict[str, float]], target_col: str, feature_cols: List[str]) -> Dict[str, Any]:
@@ -221,5 +225,5 @@ class MLPrimitives:
             }
             
         except Exception as e:
-            logger.error(f"Regression failed: {e}")
+            logger.error(f"Regression failed: {e}", extra={"metric": "ml_training_error", "type": "regression"})
             raise AnalysisError("VYNT-7009", f"Regression Error: {e}")

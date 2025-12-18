@@ -61,7 +61,6 @@ def create_app() -> FastAPI:
     app.include_router(sql.router, prefix="/v1", tags=["sql"])
     app.include_router(governance.router, prefix="/v1", tags=["governance"])
     app.include_router(presets.router, prefix="/v1", tags=["presets"])
-    app.include_router(presets.router, prefix="/v1", tags=["presets"])
     app.include_router(artifacts.router, prefix="/v1", tags=["artifacts"])
     app.include_router(discovery.router, prefix="/v1", tags=["discovery"])
     app.include_router(search.router, prefix="/v1", tags=["search"])

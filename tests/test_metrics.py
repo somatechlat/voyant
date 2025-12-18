@@ -1,5 +1,5 @@
 from fastapi.testclient import TestClient
-from udb_api.app import app
+from voyant.api.app import app
 
 def test_metrics_endpoint():
     client = TestClient(app)

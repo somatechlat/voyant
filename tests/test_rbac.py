@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 
 os.environ["UDB_DISABLE_RATE_LIMIT"] = "1"
 
-from udb_api.app import app  # noqa: E402
+from voyant.api.app import app  # noqa: E402
 
 client = TestClient(app)
 

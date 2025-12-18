@@ -20,11 +20,7 @@ class ProfileActivities:
     def __init__(self):
         self.settings = get_settings()
 
-    @activity.defn(
-        name="profile_data",
-        start_to_close_timeout=TIMEOUTS["processing_long"],
-        retry_policy=DATA_PROCESSING_RETRY
-    )
+    @activity.defn(name="profile_data")
     def profile_data(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Profile a dataset with adaptive sampling.

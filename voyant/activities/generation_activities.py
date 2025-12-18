@@ -8,6 +8,7 @@ import logging
 from typing import Any, Dict, List
 
 from temporalio import activity
+from temporalio.exceptions import ApplicationError
 
 from voyant.core.plugin_registry import get_generators, PluginCategory
 from voyant.core.errors import ArtifactGenerationError
@@ -21,7 +22,7 @@ class GenerationActivities:
         pass
         
     @activity.defn
-    def run_generators(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def run_generators(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Run all registered artifact generators.
         
@@ -71,7 +72,7 @@ class GenerationActivities:
                 # Fail fast if core plugin
                 if info.is_core:
                     activity.logger.error(f"Core generator {info.name} failed - halting pipeline")
-                    raise activity.ApplicationError(f"Core generator failed: {error_msg}")
+                    raise ApplicationError(f"Core generator failed: {error_msg}")
 
         if errors:
             results["_errors"] = errors

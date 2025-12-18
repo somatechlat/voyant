@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field
 from voyant.api.middleware import get_tenant_id
 from voyant.core.temporal import get_temporal_client
 from voyant.core.namespace_analyzer import validate_table_access, NamespaceViolationError
-from voyant.workflows.ingest_workflow import IngestWorkflow
+from voyant.workflows.ingest_workflow import IngestDataWorkflow
 from voyant.workflows.profile_workflow import ProfileWorkflow
 from voyant.workflows.types import IngestParams
 
@@ -113,7 +113,7 @@ async def trigger_ingest(request: IngestRequest, background_tasks: BackgroundTas
     try:
         client = await get_temporal_client()
         await client.start_workflow(
-            IngestWorkflow.run,
+            IngestDataWorkflow.run,
             IngestParams(
                 job_id=job["job_id"],
                 source_id=request.source_id,

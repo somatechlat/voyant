@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 
 os.environ["UDB_DISABLE_RATE_LIMIT"] = "1"
 
-from udb_api.app import DUCKDB_PATH, _tenant_artifact_root, app, job_store  # noqa: E402
+from voyant.api.app import DUCKDB_PATH, _tenant_artifact_root, app, job_store  # noqa: E402
 
 client = TestClient(app, raise_server_exceptions=False)
 

@@ -144,13 +144,13 @@ services:
     image: temporalio/auto-setup:1.24.2
     container_name: voyant-temporal
     environment:
-      - DB=postgresql
+      - DB=postgres12
       - DB_PORT=5432
       - POSTGRES_USER=${POSTGRES_USER:-voyant}
       - POSTGRES_PWD=${POSTGRES_PASSWORD:-voyant}
       - POSTGRES_SEEDS=postgres
     ports:
-      - "7233:7233"
+      - "${TEMPORAL_PORT:-45233}:7233"
     depends_on:
       postgres:
         condition: service_healthy
@@ -169,7 +169,7 @@ services:
       - TEMPORAL_ADDRESS=temporal:7233
       - TEMPORAL_CORS_ORIGINS=http://localhost:3000
     ports:
-      - "8088:8080"
+      - "${TEMPORAL_UI_PORT:-45089}:8080"
     depends_on:
       - temporal
     deploy:
@@ -191,7 +191,7 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-voyant}:${POSTGRES_PASSWORD:-voyant}@postgres:5432/voyant
       REDIS_URL: redis://:${REDIS_PASSWORD:-voyant}@redis:6379/0
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       TEMPORAL_HOST: temporal:7233
       TEMPORAL_TASK_QUEUE: voyant-tasks
     depends_on:
@@ -255,24 +255,29 @@ services:
 
   kafka:
     <<: *common
-    image: bitnami/kafka:latest
+    image: apache/kafka:3.7.0
     container_name: voyant-kafka
     environment:
-      KAFKA_CFG_NODE_ID: 1
-      KAFKA_CFG_PROCESS_ROLES: controller,broker
-      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
-      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
-      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
-      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
-      KAFKA_CFG_LOG_RETENTION_HOURS: 24
-      KAFKA_KRAFT_CLUSTER_ID: voyant-local-cluster
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: controller,broker
+      # Listeners: CONTROLLER (9093), INTERNAL (29092), EXTERNAL (9092 logic, mapped to 45092 host)
+      # We must advertise the HOST port for external access if we want clients to connect via localhost:45092
+      # Actually, inside the container it listens on 9092. Docker maps 45092->9092.
+      # The advertised listener for EXTERNAL must be localhost:45092 so the client knows where to send requests.
+      KAFKA_LISTENERS: CONTROLLER://:9093,INTERNAL://:29092,EXTERNAL://:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:45092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_RETENTION_HOURS: 24
+      CLUSTER_ID: voyant-local-cluster
       KAFKA_HEAP_OPTS: -Xmx512m -Xms256m
     ports:
       - "${KAFKA_PORT:-45092}:9092"
     volumes:
-      - kafka_data:/bitnami/kafka
+      - kafka_data:/var/lib/kafka/data
     deploy:
       resources:
         limits:
@@ -319,15 +324,11 @@ services:
 
   spark-master:
     <<: *common
-    image: bitnami/spark:3.5
+    image: apache/spark:3.5.1
     container_name: voyant-spark-master
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master --ip 0.0.0.0 --port 7077 --webui-port 8088
     environment:
-      SPARK_MODE: master
       SPARK_MASTER_HOST: spark-master
-      SPARK_RPC_AUTHENTICATION_ENABLED: "no"
-      SPARK_RPC_ENCRYPTION_ENABLED: "no"
-      SPARK_MASTER_WEBUI_PORT: 8088
-      SPARK_DAEMON_MEMORY: 512m
     ports:
       - "${SPARK_UI_PORT:-45088}:8088"
       - "45077:7077"
@@ -340,15 +341,9 @@ services:
 
   spark-worker:
     <<: *common
-    image: bitnami/spark:3.5
+    image: apache/spark:3.5.1
     container_name: voyant-spark-worker
-    environment:
-      SPARK_MODE: worker
-      SPARK_MASTER_URL: spark://spark-master:7077
-      SPARK_WORKER_MEMORY: 1G
-      SPARK_WORKER_CORES: 2
-      SPARK_RPC_AUTHENTICATION_ENABLED: "no"
-      SPARK_RPC_ENCRYPTION_ENABLED: "no"
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
     depends_on:
       - spark-master
     deploy:
@@ -365,7 +360,7 @@ services:
       dockerfile: docker/r-engine/Dockerfile
     container_name: voyant-r-engine
     ports:
-      - "127.0.0.1:${R_ENGINE_PORT:-46311}:6311"
+      - "127.0.0.1:${R_ENGINE_PORT:-45311}:6311"
     deploy:
       resources:
         limits:
@@ -504,7 +499,7 @@ services:
 
   lago-api:
     <<: *common
-    image: getlago/api:v1.15.0-alpha
+    image: getlago/api:v1.18.0
     container_name: voyant-lago-api
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-voyant}:${POSTGRES_PASSWORD:-voyant}@postgres:5432/lago
@@ -530,7 +525,7 @@ services:
 
   lago-worker:
     <<: *common
-    image: getlago/api:v1.15.0-alpha
+    image: getlago/api:v1.18.0
     container_name: voyant-lago-worker
     command: bundle exec sidekiq
     environment:

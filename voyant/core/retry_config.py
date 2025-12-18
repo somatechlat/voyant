@@ -108,6 +108,10 @@ TIMEOUTS = {
     "operational_medium": timedelta(minutes=10), # Sentiment analysis
     "operational_long": timedelta(minutes=15),   # Data quality fixing (large datasets)
     
+    # Generic Processing
+    "processing_short": timedelta(minutes=5),
+    "processing_long": timedelta(minutes=20),
+    
     # Discovery Activities
     "discovery": timedelta(minutes=5),  # API search, spec parsing
 }

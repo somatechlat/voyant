@@ -10,7 +10,7 @@ import os
 from functools import lru_cache
 from typing import List, Optional
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     
     # Database (PostgreSQL)
     database_url: str = Field(
-        default="postgresql://voyant:voyant@localhost:5432/voyant",
+        default="postgresql://voyant:voyant@localhost:45432/voyant",
         alias="DATABASE_URL",
     )
     
@@ -42,47 +42,59 @@ class Settings(BaseSettings):
     
     # Redis (Sessions & Cache)
     redis_url: str = Field(
-        default="redis://:voyant@localhost:6379/0",
+        default="redis://:voyant@localhost:45379/0",
         alias="REDIS_URL",
     )
     
     # Kafka
-    kafka_bootstrap_servers: str = Field(default="localhost:9092")
+    kafka_bootstrap_servers: str = Field(default="localhost:45092")
 
     # Temporal (Orchestration)
-    temporal_host: str = Field(default="localhost:7233")
+    temporal_host: str = Field(default="localhost:45233")
     temporal_namespace: str = Field(default="default")
     temporal_task_queue: str = Field(default="voyant-tasks")
     
     # MinIO (S3-compatible)
-    minio_endpoint: str = Field(default="localhost:9000")
+    minio_endpoint: str = Field(default="localhost:45900")
     minio_access_key: str = Field(default="voyant")
-    minio_secret_key: str = Field(default="voyant123")
+    minio_secret_key: str = Field(default="voyant123") # Dev default accepted for local
     minio_secure: bool = Field(default=False)
     
     # Trino (SQL Federation)
     trino_host: str = Field(default="localhost")
-    trino_port: int = Field(default=8090)
+    trino_port: int = Field(default=45090)
     trino_user: str = Field(default="voyant")
     trino_catalog: str = Field(default="iceberg")
     trino_schema: str = Field(default="voyant")
 
     # R Engine (Statistical Analysis)
     r_engine_host: str = Field(default="localhost")
-    r_engine_port: int = Field(default=6311)
+    r_engine_port: int = Field(default=45311)
     
     # DataHub
-    datahub_gms_url: str = Field(default="http://localhost:8080")
+    datahub_gms_url: str = Field(default="http://localhost:45080")
     
     # Keycloak
-    keycloak_url: str = Field(default="http://localhost:8180")
+    keycloak_url: str = Field(default="http://localhost:45180")
     keycloak_realm: str = Field(default="voyant")
     keycloak_client_id: str = Field(default="voyant-api")
     keycloak_client_secret: str = Field(default="voyant-api-secret")
     
     # Lago Billing
-    lago_api_url: str = Field(default="http://localhost:3000")
+    lago_api_url: str = Field(default="http://localhost:45300")
     lago_api_key: str = Field(default="")
+    
+    @model_validator(mode='after')
+    def check_security(self) -> 'Settings':
+        if self.env != "local":
+            defaults = ["voyant123", "voyant-api-secret", "voyant"]
+            val_str = str(self.minio_secret_key)
+            if val_str in defaults or self.keycloak_client_secret in defaults:
+                import logging
+                logging.getLogger("voyant.security").warning(
+                    f"⚠️ SECURITY WARNING: Running in {self.env} with default secrets! Rotate immediately."
+                )
+        return self
     
     # Secrets Backend
     secrets_backend: str = Field(default="env", description="env, k8s, or vault")

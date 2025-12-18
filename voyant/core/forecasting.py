@@ -9,8 +9,9 @@ Supports:
 - Linear trend extrapolation
 - Seasonal decomposition (extensible for Prophet)
 
+
 Note: Prophet implementation is in forecast_primitives.py
-"""
+
 Usage:
     from voyant.core.forecasting import (
         forecast, Forecaster,
