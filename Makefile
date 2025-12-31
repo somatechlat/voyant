@@ -1,5 +1,5 @@
 PYTHON=python3
-APP=udb_api.app:app
+APP=voyant_project.asgi:application
 UVICORN=uvicorn
 
 .PHONY: dev install lint test build docker
@@ -17,4 +17,4 @@ dev:
 	$(UVICORN) $(APP) --reload --host 0.0.0.0 --port 8000
 
 docker:
-	docker build -t udb-api:dev .
+	docker build -t voyant-api:dev .

@@ -605,12 +605,13 @@ def review_api_usability(base_path: str) -> PersonaReview:
     passed = 0
     total = 0
     
-    base = Path(base_path) / "voyant"
-    api_path = base / "api"
+    base = Path(base_path)
+    api_path = base / "voyant_app"
+    project_path = base / "voyant_project"
     
     # Check 1: Health endpoints
     total += 1
-    health_file = api_path / "routes" / "health.py"
+    health_file = project_path / "urls.py"
     if health_file.exists():
         content = health_file.read_text()
         if "healthz" in content and "readyz" in content:
@@ -631,20 +632,19 @@ def review_api_usability(base_path: str) -> PersonaReview:
         if "status" in content.lower():
             passed += 1
     
-    # Check 4: OpenAPI/FastAPI patterns
+    # Check 4: Django Ninja patterns
     total += 1
-    main_app = api_path / "app.py"
-    if main_app.exists():
-        content = main_app.read_text()
-        if "FastAPI" in content:
+    api_file = api_path / "api.py"
+    if api_file.exists():
+        content = api_file.read_text()
+        if "NinjaAPI" in content:
             passed += 1
     
     # Check 5: Consistent route structure
     total += 1
-    routes_path = api_path / "routes"
-    if routes_path.exists():
-        route_files = list(routes_path.glob("*.py"))
-        if len(route_files) >= 3:
+    if api_file.exists():
+        content = api_file.read_text()
+        if "add_router" in content:
             passed += 1
     
     review.findings = findings

@@ -90,6 +90,23 @@ class TrinoClient:
             execution_time_ms=int((time.time() - start_time) * 1000),
             query_id=getattr(cursor, 'query_id', None),
         )
+
+    def get_tables(self, schema: Optional[str] = None) -> List[str]:
+        """List tables for the given schema."""
+        target_schema = schema or self.schema
+        result = self.execute(f"SHOW TABLES FROM {target_schema}")
+        return [row[0] for row in result.rows]
+
+    def get_columns(self, table: str, schema: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Describe table columns."""
+        target_schema = schema or self.schema
+        result = self.execute(f"DESCRIBE {target_schema}.{table}")
+        columns = []
+        for row in result.rows:
+            if not row:
+                continue
+            columns.append({"name": row[0], "type": row[1] if len(row) > 1 else ""})
+        return columns
     
     def _validate_sql(self, sql: str) -> None:
         """Validate SQL is safe."""

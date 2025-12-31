@@ -217,6 +217,37 @@ class VoyantMCPServer:
             },
             handler=self._handle_quality,
         )
+
+        # voyant.analyze
+        self.tools["voyant.analyze"] = MCPTool(
+            name="voyant.analyze",
+            description="Run end-to-end analysis (profile, KPI, analyzers, artifacts)",
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "source_id": {"type": "string", "description": "Source ID to analyze"},
+                    "table": {"type": "string", "description": "Table name to analyze"},
+                    "tables": {"type": "array", "items": {"type": "string"}},
+                    "sample_size": {"type": "integer", "default": 10000},
+                    "kpis": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string"},
+                                "sql": {"type": "string"}
+                            },
+                            "required": ["name", "sql"]
+                        }
+                    },
+                    "analyzers": {"type": "array", "items": {"type": "string"}},
+                    "profile": {"type": "boolean", "default": True},
+                    "run_analyzers": {"type": "boolean", "default": True},
+                    "generate_artifacts": {"type": "boolean", "default": True}
+                }
+            },
+            handler=self._handle_analyze,
+        )
         
         # voyant.kpi
         self.tools["voyant.kpi"] = MCPTool(
@@ -401,6 +432,23 @@ class VoyantMCPServer:
             "source_id": params["source_id"],
             "table": params.get("table"),
             "checks": params.get("checks"),
+        })
+        response.raise_for_status()
+        return response.json()
+
+    async def _handle_analyze(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle voyant.analyze tool."""
+        client = await self._get_client()
+        response = await client.post("/v1/analyze", json={
+            "source_id": params.get("source_id"),
+            "table": params.get("table"),
+            "tables": params.get("tables"),
+            "sample_size": params.get("sample_size", 10000),
+            "kpis": params.get("kpis"),
+            "analyzers": params.get("analyzers"),
+            "profile": params.get("profile", True),
+            "run_analyzers": params.get("run_analyzers", True),
+            "generate_artifacts": params.get("generate_artifacts", True),
         })
         response.raise_for_status()
         return response.json()

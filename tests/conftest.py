@@ -1,7 +1,19 @@
 import inspect
+import os
 import types
 
+import django
 import pytest
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "voyant_project.settings")
+django.setup()
+
+from django.test import Client
+
+
+@pytest.fixture
+def client():
+    return Client()
 
 # Core modules / symbols we forbid patching for network realism
 _FORBIDDEN_PREFIXES = [

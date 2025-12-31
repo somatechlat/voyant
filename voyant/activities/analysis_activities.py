@@ -11,6 +11,7 @@ from temporalio import activity
 
 from voyant.core.plugin_registry import get_analyzers, get_plugin
 from voyant.core.errors import AnalysisError
+from voyant.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +19,33 @@ class AnalysisActivities:
     """Activities for data analysis."""
     
     def __init__(self):
-        pass
+        self.settings = get_settings()
+
+    @activity.defn(name="fetch_sample")
+    def fetch_sample(self, params: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        Fetch a sample from DuckDB for analysis.
+        """
+        table = params.get("table")
+        sample_size = params.get("sample_size", 10000)
+
+        if not table:
+            raise activity.ApplicationError(
+                "table is required for sample fetch",
+                non_retryable=True
+            )
+
+        try:
+            import duckdb
+            conn = duckdb.connect(database=self.settings.duckdb_path, read_only=True)
+            df = conn.execute(f"SELECT * FROM {table} LIMIT {sample_size}").df()
+            conn.close()
+            return df.to_dict(orient="records")
+        except Exception as e:
+            raise activity.ApplicationError(
+                f"Sample fetch failed: {e}",
+                non_retryable=False
+            )
         
     @activity.defn
     def run_analyzers(self, params: Dict[str, Any]) -> Dict[str, Any]:

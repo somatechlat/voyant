@@ -81,6 +81,51 @@ class Settings(BaseSettings):
     keycloak_client_secret: str = Field(default="voyant-api-secret")
     
 
+    # Soma Stack Integration
+    soma_policy_url: str = Field(default="", alias="SOMA_POLICY_URL")
+    soma_memory_url: str = Field(default="", alias="SOMA_MEMORY_URL")
+    soma_orchestrator_url: str = Field(default="", alias="SOMA_ORCHESTRATOR_URL")
+    
+    @model_validator(mode='after')
+    def check_security(self) -> 'Settings':
+        if self.env != "local":
+            defaults = ["voyant123", "voyant-api-secret", "voyant"]
+            val_str = str(self.minio_secret_key)
+            if val_str in defaults or self.keycloak_client_secret in defaults:
+                import logging
+                logging.getLogger("voyant.security").warning(
+                    f"⚠️ SECURITY WARNING: Running in {self.env} with default secrets! Rotate immediately."
+                )
+        return self
+    
+    # Secrets Backend
+    secrets_backend: str = Field(default="env", description="env, k8s, or vault")
+    
+    # Feature Flags
+    enable_quality: bool = Field(default=True)
+    enable_billing: bool = Field(default=True)
+    enable_datahub: bool = Field(default=True)
+    enable_mfa: bool = Field(default=False)
+    enable_charts: bool = Field(default=True)
+    enable_narrative: bool = Field(default=True)
+    
+    # Metrics Mode: off (no metrics), basic (core only), full (all metrics)
+    metrics_mode: str = Field(
+        default="full",
+        description="Metrics registration mode: off, basic, or full"
+    )
+    
+    # API Settings
+    api_host: str = Field(default="0.0.0.0")
+    api_port: int = Field(default=8000)
+    api_workers: int = Field(default=4)
+    
+    # Limits
+    max_query_rows: int = Field(default=10000)
+    max_upload_size_mb: int = Field(default=100)
+    session_ttl_hours: int = Field(default=8)
+    session_idle_minutes: int = Field(default=30)
+
 
 @lru_cache
 def get_settings() -> Settings:
