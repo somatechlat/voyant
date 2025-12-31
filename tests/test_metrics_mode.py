@@ -1,7 +1,7 @@
 """
 Tests for Metrics Mode Gating
 
-Verifies that UDB_METRICS_MODE controls which metrics are registered.
+Verifies that VOYANT_METRICS_MODE controls which metrics are registered.
 Reference: docs/CANONICAL_ARCHITECTURE.md Section 8
 """
 import os

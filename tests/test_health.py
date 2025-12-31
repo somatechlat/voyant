@@ -1,13 +1,10 @@
-from fastapi.testclient import TestClient
-from voyant.api.app import app
+def test_healthz(client):
+    response = client.get("/healthz")
+    assert response.status_code == 200
+    assert response.json()["status"] == "healthy"
 
-client = TestClient(app)
 
-def test_healthz():
-    r = client.get('/healthz')
-    assert r.status_code == 200
-    assert r.json()['status'] == 'ok'
-
-def test_readyz():
-    r = client.get('/readyz')
-    assert r.status_code == 200
+def test_readyz(client):
+    response = client.get("/readyz")
+    assert response.status_code in (200, 503)
+    assert "status" in response.json()

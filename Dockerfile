@@ -15,7 +15,10 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
+COPY manage.py ./manage.py
 COPY voyant/ ./voyant/
+COPY voyant_app/ ./voyant_app/
+COPY voyant_project/ ./voyant_project/
 
 # Set environment
 ENV PYTHONUNBUFFERED=1
@@ -27,4 +30,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 
 # Run the application
 EXPOSE 8000
-CMD ["uvicorn", "voyant.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "voyant_project.asgi:application", "--host", "0.0.0.0", "--port", "8000"]

@@ -5,8 +5,6 @@ Verifies Accept header version negotiation middleware.
 Reference: docs/CANONICAL_ROADMAP.md - P3 Extensibility
 """
 import pytest
-from unittest.mock import AsyncMock, MagicMock
-from starlette.testclient import TestClient
 
 from voyant.api.middleware import (
     APIVersionMiddleware,
@@ -44,12 +42,6 @@ class TestVersionInfo:
 
 class TestVersionNegotiationIntegration:
     """Integration tests with test client."""
-
-    @pytest.fixture
-    def client(self):
-        """Create test client."""
-        from voyant.api.app import app
-        return TestClient(app)
 
     def test_version_endpoint_exists(self, client):
         """GET /version should return version info."""

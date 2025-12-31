@@ -83,6 +83,11 @@ class Settings(BaseSettings):
     # Lago Billing
     lago_api_url: str = Field(default="http://localhost:45300")
     lago_api_key: str = Field(default="")
+
+    # Soma Stack Integration
+    soma_policy_url: str = Field(default="", alias="SOMA_POLICY_URL")
+    soma_memory_url: str = Field(default="", alias="SOMA_MEMORY_URL")
+    soma_orchestrator_url: str = Field(default="", alias="SOMA_ORCHESTRATOR_URL")
     
     @model_validator(mode='after')
     def check_security(self) -> 'Settings':

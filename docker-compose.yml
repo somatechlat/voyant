@@ -98,6 +98,9 @@ services:
       VOYANT_ENABLE_DATAHUB: ${VOYANT_ENABLE_DATAHUB:-true}
     volumes:
       - ./voyant:/app/voyant:ro
+      - ./voyant_app:/app/voyant_app:ro
+      - ./voyant_project:/app/voyant_project:ro
+      - ./manage.py:/app/manage.py:ro
       - ./artifacts:/app/artifacts
       - ./data:/app/data
     depends_on:
@@ -571,7 +574,7 @@ volumes:
 #
 # Service             Memory    Purpose
 # ------------------  --------  --------------------------------
-# voyant-api          512M      FastAPI Backend
+# voyant-api          512M      Django API Backend
 # voyant-mcp          256M      MCP Server for AI Agents
 # voyant-worker       512M      Celery Workers
 # postgres            512M      Metadata, Keycloak, Lago DBs
