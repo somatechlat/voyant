@@ -15,7 +15,13 @@ from voyant.core.config import get_settings
 from voyant.core.temporal_client import get_temporal_client
 
 from voyant.workflows.ingest_workflow import IngestDataWorkflow
+from voyant.workflows.profile_workflow import ProfileWorkflow
+from voyant.workflows.analyze_workflow import AnalyzeWorkflow
 from voyant.activities.ingest_activities import IngestActivities
+from voyant.activities.profile_activities import ProfileActivities
+from voyant.activities.analysis_activities import AnalysisActivities
+from voyant.activities.generation_activities import GenerationActivities
+from voyant.activities.kpi_activities import KPIActivities
 from voyant.workflows.benchmark_workflow import BenchmarkBrandWorkflow
 from voyant.activities.stats_activities import StatsActivities
 from voyant.activities.ml_activities import MLActivities
@@ -28,6 +34,10 @@ from voyant.workflows.operational_workflows import (
 )
 from voyant.workflows.segmentation_workflow import SegmentCustomersWorkflow
 from voyant.workflows.regression_workflow import LinearRegressionWorkflow
+
+# DataScraper Module
+from voyant.scraper.workflow import ScrapeWorkflow
+from voyant.scraper.activities import ScrapeActivities
 
 from voyant.core.monitoring import MetricsRegistry
 from voyant.core.interceptors import MetricsInterceptor
@@ -57,16 +67,24 @@ async def run_worker():
     # 2. Define Workflows and Activities
     workflows = [
         IngestDataWorkflow, 
+        ProfileWorkflow,
+        AnalyzeWorkflow,
         BenchmarkBrandWorkflow,
         DetectAnomaliesWorkflow,
         AnalyzeSentimentWorkflow,
         FixDataQualityWorkflow,
         SegmentCustomersWorkflow,
-        LinearRegressionWorkflow
+        LinearRegressionWorkflow,
+        ScrapeWorkflow,  # NEW: DataScraper workflow
     ]
     activities = [
         IngestActivities().run_ingestion, 
         IngestActivities().sync_airbyte,
+        ProfileActivities().profile_data,
+        AnalysisActivities().fetch_sample,
+        AnalysisActivities().run_analyzers,
+        GenerationActivities().run_generators,
+        KPIActivities().run_kpis,
         StatsActivities().calculate_market_share,
         StatsActivities().perform_hypothesis_test,
         StatsActivities().describe_distribution,
@@ -81,7 +99,15 @@ async def run_worker():
         OperationalActivities().detect_anomalies,
         OperationalActivities().analyze_sentiment_batch,
         OperationalActivities().fix_data_quality,
-        OperationalActivities().clean_data
+        OperationalActivities().clean_data,
+        # NEW: DataScraper activities
+        ScrapeActivities().fetch_page,
+        ScrapeActivities().extract_with_llm,
+        ScrapeActivities().extract_basic,
+        ScrapeActivities().process_ocr,
+        ScrapeActivities().process_media,
+        ScrapeActivities().store_artifact,
+        ScrapeActivities().finalize_job,
     ]
     
     task_queue = settings.temporal_task_queue
