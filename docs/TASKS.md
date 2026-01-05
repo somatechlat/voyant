@@ -1,8 +1,9 @@
 # Voyant v3 Production Readiness Task Plan
 
 Document ID: VOYANT-TASKS-3.0.0
-Status: Draft for execution
-Date: 2025-12-17
+Status: In Progress (28% Complete)
+Date: 2025-12-31 (Updated)
+Includes: DataScraper Module (Section 19)
 
 ## 0. Tracking Conventions
 - [ ] Not started
@@ -180,3 +181,65 @@ Definition of Done: All Apache integrations are configured, testable, and wired 
   Files: `tests/integration/*`
 
 Definition of Done: SomaAgentHub can orchestrate Voyant workflows with policy and memory integration, and SomaAgent01 can register Voyant tools.
+
+## 19. DataScraper Module (Pure Execution Tools)
+
+### 19.1 Core Infrastructure (COMPLETED)
+- [x] Create `voyant/scraper/` module structure  
+  Files: `voyant/scraper/__init__.py`, `voyant/scraper/apps.py`
+- [x] Implement SSRF protection and URL validation  
+  Files: `voyant/scraper/security.py`
+- [x] Create Django ORM models (ScrapeJob, ScrapeArtifact)  
+  Files: `voyant/scraper/models.py`
+- [x] Implement Django Ninja API router  
+  Files: `voyant/scraper/api.py`
+- [x] Create Temporal workflow (ScrapeWorkflow)  
+  Files: `voyant/scraper/workflow.py`
+- [x] Implement 7 pure execution activities  
+  Files: `voyant/scraper/activities.py`
+
+### 19.2 Parsing Stack (IN PROGRESS)
+- [x] Create HTML parser with CSS/XPath extraction  
+  Files: `voyant/scraper/parsing/html_parser.py`
+- [x] Create PDF parser with Apache Tika integration  
+  Files: `voyant/scraper/parsing/pdf_parser.py`
+- [x] Create OCR processor with Tesseract  
+  Files: `voyant/scraper/parsing/ocr_processor.py`
+- [ ] Create Whisper transcription processor  
+  Files: `voyant/scraper/media/transcription.py`
+
+### 19.3 Browser Clients (TODO)
+- [ ] Implement Playwright client for JS rendering  
+  Files: `voyant/scraper/browser/playwright_client.py`
+- [ ] Implement httpx client for static pages  
+  Files: `voyant/scraper/browser/httpx_client.py`
+- [ ] Implement Scrapy client for high volume  
+  Files: `voyant/scraper/browser/scrapy_client.py`
+
+### 19.4 MCP Tool Registration (TODO)
+- [ ] Register `scrape.fetch` tool  
+  Files: `voyant/mcp/server.py`
+- [ ] Register `scrape.extract` tool  
+  Files: `voyant/mcp/server.py`
+- [ ] Register `scrape.ocr` tool  
+  Files: `voyant/mcp/server.py`
+- [ ] Register `scrape.parse_pdf` tool  
+  Files: `voyant/mcp/server.py`
+- [ ] Register `scrape.transcribe` tool  
+  Files: `voyant/mcp/server.py`
+
+### 19.5 Integration & Testing (TODO)
+- [ ] Add `voyant.scraper` to INSTALLED_APPS  
+  Files: `voyant_project/settings.py`
+- [ ] Run migrations for scraper models  
+  Files: `voyant/scraper/migrations/`
+- [ ] Register workflow in worker_main.py  
+  Files: `voyant/worker/worker_main.py`
+- [ ] Create unit tests for security module  
+  Files: `tests/scraper/test_security.py`
+- [ ] Create integration tests for workflow  
+  Files: `tests/scraper/test_workflow.py`
+
+Definition of Done: Agent Zero can use `scrape.*` MCP tools for pure execution web scraping.
+
+**Architecture Reminder**: DataScraper is a PURE EXECUTION toolbox. NO LLM integration. Agent Zero handles all intelligence and provides selectors.

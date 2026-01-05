@@ -25,13 +25,14 @@ Usage:
         generate_preview, PreviewConfig,
         get_artifact_summary, extract_html_snippet
     )
-    
+
     # Generate preview
     preview = generate_preview("/path/to/artifact.json")
-    
+
     # Get summary
     summary = get_artifact_summary(artifact_data)
 """
+
 from __future__ import annotations
 
 import json
@@ -50,6 +51,7 @@ logger = logging.getLogger(__name__)
 
 class ArtifactType(str, Enum):
     """Supported artifact types."""
+
     JSON = "json"
     HTML = "html"
     CSV = "csv"
@@ -62,35 +64,37 @@ class ArtifactType(str, Enum):
 @dataclass
 class PreviewConfig:
     """Configuration for preview generation."""
-    max_size_bytes: int = 10 * 1024       # 10KB max preview
-    max_rows: int = 100                    # For tabular data
-    max_keys: int = 50                     # For JSON objects
-    include_schema: bool = True            # Include structure info
-    include_stats: bool = True             # Include statistics
+
+    max_size_bytes: int = 10 * 1024  # 10KB max preview
+    max_rows: int = 100  # For tabular data
+    max_keys: int = 50  # For JSON objects
+    include_schema: bool = True  # Include structure info
+    include_stats: bool = True  # Include statistics
 
 
 @dataclass
 class ArtifactPreview:
     """Generated artifact preview."""
+
     artifact_type: ArtifactType
     original_size: int
     preview_size: int
     truncated: bool
     content: Union[str, Dict[str, Any]]
-    
+
     # Metadata
     checksum: str = ""
     mime_type: str = ""
     generated_at: str = ""
-    
+
     # Statistics (optional)
     stats: Dict[str, Any] = field(default_factory=dict)
     schema: Dict[str, Any] = field(default_factory=dict)
-    
+
     def __post_init__(self):
         if not self.generated_at:
             self.generated_at = datetime.utcnow().isoformat() + "Z"
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "artifact_type": self.artifact_type.value,
@@ -111,10 +115,11 @@ class ArtifactPreview:
 # Type Detection
 # =============================================================================
 
+
 def detect_artifact_type(path: Path) -> ArtifactType:
     """Detect artifact type from file extension and content."""
     suffix = path.suffix.lower()
-    
+
     type_mapping = {
         ".json": ArtifactType.JSON,
         ".html": ArtifactType.HTML,
@@ -128,7 +133,7 @@ def detect_artifact_type(path: Path) -> ArtifactType:
         ".gif": ArtifactType.IMAGE,
         ".svg": ArtifactType.IMAGE,
     }
-    
+
     return type_mapping.get(suffix, ArtifactType.BINARY)
 
 
@@ -150,56 +155,59 @@ def get_mime_type(artifact_type: ArtifactType) -> str:
 # Preview Generators
 # =============================================================================
 
+
 def preview_json(
     content: str,
     config: PreviewConfig,
 ) -> tuple[str, Dict[str, Any], Dict[str, Any]]:
     """
     Generate preview for JSON content.
-    
+
     Returns: (preview_content, stats, schema)
     """
     try:
         data = json.loads(content)
     except json.JSONDecodeError:
-        return content[:config.max_size_bytes], {}, {"error": "Invalid JSON"}
-    
+        return content[: config.max_size_bytes], {}, {"error": "Invalid JSON"}
+
     stats = {}
     schema = {}
-    
+
     if isinstance(data, dict):
         stats["type"] = "object"
         stats["key_count"] = len(data)
-        schema["keys"] = list(data.keys())[:config.max_keys]
-        
+        schema["keys"] = list(data.keys())[: config.max_keys]
+
         # Truncate if too many keys
         if len(data) > config.max_keys:
-            preview_data = {k: data[k] for k in list(data.keys())[:config.max_keys]}
+            preview_data = {k: data[k] for k in list(data.keys())[: config.max_keys]}
             preview_data["_truncated"] = f"...{len(data) - config.max_keys} more keys"
         else:
             preview_data = data
-            
+
     elif isinstance(data, list):
         stats["type"] = "array"
         stats["item_count"] = len(data)
-        
+
         if data:
             first_item = data[0]
             if isinstance(first_item, dict):
                 schema["item_keys"] = list(first_item.keys())
-        
+
         # Truncate if too many items
         if len(data) > config.max_rows:
-            preview_data = data[:config.max_rows]
-            preview_data.append({"_truncated": f"...{len(data) - config.max_rows} more items"})
+            preview_data = data[: config.max_rows]
+            preview_data.append(
+                {"_truncated": f"...{len(data) - config.max_rows} more items"}
+            )
         else:
             preview_data = data
     else:
         stats["type"] = type(data).__name__
         preview_data = data
-    
+
     preview_str = json.dumps(preview_data, indent=2, default=str)
-    return preview_str[:config.max_size_bytes], stats, schema
+    return preview_str[: config.max_size_bytes], stats, schema
 
 
 def preview_html(
@@ -208,34 +216,38 @@ def preview_html(
 ) -> tuple[str, Dict[str, Any], Dict[str, Any]]:
     """
     Generate preview for HTML content.
-    
+
     Extracts title, headings, and text snippet.
     """
     stats = {}
     schema = {}
-    
+
     # Extract title
-    title_match = re.search(r"<title[^>]*>(.*?)</title>", content, re.IGNORECASE | re.DOTALL)
+    title_match = re.search(
+        r"<title[^>]*>(.*?)</title>", content, re.IGNORECASE | re.DOTALL
+    )
     if title_match:
         stats["title"] = title_match.group(1).strip()[:100]
-    
+
     # Extract headings
-    headings = re.findall(r"<h[1-6][^>]*>(.*?)</h[1-6]>", content, re.IGNORECASE | re.DOTALL)
+    headings = re.findall(
+        r"<h[1-6][^>]*>(.*?)</h[1-6]>", content, re.IGNORECASE | re.DOTALL
+    )
     if headings:
         stats["headings"] = [h.strip()[:50] for h in headings[:10]]
-    
+
     # Count elements
     stats["element_counts"] = {
         "tables": len(re.findall(r"<table", content, re.IGNORECASE)),
         "images": len(re.findall(r"<img", content, re.IGNORECASE)),
         "links": len(re.findall(r"<a ", content, re.IGNORECASE)),
     }
-    
+
     # Extract text preview (strip tags)
     text = re.sub(r"<[^>]+>", " ", content)
     text = re.sub(r"\s+", " ", text).strip()
-    preview = text[:config.max_size_bytes]
-    
+    preview = text[: config.max_size_bytes]
+
     return preview, stats, schema
 
 
@@ -245,7 +257,7 @@ def preview_csv(
 ) -> tuple[str, Dict[str, Any], Dict[str, Any]]:
     """
     Generate preview for CSV content.
-    
+
     Shows header and first N rows.
     """
     lines = content.split("\n")
@@ -253,21 +265,21 @@ def preview_csv(
         "total_rows": len(lines),
         "preview_rows": min(len(lines), config.max_rows),
     }
-    
+
     schema = {}
     if lines:
         # Assume first line is header
         header = lines[0].split(",")
         schema["columns"] = [col.strip().strip('"') for col in header]
         stats["column_count"] = len(header)
-    
-    preview_lines = lines[:config.max_rows]
+
+    preview_lines = lines[: config.max_rows]
     preview = "\n".join(preview_lines)
-    
+
     if len(lines) > config.max_rows:
         preview += f"\n... ({len(lines) - config.max_rows} more rows)"
-    
-    return preview[:config.max_size_bytes], stats, schema
+
+    return preview[: config.max_size_bytes], stats, schema
 
 
 def preview_text(
@@ -281,8 +293,8 @@ def preview_text(
         "char_count": len(content),
         "word_count": len(content.split()),
     }
-    
-    preview = content[:config.max_size_bytes]
+
+    preview = content[: config.max_size_bytes]
     return preview, stats, {}
 
 
@@ -290,23 +302,24 @@ def preview_text(
 # Main API
 # =============================================================================
 
+
 def generate_preview(
     path: Union[str, Path],
     config: Optional[PreviewConfig] = None,
 ) -> ArtifactPreview:
     """
     Generate a preview for an artifact file.
-    
+
     Args:
         path: Path to artifact file
         config: Preview configuration
-    
+
     Returns:
         ArtifactPreview with content and metadata
     """
     config = config or PreviewConfig()
     path = Path(path)
-    
+
     if not path.exists():
         return ArtifactPreview(
             artifact_type=ArtifactType.BINARY,
@@ -315,15 +328,15 @@ def generate_preview(
             truncated=False,
             content="File not found",
         )
-    
+
     # Get file info
     original_size = path.stat().st_size
     artifact_type = detect_artifact_type(path)
-    
+
     # Compute checksum
     with open(path, "rb") as f:
         checksum = hashlib.sha256(f.read(1024 * 1024)).hexdigest()[:16]  # First 1MB
-    
+
     # Handle binary/image files
     if artifact_type in (ArtifactType.BINARY, ArtifactType.IMAGE):
         return ArtifactPreview(
@@ -335,7 +348,7 @@ def generate_preview(
             checksum=checksum,
             mime_type=get_mime_type(artifact_type),
         )
-    
+
     # Read text content
     try:
         with open(path, "r", encoding="utf-8", errors="replace") as f:
@@ -349,7 +362,7 @@ def generate_preview(
             content=f"Error reading file: {e}",
             checksum=checksum,
         )
-    
+
     # Generate type-specific preview
     if artifact_type == ArtifactType.JSON:
         preview, stats, schema = preview_json(content, config)
@@ -359,7 +372,7 @@ def generate_preview(
         preview, stats, schema = preview_csv(content, config)
     else:
         preview, stats, schema = preview_text(content, config)
-    
+
     return ArtifactPreview(
         artifact_type=artifact_type,
         original_size=original_size,
@@ -379,7 +392,7 @@ def get_artifact_summary(
 ) -> Dict[str, Any]:
     """
     Generate a summary of artifact data structure.
-    
+
     For use when you have the data already loaded.
     """
     if isinstance(data, dict):
@@ -388,7 +401,7 @@ def get_artifact_summary(
             "key_count": len(data),
             "keys": list(data.keys())[:20],
         }
-        
+
         if max_depth > 0:
             nested = {}
             for key in list(data.keys())[:10]:
@@ -397,20 +410,20 @@ def get_artifact_summary(
                     nested[key] = get_artifact_summary(value, max_depth - 1)
             if nested:
                 summary["nested"] = nested
-                
+
         return summary
-    
+
     elif isinstance(data, list):
         summary = {
             "type": "array",
             "length": len(data),
         }
-        
+
         if data and max_depth > 0:
             summary["first_item"] = get_artifact_summary(data[0], max_depth - 1)
-        
+
         return summary
-    
+
     else:
         return {
             "type": type(data).__name__,
@@ -425,20 +438,22 @@ def extract_html_snippet(
 ) -> str:
     """
     Extract a snippet from HTML content.
-    
+
     Simple extraction without external dependencies.
     """
     # Remove scripts and styles
-    html = re.sub(r"<script[^>]*>.*?</script>", "", html, flags=re.DOTALL | re.IGNORECASE)
+    html = re.sub(
+        r"<script[^>]*>.*?</script>", "", html, flags=re.DOTALL | re.IGNORECASE
+    )
     html = re.sub(r"<style[^>]*>.*?</style>", "", html, flags=re.DOTALL | re.IGNORECASE)
-    
+
     # Extract body if present
     body_match = re.search(r"<body[^>]*>(.*?)</body>", html, re.DOTALL | re.IGNORECASE)
     if body_match:
         html = body_match.group(1)
-    
+
     # Strip tags
     text = re.sub(r"<[^>]+>", " ", html)
     text = re.sub(r"\s+", " ", text).strip()
-    
+
     return text[:max_length]

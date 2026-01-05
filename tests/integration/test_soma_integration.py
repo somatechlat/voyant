@@ -62,7 +62,9 @@ async def test_soma_memory_remember_and_recall():
 
 @pytest.mark.asyncio
 async def test_soma_orchestrator_task_lifecycle():
-    env = _require_env("SOMA_ORCHESTRATOR_URL", "SOMA_TEST_TENANT_ID", "SOMA_TEST_USER_ID")
+    env = _require_env(
+        "SOMA_ORCHESTRATOR_URL", "SOMA_TEST_TENANT_ID", "SOMA_TEST_USER_ID"
+    )
     base_url = env["SOMA_ORCHESTRATOR_URL"].rstrip("/")
     tenant_id = env["SOMA_TEST_TENANT_ID"]
     user_id = env["SOMA_TEST_USER_ID"]

@@ -9,9 +9,7 @@ def main() -> None:
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
-        raise ImportError(
-            "Django is not installed or not configured."
-        ) from exc
+        raise ImportError("Django is not installed or not configured.") from exc
     execute_from_command_line(sys.argv)
 
 

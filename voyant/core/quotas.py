@@ -12,15 +12,16 @@ Quota Types:
 
 Usage:
     from voyant.core.quotas import check_quota, record_usage, get_quota_status
-    
+
     # Check before starting a job
     allowed, msg = await check_quota("tenant_123", "jobs_per_day")
     if not allowed:
         raise QuotaExceededException(msg)
-    
+
     # Record usage after job completes
     await record_usage("tenant_123", "jobs_per_day")
 """
+
 from __future__ import annotations
 
 import logging
@@ -36,9 +37,11 @@ logger = logging.getLogger(__name__)
 # Quota Definitions
 # =============================================================================
 
+
 @dataclass
 class QuotaTier:
     """Quota limits for a pricing tier."""
+
     name: str
     max_jobs_per_day: int
     max_artifacts_gb: float
@@ -91,9 +94,11 @@ DEFAULT_TIER = "free"
 # Usage Tracking (In-Memory - Replace with Redis in production)
 # =============================================================================
 
+
 @dataclass
 class TenantUsage:
     """Current usage for a tenant."""
+
     tenant_id: str
     tier: str = DEFAULT_TIER
     jobs_today: int = 0
@@ -129,15 +134,18 @@ def _reset_daily_if_needed(usage: TenantUsage) -> None:
 # Public API
 # =============================================================================
 
+
 def set_tenant_tier(tenant_id: str, tier: str) -> None:
     """Set the quota tier for a tenant."""
     if tier not in QUOTA_TIERS:
-        raise ValueError(f"Unknown tier: {tier}. Valid tiers: {list(QUOTA_TIERS.keys())}")
-    
+        raise ValueError(
+            f"Unknown tier: {tier}. Valid tiers: {list(QUOTA_TIERS.keys())}"
+        )
+
     _tenant_tiers[tenant_id] = tier
     if tenant_id in _usage_store:
         _usage_store[tenant_id].tier = tier
-    
+
     logger.info(f"Set tenant {tenant_id} to tier {tier}")
 
 
@@ -166,14 +174,14 @@ def get_usage_status(tenant_id: str) -> Dict[str, Any]:
     usage = _get_usage(tenant_id)
     _reset_daily_if_needed(usage)
     quota = QUOTA_TIERS[usage.tier]
-    
+
     return {
         "tenant_id": tenant_id,
         "tier": usage.tier,
         "jobs_today": usage.jobs_today,
         "jobs_limit": quota.max_jobs_per_day,
         "jobs_remaining": max(0, quota.max_jobs_per_day - usage.jobs_today),
-        "artifacts_gb": round(usage.artifacts_bytes / (1024 ** 3), 3),
+        "artifacts_gb": round(usage.artifacts_bytes / (1024**3), 3),
         "artifacts_limit_gb": quota.max_artifacts_gb,
         "sources_count": usage.current_sources,
         "sources_limit": quota.max_sources,
@@ -185,38 +193,50 @@ def get_usage_status(tenant_id: str) -> Dict[str, Any]:
 def check_quota(tenant_id: str, quota_type: str) -> Tuple[bool, Optional[str]]:
     """
     Check if tenant can use a quota resource.
-    
+
     Args:
         tenant_id: Tenant identifier
         quota_type: One of 'jobs_per_day', 'artifacts', 'sources', 'concurrent_jobs'
-    
+
     Returns:
         Tuple of (allowed: bool, error_message: Optional[str])
     """
     usage = _get_usage(tenant_id)
     _reset_daily_if_needed(usage)
     quota = QUOTA_TIERS[usage.tier]
-    
+
     if quota_type == "jobs_per_day":
         if usage.jobs_today >= quota.max_jobs_per_day:
-            return False, f"Daily job quota exceeded ({usage.jobs_today}/{quota.max_jobs_per_day})"
-    
+            return (
+                False,
+                f"Daily job quota exceeded ({usage.jobs_today}/{quota.max_jobs_per_day})",
+            )
+
     elif quota_type == "concurrent_jobs":
         if usage.concurrent_jobs >= quota.max_concurrent_jobs:
-            return False, f"Concurrent job limit reached ({usage.concurrent_jobs}/{quota.max_concurrent_jobs})"
-    
+            return (
+                False,
+                f"Concurrent job limit reached ({usage.concurrent_jobs}/{quota.max_concurrent_jobs})",
+            )
+
     elif quota_type == "sources":
         if usage.current_sources >= quota.max_sources:
-            return False, f"Source limit reached ({usage.current_sources}/{quota.max_sources})"
-    
+            return (
+                False,
+                f"Source limit reached ({usage.current_sources}/{quota.max_sources})",
+            )
+
     elif quota_type == "artifacts":
-        max_bytes = int(quota.max_artifacts_gb * (1024 ** 3))
+        max_bytes = int(quota.max_artifacts_gb * (1024**3))
         if usage.artifacts_bytes >= max_bytes:
-            return False, f"Artifact storage limit reached ({usage.artifacts_bytes / (1024**3):.2f}GB/{quota.max_artifacts_gb}GB)"
-    
+            return (
+                False,
+                f"Artifact storage limit reached ({usage.artifacts_bytes / (1024**3):.2f}GB/{quota.max_artifacts_gb}GB)",
+            )
+
     else:
         logger.warning(f"Unknown quota type: {quota_type}")
-    
+
     return True, None
 
 
@@ -227,16 +247,18 @@ def record_job_start(tenant_id: str) -> bool:
     allowed, msg = check_quota(tenant_id, "jobs_per_day")
     if not allowed:
         return False
-    
+
     allowed, msg = check_quota(tenant_id, "concurrent_jobs")
     if not allowed:
         return False
-    
+
     usage = _get_usage(tenant_id)
     usage.jobs_today += 1
     usage.concurrent_jobs += 1
-    
-    logger.debug(f"Tenant {tenant_id}: job started (today: {usage.jobs_today}, concurrent: {usage.concurrent_jobs})")
+
+    logger.debug(
+        f"Tenant {tenant_id}: job started (today: {usage.jobs_today}, concurrent: {usage.concurrent_jobs})"
+    )
     return True
 
 
@@ -251,7 +273,9 @@ def record_artifact_size(tenant_id: str, size_bytes: int) -> None:
     """Record artifact storage usage."""
     usage = _get_usage(tenant_id)
     usage.artifacts_bytes += size_bytes
-    logger.debug(f"Tenant {tenant_id}: artifact size updated ({usage.artifacts_bytes} bytes)")
+    logger.debug(
+        f"Tenant {tenant_id}: artifact size updated ({usage.artifacts_bytes} bytes)"
+    )
 
 
 def record_source_added(tenant_id: str) -> bool:
@@ -259,7 +283,7 @@ def record_source_added(tenant_id: str) -> bool:
     allowed, msg = check_quota(tenant_id, "sources")
     if not allowed:
         return False
-    
+
     usage = _get_usage(tenant_id)
     usage.current_sources += 1
     return True

@@ -1,4 +1,3 @@
-
 import pytest
 import os
 import uuid
@@ -16,6 +15,7 @@ import concurrent.futures
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 @pytest.fixture
 async def temporal_client_fixture():
     """
@@ -25,16 +25,19 @@ async def temporal_client_fixture():
     # Otherwise we use the Time-Skipping Mock environment
     host = os.environ.get("TEMPORAL_HOST")
     namespace = os.environ.get("TEMPORAL_NAMESPACE", "default")
-    
+
     if host:
         # REAL INFRASTRUCTURE (VIBE Compliant)
-        logger.info(f"Connecting to REAL INFRASTRUCTURE at {host} (namespace: {namespace})")
+        logger.info(
+            f"Connecting to REAL INFRASTRUCTURE at {host} (namespace: {namespace})"
+        )
         client = await Client.connect(host, namespace=namespace)
-        yield client, None # No env to shutdown
+        yield client, None  # No env to shutdown
     else:
         logger.info("Starting ephemeral TestEnvironment (Fake Infra)")
         async with await WorkflowEnvironment.start_time_skipping() as env:
             yield env.client, env
+
 
 @pytest.mark.asyncio
 @pytest.mark.skipif(not SKLEARN_AVAILABLE, reason="scikit-learn not installed")
@@ -45,8 +48,10 @@ async def test_detect_anomalies_workflow_integration(temporal_client_fixture):
     """
     client, env_handle = temporal_client_fixture
     activities = OperationalActivities()
-    
-    task_queue = f"test-queue-{uuid.uuid4()}" # Unique queue to avoid collision in real infra
+
+    task_queue = (
+        f"test-queue-{uuid.uuid4()}"  # Unique queue to avoid collision in real infra
+    )
 
     # Start Worker (needed for both real and test env to execute the code under test)
     # Even with real server, we need a local worker to run the Activity code we just modified
@@ -60,7 +65,7 @@ async def test_detect_anomalies_workflow_integration(temporal_client_fixture):
         ):
             # 1. Prepare Data
             data = [{"val": 10} for _ in range(20)] + [{"val": 1000}]
-            
+
             # 2. Execute Workflow
             # Note: In real infra, wait for result might take longer
             logger.info(f"Executing workflow on queue {task_queue}")
@@ -70,13 +75,14 @@ async def test_detect_anomalies_workflow_integration(temporal_client_fixture):
                 id=f"test-anomaly-{uuid.uuid4()}",
                 task_queue=task_queue,
             )
-            
+
             # 3. Verify Results
             assert result is not None
             assert result["total_records"] == 21
             assert result["anomaly_count"] >= 1
             anomalies = result["anomalies"]
             assert any(r["val"] == 1000 for r in anomalies)
+
 
 @pytest.mark.asyncio
 @pytest.mark.skipif(not SKLEARN_AVAILABLE, reason="scikit-learn not installed")

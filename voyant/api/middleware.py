@@ -3,6 +3,7 @@ API Middleware for Django.
 
 Request ID, Tenant, Soma context, and API Version handling.
 """
+
 from __future__ import annotations
 
 import re

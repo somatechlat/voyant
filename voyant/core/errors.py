@@ -25,13 +25,14 @@ Usage:
         VoyantError, ValidationError, ResourceNotFoundError,
         error_response, get_error_catalog
     )
-    
+
     # Raise typed error
     raise ValidationError("VYNT-1001", "Invalid column name")
-    
+
     # Create error response for API
     return error_response("VYNT-2001", details={"resource": "job", "id": job_id})
 """
+
 from __future__ import annotations
 
 import logging
@@ -46,36 +47,39 @@ logger = logging.getLogger(__name__)
 
 class ErrorCategory(str, Enum):
     """Error categories for classification."""
-    VALIDATION = "validation"            # Input validation failures
-    AUTHENTICATION = "authentication"    # Auth failures
-    AUTHORIZATION = "authorization"      # Permission failures
-    RESOURCE = "resource"                # Resource not found/unavailable
-    QUOTA = "quota"                      # Rate/quota limits
-    SYSTEM = "system"                    # Internal system errors
-    EXTERNAL = "external"                # External service failures
-    DATA = "data"                        # Data quality/format issues
+
+    VALIDATION = "validation"  # Input validation failures
+    AUTHENTICATION = "authentication"  # Auth failures
+    AUTHORIZATION = "authorization"  # Permission failures
+    RESOURCE = "resource"  # Resource not found/unavailable
+    QUOTA = "quota"  # Rate/quota limits
+    SYSTEM = "system"  # Internal system errors
+    EXTERNAL = "external"  # External service failures
+    DATA = "data"  # Data quality/format issues
 
 
 class ErrorSeverity(str, Enum):
     """Error severity levels."""
-    INFO = "info"           # Informational (e.g., deprecated)
-    WARNING = "warning"     # Degraded but functional
-    ERROR = "error"         # Operation failed
-    CRITICAL = "critical"   # System-wide impact
+
+    INFO = "info"  # Informational (e.g., deprecated)
+    WARNING = "warning"  # Degraded but functional
+    ERROR = "error"  # Operation failed
+    CRITICAL = "critical"  # System-wide impact
 
 
 @dataclass(frozen=True)
 class ErrorDefinition:
     """Definition of an error in the catalog."""
-    code: str                    # e.g., "VYNT-1001"
-    message: str                 # Human-readable message template
+
+    code: str  # e.g., "VYNT-1001"
+    message: str  # Human-readable message template
     category: ErrorCategory
     severity: ErrorSeverity
     http_status: int
-    description: str = ""        # Extended description
-    resolution: str = ""         # How to fix
+    description: str = ""  # Extended description
+    resolution: str = ""  # How to fix
     retry_allowed: bool = False  # Can client retry?
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "code": self.code,
@@ -141,7 +145,6 @@ ERROR_CATALOG: Dict[str, ErrorDefinition] = {
         description="The KPI SQL template failed validation",
         resolution="Check SQL syntax and placeholder usage",
     ),
-    
     # =========================================================================
     # 2000-2999: Resource Errors
     # =========================================================================
@@ -189,7 +192,6 @@ ERROR_CATALOG: Dict[str, ErrorDefinition] = {
         http_status=404,
         resolution="Register the contract using /governance/contracts",
     ),
-    
     # =========================================================================
     # 3000-3999: Authentication/Authorization Errors
     # =========================================================================
@@ -229,7 +231,6 @@ ERROR_CATALOG: Dict[str, ErrorDefinition] = {
         http_status=403,
         description="You do not have access to this tenant's resources",
     ),
-    
     # =========================================================================
     # 4000-4999: Quota/Limit Errors
     # =========================================================================
@@ -272,7 +273,6 @@ ERROR_CATALOG: Dict[str, ErrorDefinition] = {
         resolution="Wait and retry with exponential backoff",
         retry_allowed=True,
     ),
-    
     # =========================================================================
     # 5000-5999: System Errors
     # =========================================================================
@@ -306,7 +306,6 @@ ERROR_CATALOG: Dict[str, ErrorDefinition] = {
         resolution="Try a smaller dataset or simpler analysis",
         retry_allowed=True,
     ),
-    
     # =========================================================================
     # 6000-6999: External Service Errors
     # =========================================================================
@@ -330,7 +329,6 @@ ERROR_CATALOG: Dict[str, ErrorDefinition] = {
         resolution="Lineage features temporarily unavailable",
         retry_allowed=True,
     ),
-    
     # =========================================================================
     # 7000-7999: Data Quality Errors
     # =========================================================================
@@ -368,9 +366,10 @@ ERROR_CATALOG: Dict[str, ErrorDefinition] = {
 # Exception Classes
 # =============================================================================
 
+
 class VoyantError(Exception):
     """Base exception for Voyant errors."""
-    
+
     def __init__(
         self,
         code: str,
@@ -380,10 +379,10 @@ class VoyantError(Exception):
     ):
         self.code = code
         self.details = details or {}
-        
+
         # Get definition from catalog
         self.definition = ERROR_CATALOG.get(code)
-        
+
         if self.definition:
             # Format message with provided args
             if message:
@@ -399,111 +398,135 @@ class VoyantError(Exception):
             self.message = message or f"Unknown error: {code}"
             self.http_status = 500
             self.category = ErrorCategory.SYSTEM
-        
+
         super().__init__(self.message)
-    
+
     def to_response(self, request_id: Optional[str] = None) -> Dict[str, Any]:
         """Convert to API error response."""
         response = {
             "error": {
                 "code": self.code,
                 "message": self.message,
-                "category": self.category.value if isinstance(self.category, ErrorCategory) else self.category,
+                "category": (
+                    self.category.value
+                    if isinstance(self.category, ErrorCategory)
+                    else self.category
+                ),
             },
             "timestamp": datetime.utcnow().isoformat() + "Z",
         }
-        
+
         if self.details:
             # Security: Filter sensitive data
-            safe_details = {k: v for k, v in self.details.items() 
-                          if k not in ("password", "token", "secret", "key")}
+            safe_details = {
+                k: v
+                for k, v in self.details.items()
+                if k not in ("password", "token", "secret", "key")
+            }
             response["error"]["details"] = safe_details
-        
+
         if request_id:
             response["request_id"] = request_id
-        
+
         if self.definition:
             response["error"]["retry_allowed"] = self.definition.retry_allowed
             if self.definition.resolution:
                 response["error"]["resolution"] = self.definition.resolution
-        
+
         return response
 
 
 class ValidationError(VoyantError):
-    """Validation errors (1000 series)."""
+    """Represents errors related to invalid user input (1000 series)."""
+
     pass
 
 
 class ResourceNotFoundError(VoyantError):
-    """Resource not found errors (2000 series)."""
+    """Represents errors when a requested resource is not found (2000 series)."""
+
     pass
 
 
 class AuthenticationError(VoyantError):
-    """Authentication errors (3000 series)."""
+    """Represents errors related to authentication failures (3000 series)."""
+
     pass
 
 
 class AuthorizationError(VoyantError):
-    """Authorization errors (3000 series)."""
+    """Represents errors related to insufficient permissions (3000 series)."""
+
     pass
 
 
 class QuotaExceededError(VoyantError):
-    """Quota/limit errors (4000 series)."""
+    """Represents errors related to usage quotas or rate limits (4000 series)."""
+
     pass
 
 
 class SystemError(VoyantError):
-    """System errors (5000 series)."""
+    """Represents internal, unexpected system errors (5000 series)."""
+
     pass
 
 
 class ExternalServiceError(VoyantError):
-    """Raised when an external service (API, DB, etc.) fails."""
+    """Represents errors originating from a failed external service call (6000 series)."""
+
     pass
+
 
 class ServiceUnavailableError(VoyantError):
     """
-    Raised when a service is temporarily unavailable (circuit breaker open).
-    
+    Represents an error when a service is unavailable due to an open circuit breaker.
+
     Security Auditor: Generic message, no internal details leaked.
     """
+
     def __init__(self, service_name: str, code: str = "VYNT-9000"):
         super().__init__(
             code=code,
             message=f"{service_name} is temporarily unavailable. Circuit breaker is open.",
-            severity="warning",
-            resolution="Wait for service recovery or contact support"
+        )
+        self.http_status = 503
+        self.category = ErrorCategory.EXTERNAL
+        self.definition = ErrorDefinition(
+            code=code,
+            message=f"{service_name} is temporarily unavailable.",
+            category=ErrorCategory.EXTERNAL,
+            severity=ErrorSeverity.WARNING,
+            http_status=503,
+            description="The service is temporarily unavailable, likely due to high failure rates.",
+            resolution="Wait for the service to recover and retry. The system will automatically re-test the connection.",
+            retry_allowed=True,
         )
         self.service_name = service_name
 
 
 class AnalysisError(VoyantError):
-    """
-    Analysis/ML-related errors.
-    
-    Used for failures in statistical analysis, ML model training, forecasting, etc.
-    PhD-level Developer: Dedicated exception for analysis domain errors.
-    """
+    """Represents errors during a data analysis or ML operation."""
+
     pass
 
 
 class DataQualityError(VoyantError):
-    """Data quality errors (7000 series)."""
+    """Represents errors related to data quality checks or contract violations (7000 series)."""
+
     pass
 
 
 class ArtifactGenerationError(VoyantError):
-    """Raised when an artifact generator fails."""
-    pass
+    """Represents a failure during the artifact generation process."""
 
+    pass
 
 
 # =============================================================================
 # Helper Functions
 # =============================================================================
+
 
 def error_response(
     code: str,
@@ -525,8 +548,7 @@ def get_error_catalog() -> Dict[str, Dict[str, Any]]:
 def get_errors_by_category(category: ErrorCategory) -> List[Dict[str, Any]]:
     """Get all errors in a category."""
     return [
-        defn.to_dict() for defn in ERROR_CATALOG.values()
-        if defn.category == category
+        defn.to_dict() for defn in ERROR_CATALOG.values() if defn.category == category
     ]
 
 

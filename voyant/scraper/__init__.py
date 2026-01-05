@@ -1,11 +1,9 @@
 # Voyant Scraper Module
-# DataScraper - AI-Driven Web Scraping
+# DataScraper - Pure Execution Web Scraping Tools
+# VIBE Standard v3 Compliant - No LLM Integration
 
-from .models import ScrapeJob, ScrapeArtifact
+# Note: Do NOT import Django models here - causes AppRegistryNotReady
+# Import models directly: from voyant.scraper.models import ScrapeJob
 
-__all__ = [
-    'ScrapeJob',
-    'ScrapeArtifact',
-]
-
-__version__ = '1.0.0'
+__version__ = "1.0.0"
+default_app_config = "voyant.scraper.apps.ScraperConfig"

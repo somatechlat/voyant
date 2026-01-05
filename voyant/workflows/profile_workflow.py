@@ -1,43 +1,63 @@
 """
-Profile Workflow
+Profile Workflow: Orchestrates Data Profiling Jobs.
 
-Orchestrates data profiling jobs.
-Adheres to Vibe Coding Rules: Real implementations only.
+This Temporal workflow defines the automated process for generating comprehensive
+profiles of datasets. It delegates the actual profiling work to specialized
+activities, ensuring that statistical summaries and insights about data quality
+and distribution are generated efficiently.
 """
+
 from datetime import timedelta
 from typing import Any, Dict
 
 from temporalio import workflow
 from voyant.core.retry_config import EXTERNAL_SERVICE_RETRY
-from voyant.activities.profile_activities import ProfileActivities
+
+# This context manager is necessary to allow importing non-workflow/activity
+# modules within the workflow definition. It passes control to the Python
+# import system directly, bypassing Temporal's default import handling.
+with workflow.unsafe.imports_passed_through():
+    from voyant.activities.profile_activities import ProfileActivities
+
 
 @workflow.defn
 class ProfileWorkflow:
+    """
+    Temporal workflow for orchestrating the data profiling pipeline.
+    """
+
     @workflow.run
     async def run(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Run profiling workflow.
-        
-        Orchestrates:
-        1. Adaptive Sampling & Profiling (ProfileActivities)
-        2. (Optional) Lineage Recording (IngestActivities)
+        Executes the data profiling workflow based on provided parameters.
+
+        This method coordinates activities to generate a statistical profile
+        of a specified dataset.
+
+        Args:
+            params: A dictionary containing the profiling configuration:
+                - `source_id` (str): Identifier of the data source.
+                - `table` (str): The name of the table to profile.
+                - `sample_size` (int): Number of rows to sample for profiling.
+                - `job_id` (str): Unique identifier for the profiling job.
+                - `tenant_id` (str): Identifier of the tenant.
+
+        Returns:
+            A dictionary containing the profile result, typically a statistical
+            summary of the dataset.
         """
-        # Execute Profiling
+        workflow.logger.info(f"ProfileWorkflow started for {params.get('job_id')}")
+
+        # Execute the data profiling activity.
+        # This activity performs the heavy lifting of calculating statistics
+        # and generating the profile summary. It uses a retry policy suitable
+        # for external service calls, as data access can be flaky.
         profile_result = await workflow.execute_activity(
             ProfileActivities.profile_data,
             params,
-            start_to_close_timeout=timedelta(minutes=15),
+            start_to_close_timeout=timedelta(minutes=15),  # Allow sufficient time for profiling.
             retry_policy=EXTERNAL_SERVICE_RETRY,
         )
-        
-        # Record Lineage (if job_id provided)
-        job_id = params.get("job_id")
-        if job_id:
-            # We can re-use IngestActivities for lineage if we import them,
-            # or better, move lineage recording to a common activity if shared.
-            # For now, let's keep it simple and just return the profile result.
-            # The API layer or a separate governance workflow can handle lineage for ad-hoc jobs.
-            pass
-            
-        workflow.logger.info(f"ProfileWorkflow completed for {params.get('source_id')}")
+
+        workflow.logger.info(f"ProfileWorkflow completed for {params.get('job_id')}")
         return profile_result

@@ -20,7 +20,7 @@ Usage:
         retrieve_artifact,
         verify_artifact
     )
-    
+
     # Store an artifact
     ref = store_artifact(
         content=data_bytes,
@@ -28,13 +28,14 @@ Usage:
         metadata={"job_id": "123"}
     )
     print(ref.hash)  # "sha256:abc123..."
-    
+
     # Retrieve
     content = retrieve_artifact(ref.hash)
-    
+
     # Verify integrity
     is_valid = verify_artifact(ref.hash)
 """
+
 from __future__ import annotations
 
 import gzip
@@ -58,8 +59,10 @@ logger = logging.getLogger(__name__)
 # Configuration
 # =============================================================================
 
+
 class HashAlgorithm(str, Enum):
     """Supported hash algorithms."""
+
     SHA256 = "sha256"
     SHA512 = "sha512"
     BLAKE2B = "blake2b"
@@ -67,6 +70,7 @@ class HashAlgorithm(str, Enum):
 
 class CompressionType(str, Enum):
     """Supported compression types."""
+
     NONE = "none"
     GZIP = "gzip"
 
@@ -75,26 +79,27 @@ class CompressionType(str, Enum):
 class StoreConfig:
     """
     Configuration for artifact store.
-    
+
     Performance Engineer: Tunable for different workloads
     """
+
     base_path: str = "./artifacts"
     hash_algorithm: HashAlgorithm = HashAlgorithm.SHA256
     compression: CompressionType = CompressionType.GZIP
-    
+
     # Sharding for large stores
     shard_depth: int = 2  # Number of subdirectory levels
     shard_width: int = 2  # Characters per shard level
-    
+
     # Deduplication
     enable_dedup: bool = True
-    
+
     # Metadata
     store_metadata: bool = True
-    
+
     # Limits
     max_artifact_size_mb: int = 100
-    
+
     def get_storage_path(self, hash_value: str) -> Path:
         """Get storage path for a hash."""
         shards = []
@@ -102,7 +107,7 @@ class StoreConfig:
             start = i * self.shard_width
             end = start + self.shard_width
             shards.append(hash_value[start:end])
-        
+
         return Path(self.base_path) / Path(*shards) / hash_value
 
 
@@ -110,32 +115,34 @@ class StoreConfig:
 # Artifact Reference
 # =============================================================================
 
+
 @dataclass
 class ArtifactRef:
     """
     Reference to a stored artifact.
-    
+
     Security Auditor: Content-addressable means tamper-evident
     """
+
     hash: str  # "algorithm:hash" format
     size_bytes: int
     artifact_type: str
     compression: CompressionType
     created_at: str = ""
     metadata: Dict[str, Any] = field(default_factory=dict)
-    
+
     def __post_init__(self):
         if not self.created_at:
             self.created_at = datetime.utcnow().isoformat() + "Z"
-    
+
     @property
     def algorithm(self) -> str:
         return self.hash.split(":")[0]
-    
+
     @property
     def hash_value(self) -> str:
         return self.hash.split(":")[1] if ":" in self.hash else self.hash
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "hash": self.hash,
@@ -145,7 +152,7 @@ class ArtifactRef:
             "created_at": self.created_at,
             "metadata": self.metadata,
         }
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ArtifactRef":
         return cls(
@@ -162,27 +169,28 @@ class ArtifactRef:
 # Artifact Store
 # =============================================================================
 
+
 class ArtifactStore:
     """
     Content-addressable artifact store.
-    
+
     PhD Developer: Clean storage abstraction with deduplication
     """
-    
+
     def __init__(self, config: Optional[StoreConfig] = None):
         self.config = config or StoreConfig()
         self._lock = threading.RLock()
         self._refs: Dict[str, ArtifactRef] = {}
-        
+
         # Ensure base path exists
         Path(self.config.base_path).mkdir(parents=True, exist_ok=True)
-        
+
         logger.info(f"Artifact store initialized: {self.config.base_path}")
-    
+
     def _compute_hash(self, content: bytes) -> str:
         """
         Compute hash of content.
-        
+
         Security Auditor: Cryptographic hash for integrity
         """
         if self.config.hash_algorithm == HashAlgorithm.SHA256:
@@ -193,38 +201,38 @@ class ArtifactStore:
             h = hashlib.blake2b(content)
         else:
             h = hashlib.sha256(content)
-        
+
         return f"{self.config.hash_algorithm.value}:{h.hexdigest()}"
-    
+
     def _compress(self, content: bytes) -> bytes:
         """Compress content if configured."""
         if self.config.compression == CompressionType.GZIP:
             return gzip.compress(content)
         return content
-    
+
     def _decompress(self, content: bytes, compression: CompressionType) -> bytes:
         """Decompress content."""
         if compression == CompressionType.GZIP:
             return gzip.decompress(content)
         return content
-    
+
     def store(
         self,
         content: bytes,
         artifact_type: str,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> ArtifactRef:
         """
         Store an artifact.
-        
+
         Args:
             content: Raw artifact content
             artifact_type: Type of artifact (profile, chart, etc.)
             metadata: Optional metadata
-            
+
         Returns:
             ArtifactRef pointing to stored content
-            
+
         Performance Engineer: Deduplication via content hash
         """
         # Check size limit
@@ -233,29 +241,29 @@ class ArtifactStore:
             raise ValueError(
                 f"Artifact size {size_mb:.1f}MB exceeds limit {self.config.max_artifact_size_mb}MB"
             )
-        
+
         # Compute hash
         content_hash = self._compute_hash(content)
         hash_value = content_hash.split(":")[1]
-        
+
         with self._lock:
             # Check for existing (deduplication)
             if self.config.enable_dedup and content_hash in self._refs:
                 logger.debug(f"Artifact deduplicated: {content_hash[:24]}...")
                 return self._refs[content_hash]
-            
+
             # Compress
             compressed = self._compress(content)
-            
+
             # Get storage path
             storage_path = self.config.get_storage_path(hash_value)
             storage_path.parent.mkdir(parents=True, exist_ok=True)
-            
+
             # Write content
             content_file = storage_path.with_suffix(".bin")
             with open(content_file, "wb") as f:
                 f.write(compressed)
-            
+
             # Create reference
             ref = ArtifactRef(
                 hash=content_hash,
@@ -264,27 +272,29 @@ class ArtifactStore:
                 compression=self.config.compression,
                 metadata=metadata or {},
             )
-            
+
             # Write metadata
             if self.config.store_metadata:
                 meta_file = storage_path.with_suffix(".json")
                 with open(meta_file, "w") as f:
                     json.dump(ref.to_dict(), f, indent=2)
-            
+
             # Cache reference
             self._refs[content_hash] = ref
-            
-            logger.info(f"Stored artifact: {content_hash[:24]}... ({len(content)} bytes)")
-            
+
+            logger.info(
+                f"Stored artifact: {content_hash[:24]}... ({len(content)} bytes)"
+            )
+
             return ref
-    
+
     def retrieve(self, hash_value: str) -> Optional[bytes]:
         """
         Retrieve artifact content by hash.
-        
+
         Args:
             hash_value: Full hash ("algo:hash") or just hash
-            
+
         Returns:
             Raw content or None if not found
         """
@@ -293,78 +303,78 @@ class ArtifactStore:
             hash_only = hash_value.split(":")[1]
         else:
             hash_only = hash_value
-        
+
         with self._lock:
             # Get storage path
             storage_path = self.config.get_storage_path(hash_only)
             content_file = storage_path.with_suffix(".bin")
-            
+
             if not content_file.exists():
                 logger.warning(f"Artifact not found: {hash_value[:24]}...")
                 return None
-            
+
             # Read content
             with open(content_file, "rb") as f:
                 compressed = f.read()
-            
+
             # Get compression type from metadata or use default
             ref = self._refs.get(hash_value)
             compression = ref.compression if ref else self.config.compression
-            
+
             # Decompress
             content = self._decompress(compressed, compression)
-            
+
             return content
-    
+
     def verify(self, hash_value: str) -> bool:
         """
         Verify artifact integrity.
-        
+
         Args:
             hash_value: Hash to verify
-            
+
         Returns:
             True if content matches hash
-            
+
         PhD QA Engineer: Ensure data integrity
         """
         content = self.retrieve(hash_value)
         if content is None:
             return False
-        
+
         expected = hash_value if ":" in hash_value else f"sha256:{hash_value}"
         actual = self._compute_hash(content)
-        
+
         return expected == actual
-    
+
     def get_ref(self, hash_value: str) -> Optional[ArtifactRef]:
         """Get artifact reference without retrieving content."""
         if ":" in hash_value:
             return self._refs.get(hash_value)
-        
+
         # Try to find by hash only
         for key, ref in self._refs.items():
             if ref.hash_value == hash_value:
                 return ref
-        
+
         # Try loading from disk
         storage_path = self.config.get_storage_path(hash_value)
         meta_file = storage_path.with_suffix(".json")
-        
+
         if meta_file.exists():
             with open(meta_file) as f:
                 data = json.load(f)
                 return ArtifactRef.from_dict(data)
-        
+
         return None
-    
+
     def delete(self, hash_value: str) -> bool:
         """
         Delete an artifact.
-        
+
         Args:
             hash_value: Hash to delete
-            
+
         Returns:
             True if deleted
         """
@@ -372,49 +382,47 @@ class ArtifactStore:
             hash_only = hash_value.split(":")[1]
         else:
             hash_only = hash_value
-        
+
         with self._lock:
             storage_path = self.config.get_storage_path(hash_only)
-            
+
             deleted = False
             for suffix in [".bin", ".json"]:
                 file_path = storage_path.with_suffix(suffix)
                 if file_path.exists():
                     file_path.unlink()
                     deleted = True
-            
+
             # Remove from cache
             to_remove = [k for k in self._refs if hash_only in k]
             for k in to_remove:
                 del self._refs[k]
-            
+
             return deleted
-    
+
     def list_artifacts(
-        self,
-        artifact_type: Optional[str] = None,
-        limit: int = 100
+        self, artifact_type: Optional[str] = None, limit: int = 100
     ) -> List[ArtifactRef]:
         """
         List stored artifacts.
-        
+
         Args:
             artifact_type: Filter by type
             limit: Maximum number to return
-            
+
         Returns:
             List of artifact references
         """
         refs = list(self._refs.values())
-        
+
         if artifact_type:
             refs = [r for r in refs if r.artifact_type == artifact_type]
-        
+
         # Sort by creation time (newest first)
         refs.sort(key=lambda r: r.created_at, reverse=True)
-        
+
         return refs[:limit]
-    
+
     def get_stats(self) -> Dict[str, Any]:
         """Get store statistics."""
         with self._lock:
@@ -422,7 +430,7 @@ class ArtifactStore:
             by_type: Dict[str, int] = {}
             for ref in self._refs.values():
                 by_type[ref.artifact_type] = by_type.get(ref.artifact_type, 0) + 1
-        
+
         return {
             "total_artifacts": len(self._refs),
             "total_size_bytes": total_size,
@@ -431,32 +439,35 @@ class ArtifactStore:
             "dedup_enabled": self.config.enable_dedup,
             "compression": self.config.compression.value,
         }
-    
+
     def gc(self, keep_hashes: Optional[set] = None) -> int:
         """
         Garbage collect unreferenced artifacts.
-        
+
         Args:
             keep_hashes: Set of hashes to keep
-            
+
         Returns:
             Number of artifacts removed
         """
         if keep_hashes is None:
             return 0
-        
+
         removed = 0
         to_delete = []
-        
+
         with self._lock:
             for hash_val in self._refs:
-                if hash_val not in keep_hashes and hash_val.split(":")[1] not in keep_hashes:
+                if (
+                    hash_val not in keep_hashes
+                    and hash_val.split(":")[1] not in keep_hashes
+                ):
                     to_delete.append(hash_val)
-        
+
         for hash_val in to_delete:
             if self.delete(hash_val):
                 removed += 1
-        
+
         logger.info(f"Garbage collected {removed} artifacts")
         return removed
 
@@ -483,22 +494,23 @@ def get_artifact_store(config: Optional[StoreConfig] = None) -> ArtifactStore:
 # Convenience Functions
 # =============================================================================
 
+
 def store_artifact(
     content: Union[bytes, str, Dict[str, Any]],
     artifact_type: str,
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: Optional[Dict[str, Any]] = None,
 ) -> ArtifactRef:
     """
     Store an artifact.
-    
+
     Args:
         content: Content (bytes, string, or dict)
         artifact_type: Type of artifact
         metadata: Optional metadata
-        
+
     Returns:
         ArtifactRef
-        
+
     UX Consultant: Simple store API
     """
     # Convert to bytes
@@ -508,7 +520,7 @@ def store_artifact(
         content_bytes = json.dumps(content, indent=2).encode("utf-8")
     else:
         content_bytes = content
-    
+
     return get_artifact_store().store(content_bytes, artifact_type, metadata)
 
 

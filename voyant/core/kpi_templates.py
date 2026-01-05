@@ -14,10 +14,10 @@ Each template includes:
 
 Usage:
     from voyant.core.kpi_templates import get_template, render_template, list_templates
-    
+
     # Get a template
     template = get_template("revenue_growth")
-    
+
     # Render SQL with parameters
     sql = render_template("revenue_growth", {
         "table": "sales",
@@ -25,6 +25,7 @@ Usage:
         "amount_column": "amount"
     })
 """
+
 from __future__ import annotations
 
 import re
@@ -38,6 +39,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class KPITemplate:
     """Definition of a KPI SQL template."""
+
     name: str
     category: str
     description: str
@@ -258,7 +260,13 @@ _register(
         FROM customer_rfm
         ORDER BY monetary DESC
     """,
-    required_columns=["table", "customer_id_column", "order_id_column", "date_column", "amount_column"],
+    required_columns=[
+        "table",
+        "customer_id_column",
+        "order_id_column",
+        "date_column",
+        "amount_column",
+    ],
     output_columns=["customer_id", "recency_days", "frequency", "monetary", "segment"],
 )
 
@@ -348,7 +356,12 @@ _register(
         GROUP BY {product_id_column}
         ORDER BY turnover_rate DESC
     """,
-    required_columns=["table", "product_id_column", "sold_quantity_column", "stock_quantity_column"],
+    required_columns=[
+        "table",
+        "product_id_column",
+        "sold_quantity_column",
+        "stock_quantity_column",
+    ],
     output_columns=["product_id", "units_sold", "avg_stock", "turnover_rate"],
 )
 
@@ -368,8 +381,19 @@ _register(
         GROUP BY {segment_column}
         ORDER BY avg_lead_days
     """,
-    required_columns=["table", "segment_column", "order_date_column", "delivery_date_column"],
-    output_columns=["segment", "order_count", "avg_lead_days", "min_lead_days", "max_lead_days"],
+    required_columns=[
+        "table",
+        "segment_column",
+        "order_date_column",
+        "delivery_date_column",
+    ],
+    output_columns=[
+        "segment",
+        "order_count",
+        "avg_lead_days",
+        "min_lead_days",
+        "max_lead_days",
+    ],
 )
 
 # =============================================================================
@@ -455,13 +479,14 @@ _register(
 # Public API
 # =============================================================================
 
+
 def list_templates(category: Optional[str] = None) -> List[Dict[str, Any]]:
     """
     List all available KPI templates.
-    
+
     Args:
         category: Optional filter by category (financial, customer, quality, etc.)
-    
+
     Returns:
         List of template info dicts
     """
@@ -469,14 +494,16 @@ def list_templates(category: Optional[str] = None) -> List[Dict[str, Any]]:
     for name, template in KPI_TEMPLATES.items():
         if category and template.category != category:
             continue
-        templates.append({
-            "name": name,
-            "category": template.category,
-            "description": template.description,
-            "required_columns": template.required_columns,
-            "optional_columns": template.optional_columns,
-            "output_columns": template.output_columns,
-        })
+        templates.append(
+            {
+                "name": name,
+                "category": template.category,
+                "description": template.description,
+                "required_columns": template.required_columns,
+                "optional_columns": template.optional_columns,
+                "output_columns": template.output_columns,
+            }
+        )
     return templates
 
 
@@ -488,39 +515,39 @@ def get_template(name: str) -> Optional[KPITemplate]:
 def render_template(name: str, params: Dict[str, str]) -> str:
     """
     Render a KPI template with provided parameters.
-    
+
     Args:
         name: Template name
         params: Dictionary of column/table names to substitute
-    
+
     Returns:
         Rendered SQL query
-    
+
     Raises:
         ValueError: If template not found or required params missing
     """
     template = get_template(name)
     if not template:
         raise ValueError(f"Template not found: {name}")
-    
+
     # Check required columns
     missing = [col for col in template.required_columns if col not in params]
     if missing:
         raise ValueError(f"Missing required columns for {name}: {missing}")
-    
+
     # Merge with optional defaults
     full_params = {**template.optional_columns, **params}
-    
+
     # Simple placeholder substitution
     sql = template.sql
     for key, value in full_params.items():
         sql = sql.replace(f"{{{key}}}", value)
-    
+
     # Check for any remaining placeholders
-    remaining = re.findall(r'\{(\w+)\}', sql)
+    remaining = re.findall(r"\{(\w+)\}", sql)
     if remaining:
         logger.warning(f"Template {name} has unsubstituted placeholders: {remaining}")
-    
+
     return sql.strip()
 
 

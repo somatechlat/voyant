@@ -20,7 +20,13 @@ def upload_csv(table: str = "customers"):
     with open(SAMPLE_PATH, "rb") as f:
         files = {"file": (SAMPLE_PATH.name, f, "text/csv")}
         data = {"table": table}
-        r = requests.post(f"{API}/ingest/upload", headers=ROLE_HEADERS, files=files, data=data, timeout=60)
+        r = requests.post(
+            f"{API}/ingest/upload",
+            headers=ROLE_HEADERS,
+            files=files,
+            data=data,
+            timeout=60,
+        )
     r.raise_for_status()
     return r.json()
 
@@ -64,8 +70,11 @@ def main():
     print(f"Found {len(manifest['files'])} files")
 
     # Save sufficiency JSON locally if present
-    suff = [f for f in manifest["files"] if f["path"].endswith("sufficiency.json")] \
-        if isinstance(manifest.get("files"), list) else []
+    suff = (
+        [f for f in manifest["files"] if f["path"].endswith("sufficiency.json")]
+        if isinstance(manifest.get("files"), list)
+        else []
+    )
     if suff:
         target = suff[0]["path"].replace(f"/artifact/{job_id}/", "")
         r = requests.get(f"{API}{suff[0]['path']}", timeout=10)

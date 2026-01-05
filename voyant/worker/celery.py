@@ -1,11 +1,15 @@
 """
-[DEPRECATED] Celery Worker Module
+[DEPRECATED] Celery Worker Module for Background Task Processing.
 
-This module is deprecated in favor of Temporal Orchestration.
-See voyant.worker.worker_main and voyant.core.temporal_client.
+This module configures and initializes a Celery application for background
+task processing.
 
-Do not add new tasks here.
+**WARNING: This module is deprecated.** New tasks should **NOT** be added here.
+All new background orchestration should utilize the Temporal workflow engine.
+Refer to `voyant.worker.worker_main` and `voyant.core.temporal_client` for
+the current recommended approach to task orchestration.
 """
+
 from celery import Celery
 from voyant.core.config import get_settings
 
@@ -15,7 +19,7 @@ celery_app = Celery(
     "voyant",
     broker=settings.redis_url,
     backend=settings.redis_url,
-    include=["voyant.worker.tasks.ingest", "voyant.worker.tasks.quality"]
+    include=["voyant.worker.tasks.ingest", "voyant.worker.tasks.quality"],
 )
 
 celery_app.conf.update(

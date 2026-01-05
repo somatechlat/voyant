@@ -1,4 +1,5 @@
 """Voyant Security Package."""
+
 from .auth import (
     User,
     KeycloakAuth,
