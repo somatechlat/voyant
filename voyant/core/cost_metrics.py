@@ -16,15 +16,16 @@ Usage:
         start_job_tracking, stop_job_tracking,
         get_job_costs, get_tenant_costs_summary
     )
-    
+
     # Start tracking
     tracking = start_job_tracking(job_id, tenant_id)
-    
+
     # ... do work ...
-    
+
     # Stop and get costs
     costs = stop_job_tracking(job_id)
 """
+
 from __future__ import annotations
 
 import logging
@@ -42,51 +43,60 @@ logger = logging.getLogger(__name__)
 @dataclass
 class JobCostRecord:
     """Cost record for a single job."""
+
     job_id: str
     tenant_id: str
     job_type: str
-    
+
     # Timing
     started_at: float = 0
     completed_at: float = 0
     duration_seconds: float = 0
-    
+
     # Resources
     cpu_time_seconds: float = 0
     memory_peak_mb: float = 0
     artifact_size_bytes: int = 0
-    
+
     # Operations
     query_count: int = 0
     query_time_seconds: float = 0
     api_requests: int = 0
-    
+
     # Billing units (can be customized per tier)
     compute_units: float = 0
     storage_units: float = 0
-    
+
     def __post_init__(self):
         if self.started_at == 0:
             self.started_at = time.time()
-    
+
     def finalize(self):
         """Calculate derived metrics after job completion."""
         self.completed_at = time.time()
         self.duration_seconds = self.completed_at - self.started_at
-        
+
         # Compute units: 1 unit = 1 second of CPU time
         self.compute_units = self.cpu_time_seconds
-        
+
         # Storage units: 1 unit = 1 MB
         self.storage_units = self.artifact_size_bytes / (1024 * 1024)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "job_id": self.job_id,
             "tenant_id": self.tenant_id,
             "job_type": self.job_type,
-            "started_at": datetime.fromtimestamp(self.started_at).isoformat() if self.started_at else None,
-            "completed_at": datetime.fromtimestamp(self.completed_at).isoformat() if self.completed_at else None,
+            "started_at": (
+                datetime.fromtimestamp(self.started_at).isoformat()
+                if self.started_at
+                else None
+            ),
+            "completed_at": (
+                datetime.fromtimestamp(self.completed_at).isoformat()
+                if self.completed_at
+                else None
+            ),
             "duration_seconds": round(self.duration_seconds, 3),
             "cpu_time_seconds": round(self.cpu_time_seconds, 3),
             "memory_peak_mb": round(self.memory_peak_mb, 2),
@@ -105,7 +115,9 @@ class JobCostRecord:
 
 _active_tracking: Dict[str, JobCostRecord] = {}
 _completed_costs: Dict[str, JobCostRecord] = {}
-_tenant_aggregates: Dict[str, Dict[str, float]] = defaultdict(lambda: defaultdict(float))
+_tenant_aggregates: Dict[str, Dict[str, float]] = defaultdict(
+    lambda: defaultdict(float)
+)
 
 
 def start_job_tracking(
@@ -115,7 +127,7 @@ def start_job_tracking(
 ) -> JobCostRecord:
     """
     Start tracking costs for a job.
-    
+
     Returns:
         JobCostRecord for the job
     """
@@ -124,39 +136,41 @@ def start_job_tracking(
         tenant_id=tenant_id,
         job_type=job_type,
     )
-    
+
     _active_tracking[job_id] = record
     logger.debug(f"Started cost tracking for job {job_id}")
-    
+
     return record
 
 
 def stop_job_tracking(job_id: str) -> Optional[JobCostRecord]:
     """
     Stop tracking and finalize costs for a job.
-    
+
     Returns:
         Finalized JobCostRecord or None if not found
     """
     if job_id not in _active_tracking:
         logger.warning(f"Job {job_id} not found in active tracking")
         return None
-    
+
     record = _active_tracking.pop(job_id)
     record.finalize()
-    
+
     # Store completed record
     _completed_costs[job_id] = record
-    
+
     # Aggregate for tenant
     tenant_id = record.tenant_id
     _tenant_aggregates[tenant_id]["total_compute_units"] += record.compute_units
     _tenant_aggregates[tenant_id]["total_storage_units"] += record.storage_units
     _tenant_aggregates[tenant_id]["total_jobs"] += 1
     _tenant_aggregates[tenant_id]["total_duration_seconds"] += record.duration_seconds
-    
-    logger.debug(f"Stopped cost tracking for job {job_id}: {record.compute_units:.2f} compute units")
-    
+
+    logger.debug(
+        f"Stopped cost tracking for job {job_id}: {record.compute_units:.2f} compute units"
+    )
+
     return record
 
 
@@ -210,6 +224,7 @@ def get_current_process_metrics() -> Dict[str, float]:
 # Query APIs
 # =============================================================================
 
+
 def get_job_costs(job_id: str) -> Optional[Dict[str, Any]]:
     """Get costs for a specific job."""
     if job_id in _completed_costs:
@@ -225,14 +240,15 @@ def get_tenant_costs_summary(
 ) -> Dict[str, Any]:
     """Get cost summary for a tenant."""
     aggregates = _tenant_aggregates.get(tenant_id, {})
-    
+
     # Get recent jobs
     recent_jobs = [
-        record for record in _completed_costs.values()
+        record
+        for record in _completed_costs.values()
         if record.tenant_id == tenant_id
         and (since is None or record.completed_at >= since.timestamp())
     ]
-    
+
     return {
         "tenant_id": tenant_id,
         "total_compute_units": aggregates.get("total_compute_units", 0),
@@ -241,7 +257,8 @@ def get_tenant_costs_summary(
         "total_duration_seconds": aggregates.get("total_duration_seconds", 0),
         "recent_jobs_count": len(recent_jobs),
         "avg_compute_units_per_job": (
-            aggregates.get("total_compute_units", 0) / max(1, aggregates.get("total_jobs", 1))
+            aggregates.get("total_compute_units", 0)
+            / max(1, aggregates.get("total_jobs", 1))
         ),
     }
 
@@ -255,12 +272,13 @@ def reset_tenant_costs(tenant_id: str):
     """Reset cost data for a tenant (for testing)."""
     # Remove completed jobs for tenant
     to_remove = [
-        job_id for job_id, record in _completed_costs.items()
+        job_id
+        for job_id, record in _completed_costs.items()
         if record.tenant_id == tenant_id
     ]
     for job_id in to_remove:
         del _completed_costs[job_id]
-    
+
     # Reset aggregates
     if tenant_id in _tenant_aggregates:
         del _tenant_aggregates[tenant_id]
@@ -284,22 +302,24 @@ DEFAULT_PRICING = {
 }
 
 
-def estimate_job_cost(job_id: str, pricing: Optional[Dict[str, float]] = None) -> Dict[str, Any]:
+def estimate_job_cost(
+    job_id: str, pricing: Optional[Dict[str, float]] = None
+) -> Dict[str, Any]:
     """
     Estimate cost for a job.
-    
+
     Returns dict with estimated cost breakdown.
     """
     costs = get_job_costs(job_id)
     if not costs:
         return {"error": "Job not found"}
-    
+
     pricing = pricing or DEFAULT_PRICING
-    
+
     compute_cost = costs["compute_units"] * pricing["compute_unit_price"]
     storage_cost = costs["storage_units"] * pricing["storage_unit_price"]
     total_cost = compute_cost + storage_cost
-    
+
     return {
         "job_id": job_id,
         "compute_cost": round(compute_cost, 6),

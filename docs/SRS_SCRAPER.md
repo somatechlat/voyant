@@ -14,14 +14,16 @@
 
 ### 1.1 Purpose
 
-This document specifies the requirements for the **DataScraper** module, a web scraping subsystem built as an integral part of the Voyant platform. The module extends Voyant's data intelligence capabilities with browser automation, LLM-driven extraction, OCR, and media transcription.
+This document specifies the requirements for the **DataScraper** module, a web scraping subsystem built as an integral part of the Voyant platform. The module extends Voyant's data intelligence capabilities with browser automation, agent-provided CSS/XPath extraction, OCR, and media transcription.
+
+> **VIBE COMPLIANCE**: DataScraper is a PURE EXECUTION module. NO LLM integration. Agent Zero provides all selectors and intelligence.
 
 ### 1.2 Scope
 
 | Capability | Description |
 |------------|-------------|
 | **URL Fetching** | Playwright-based browser automation with anti-bot handling |
-| **LLM Extraction** | AI-driven CSS/XPath selector generation |
+| **Data Extraction** | Agent-provided CSS/XPath selectors (NO LLM) |
 | **Media Processing** | OCR (images/PDFs), audio/video transcription |
 | **Schema Normalization** | Unified JSON output via Voyant contracts |
 | **MCP Integration** | `scrape.*` tools for agent workflows |
@@ -41,8 +43,8 @@ voyant/
 │   │   └── playwright_client.py
 │   ├── extraction/
 │   │   ├── __init__.py
-│   │   ├── selectors.py
-│   │   └── llm_selectors.py
+│   │   ├── selectors.py           # CSS/XPath execution
+│   │   └── html_parser.py          # Agent-provided selector parsing
 │   └── media/
 │       ├── __init__.py
 │       ├── ocr.py
@@ -104,7 +106,7 @@ voyant/
 | Attribute | Value |
 |-----------|-------|
 | **Priority** | HIGH |
-| **Input** | URLs, LLM prompt, options (OCR, media) |
+| **Input** | URLs, agent-provided selectors, options (OCR, media) |
 | **Output** | Job ID (UUID), HTTP 202 Accepted |
 | **Storage** | `ScrapeJob` Django model |
 
@@ -138,29 +140,37 @@ class PlaywrightClient:
             return html
 ```
 
-### FR-SCR-003: LLM Selector Generation
+### FR-SCR-003: Agent-Provided Selector Extraction
 
 | Attribute | Value |
 |-----------|-------|
-| **Priority** | MEDIUM |
-| **LLM Provider** | OpenAI GPT-4 / Claude |
-| **Accuracy** | ≥ 90% on benchmark dataset |
+| **Priority** | HIGH |
+| **Input** | Agent-provided CSS/XPath selectors |
+| **Mode** | Pure mechanical execution |
 
-**Prompt Template:**
+> **VIBE COMPLIANCE**: DataScraper does NOT generate selectors. Agent Zero (the Brain) provides all selectors. DataScraper (the Muscle) executes extraction mechanically.
+
+**Selector Input Format:**
 ```python
-SELECTOR_PROMPT = """
-Analyze this HTML and generate CSS/XPath selectors for:
-{user_prompt}
-
-HTML:
-{html_content}
-
-Output JSON with:
-- selectors: list of CSS/XPath
-- confidence: 0.0-1.0
-- field_mapping: dict of field names to selectors
-"""
+# Agent provides this structure
+selectors = {
+    "title": "h1::text",
+    "links": "a::attr(href)",
+    "items": {
+        "root": ".product",
+        "fields": {
+            "name": ".name::text",
+            "price": ".price::text"
+        }
+    }
+}
 ```
+
+**Acceptance Criteria:**
+- Selectors provided by Agent, NOT generated internally
+- Support CSS selectors with pseudo-elements (::text, ::attr)
+- Support XPath selectors (//div[@class='...'])
+- Return extracted data in structured JSON format
 
 ### FR-SCR-004: Media Extraction
 
@@ -214,6 +224,78 @@ Output JSON with:
 | Proxy rotation | Configurable proxy pool |
 | CAPTCHA detection | Event hook `scrape.captcha.required` |
 
+### FR-SCR-011: GPU/CPU Architecture Auto-Detection
+
+| Attribute | Value |
+|-----------|-------|
+| **Priority** | HIGH |
+| **Feature** | Automatic hardware detection and optimization |
+| **Mode Selection** | Runtime detection, no configuration needed |
+
+**Description:**
+VOYANT must automatically detect the available hardware architecture (GPU/CPU) at startup and select the optimal processing mode. This enables seamless deployment across environments from development laptops to production GPU clusters.
+
+**Detection Logic:**
+```python
+# voyant/core/hardware_detection.py
+import torch
+
+class HardwareDetector:
+    """Automatic GPU/CPU detection for optimal processing."""
+    
+    @staticmethod
+    def detect() -> str:
+        """Detect available hardware and return mode."""
+        if torch.cuda.is_available():
+            gpu_name = torch.cuda.get_device_name(0)
+            gpu_memory = torch.cuda.get_device_properties(0).total_memory / 1e9
+            return f"GPU:{gpu_name} ({gpu_memory:.1f}GB)"
+        elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+            return "GPU:Apple MPS"
+        else:
+            return "CPU"
+    
+    @staticmethod
+    def get_device():
+        """Get PyTorch device for model loading."""
+        if torch.cuda.is_available():
+            return torch.device("cuda")
+        elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+            return torch.device("mps")
+        return torch.device("cpu")
+```
+
+**Affected Components:**
+
+| Component | GPU Mode | CPU Mode |
+|-----------|----------|----------|
+| **Whisper** | `whisper.load_model("large-v3", device="cuda")` | `whisper.load_model("base", device="cpu")` |
+| **OCR** | GPU-accelerated Tesseract | Standard Tesseract |
+| **Batch Processing** | Parallel GPU batches | Sequential/smaller batches |
+| **Model Selection** | Large models (better quality) | Smaller models (faster) |
+
+**Environment Variable Override:**
+```bash
+# Force specific mode (optional override)
+VOYANT_DEVICE=cuda  # Force GPU
+VOYANT_DEVICE=cpu   # Force CPU
+VOYANT_DEVICE=auto  # Auto-detect (default)
+```
+
+**Logging:**
+```
+INFO: VOYANT Hardware Detection: GPU:NVIDIA A100-SXM4-80GB (80.0GB)
+INFO: Media processing will use GPU-accelerated mode
+INFO: Whisper model: large-v3, Batch size: 32
+```
+
+**Acceptance Criteria:**
+- Auto-detect GPU (NVIDIA CUDA, Apple MPS) vs CPU at startup
+- Select appropriate model sizes based on available hardware
+- Log detected hardware configuration
+- Allow optional override via environment variable
+- Seamless operation on both development (CPU) and production (GPU)
+
 ---
 
 ## 3. Django ORM Models
@@ -239,7 +321,7 @@ class ScrapeJob(models.Model):
     
     # Input
     urls = models.JSONField()
-    llm_prompt = models.TextField(blank=True)
+    selectors = models.JSONField(null=True, blank=True, help_text="Agent-provided selectors")
     options = models.JSONField(default=dict)
     
     # Progress
@@ -300,7 +382,7 @@ scrape_router = Router(tags=["scrape"])
 
 class ScrapeStartSchema(Schema):
     urls: List[str]
-    llm_prompt: Optional[str] = None
+    selectors: Optional[Dict[str, Any]] = None  # Agent-provided (NO LLM)
     options: Optional[Dict[str, Any]] = None
 
 class ScrapeJobSchema(Schema):
@@ -316,7 +398,7 @@ def start_scrape(request, payload: ScrapeStartSchema):
     job = ScrapeJob.objects.create(
         tenant_id=request.headers.get('X-Tenant-ID', 'default'),
         urls=payload.urls,
-        llm_prompt=payload.llm_prompt or "",
+        selectors=payload.selectors or {},  # Agent-provided (NO LLM)
         options=payload.options or {},
     )
     start_scrape_workflow.delay(str(job.job_id))
@@ -419,7 +501,7 @@ apt-get install -y \
 |-------------|-------|-----|-----|----------|
 | FR-SCR-001 | `ScrapeJob` | `/scrape/start` | `scrape.start` | `ScrapeWorkflow` |
 | FR-SCR-002 | - | - | - | `FetchActivity` |
-| FR-SCR-003 | - | - | - | `LLMSelectorActivity` |
+| FR-SCR-003 | - | - | - | `ExtractActivity` (agent-provided selectors) |
 | FR-SCR-004 | `ScrapeArtifact` | - | - | `OCRActivity`, `TranscribeActivity` |
 | FR-SCR-005 | - | - | - | `NormalizeActivity` |
 | FR-SCR-006 | - | `/scrape/result` | `scrape.result` | - |

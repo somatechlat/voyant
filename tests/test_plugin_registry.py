@@ -4,6 +4,7 @@ Tests for Plugin Registry
 Verifies generator registration, execution order, and fail-fast behavior.
 Reference: docs/CANONICAL_ARCHITECTURE.md Section 7
 """
+
 import pytest
 from dataclasses import dataclass
 
@@ -21,6 +22,7 @@ from voyant.core.plugin_registry import (
 @dataclass
 class MockSettings:
     """Mock settings for testing feature flags."""
+
     enable_quality: bool = True
     enable_charts: bool = True
     enable_narrative: bool = True
@@ -35,10 +37,11 @@ class TestRegistration:
 
     def test_register_generator(self):
         """Should register a generator."""
+
         @register("test_gen", is_core=True, order=10)
         def test_gen(ctx):
             return {"test": "/tmp/test.json"}
-        
+
         gens = list_generators()
         assert len(gens) == 1
         assert gens[0]["name"] == "test_gen"
@@ -47,6 +50,7 @@ class TestRegistration:
 
     def test_register_multiple_sorted_by_order(self):
         """Should maintain order by 'order' field."""
+
         @register("second", order=20)
         def gen2(ctx):
             return {}
@@ -58,17 +62,18 @@ class TestRegistration:
         @register("third", order=30)
         def gen3(ctx):
             return {}
-        
+
         gens = list_generators()
         names = [g["name"] for g in gens]
         assert names == ["first", "second", "third"]
 
     def test_get_generator(self):
         """Should retrieve generator by name."""
+
         @register("findme")
         def findme_gen(ctx):
             return {}
-        
+
         gen = get_generator("findme")
         assert gen is not None
         assert gen.name == "findme"
@@ -88,12 +93,13 @@ class TestExecution:
 
     def test_run_single_generator(self):
         """Should run single generator and collect artifacts."""
+
         @register("single", is_core=True)
         def single_gen(ctx):
             return {"artifact1": f"/artifacts/{ctx['job_id']}/file.json"}
-        
+
         result = run_generators({"job_id": "test123"}, MockSettings())
-        
+
         assert result.success is True
         assert "artifact1" in result.artifacts
         assert result.artifacts["artifact1"] == "/artifacts/test123/file.json"
@@ -111,9 +117,9 @@ class TestExecution:
         def second_gen(ctx):
             execution_order.append("second")
             return {"second": "/tmp/second"}
-        
+
         result = run_generators({}, MockSettings())
-        
+
         assert execution_order == ["first", "second"]
         assert "first" in result.artifacts
         assert "second" in result.artifacts
@@ -143,9 +149,9 @@ class TestFailFastBehavior:
         def never_runs_gen(ctx):
             execution_order.append("never_runs")
             return {"never": "/tmp/never"}
-        
+
         result = run_generators({}, MockSettings())
-        
+
         assert result.success is False
         assert result.failed_core == "bad_core"
         assert execution_order == ["good", "bad_core"]
@@ -169,9 +175,9 @@ class TestFailFastBehavior:
         def third_gen(ctx):
             execution_order.append("third")
             return {"third": "/tmp/third"}
-        
+
         result = run_generators({}, MockSettings())
-        
+
         assert result.success is True  # Pipeline succeeded
         assert result.failed_core is None
         assert execution_order == ["first", "bad_extended", "third"]
@@ -196,10 +202,10 @@ class TestFeatureFlags:
         def gated_gen(ctx):
             execution_order.append("gated")
             return {}
-        
+
         settings = MockSettings(enable_quality=False)
         result = run_generators({}, settings)
-        
+
         assert execution_order == ["always"]
         assert "gated" not in execution_order
 
@@ -211,10 +217,10 @@ class TestFeatureFlags:
         def gated_gen(ctx):
             execution_order.append("gated")
             return {}
-        
+
         settings = MockSettings(enable_charts=True)
         result = run_generators({}, settings)
-        
+
         assert "gated" in execution_order
 
 
@@ -226,12 +232,13 @@ class TestResultDetails:
 
     def test_result_includes_timing(self):
         """Results should include duration."""
+
         @register("timed")
         def timed_gen(ctx):
             return {"out": "/tmp/out"}
-        
+
         result = run_generators({}, MockSettings())
-        
+
         assert len(result.results) == 1
         assert result.results[0].name == "timed"
         assert result.results[0].success is True
@@ -239,11 +246,12 @@ class TestResultDetails:
 
     def test_result_includes_error_message(self):
         """Failed results should include error message."""
+
         @register("failing", is_core=False)
         def failing_gen(ctx):
             raise ValueError("Test error message")
-        
+
         result = run_generators({}, MockSettings())
-        
+
         assert result.results[0].success is False
         assert "Test error message" in result.results[0].error

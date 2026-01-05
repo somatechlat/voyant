@@ -4,6 +4,7 @@ Tests for KPI Template Library
 Verifies template listing, rendering, and validation.
 Reference: docs/CANONICAL_ROADMAP.md - P1 Extended Insights
 """
+
 import pytest
 
 from voyant.core.kpi_templates import (
@@ -70,11 +71,14 @@ class TestRenderTemplate:
 
     def test_render_revenue_growth(self):
         """Should render revenue_growth template."""
-        sql = render_template("revenue_growth", {
-            "table": "sales",
-            "date_column": "sale_date",
-            "amount_column": "amount",
-        })
+        sql = render_template(
+            "revenue_growth",
+            {
+                "table": "sales",
+                "date_column": "sale_date",
+                "amount_column": "amount",
+            },
+        )
         assert "FROM sales" in sql
         assert "sale_date" in sql
         assert "amount" in sql
@@ -82,29 +86,38 @@ class TestRenderTemplate:
 
     def test_render_with_optional_defaults(self):
         """Should use optional defaults when not provided."""
-        sql = render_template("value_distribution", {
-            "table": "products",
-            "column": "category",
-        })
+        sql = render_template(
+            "value_distribution",
+            {
+                "table": "products",
+                "column": "category",
+            },
+        )
         # Should have default limit of 20
         assert "LIMIT 20" in sql
 
     def test_render_with_optional_override(self):
         """Should override optional defaults when provided."""
-        sql = render_template("value_distribution", {
-            "table": "products",
-            "column": "category",
-            "limit": "50",
-        })
+        sql = render_template(
+            "value_distribution",
+            {
+                "table": "products",
+                "column": "category",
+                "limit": "50",
+            },
+        )
         assert "LIMIT 50" in sql
 
     def test_render_missing_required_raises(self):
         """Should raise ValueError when required column missing."""
         with pytest.raises(ValueError) as exc_info:
-            render_template("revenue_growth", {
-                "table": "sales",
-                # Missing date_column and amount_column
-            })
+            render_template(
+                "revenue_growth",
+                {
+                    "table": "sales",
+                    # Missing date_column and amount_column
+                },
+            )
         assert "Missing required columns" in str(exc_info.value)
 
     def test_render_nonexistent_template_raises(self):
@@ -138,7 +151,7 @@ class TestTemplateSQLValidity:
             "delivery_date_column": "delivery_date",
             "value_column": "value",
         }
-        
+
         for name in KPI_TEMPLATES:
             try:
                 sql = render_template(name, mock_params)

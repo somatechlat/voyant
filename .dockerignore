@@ -1,0 +1,81 @@
+# VOYANT Docker Ignore
+# Created to speed up Docker builds
+
+# Version control
+.git
+.gitignore
+.github
+
+# Python virtual environments
+venv
+.venv
+env
+.env.local
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Testing
+.pytest_cache
+.coverage
+htmlcov
+.tox
+.nox
+
+# Build artifacts
+*.egg-info
+dist
+build
+*.egg
+
+# Node
+node_modules
+npm-debug.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs
+
+# Local data
+*.duckdb
+*.sqlite3
+*.db
+data/
+uploads/
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Test files (not needed in Docker)
+tests/
+
+# Jupyter
+.ipynb_checkpoints
+*.ipynb
+
+# Docker (don't copy docker files into Docker)
+Dockerfile*
+docker-compose*
+
+# Other large/unnecessary files
+*.tar
+*.tar.gz
+*.zip
+*.rar
+*.7z
+*.bak
+*.tmp

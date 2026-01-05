@@ -39,6 +39,20 @@ opentelemetry-exporter-otlp>=1.21.0
 pandas>=2.1.0
 pyarrow>=14.0.0
 scikit-learn>=1.3.0
+duckdb>=0.10.0
+lxml>=5.0.0
+cssselect>=1.2.0
+
+# DataScraper Module (Pure Execution - NO LLM)
+playwright>=1.40.0
+scrapy>=2.11.0
+beautifulsoup4>=4.12.0
+tika>=2.6.0
+pdfplumber>=0.10.0
+pytesseract>=0.3.10
+openai-whisper>=20231117
+fake-useragent>=1.4.0
+Pillow>=10.0.0
 
 # NLP 
 nltk>=3.8.0

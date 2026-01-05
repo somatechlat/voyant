@@ -4,6 +4,7 @@ Verification Script for Discovery Engine
 Tests web search and spec parsing.
 Requires: pip install requests
 """
+
 import logging
 import sys
 import os
@@ -16,6 +17,7 @@ from voyant.discovery.spec_parser import SpecParser
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("verify_discovery")
+
 
 def test_search():
     logger.info("Testing Web Search...")
@@ -30,13 +32,14 @@ def test_search():
     for r in results:
         logger.info(f" - {r['title']}: {r['link']}")
 
+
 def test_parser():
     logger.info("Testing Spec Parser...")
     parser = SpecParser()
-    
+
     # Test with the famous Petstore spec
     url = "https://petstore.swagger.io/v2/swagger.json"
-    
+
     try:
         spec = parser.parse_from_url(url)
         logger.info(f"Parsed Spec: {spec.title} (v{spec.version})")
@@ -46,9 +49,10 @@ def test_parser():
         if spec.endpoints:
             e = spec.endpoints[0]
             logger.info(f"Sample Endpoint: {e.method} {e.path}")
-            
+
     except Exception as e:
         logger.error(f"Parser Failed: {e}")
+
 
 if __name__ == "__main__":
     test_search()

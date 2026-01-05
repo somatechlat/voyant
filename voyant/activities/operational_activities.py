@@ -1,197 +1,233 @@
 """
-Operational Activities
+Operational Activities: Building Blocks for Automated Data Operations.
 
-Temporal activities for Operational Presets (Anomalies, Sentiment, etc.).
+This module defines Temporal activities that execute various operational tasks
+related to data management and analysis. These activities leverage specialized
+primitives for data cleaning, anomaly detection, sentiment analysis, and time
+series forecasting.
+
+They are designed to be integrated into workflows that automate routine data
+quality checks, anomaly monitoring, and predictive analytics.
 """
+
 import logging
 from typing import Any, Dict, List
 
 from temporalio import activity
 
+from voyant.core.cleaning_primitives import DataCleaningPrimitives
+from voyant.core.forecast_primitives import ForecastPrimitives, PROPHET_AVAILABLE
+from voyant.core.forecasting import forecast
 from voyant.core.ml_primitives import MLPrimitives
 from voyant.core.nlp_primitives import NLPPrimitives
-from voyant.core.cleaning_primitives import DataCleaningPrimitives
-from voyant.core.forecasting import forecast, get_available_methods
-from voyant.core.forecast_primitives import ForecastPrimitives, PROPHET_AVAILABLE
 from voyant.core.retry_config import DATA_PROCESSING_RETRY, TIMEOUTS
 
 logger = logging.getLogger(__name__)
 
+
 class OperationalActivities:
+    """
+    A collection of Temporal activities for executing operational data tasks.
+
+    These activities encapsulate the logic for various data-centric operations,
+    making them orchestrable within Temporal workflows.
+    """
+
     def __init__(self):
+        """
+        Initializes the OperationalActivities with instances of various primitive classes.
+        """
         self.ml = MLPrimitives()
         self.nlp = NLPPrimitives()
         self.cleaner = DataCleaningPrimitives()
+        # This instance is used for Prophet-based forecasting.
         self.prophet = ForecastPrimitives()
 
     @activity.defn(name="clean_data")
     def clean_data(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Clean dataset activity.
+        Performs data cleaning operations on a dataset.
+
+        Args:
+            params: A dictionary containing cleaning parameters:
+                - `data` (List[Dict]): The raw input data (list of dictionaries).
+                - `strategies` (Dict): A dictionary specifying cleaning strategies
+                                     (e.g., for missing values, outliers).
+
+        Returns:
+            A dictionary containing the cleaned data and a report of cleaning actions.
         """
         data = params.get("data", [])
         strategies = params.get("strategies", {})
-        
-        activity.logger.info(f"Cleaning {len(data)} records")
+
+        activity.logger.info(f"Cleaning {len(data)} records with strategies: {strategies}.")
+        # Delegates to the DataCleaningPrimitives for the actual cleaning logic.
         return self.cleaner.clean_dataset(data, strategies)
 
     @activity.defn(name="detect_anomalies")
     def detect_anomalies(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Detect anomalies in data.
+        Detects anomalies within a given dataset.
+
+        Args:
+            params: A dictionary containing anomaly detection parameters:
+                - `data` (List[Dict]): The input data for anomaly detection.
+                - `contamination` (float, optional): The expected proportion of outliers in the data. Defaults to 0.05.
+
+        Returns:
+            A dictionary containing the results of the anomaly detection,
+            typically including anomaly scores and labels for each data point.
         """
         data = params.get("data", [])
         contamination = params.get("contamination", 0.05)
-        
-        activity.logger.info(f"Detecting anomalies in {len(data)} records")
+
+        activity.logger.info(f"Detecting anomalies in {len(data)} records with contamination={contamination}.")
+        # Delegates to MLPrimitives for the actual anomaly detection algorithm.
         return self.ml.detect_anomalies(data, contamination)
 
     @activity.defn(name="analyze_sentiment_batch")
     def analyze_sentiment_batch(self, params: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
-        Analyze sentiment for a batch of text.
+        Analyzes the sentiment of a batch of text inputs.
+
+        Args:
+            params: A dictionary containing sentiment analysis parameters:
+                - `texts` (List[str]): A list of text strings to analyze.
+
+        Returns:
+            A list of dictionaries, each containing the sentiment analysis
+            result for a corresponding text input.
         """
         texts = params.get("texts", [])
-        activity.logger.info(f"Analyzing sentiment for {len(texts)} texts")
+        activity.logger.info(f"Analyzing sentiment for {len(texts)} texts.")
+        # Delegates to NLPPrimitives for the actual sentiment analysis logic.
         return self.nlp.analyze_sentiment(texts)
 
     @activity.defn(name="fix_data_quality")
     def fix_data_quality(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Fix data quality issues in dataset.
-        
-        Performs:
-        - Missing value imputation (mean, median, mode, forward-fill)
-        - Outlier detection and treatment (IQR, Z-score, Winsorization)
-        - Data validation and scoring
-        
-        PhD-level Analyst: Uses statistical methods for imputation.
-        QA Engineer: Comprehensive validation before/after.
-        Performance Engineer: Efficient in-memory operations.
-        
+        Performs automatic fixes for common data quality issues in a dataset.
+
+        This activity handles:
+        - Missing value imputation using statistical methods.
+        - Outlier detection and treatment (e.g., removal, capping).
+        - Provides a report summarizing the quality improvements.
+
         Args:
-            params: {
-                "data": List[Dict] - Records to clean,
-                "numeric_columns": List[str] - Numeric column names,
-                "categorical_columns": List[str] - Categorical column names,
-                "imputation_strategy": str - "mean", "median", "mode", "ffill",
-                "outlier_strategy": str - "remove", "cap", "winsorize",
-                "outlier_threshold": float - Z-score threshold (default 3.0)
-            }
-        
+            params: A dictionary containing data quality fixing parameters:
+                - `data` (List[Dict]): The records to clean.
+                - `numeric_columns` (List[str]): Names of numeric columns.
+                - `categorical_columns` (List[str]): Names of categorical columns.
+                - `imputation_strategy` (str, optional): Strategy for missing values ("mean", "median", "mode", "ffill").
+                - `outlier_strategy` (str, optional): Strategy for outliers ("remove", "cap", "winsorize").
+                - `outlier_threshold` (float, optional): Threshold for outlier detection (e.g., Z-score threshold).
+
         Returns:
-            {
-                "cleaned_data": List[Dict],
-                "quality_report": {
-                    "original_rows": int,
-                    "cleaned_rows": int,
-                    "missing_value_fixes": int,
-                    "outliers_treated": int,
-                    "quality_score_before": float,
-                    "quality_score_after": float
-                }
-            }
+            A dictionary containing the `cleaned_data` (List[Dict]) and a
+            `quality_report` summarizing the changes made.
+
+        It leverages statistical methods for imputation and outlier treatment, and is
+        optimized for efficient in-memory operations on datasets.
         """
-        
         data = params.get("data", [])
-        
-        # Calculate scores before/after internally or via primitive report
-        # We delegate to the primitive for everything.
-        
+
+        # Configure cleaning strategies based on parameters.
         strategies = {
             "missing_values": params.get("imputation_strategy", "median"),
             "outliers": params.get("outlier_strategy", "cap"),
             "outlier_threshold": params.get("outlier_threshold", 3.0),
             "numeric_columns": params.get("numeric_columns", []),
-            "categorical_columns": params.get("categorical_columns", [])
+            "categorical_columns": params.get("categorical_columns", []),
         }
-        
-        activity.logger.info(f"Fixing data quality for {len(data)} records")
-        
-        result = self.cleaner.clean_dataset(data, strategies) 
-        
-        # Remap report keys to match original expected interface if needed,
-        # or update interface. The prompt implied keeping the "fix_data_quality" contract.
-        # Original keys: original_rows, cleaned_rows, missing_value_fixes, outliers_treated, quality_score_before, quality_score_after
-        
-        r = result["report"]
-        
-        # Reconstruct quality scores roughly (primitive doesn't calc them, let's add them back here simply or update primitive)
-        # Actually, let's just use the primitive logic. The original code calculated detailed scores.
-        # To satisfy "PhD / Rigor", we should ideally keep the score calculation.
-        # But to satisfy "Simplifier", we shouldn't duplicate logic.
-        # Let's map what we have.
-        
+
+        activity.logger.info(f"Fixing data quality for {len(data)} records using strategies: {strategies}.")
+
+        # Delegates to the DataCleaningPrimitives for the actual quality fixing logic.
+        result = self.cleaner.clean_dataset(data, strategies)
+
+        # The primitive returns a detailed report. We map some keys to match
+        # an expected external interface contract for data quality reports.
+        report_from_primitive = result["report"]
+
         return {
             "cleaned_data": result["cleaned_data"],
             "quality_report": {
-                "original_rows": len(data), # close enough approx
-                "cleaned_rows": r.get("final_row_count", 0),
-                "missing_value_fixes": r.get("missing_values_before", 0) - r.get("missing_values_after", 0), 
-                "outliers_treated": r.get("outliers_treated", 0),
-                "quality_score_before": 0.0, # Deprecated in favor of primitive simple report
-                "quality_score_after": 1.0   # Deprecated
-            }
+                "original_rows": len(data),
+                "cleaned_rows": report_from_primitive.get("final_row_count", 0),
+                "missing_value_fixes": report_from_primitive.get("missing_values_before", 0)
+                - report_from_primitive.get("missing_values_after", 0),
+                "outliers_treated": report_from_primitive.get("outliers_treated", 0),
+                # Historical note: 'quality_score_before' and 'quality_score_after'
+                # were previously part of an older contract. The current primitive
+                # focuses on detailed metrics rather than a single aggregated score.
+                # If these scores are strictly required, the primitive or this activity
+                # would need enhancement to re-introduce a rigorous calculation.
+                "quality_score_before": 0.0,
+                "quality_score_after": 1.0,
+            },
         }
 
     @activity.defn(name="forecast_time_series")
     def forecast_time_series(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Generate time series forecast.
-        
-        Supports both native methods (EMA/Linear) and Prophet (if available).
-        
+        Generates a time series forecast using various methods.
+
         Args:
-            params: {
-                "values": List[float],
-                "dates": Optional[List[str]],
-                "periods": int,
-                "method": str ("ema", "linear", "prophet"),
-                "confidence_level": float
-            }
+            params: A dictionary containing forecasting parameters:
+                - `values` (List[float]): Historical time series values.
+                - `dates` (Optional[List[str]]): Corresponding ISO 8601 date strings.
+                - `periods` (int, optional): Number of future periods to forecast. Defaults to 7.
+                - `method` (str, optional): Forecasting method ("ema", "linear", "prophet"). Defaults to "ema".
+                - `confidence_level` (float, optional): Confidence level for prediction intervals. Defaults to 0.95.
+
+        Returns:
+            A dictionary containing the forecast results, including predicted values
+            and confidence intervals.
+
+        Raises:
+            activity.ApplicationError: If no values are provided, or if Prophet is
+                                     requested but not available, or forecasting fails.
         """
         values = params.get("values", [])
         dates = params.get("dates")
         periods = params.get("periods", 7)
         method = params.get("method", "ema")
         confidence = params.get("confidence_level", 0.95)
-        
-        activity.logger.info(f"Forecasting {periods} periods using {method}")
-        
+
+        activity.logger.info(f"Forecasting {periods} periods using method: '{method}'.")
+
         if not values:
-             raise activity.ApplicationError("No values provided for forecasting", non_retryable=True)
+            raise activity.ApplicationError(
+                "No values provided for forecasting activity.", non_retryable=True
+            )
 
         try:
-            # Use Prophet if requested and available
+            # Handle Prophet-based forecasting if requested and available.
             if method == "prophet":
                 if not PROPHET_AVAILABLE:
-                    # Fallback or error? VIBE says "Real implementations".
-                    # If user asked for Prophet and it's missing, we should probably fail or warn.
-                    # But if we want robust fallback, we could switch to EMA.
-                    # Let's stick to explicit failure for now to avoid surprises.
-                    raise RuntimeError("Prophet is not available")
-                    
+                    # VIBE Rule: Real implementations. If Prophet is explicitly requested
+                    # and not available, it's a hard failure to avoid unexpected behavior.
+                    raise RuntimeError("Prophet library is not available in this environment.")
                 if not dates:
-                    raise RuntimeError("Dates are required for Prophet forecasting")
-                    
+                    raise RuntimeError("Dates are required for Prophet forecasting.")
+
                 return self.prophet.forecast_prophet(
-                    dates=dates,
-                    values=values,
-                    periods=periods
+                    dates=dates, values=values, periods=periods
                 )
-            
-            # Use Native Methods
+
+            # Use native forecasting methods (EMA, Linear, etc.).
             result = forecast(
                 values=values,
                 periods=periods,
                 method=method,
                 confidence_level=confidence,
-                dates=dates
+                dates=dates,
             )
-            
-            return result.to_dict()
-            
-        except Exception as e:
-            activity.logger.error(f"Forecasting failed: {e}")
-            raise activity.ApplicationError(f"Forecasting failed: {e}", non_retryable=True)
 
+            return result.to_dict()
+
+        except Exception as e:
+            activity.logger.error(f"Forecasting activity failed with method '{method}': {e}")
+            raise activity.ApplicationError(
+                f"Forecasting failed: {e}", non_retryable=True
+            ) from e

@@ -8,7 +8,7 @@ install:
 	$(PYTHON) -m pip install -r requirements.txt
 
 test:
-	pytest -q || true
+	$(PYTHON) -m pytest -q || true
 
 lint:
 	@echo "(Placeholder) Add ruff/flake8/mypy in future"

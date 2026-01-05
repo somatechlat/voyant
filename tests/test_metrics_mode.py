@@ -4,6 +4,7 @@ Tests for Metrics Mode Gating
 Verifies that VOYANT_METRICS_MODE controls which metrics are registered.
 Reference: docs/CANONICAL_ARCHITECTURE.md Section 8
 """
+
 import os
 import pytest
 
@@ -130,7 +131,7 @@ class TestMetricsModeFromSettings:
         """init_metrics() without args should read from VOYANT_METRICS_MODE."""
         os.environ["VOYANT_METRICS_MODE"] = "basic"
         config_module.get_settings.cache_clear()
-        
+
         mode = metrics_module.get_mode()
         assert mode == "basic"
 

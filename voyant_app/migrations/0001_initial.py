@@ -14,7 +14,10 @@ class Migration(migrations.Migration):
                 (
                     "source_id",
                     models.UUIDField(
-                        default=uuid.uuid4, editable=False, primary_key=True, serialize=False
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
                     ),
                 ),
                 ("tenant_id", models.CharField(db_index=True, max_length=128)),
@@ -23,8 +26,14 @@ class Migration(migrations.Migration):
                 ("status", models.CharField(default="pending", max_length=64)),
                 ("connection_config", models.JSONField()),
                 ("credentials", models.JSONField(blank=True, null=True)),
-                ("sync_schedule", models.CharField(blank=True, max_length=128, null=True)),
-                ("datahub_urn", models.CharField(blank=True, max_length=512, null=True)),
+                (
+                    "sync_schedule",
+                    models.CharField(blank=True, max_length=128, null=True),
+                ),
+                (
+                    "datahub_urn",
+                    models.CharField(blank=True, max_length=512, null=True),
+                ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
             ],
@@ -35,14 +44,23 @@ class Migration(migrations.Migration):
                 (
                     "job_id",
                     models.UUIDField(
-                        default=uuid.uuid4, editable=False, primary_key=True, serialize=False
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
                     ),
                 ),
                 ("tenant_id", models.CharField(db_index=True, max_length=128)),
                 ("job_type", models.CharField(db_index=True, max_length=64)),
                 ("source_id", models.CharField(blank=True, max_length=36, null=True)),
-                ("soma_session_id", models.CharField(blank=True, max_length=128, null=True)),
-                ("soma_task_id", models.CharField(blank=True, max_length=64, null=True)),
+                (
+                    "soma_session_id",
+                    models.CharField(blank=True, max_length=128, null=True),
+                ),
+                (
+                    "soma_task_id",
+                    models.CharField(blank=True, max_length=64, null=True),
+                ),
                 ("status", models.CharField(default="queued", max_length=64)),
                 ("progress", models.IntegerField(default=0)),
                 ("parameters", models.JSONField(default=dict)),
@@ -59,7 +77,10 @@ class Migration(migrations.Migration):
                 (
                     "job_id",
                     models.UUIDField(
-                        default=uuid.uuid4, editable=False, primary_key=True, serialize=False
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
                     ),
                 ),
                 ("tenant_id", models.CharField(db_index=True, max_length=128)),
@@ -73,7 +94,10 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="Artifact",
             fields=[
-                ("artifact_id", models.CharField(max_length=512, primary_key=True, serialize=False)),
+                (
+                    "artifact_id",
+                    models.CharField(max_length=512, primary_key=True, serialize=False),
+                ),
                 ("job_id", models.CharField(db_index=True, max_length=36)),
                 ("tenant_id", models.CharField(db_index=True, max_length=128)),
                 ("artifact_type", models.CharField(max_length=128)),

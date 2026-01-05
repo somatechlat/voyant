@@ -25,13 +25,14 @@ Usage:
         register_connector, list_connectors,
         get_connector, test_connection
     )
-    
+
     # Register a connector
     register_connector(ConnectorConfig(...))
-    
+
     # List available connectors
     connectors = list_connectors()
 """
+
 from __future__ import annotations
 
 import logging
@@ -46,6 +47,7 @@ logger = logging.getLogger(__name__)
 
 class ConnectorType(str, Enum):
     """Types of connectors."""
+
     DATABASE = "database"
     API = "api"
     FILE = "file"
@@ -55,6 +57,7 @@ class ConnectorType(str, Enum):
 
 class ConnectorStatus(str, Enum):
     """Connector health status."""
+
     UNKNOWN = "unknown"
     HEALTHY = "healthy"
     DEGRADED = "degraded"
@@ -63,6 +66,7 @@ class ConnectorStatus(str, Enum):
 
 class AuthType(str, Enum):
     """Authentication types."""
+
     NONE = "none"
     API_KEY = "api_key"
     BASIC = "basic"
@@ -74,30 +78,31 @@ class AuthType(str, Enum):
 @dataclass
 class ConnectorConfig:
     """Connector configuration."""
+
     id: str
     name: str
     connector_type: ConnectorType
     auth_type: AuthType = AuthType.NONE
-    
+
     # Connection details
     host: Optional[str] = None
     port: Optional[int] = None
     database: Optional[str] = None
-    
+
     # Metadata
     description: str = ""
     version: str = "1.0.0"
     icon_url: str = ""
     docs_url: str = ""
-    
+
     # Capabilities
     supports_incremental: bool = True
     supports_full_refresh: bool = True
     supports_cdc: bool = False
-    
+
     # Airbyte integration
     airbyte_source_id: Optional[str] = None
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "id": self.id,
@@ -117,31 +122,40 @@ class ConnectorConfig:
 @dataclass
 class ConnectorInstance:
     """A configured connector instance."""
+
     instance_id: str
     connector_id: str
     config: Dict[str, Any]
     status: ConnectorStatus = ConnectorStatus.UNKNOWN
-    
+
     # Health tracking
     last_check: Optional[float] = None
     last_success: Optional[float] = None
     error_message: str = ""
-    
+
     # Metadata
     created_at: float = 0
     created_by: str = ""
-    
+
     def __post_init__(self):
         if self.created_at == 0:
             self.created_at = time.time()
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "instance_id": self.instance_id,
             "connector_id": self.connector_id,
             "status": self.status.value,
-            "last_check": datetime.fromtimestamp(self.last_check).isoformat() if self.last_check else None,
-            "last_success": datetime.fromtimestamp(self.last_success).isoformat() if self.last_success else None,
+            "last_check": (
+                datetime.fromtimestamp(self.last_check).isoformat()
+                if self.last_check
+                else None
+            ),
+            "last_success": (
+                datetime.fromtimestamp(self.last_success).isoformat()
+                if self.last_success
+                else None
+            ),
             "error_message": self.error_message,
             "created_at": datetime.fromtimestamp(self.created_at).isoformat(),
         }
@@ -240,48 +254,49 @@ BUILTIN_CONNECTORS: List[ConnectorConfig] = [
 # Connector Registry
 # =============================================================================
 
+
 class ConnectorRegistry:
     """
     Registry for connectors and instances.
     """
-    
+
     def __init__(self):
         self._connectors: Dict[str, ConnectorConfig] = {}
         self._instances: Dict[str, ConnectorInstance] = {}
         self._health_cache: Dict[str, tuple[ConnectorStatus, float]] = {}
-        
+
         # Register built-in connectors
         for connector in BUILTIN_CONNECTORS:
             self._connectors[connector.id] = connector
-    
+
     def register(self, connector: ConnectorConfig) -> None:
         """Register a connector."""
         self._connectors[connector.id] = connector
         logger.info(f"Registered connector: {connector.id}")
-    
+
     def unregister(self, connector_id: str) -> bool:
         """Unregister a connector."""
         if connector_id in self._connectors:
             del self._connectors[connector_id]
             return True
         return False
-    
+
     def get(self, connector_id: str) -> Optional[ConnectorConfig]:
         """Get connector by ID."""
         return self._connectors.get(connector_id)
-    
+
     def list(
         self,
         connector_type: Optional[ConnectorType] = None,
     ) -> List[Dict[str, Any]]:
         """List all connectors."""
         connectors = list(self._connectors.values())
-        
+
         if connector_type:
             connectors = [c for c in connectors if c.connector_type == connector_type]
-        
+
         return [c.to_dict() for c in connectors]
-    
+
     def create_instance(
         self,
         connector_id: str,
@@ -293,41 +308,41 @@ class ConnectorRegistry:
         connector = self._connectors.get(connector_id)
         if not connector:
             return None
-        
+
         instance = ConnectorInstance(
             instance_id=instance_id,
             connector_id=connector_id,
             config=config,
             created_by=created_by,
         )
-        
+
         self._instances[instance_id] = instance
         logger.info(f"Created connector instance: {instance_id}")
         return instance
-    
+
     def get_instance(self, instance_id: str) -> Optional[ConnectorInstance]:
         """Get connector instance."""
         return self._instances.get(instance_id)
-    
+
     def delete_instance(self, instance_id: str) -> bool:
         """Delete connector instance."""
         if instance_id in self._instances:
             del self._instances[instance_id]
             return True
         return False
-    
+
     def list_instances(
         self,
         connector_id: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """List connector instances."""
         instances = list(self._instances.values())
-        
+
         if connector_id:
             instances = [i for i in instances if i.connector_id == connector_id]
-        
+
         return [i.to_dict() for i in instances]
-    
+
     def update_health(
         self,
         instance_id: str,
@@ -340,25 +355,25 @@ class ConnectorRegistry:
             instance.status = status
             instance.last_check = time.time()
             instance.error_message = error
-            
+
             if status == ConnectorStatus.HEALTHY:
                 instance.last_success = time.time()
-    
+
     def search(self, query: str) -> List[Dict[str, Any]]:
         """Search connectors by name or description."""
         query_lower = query.lower()
         matching = [
-            c for c in self._connectors.values()
-            if query_lower in c.name.lower() 
-            or query_lower in c.description.lower()
+            c
+            for c in self._connectors.values()
+            if query_lower in c.name.lower() or query_lower in c.description.lower()
         ]
         return [c.to_dict() for c in matching]
-    
+
     def clear(self) -> None:
         """Clear registry (testing)."""
         self._connectors.clear()
         self._instances.clear()
-        
+
         # Re-register built-ins
         for connector in BUILTIN_CONNECTORS:
             self._connectors[connector.id] = connector
@@ -422,15 +437,15 @@ async def test_connection(instance_id: str) -> Dict[str, Any]:
     instance = get_registry().get_instance(instance_id)
     if not instance:
         return {"success": False, "error": "Instance not found"}
-    
+
     # Simulate connection test
     # In production, this would actually test the connection
     start = time.time()
     await asyncio.sleep(0.1)  # Network latency allowance
-    
+
     # Update health
     get_registry().update_health(instance_id, ConnectorStatus.HEALTHY)
-    
+
     return {
         "success": True,
         "instance_id": instance_id,
