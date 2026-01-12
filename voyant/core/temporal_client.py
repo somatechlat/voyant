@@ -45,7 +45,7 @@ async def get_temporal_client() -> Client:
     global _client
 
     # If the client already exists, return it immediately.
-    if _client is not in None:
+    if _client is not None:
         return _client
 
     settings = get_settings()
