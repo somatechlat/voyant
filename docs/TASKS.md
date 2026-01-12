@@ -1,8 +1,8 @@
 # Voyant v3 Production Readiness Task Plan
 
 Document ID: VOYANT-TASKS-3.0.0
-Status: In Progress (28% Complete)
-Date: 2025-12-31 (Updated)
+Status: In Progress (45% Complete)
+Date: 2026-01-12 (Updated)
 Includes: DataScraper Module (Section 19)
 
 ## 0. Tracking Conventions
@@ -198,34 +198,36 @@ Definition of Done: SomaAgentHub can orchestrate Voyant workflows with policy an
 - [x] Implement 7 pure execution activities  
   Files: `voyant/scraper/activities.py`
 
-### 19.2 Parsing Stack (IN PROGRESS)
+### 19.2 Parsing Stack (COMPLETED)
 - [x] Create HTML parser with CSS/XPath extraction  
   Files: `voyant/scraper/parsing/html_parser.py`
 - [x] Create PDF parser with Apache Tika integration  
   Files: `voyant/scraper/parsing/pdf_parser.py`
 - [x] Create OCR processor with Tesseract  
   Files: `voyant/scraper/parsing/ocr_processor.py`
-- [ ] Create Whisper transcription processor  
+- [x] Create Whisper transcription processor  
   Files: `voyant/scraper/media/transcription.py`
 
-### 19.3 Browser Clients (TODO)
-- [ ] Implement Playwright client for JS rendering  
+### 19.3 Browser Clients (COMPLETED)
+- [x] Implement Playwright client for JS rendering  
   Files: `voyant/scraper/browser/playwright_client.py`
-- [ ] Implement httpx client for static pages  
-  Files: `voyant/scraper/browser/httpx_client.py`
-- [ ] Implement Scrapy client for high volume  
+- [x] Implement BeautifulSoup client for static pages  
+  Files: `voyant/scraper/browser/beautifulsoup_client.py`
+- [x] Implement Scrapy client for high volume  
   Files: `voyant/scraper/browser/scrapy_client.py`
+- [x] Implement Selenium client for legacy browser automation  
+  Files: `voyant/scraper/browser/selenium_client.py`
 
-### 19.4 MCP Tool Registration (TODO)
-- [ ] Register `scrape.fetch` tool  
+### 19.4 MCP Tool Registration (COMPLETED)
+- [x] Register `scrape.fetch` tool  
   Files: `voyant/mcp/server.py`
-- [ ] Register `scrape.extract` tool  
+- [x] Register `scrape.extract` tool  
   Files: `voyant/mcp/server.py`
-- [ ] Register `scrape.ocr` tool  
+- [x] Register `scrape.ocr` tool  
   Files: `voyant/mcp/server.py`
-- [ ] Register `scrape.parse_pdf` tool  
+- [x] Register `scrape.parse_pdf` tool  
   Files: `voyant/mcp/server.py`
-- [ ] Register `scrape.transcribe` tool  
+- [x] Register `scrape.transcribe` tool  
   Files: `voyant/mcp/server.py`
 
 ### 19.5 Integration & Testing (TODO)

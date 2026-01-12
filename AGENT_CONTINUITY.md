@@ -2,7 +2,7 @@
 
 Document ID: VOYANT-AGENT-CONTINUITY
 Status: Active
-Date: 2025-12-17
+Date: 2026-01-12 (Updated)
 
 ## 1) Repository Locations
 - Voyant: `/Users/macbookpro201916i964gb1tb/Documents/GitHub/voyant`
@@ -35,6 +35,14 @@ Integrate Voyant as the agent-first data intelligence box within the Soma stack:
 - Metrics are fragmented and not exposed via API.
 - Auth is present but not enforced on routes.
 - Soma stack integration is wired in API (policy, memory, orchestrator callbacks) but needs end-to-end validation.
+- 11 of 29 MCP tools still to be implemented per SRS specification.
+
+### 3.2.1 DataScraper Module (COMPLETED)
+- Core infrastructure: models, API, workflow, activities ✓
+- Parsing stack: HTML, PDF, OCR, transcription ✓
+- Browser clients: Playwright, Selenium, Scrapy, BeautifulSoup ✓
+- MCP tools: scrape.fetch, scrape.extract, scrape.ocr, scrape.parse_pdf, scrape.transcribe ✓
+- Remaining: Django INSTALLED_APPS registration, migrations, integration tests
 
 ### 3.3 New Canonical Documentation
 - `docs/SRS.md` – single canonical SRS, expanded to include Apache platform and Soma stack integration.
@@ -63,6 +71,11 @@ Integrate Voyant as the agent-first data intelligence box within the Soma stack:
   - Updated Docker/compose/dev scripts to run `voyant_project.asgi:application`.
   - Keycloak auth rewritten for Django Ninja (`voyant/security/auth.py`).
   - Tests updated to use Django client; legacy FastAPI/UDB tests removed.
+- DataScraper module implementation (2026-01-12):
+  - Parser stack: `voyant/scraper/parsing/html_parser.py`, `pdf_parser.py`, `ocr_processor.py`.
+  - Media processing: `voyant/scraper/media/ocr.py`, `transcription.py`.
+  - Browser clients: `voyant/scraper/browser/playwright_client.py`, `beautifulsoup_client.py`, `scrapy_client.py`, `selenium_client.py`.
+  - MCP tools registered: `scrape.fetch`, `scrape.extract`, `scrape.ocr`, `scrape.parse_pdf`, `scrape.transcribe`.
 
 ## 4) SomaAgentHub Summary (from repo docs)
 ### 4.1 Purpose
