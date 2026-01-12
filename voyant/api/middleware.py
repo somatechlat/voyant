@@ -105,7 +105,16 @@ def get_request_id() -> str:
     return request_id_var.get()
 
 
-def get_tenant_id() -> str:
+def get_tenant_id(request=None) -> str:
+    """
+    Retrieve the tenant ID for the current request context.
+
+    If a Django request is provided, prefer the header value to avoid surprises
+    when callers still pass the request object. Otherwise, fall back to the
+    contextvar set by TenantMiddleware.
+    """
+    if request is not None:
+        return request.headers.get("X-Tenant-ID", tenant_id_var.get())
     return tenant_id_var.get()
 
 

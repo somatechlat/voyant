@@ -1,0 +1,504 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: voyant
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5432
+      targetPort: 5432
+  selector:
+    app: postgres
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: voyant
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          env:
+            - name: POSTGRES_USER
+              value: voyant
+            - name: POSTGRES_PASSWORD
+              value: voyant
+            - name: POSTGRES_DB
+              value: voyant
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: voyant
+spec:
+  type: ClusterIP
+  ports:
+    - port: 6379
+      targetPort: 6379
+  selector:
+    app: redis
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: voyant
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          command:
+            - redis-server
+            - --requirepass
+            - voyant
+            - --maxmemory
+            - 100mb
+            - --maxmemory-policy
+            - allkeys-lru
+          ports:
+            - containerPort: 6379
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "200m"
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio
+  namespace: voyant
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9000
+      targetPort: 9000
+      name: api
+    - port: 9001
+      targetPort: 9001
+      name: console
+  selector:
+    app: minio
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minio
+  namespace: voyant
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minio
+  template:
+    metadata:
+      labels:
+        app: minio
+    spec:
+      containers:
+        - name: minio
+          image: minio/minio:latest
+          args: [ "server", "/data", "--console-address", ":9001" ]
+          env:
+            - name: MINIO_ROOT_USER
+              value: voyant
+            - name: MINIO_ROOT_PASSWORD
+              value: voyant123
+          ports:
+            - containerPort: 9000
+            - containerPort: 9001
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: minio-init
+  namespace: voyant
+spec:
+  template:
+    metadata:
+      labels:
+        app: minio-init
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: minio-init
+          image: minio/mc
+          command:
+            - /bin/sh
+            - -c
+            - |
+              mc alias set voyant http://minio:9000 voyant voyant123;
+              mc mb voyant/artifacts --ignore-existing;
+              mc mb voyant/warehouse --ignore-existing;
+              mc mb voyant/staging --ignore-existing;
+              exit 0
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka
+  namespace: voyant
+spec:
+  ports:
+    - port: 9092
+      targetPort: 9092
+      name: external
+    - port: 29092
+      targetPort: 29092
+      name: internal
+  selector:
+    app: kafka
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka
+  namespace: voyant
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka
+  template:
+    metadata:
+      labels:
+        app: kafka
+    spec:
+      containers:
+        - name: kafka
+          image: apache/kafka:3.7.0
+          env:
+            - name: KAFKA_NODE_ID
+              value: "1"
+            - name: KAFKA_PROCESS_ROLES
+              value: controller,broker
+            - name: KAFKA_LISTENERS
+              value: CONTROLLER://:9093,INTERNAL://:29092,EXTERNAL://:9092
+            - name: KAFKA_ADVERTISED_LISTENERS
+              value: INTERNAL://kafka:29092,EXTERNAL://kafka:9092
+            - name: KAFKA_CONTROLLER_LISTENER_NAMES
+              value: CONTROLLER
+            - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
+              value: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+            - name: KAFKA_CONTROLLER_QUORUM_VOTERS
+              value: 1@kafka:9093
+            - name: KAFKA_INTER_BROKER_LISTENER_NAME
+              value: INTERNAL
+            - name: KAFKA_AUTO_CREATE_TOPICS_ENABLE
+              value: "true"
+            - name: CLUSTER_ID
+              value: voyant-local-cluster
+            - name: KAFKA_HEAP_OPTS
+              value: -Xmx512m -Xms256m
+          ports:
+            - containerPort: 9092
+            - containerPort: 29092
+            - containerPort: 9093
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/kafka/data
+          resources:
+            limits:
+              memory: "1Gi"
+              cpu: "1"
+            requests:
+              memory: "512Mi"
+              cpu: "200m"
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: temporal
+  namespace: voyant
+spec:
+  ports:
+    - port: 7233
+      targetPort: 7233
+  selector:
+    app: temporal
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: temporal
+  namespace: voyant
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: temporal
+  template:
+    metadata:
+      labels:
+        app: temporal
+    spec:
+      containers:
+        - name: temporal
+          image: temporalio/auto-setup:1.24.2
+          env:
+            - name: DB
+              value: postgres12
+            - name: DB_PORT
+              value: "5432"
+            - name: POSTGRES_USER
+              value: voyant
+            - name: POSTGRES_PWD
+              value: voyant
+            - name: POSTGRES_SEEDS
+              value: postgres
+          ports:
+            - containerPort: 7233
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: temporal-ui
+  namespace: voyant
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+  selector:
+    app: temporal-ui
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: temporal-ui
+  namespace: voyant
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: temporal-ui
+  template:
+    metadata:
+      labels:
+        app: temporal-ui
+    spec:
+      containers:
+        - name: temporal-ui
+          image: temporalio/ui:latest
+          env:
+            - name: TEMPORAL_ADDRESS
+              value: temporal:7233
+            - name: TEMPORAL_CORS_ORIGINS
+              value: http://localhost:3000
+          ports:
+            - containerPort: 8080
+          resources:
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
+            requests:
+              memory: "128Mi"
+              cpu: "50m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: voyant-api
+  namespace: voyant
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8000
+      targetPort: 8000
+  selector:
+    app: voyant-api
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: voyant-api
+  namespace: voyant
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: voyant-api
+  template:
+    metadata:
+      labels:
+        app: voyant-api
+    spec:
+      containers:
+        - name: voyant-api
+          image: voyant-app
+          ports:
+            - containerPort: 8000
+          env:
+            - name: VOYANT_ENV
+              value: local
+            - name: VOYANT_SECRETS_BACKEND
+              value: env
+            - name: DATABASE_URL
+              value: postgresql://voyant:voyant@postgres:5432/voyant
+            - name: REDIS_URL
+              value: redis://:voyant@redis:6379/0
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: kafka:29092
+            - name: MINIO_ENDPOINT
+              value: minio:9000
+            - name: MINIO_ACCESS_KEY
+              value: voyant
+            - name: MINIO_SECRET_KEY
+              value: voyant123
+            - name: DATAHUB_GMS_URL
+              value: http://datahub-gms:8080
+            - name: TRINO_URL
+              value: http://trino:8080
+            - name: KEYCLOAK_URL
+              value: http://keycloak:8080
+            - name: KEYCLOAK_REALM
+              value: voyant
+            - name: KEYCLOAK_CLIENT_ID
+              value: voyant-api
+            - name: KEYCLOAK_CLIENT_SECRET
+              value: voyant-api-secret
+            - name: LAGO_API_URL
+              value: http://lago-api:3000
+            - name: LAGO_API_KEY
+              value: lago-api-key
+            - name: VOYANT_ENABLE_QUALITY
+              value: "true"
+            - name: VOYANT_ENABLE_BILLING
+              value: "true"
+            - name: VOYANT_ENABLE_DATAHUB
+              value: "true"
+            - name: TEMPORAL_HOST
+              value: temporal:7233
+            - name: TEMPORAL_TASK_QUEUE
+              value: voyant-tasks
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: voyant-worker
+  namespace: voyant
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: voyant-worker
+  template:
+    metadata:
+      labels:
+        app: voyant-worker
+    spec:
+      containers:
+        - name: voyant-worker
+          image: voyant-app
+          command: [ "python", "-m", "voyant.worker.worker_main" ]
+          env:
+            - name: DATABASE_URL
+              value: postgresql://voyant:voyant@postgres:5432/voyant
+            - name: REDIS_URL
+              value: redis://:voyant@redis:6379/0
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: kafka:29092
+            - name: TEMPORAL_HOST
+              value: temporal:7233
+            - name: TEMPORAL_TASK_QUEUE
+              value: voyant-tasks
+          ports:
+            - containerPort: 9090
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: voyant-worker
+  namespace: voyant
+spec:
+  ports:
+    - port: 9090
+      targetPort: 9090
+  selector:
+    app: voyant-worker

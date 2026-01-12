@@ -1,0 +1,486 @@
+# =============================================================================
+# VOYANT STANDALONE - Docker Compose (Production-Ready)
+# =============================================================================
+# Version: 3.0.0 (aligned with SRS)
+# Mode: STANDALONE - Full infrastructure, persistent volumes
+# Cluster: voyant_standalone
+# Port Range: 45xxx
+#
+# Usage:
+#   cd infra/standalone
+#   docker compose up -d
+#
+# =============================================================================
+
+x-common: &common
+  restart: always
+  logging:
+    driver: json-file
+    options:
+      max-size: "50m"
+      max-file: "5"
+
+x-healthcheck: &healthcheck
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 40s
+
+services:
+  # ===========================================================================
+  # CORE: Voyant API
+  # ===========================================================================
+  voyant_api:
+    <<: *common
+    build:
+      context: ../..
+      dockerfile: infra/standalone/Dockerfile
+    container_name: voyant_api
+    ports:
+      - "45000:8000"
+    environment:
+      VOYANT_ENV: production
+      VOYANT_SECRETS_BACKEND: env
+      VOYANT_DEPLOYMENT_MODE: standalone
+      DATABASE_URL: postgresql://voyant:voyant@voyant_postgres:5432/voyant
+      REDIS_URL: redis://:voyant@voyant_redis:6379/0
+      KAFKA_BOOTSTRAP_SERVERS: voyant_kafka:9092
+      MINIO_ENDPOINT: voyant_minio:9000
+      MINIO_ACCESS_KEY: voyant
+      MINIO_SECRET_KEY: voyant123
+      DATAHUB_GMS_URL: http://voyant_datahub_gms:8080
+      TRINO_URL: http://voyant_trino:8080
+      KEYCLOAK_URL: http://voyant_keycloak:8080
+      KEYCLOAK_REALM: voyant
+      KEYCLOAK_CLIENT_ID: voyant-api
+      KEYCLOAK_CLIENT_SECRET: voyant-api-secret
+      LAGO_API_URL: http://voyant_lago_api:3000
+      LAGO_API_KEY: lago-api-key
+      TEMPORAL_HOST: voyant_temporal:7233
+      TEMPORAL_TASK_QUEUE: voyant-tasks
+      VOYANT_ENABLE_QUALITY: "true"
+      VOYANT_ENABLE_BILLING: "true"
+      VOYANT_ENABLE_DATAHUB: "true"
+    volumes:
+      - ../../voyant:/app/voyant:ro
+      - ../../voyant_app:/app/voyant_app:ro
+      - ../../voyant_project:/app/voyant_project:ro
+      - ../../manage.py:/app/manage.py:ro
+      - voyant_artifacts:/app/artifacts
+      - voyant_data:/app/data
+    depends_on:
+      voyant_postgres:
+        condition: service_healthy
+      voyant_redis:
+        condition: service_healthy
+      voyant_kafka:
+        condition: service_started
+    healthcheck:
+      <<: *healthcheck
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - voyant_standalone
+
+  voyant_mcp:
+    <<: *common
+    build:
+      context: ../..
+      dockerfile: infra/standalone/Dockerfile
+    container_name: voyant_mcp
+    command: [ "python", "-m", "voyant.mcp.server" ]
+    ports:
+      - "45001:8001"
+    environment:
+      VOYANT_API_URL: http://voyant_api:8000
+      VOYANT_ENV: production
+    depends_on:
+      voyant_api:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    networks:
+      - voyant_standalone
+
+  voyant_worker:
+    <<: *common
+    build:
+      context: ../..
+      dockerfile: infra/standalone/Dockerfile
+    container_name: voyant_worker
+    command: [ "python", "-m", "voyant.worker.worker_main" ]
+    ports:
+      - "45090:9090"
+    environment:
+      DATABASE_URL: postgresql://voyant:voyant@voyant_postgres:5432/voyant
+      REDIS_URL: redis://:voyant@voyant_redis:6379/0
+      KAFKA_BOOTSTRAP_SERVERS: voyant_kafka:29092
+      TEMPORAL_HOST: voyant_temporal:7233
+      TEMPORAL_TASK_QUEUE: voyant-tasks
+    depends_on:
+      voyant_redis:
+        condition: service_healthy
+      voyant_postgres:
+        condition: service_healthy
+      voyant_temporal:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - voyant_standalone
+
+  # ===========================================================================
+  # DATA INFRASTRUCTURE
+  # ===========================================================================
+  voyant_postgres:
+    <<: *common
+    image: postgres:16-alpine
+    container_name: voyant_postgres
+    environment:
+      POSTGRES_USER: voyant
+      POSTGRES_PASSWORD: voyant
+      POSTGRES_DB: voyant
+    ports:
+      - "45432:5432"
+    volumes:
+      - voyant_postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      <<: *healthcheck
+      test: [ "CMD-SHELL", "pg_isready -U voyant" ]
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - voyant_standalone
+
+  voyant_redis:
+    <<: *common
+    image: redis:7-alpine
+    container_name: voyant_redis
+    command: redis-server --requirepass voyant --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - "45379:6379"
+    volumes:
+      - voyant_redis_data:/data
+    healthcheck:
+      <<: *healthcheck
+      test: [ "CMD", "redis-cli", "-a", "voyant", "ping" ]
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    networks:
+      - voyant_standalone
+
+  voyant_kafka:
+    <<: *common
+    image: apache/kafka:3.7.0
+    container_name: voyant_kafka
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: controller,broker
+      KAFKA_LISTENERS: CONTROLLER://:9093,INTERNAL://:29092,EXTERNAL://:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://voyant_kafka:29092,EXTERNAL://localhost:45092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@voyant_kafka:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_RETENTION_HOURS: 168
+      CLUSTER_ID: voyant-standalone-cluster
+      KAFKA_HEAP_OPTS: -Xmx512m -Xms256m
+    ports:
+      - "45092:9092"
+    volumes:
+      - voyant_kafka_data:/var/lib/kafka/data
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    networks:
+      - voyant_standalone
+
+  voyant_minio:
+    <<: *common
+    image: minio/minio:latest
+    container_name: voyant_minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "45900:9000"
+      - "45901:9001"
+    environment:
+      MINIO_ROOT_USER: voyant
+      MINIO_ROOT_PASSWORD: voyant123
+    volumes:
+      - voyant_minio_data:/data
+    healthcheck:
+      <<: *healthcheck
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - voyant_standalone
+
+  voyant_minio_init:
+    image: minio/mc
+    container_name: voyant_minio_init
+    depends_on:
+      voyant_minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c " mc alias set voyant http://voyant_minio:9000 voyant voyant123; mc mb voyant/artifacts --ignore-existing; mc mb voyant/warehouse --ignore-existing; mc mb voyant/staging --ignore-existing; exit 0; "
+    networks:
+      - voyant_standalone
+
+  # ===========================================================================
+  # TEMPORAL (Workflow Orchestration)
+  # ===========================================================================
+  voyant_temporal:
+    <<: *common
+    image: temporalio/auto-setup:1.24.2
+    container_name: voyant_temporal
+    environment:
+      - DB=postgres12
+      - DB_PORT=5432
+      - POSTGRES_USER=voyant
+      - POSTGRES_PWD=voyant
+      - POSTGRES_SEEDS=voyant_postgres
+    ports:
+      - "45233:7233"
+    depends_on:
+      voyant_postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - voyant_standalone
+
+  voyant_temporal_ui:
+    <<: *common
+    image: temporalio/ui:latest
+    container_name: voyant_temporal_ui
+    environment:
+      - TEMPORAL_ADDRESS=voyant_temporal:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+    ports:
+      - "45089:8080"
+    depends_on:
+      - voyant_temporal
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    networks:
+      - voyant_standalone
+
+  # ===========================================================================
+  # ANALYTICS (Trino)
+  # ===========================================================================
+  voyant_trino:
+    <<: *common
+    image: trinodb/trino:434
+    container_name: voyant_trino
+    ports:
+      - "45080:8080"
+    volumes:
+      - ./config/trino:/etc/trino:ro
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    networks:
+      - voyant_standalone
+
+  # ===========================================================================
+  # GOVERNANCE (DataHub)
+  # ===========================================================================
+  voyant_elasticsearch:
+    <<: *common
+    image: elasticsearch:7.17.16
+    container_name: voyant_elasticsearch
+    environment:
+      discovery.type: single-node
+      ES_JAVA_OPTS: -Xms256m -Xmx256m
+      xpack.security.enabled: "false"
+    ports:
+      - "45200:9200"
+    volumes:
+      - voyant_elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      <<: *healthcheck
+      test: [ "CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1" ]
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - voyant_standalone
+
+  voyant_datahub_gms:
+    <<: *common
+    image: linkedin/datahub-gms:v0.12.1
+    container_name: voyant_datahub_gms
+    environment:
+      DATAHUB_GMS_PORT: 8080
+      EBEAN_DATASOURCE_URL: jdbc:postgresql://voyant_postgres:5432/datahub
+      EBEAN_DATASOURCE_USERNAME: voyant
+      EBEAN_DATASOURCE_PASSWORD: voyant
+      KAFKA_BOOTSTRAP_SERVER: voyant_kafka:9092
+      ELASTICSEARCH_HOST: voyant_elasticsearch
+      ELASTICSEARCH_PORT: 9200
+      JAVA_OPTS: -Xms256m -Xmx512m
+    ports:
+      - "45081:8080"
+    depends_on:
+      voyant_postgres:
+        condition: service_healthy
+      voyant_kafka:
+        condition: service_started
+      voyant_elasticsearch:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    networks:
+      - voyant_standalone
+
+  voyant_datahub_frontend:
+    <<: *common
+    image: linkedin/datahub-frontend-react:v0.12.1
+    container_name: voyant_datahub_frontend
+    environment:
+      DATAHUB_GMS_HOST: voyant_datahub_gms
+      DATAHUB_GMS_PORT: 8080
+    ports:
+      - "45002:9002"
+    depends_on:
+      - voyant_datahub_gms
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - voyant_standalone
+
+  # ===========================================================================
+  # SECURITY (Keycloak)
+  # ===========================================================================
+  voyant_keycloak:
+    <<: *common
+    image: quay.io/keycloak/keycloak:23.0
+    container_name: voyant_keycloak
+    command: start-dev --import-realm
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://voyant_postgres:5432/keycloak
+      KC_DB_USERNAME: voyant
+      KC_DB_PASSWORD: voyant
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "true"
+    ports:
+      - "45180:8080"
+    volumes:
+      - ./config/keycloak/realm-voyant.json:/opt/keycloak/data/import/realm-voyant.json:ro
+    depends_on:
+      voyant_postgres:
+        condition: service_healthy
+    healthcheck:
+      <<: *healthcheck
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/health/ready" ]
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - voyant_standalone
+
+  # ===========================================================================
+  # BILLING (Lago)
+  # ===========================================================================
+  voyant_lago_api:
+    <<: *common
+    image: getlago/api:v1.18.0
+    container_name: voyant_lago_api
+    environment:
+      DATABASE_URL: postgresql://voyant:voyant@voyant_postgres:5432/lago
+      REDIS_URL: redis://:voyant@voyant_redis:6379/1
+      LAGO_API_URL: http://localhost:3000
+      SECRET_KEY_BASE: lago-secret-key-base-min-32-chars-here
+      ENCRYPTION_PRIMARY_KEY: encryption-key-32-characters-min
+      LAGO_WEBHOOK_ATTEMPTS: 3
+      RAILS_ENV: production
+    ports:
+      - "45300:3000"
+    depends_on:
+      voyant_postgres:
+        condition: service_healthy
+      voyant_redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - voyant_standalone
+
+  voyant_lago_worker:
+    <<: *common
+    image: getlago/api:v1.18.0
+    container_name: voyant_lago_worker
+    command: bundle exec sidekiq
+    environment:
+      DATABASE_URL: postgresql://voyant:voyant@voyant_postgres:5432/lago
+      REDIS_URL: redis://:voyant@voyant_redis:6379/1
+      SECRET_KEY_BASE: lago-secret-key-base-min-32-chars-here
+      ENCRYPTION_PRIMARY_KEY: encryption-key-32-characters-min
+    depends_on:
+      - voyant_lago_api
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    networks:
+      - voyant_standalone
+
+# =============================================================================
+# NETWORK: voyant_standalone
+# =============================================================================
+networks:
+  voyant_standalone:
+    driver: bridge
+    name: voyant_standalone
+
+# =============================================================================
+# PERSISTENT VOLUMES
+# =============================================================================
+volumes:
+  voyant_postgres_data:
+    name: voyant_postgres_data
+  voyant_redis_data:
+    name: voyant_redis_data
+  voyant_kafka_data:
+    name: voyant_kafka_data
+  voyant_minio_data:
+    name: voyant_minio_data
+  voyant_elasticsearch_data:
+    name: voyant_elasticsearch_data
+  voyant_artifacts:
+    name: voyant_artifacts
+  voyant_data:
+    name: voyant_data

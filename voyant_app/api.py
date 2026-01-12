@@ -51,9 +51,11 @@ from voyant.integrations.soma import (
     remember_summary,
     update_task_status,
 )
+from voyant.security.auth import get_current_user, get_optional_user
 from voyant.workflows.analyze_workflow import AnalyzeWorkflow
 from voyant.workflows.ingest_workflow import IngestDataWorkflow
 from voyant.workflows.profile_workflow import ProfileWorkflow
+from voyant.workflows.quality_workflow import QualityWorkflow
 from voyant.workflows.types import IngestParams
 from voyant_app.models import Artifact, Job, PresetJob, Source
 
@@ -91,6 +93,18 @@ search_router = Router()
 def _run_async(func, *args, **kwargs):
     """Run an async function from a sync context."""
     return async_to_sync(func)(*args, **kwargs)
+
+
+def _auth_guard(request):
+    """
+    Enforce authentication outside local environments.
+
+    In local mode we allow missing tokens for developer ergonomics; in other
+    environments we require a valid Keycloak JWT.
+    """
+    if settings.env == "local":
+        return get_optional_user(request)
+    return get_current_user(request)
 
 
 def _apply_policy(action: str, prompt: str, metadata: Dict[str, Any]) -> None:
@@ -603,10 +617,7 @@ def trigger_profile(request, payload: ProfileRequest):
 @jobs_router.post("/quality", response=JobResponse, summary="Trigger a Data Quality Job")
 def trigger_quality(request, payload: QualityRequest):
     """
-    Creates a new data quality job.
-
-    Note: In the current implementation, this endpoint only creates the job record
-    with a 'queued' status and does not yet start a Temporal workflow.
+    Creates and starts a data quality job.
 
     Args:
         request: The HTTP request.
@@ -654,6 +665,33 @@ def trigger_quality(request, payload: QualityRequest):
     )
     if soma_task_id:
         Job.objects.filter(job_id=job.job_id).update(soma_task_id=soma_task_id)
+
+    try:
+        client = _run_async(get_temporal_client)
+        _run_async(
+            client.start_workflow,
+            QualityWorkflow.run,
+            {
+                "source_id": payload.source_id,
+                "table": payload.table,
+                "checks": payload.checks,
+                "job_id": str(job.job_id),
+                "tenant_id": job.tenant_id,
+            },
+            id=f"quality-{job.job_id}",
+            task_queue=settings.temporal_task_queue,
+        )
+        job.status = "running"
+        job.save(update_fields=["status"])
+        if soma_task_id:
+            _run_async(update_task_status, soma_task_id, "running")
+    except Exception as exc:
+        logger.error("Failed to start quality workflow: %s", exc)
+        job.status = "failed"
+        job.error_message = str(exc)
+        job.save(update_fields=["status", "error_message"])
+        if soma_task_id:
+            _run_async(update_task_status, soma_task_id, "failed", reason=str(exc))
 
     return JobResponse(
         job_id=str(job.job_id),
@@ -729,12 +767,13 @@ def get_job(request, job_id: str):
     if not job:
         raise HttpError(404, "Job not found")
 
-        # Verification: Ensure the job belongs to the requesting tenant for access control.
-        tenant_id = get_tenant_id(request)
-        if job.tenant_id != tenant_id:
-            raise HttpError(403, "Access to this resource is denied.")
-            
-        return JobResponse(        job_id=str(job.job_id),
+    # Verification: Ensure the job belongs to the requesting tenant for access control.
+    tenant_id = get_tenant_id(request)
+    if job.tenant_id != tenant_id:
+        raise HttpError(403, "Access to this resource is denied.")
+
+    return JobResponse(
+        job_id=str(job.job_id),
         tenant_id=job.tenant_id,
         job_type=job.job_type,
         status=job.status,
@@ -811,7 +850,7 @@ class SqlResponse(Schema):
     query_id: Optional[str] = Field(None, description="The unique ID assigned to the query by the Trino engine.")
 
 
-@sql_router.post("/query", response=SqlResponse, summary="Execute Ad-Hoc SQL Query")
+@sql_router.post("/query", response=SqlResponse, summary="Execute Ad-Hoc SQL Query", auth=_auth_guard)
 def execute_sql(request, payload: SqlRequest):
     """
     Executes an ad-hoc SQL query against the Trino engine for the current tenant.
@@ -854,7 +893,7 @@ def execute_sql(request, payload: SqlRequest):
         raise HttpError(500, f"Query failed due to internal error: {exc}") from exc
 
 
-@sql_router.get("/tables", response=Dict[str, Any], summary="List Available Tables")
+@sql_router.get("/tables", response=Dict[str, Any], summary="List Available Tables", auth=_auth_guard)
 def list_tables(request, schema: Optional[str] = None):
     """
     Retrieves a list of all tables accessible via the Trino engine for the current tenant.
@@ -879,7 +918,7 @@ def list_tables(request, schema: Optional[str] = None):
         raise HttpError(500, f"Failed to list tables: {exc}") from exc
 
 
-@sql_router.get("/tables/{table}/columns", response=Dict[str, Any], summary="Get Table Columns")
+@sql_router.get("/tables/{table}/columns", response=Dict[str, Any], summary="Get Table Columns", auth=_auth_guard)
 def get_columns(request, table: str, schema: Optional[str] = None):
     """
     Retrieves the column details for a specific table accessible via the Trino engine.
@@ -1025,7 +1064,7 @@ def _datahub_graphql(query: str, variables: Dict[str, Any]) -> Dict[str, Any]:
     return data.get("data", {})
 
 
-@governance_router.get("/search", response=SearchResponse)
+@governance_router.get("/search", response=SearchResponse, auth=_auth_guard)
 def search_metadata(request, query: str, types: Optional[str] = None, limit: int = 10):
     try:
         data = _datahub_graphql(
@@ -1072,7 +1111,7 @@ def search_metadata(request, query: str, types: Optional[str] = None, limit: int
         raise HttpError(500, str(exc)) from exc
 
 
-@governance_router.get("/lineage/{urn}", response=LineageResponse)
+@governance_router.get("/lineage/{urn}", response=LineageResponse, auth=_auth_guard)
 def get_lineage(request, urn: str, direction: str = "both", depth: int = 3):
     try:
         nodes = [
@@ -1138,7 +1177,7 @@ def get_lineage(request, urn: str, direction: str = "both", depth: int = 3):
         raise HttpError(500, str(exc)) from exc
 
 
-@governance_router.get("/schema/{urn}", response=SchemaResponse)
+@governance_router.get("/schema/{urn}", response=SchemaResponse, auth=_auth_guard)
 def get_schema(request, urn: str):
     import httpx
 
@@ -1206,7 +1245,7 @@ class SetTierRequest(Schema):
     tier: str
 
 
-@governance_router.get("/quotas/tiers", response=List[QuotaTierInfo])
+@governance_router.get("/quotas/tiers", response=List[QuotaTierInfo], auth=_auth_guard)
 def list_quota_tiers(request):
     tiers = _list_tiers()
     return [
@@ -1222,14 +1261,14 @@ def list_quota_tiers(request):
     ]
 
 
-@governance_router.get("/quotas/usage", response=QuotaUsageStatus)
+@governance_router.get("/quotas/usage", response=QuotaUsageStatus, auth=_auth_guard)
 def get_quota_usage(request):
     tenant_id = get_tenant_id()
     status = _get_usage_status(tenant_id)
     return QuotaUsageStatus(**status)
 
 
-@governance_router.get("/quotas/limits")
+@governance_router.get("/quotas/limits", auth=_auth_guard)
 def get_quota_limits(request):
     tenant_id = get_tenant_id()
     return _get_quota_limits(tenant_id)
@@ -1632,7 +1671,7 @@ def get_minio_client():
     return _minio_client
 
 
-@artifacts_router.get("/{job_id}", response=ArtifactListResponse, summary="List Artifacts for a Job")
+@artifacts_router.get("/{job_id}", response=ArtifactListResponse, summary="List Artifacts for a Job", auth=_auth_guard)
 def list_artifacts(request, job_id: str):
     """
     Lists all artifacts generated by a specific job.
@@ -1703,7 +1742,7 @@ def list_artifacts(request, job_id: str):
         raise HttpError(500, f"Failed to list artifacts: {exc}") from exc
 
 
-@artifacts_router.get("/{job_id}/{artifact_type}", response={200: Dict[str, Any]}, summary="Get Artifact Download Link")
+@artifacts_router.get("/{job_id}/{artifact_type}", response={200: Dict[str, Any]}, summary="Get Artifact Download Link", auth=_auth_guard)
 def get_artifact(request, job_id: str, artifact_type: str, format: str = "json"):
     """
     Retrieves a time-limited, pre-signed URL to download a specific artifact.
@@ -1747,7 +1786,7 @@ def get_artifact(request, job_id: str, artifact_type: str, format: str = "json")
         raise HttpError(404, f"Artifact '{artifact_type}.{format}' for job '{job_id}' not found or accessible.") from exc
 
 
-@artifacts_router.get("/{job_id}/{artifact_type}/download", summary="Download Artifact Directly")
+@artifacts_router.get("/{job_id}/{artifact_type}/download", summary="Download Artifact Directly", auth=_auth_guard)
 def download_artifact(request, job_id: str, artifact_type: str, format: str = "json"):
     """
     Directly streams the content of a generated artifact.

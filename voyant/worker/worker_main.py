@@ -24,11 +24,13 @@ from voyant.core.temporal_client import get_temporal_client
 from voyant.workflows.ingest_workflow import IngestDataWorkflow
 from voyant.workflows.profile_workflow import ProfileWorkflow
 from voyant.workflows.analyze_workflow import AnalyzeWorkflow
+from voyant.workflows.quality_workflow import QualityWorkflow
 from voyant.activities.ingest_activities import IngestActivities
 from voyant.activities.profile_activities import ProfileActivities
 from voyant.activities.analysis_activities import AnalysisActivities
 from voyant.activities.generation_activities import GenerationActivities
 from voyant.activities.kpi_activities import KPIActivities
+from voyant.activities.quality_activities import QualityActivities
 from voyant.workflows.benchmark_workflow import BenchmarkBrandWorkflow
 from voyant.activities.stats_activities import StatsActivities
 from voyant.activities.ml_activities import MLActivities
@@ -90,6 +92,7 @@ async def run_worker():
         IngestDataWorkflow,
         ProfileWorkflow,
         AnalyzeWorkflow,
+        QualityWorkflow,
         BenchmarkBrandWorkflow,
         DetectAnomaliesWorkflow,
         AnalyzeSentimentWorkflow,
@@ -106,6 +109,8 @@ async def run_worker():
         AnalysisActivities().run_analyzers,
         GenerationActivities().run_generators,
         KPIActivities().run_kpis,
+        QualityActivities().fetch_sample,
+        QualityActivities().run_quality_checks,
         StatsActivities().calculate_market_share,
         StatsActivities().perform_hypothesis_test,
         StatsActivities().describe_distribution,

@@ -1,0 +1,14 @@
+version: '3.8'
+services:
+  dashboard:
+    build:
+      context: ./dashboard
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./dashboard:/app
+      - /app/node_modules
+    environment:
+      VITE_API_URL: http://localhost:8000
+    networks:
+      - voyant-net
