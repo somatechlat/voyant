@@ -320,12 +320,15 @@ services:
     volumes:
       - voyant_elasticsearch_data:/usr/share/elasticsearch/data
     healthcheck:
-      <<: *healthcheck
       test: [ "CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 768M
     networks:
       - voyant_standalone
 

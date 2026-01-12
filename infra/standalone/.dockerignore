@@ -79,3 +79,24 @@ docker-compose*
 *.7z
 *.bak
 *.tmp
+
+# Infrastructure (already in container, not needed in image)
+infra/
+helm/
+k8s/
+
+# Dashboard (separate build)
+dashboard/
+
+# Cache directories
+.ruff_cache/
+.pytest_cache/
+.codex/
+.kiro/
+
+# Artifacts and data directories
+artifacts/
+data/
+examples/
+scripts/
+config/
