@@ -1,5 +1,8 @@
 # Voyant Project - Code & Architecture Violations
 
+**Last Updated:** 2026-01-12  
+**Open Violations:** 12 | **Resolved:** 2
+
 This document tracks identified violations of VIBE coding rules, architectural principles, and general best practices. Each entry includes a description of the issue, its status, and the files it affects.
 
 ---
