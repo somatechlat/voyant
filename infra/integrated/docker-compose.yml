@@ -1,0 +1,116 @@
+# =============================================================================
+# VOYANT - Docker Compose INTEGRATED Mode (SomaAgentHub)
+# =============================================================================
+# Minimal Voyant deployment connecting to SomaAgentHub services.
+# SomaAgentHub provides: Policy Engine, Memory Gateway, Orchestrator
+#
+# Usage:
+#   docker compose --env-file .env.integrated up -d
+# =============================================================================
+
+services:
+  # ===========================================================================
+  # CORE: Voyant API (Connects to Hub)
+  # ===========================================================================
+  voyant-api:
+    build:
+      context: ../..
+      dockerfile: infra/standalone/Dockerfile
+    container_name: voyant-api-integrated
+    ports:
+      - "${VOYANT_API_PORT:-8080}:8000"
+    environment:
+      VOYANT_ENV: ${VOYANT_ENV:-production}
+      VOYANT_DEPLOYMENT_MODE: integrated
+
+      # SomaAgentHub Services
+      SOMA_POLICY_URL: ${SOMA_POLICY_URL:-http://policy-engine:10020}
+      SOMA_MEMORY_URL: ${SOMA_MEMORY_URL:-http://memory-gateway:8000}
+      SOMA_ORCHESTRATOR_URL: ${SOMA_ORCHESTRATOR_URL:-http://orchestrator:10001}
+      SOMA_IDENTITY_URL: ${SOMA_IDENTITY_URL:-http://identity-service:10002}
+
+      # Shared Infrastructure (from Hub cluster)
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:5432/voyant}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+
+      # MinIO (from Hub or external)
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-minio:9000}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+
+      # Temporal
+      TEMPORAL_HOST: ${TEMPORAL_HOST:-temporal:7233}
+      TEMPORAL_TASK_QUEUE: voyant-tasks
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - somastack-net
+    restart: unless-stopped
+
+  # ===========================================================================
+  # MCP Server (For AI Agents)
+  # ===========================================================================
+  voyant-mcp:
+    build:
+      context: ../..
+      dockerfile: infra/standalone/Dockerfile
+    container_name: voyant-mcp-integrated
+    command: [ "python", "-m", "voyant.mcp.server" ]
+    ports:
+      - "${VOYANT_MCP_PORT:-8081}:8001"
+    environment:
+      VOYANT_API_URL: http://voyant-api:8000
+      VOYANT_DEPLOYMENT_MODE: integrated
+    depends_on:
+      voyant-api:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    networks:
+      - somastack-net
+    restart: unless-stopped
+
+  # ===========================================================================
+  # Temporal Worker
+  # ===========================================================================
+  voyant-worker:
+    build:
+      context: ../..
+      dockerfile: infra/standalone/Dockerfile
+    container_name: voyant-worker-integrated
+    command: [ "python", "-m", "voyant.worker.worker_main" ]
+    environment:
+      VOYANT_DEPLOYMENT_MODE: integrated
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:5432/voyant}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      TEMPORAL_HOST: ${TEMPORAL_HOST:-temporal:7233}
+      TEMPORAL_TASK_QUEUE: voyant-tasks
+    depends_on:
+      voyant-api:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - somastack-net
+    restart: unless-stopped
+
+# =============================================================================
+# NETWORK (Connect to SomaAgentHub Network)
+# =============================================================================
+networks:
+  somastack-net:
+    external: true
+    name: ${SOMA_NETWORK:-somastack-net}

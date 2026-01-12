@@ -4,6 +4,60 @@ Document ID: VOYANT-AGENT-CONTINUITY
 Status: Active
 Date: 2026-01-12 (Updated)
 
+---
+
+## ⚠️ WORKSPACE BOUNDARY (CRITICAL)
+
+| Repository | Status | Action |
+|------------|--------|--------|
+| **Voyant** | ✅ ACTIVE | Work here |
+| **SomaAgentHub** | ✅ ACTIVE | Work here (as needed for Voyant) |
+| **SomaAgent01** | 🔒 READ-ONLY | Reference only—DO NOT MODIFY |
+
+> **SomaAgent01 is the Layer 4 cognitive operating system.** 
+> It is a mature Django monolith with 62+ apps, 50+ API routers, Lit 3 UI.
+> We read it for architectural reference but **ALL WORK HAPPENS IN Voyant AND SomaAgentHub**.
+
+---
+
+## 🔗 SomaAgent01 SaaS Mode Reference (READ-ONLY)
+
+### Branches (Reference)
+| Branch | Purpose |
+|--------|---------|
+| `SAAS-PRODUCTIONREADY` | Production SaaS configuration |
+| `feature/saas-settings-centralization` | Settings centralization |
+| `django` | Django migration |
+| `main` | Stable main branch |
+
+### Critical Files (Reference)
+| File | Purpose |
+|------|---------|
+| `saas/config.py` | SaaSConfig dataclass with `SOMA_SAAS_MODE` env var |
+| `saas/brain.py` | SomaBrain in-process integration |
+| `saas/memory.py` | FractalMemory in-process integration |
+| `docs/deployment/SOFTWARE_DEPLOYMENT_MODES.md` | StandAlone vs SomaStackClusterMode docs |
+| `admin/saas/` | SaaS admin app (tenants, tiers, billing, features, audit) |
+
+### Deployment Modes (SomaAgent01 Reference)
+| Mode | Description |
+|------|-------------|
+| **StandAlone** | Each service runs independently, local auth/storage |
+| **SomaStackClusterMode** | Unified SaaS, shared tenant identity, Brain+Memory paired |
+
+### Key Environment Variables (Reference)
+```bash
+SOMASTACK_SOFTWARE_MODE=StandAlone|SomaStackClusterMode
+SOMA_SAAS_MODE=true|false
+SA01_DEPLOYMENT_MODE=DEV|PROD
+```
+
+> **SomaAgentHub serves ANY agent.**
+> In SomaStackClusterMode, SomaBrain + SomaFractalMemory are inseparable.
+> SomaAgent01 is the control plane (tenants, users, agents, billing).
+
+---
+
 ## 1) Repository Locations
 - Voyant: `/Users/macbookpro201916i964gb1tb/Documents/GitHub/voyant`
 - SomaAgentHub: `/Users/macbookpro201916i964gb1tb/Documents/GitHub/somaAgentHub`
@@ -103,17 +157,22 @@ Voyant should integrate as a downstream service (tool provider) called from Orch
 - Write analysis summaries to Memory Gateway `/v1/remember` for recall in agent sessions.
 - Publish job status updates back to Orchestrator session endpoints.
 
-## 5) SomaAgent01 Summary (from repo README)
+## 5) SomaAgent01 Summary (READ-ONLY REFERENCE)
+
+> ⚠️ **DO NOT MODIFY SOMAAGENT01** — This repository is for architectural reference ONLY.
+> All work happens in **Voyant** and **SomaAgentHub**.
+
 ### 5.1 Purpose
-Enterprise multi-agent cognitive OS built on Django 5; modular monolith with 17 admin apps.
+Enterprise multi-agent cognitive OS built on Django 5; modular monolith with 62+ admin apps, 50+ API routers, Lit 3 UI.
 
-### 5.2 Core Pillars
-- Agents, Brain, Voice, LLM, Orchestrator, Tools, SaaS, Gateway.
-- Multimodal (voice + vision), RAG, vector stores.
-- Strict VIBE coding compliance, no mocks.
+### 5.2 Architecture (Reference)
+- **Port Namespace**: 20xxx (API: 20020, Frontend: 20080)
+- **Stack**: Django 5 + Django Ninja, Lit 3.x, Keycloak, SpiceDB, Milvus, Kafka
+- **Layers**: Agents, Brain, Voice, LLM, Orchestrator, Tools, SaaS, Capsules
+- **Status**: 18% implemented (12/66 screens), 18 P0 tasks remaining
 
-### 5.3 Integration Implication
-Voyant should be exposed to SomaAgent01 as a tool provider for data analysis workflows (via REST or MCP), registered in the tool catalog and available to the Tools/Orchestrator modules.
+### 5.3 Integration Implication (How We USE It)
+Voyant exposes MCP tools that SomaAgent01 can consume—we don't modify SomaAgent01, we integrate WITH it.
 
 ## 6) Target Integration Strategy (High-Level)
 1) **Register Voyant as a tool provider** in SomaAgentHub (Gateway/Orchestrator routing to Voyant).

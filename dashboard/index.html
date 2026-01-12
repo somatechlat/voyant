@@ -2,20 +2,30 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8" />
-  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Voyant Data Marketplace</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link
-    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap"
-    rel="stylesheet">
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Voyant - Data Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'saas-page': '#f5f5f5',
+                        'saas-card': '#ffffff',
+                        'saas-text': '#1a1a1a',
+                        'saas-success': '#22c55e',
+                    }
+                }
+            }
+        }
+    </script>
 </head>
 
-<body class="bg-slate-50 text-slate-900 antialiased">
-  <div id="root"></div>
-  <script type="module" src="/src/main.jsx"></script>
+<body class="bg-saas-page text-saas-text antialiased">
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
 </body>
 
 </html>
