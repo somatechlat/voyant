@@ -148,6 +148,11 @@ class Settings(BaseSettings):
         alias="SOMA_ORCHESTRATOR_URL",
         description="URL for the Soma Orchestrator.",
     )
+    flink_jobmanager_url: str = Field(
+        default="http://voyant_flink_jobmanager:8081",
+        alias="FLINK_JOBMANAGER_URL",
+        description="URL for the Apache Flink JobManager.",
+    )
 
     @model_validator(mode="after")
     def check_security(self) -> "Settings":

@@ -19,7 +19,7 @@ from datetime import datetime
 
 from asgiref.sync import async_to_sync
 from django.http import JsonResponse
-from django.urls import path
+from django.urls import path, include
 
 from voyant.api.middleware import get_version_info
 from voyant.core.circuit_breaker import _circuit_breakers
@@ -182,4 +182,6 @@ urlpatterns = [
     path("version", version_view),
     # Includes all v1 application API routes from the NinjaAPI instance.
     path("v1/", v1_api.urls),
+    # Model Context Protocol (MCP) Endpoint
+    path("mcp/", include("mcp_server.urls")),
 ]

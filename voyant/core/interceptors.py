@@ -10,7 +10,7 @@ import time
 from typing import Any, Callable
 
 from temporalio import activity
-from temporalio.worker import ActivityInboundInterceptor, Interceptor
+from temporalio.worker import ActivityInboundInterceptor, Interceptor, ExecuteActivityInput
 
 from voyant.core.monitoring import MetricsRegistry
 
@@ -29,7 +29,7 @@ class MetricsActivityInboundInterceptor(ActivityInboundInterceptor):
         super().__init__(next_interceptor)
         self.metrics = MetricsRegistry()
 
-    async def execute_activity(self, input: activity.ExecuteActivityInput) -> Any:
+    async def execute_activity(self, input: ExecuteActivityInput) -> Any:
         activity_type = input.activity_type
         start_time = time.perf_counter()
         status = "success"

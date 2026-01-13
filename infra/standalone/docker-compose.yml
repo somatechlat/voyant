@@ -85,28 +85,6 @@ services:
     networks:
       - voyant_standalone
 
-  voyant_mcp:
-    <<: *common
-    build:
-      context: ../..
-      dockerfile: infra/standalone/Dockerfile
-    container_name: voyant_mcp
-    command: [ "python", "-m", "voyant.mcp.server" ]
-    ports:
-      - "45001:8001"
-    environment:
-      VOYANT_API_URL: http://voyant_api:8000
-      VOYANT_ENV: production
-    depends_on:
-      voyant_api:
-        condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-    networks:
-      - voyant_standalone
-
   voyant_worker:
     <<: *common
     build:
@@ -461,6 +439,48 @@ services:
     networks:
       - voyant_standalone
 
+  # ===========================================================================
+  # STREAMING (Apache Flink)
+  # ===========================================================================
+  voyant_flink_jobmanager:
+    image: flink:1.18.1-java17
+    container_name: voyant_flink_jobmanager
+    command: jobmanager
+    ports:
+      - "45082:8081"
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: voyant_flink_jobmanager
+    volumes:
+      - voyant_flink_data:/opt/flink/volume
+    networks:
+      - voyant_standalone
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  voyant_flink_taskmanager:
+    image: flink:1.18.1-java17
+    container_name: voyant_flink_taskmanager
+    command: taskmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: voyant_flink_jobmanager
+        taskmanager.numberOfTaskSlots: 2
+    volumes:
+      - voyant_flink_data:/opt/flink/volume
+    depends_on:
+      - voyant_flink_jobmanager
+    networks:
+      - voyant_standalone
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
 # =============================================================================
 # NETWORK: voyant_standalone
 # =============================================================================
@@ -487,3 +507,5 @@ volumes:
     name: voyant_artifacts
   voyant_data:
     name: voyant_data
+  voyant_flink_data:
+    name: voyant_flink_data
