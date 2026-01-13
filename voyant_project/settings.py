@@ -82,6 +82,7 @@ INSTALLED_APPS = [
     # Internal apps
     "voyant_app",  # Core Voyant application, models, and API logic
     "voyant.scraper",  # Data scraping module and models
+    "mcp_server",  # Django MCP Server
 ]
 
 # --- Middleware Configuration ---

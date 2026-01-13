@@ -1,5 +1,6 @@
-"""Voyant Worker Package."""
+"""Voyant Worker Package - Temporal Workers."""
 
-from .celery import celery_app
+# No top-level imports to avoid import errors when running as module
+# The worker_main module handles all Temporal worker initialization
 
-__all__ = ["celery_app"]
+__all__ = []

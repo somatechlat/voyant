@@ -48,6 +48,10 @@ from voyant.workflows.regression_workflow import LinearRegressionWorkflow
 from voyant.scraper.workflow import ScrapeWorkflow
 from voyant.scraper.activities import ScrapeActivities
 
+# Streaming Module (Apache Flink Integration - FR-21)
+from voyant.streaming.workflow import StreamingJobWorkflow
+from voyant.streaming.activities import StreamingActivities
+
 from voyant.core.monitoring import MetricsRegistry
 from voyant.core.interceptors import MetricsInterceptor
 
@@ -100,6 +104,7 @@ async def run_worker():
         SegmentCustomersWorkflow,
         LinearRegressionWorkflow,
         ScrapeWorkflow,
+        StreamingJobWorkflow,  # Flink Integration (FR-21)
     ]
     activities = [
         IngestActivities().run_ingestion,
@@ -134,6 +139,10 @@ async def run_worker():
         ScrapeActivities().parse_pdf,
         ScrapeActivities().store_artifact,
         ScrapeActivities().finalize_job,
+        # Streaming activities (Flink - FR-21)
+        StreamingActivities().get_cluster_overview,
+        StreamingActivities().list_running_jobs,
+        StreamingActivities().submit_streaming_job,
     ]
 
     task_queue = settings.temporal_task_queue

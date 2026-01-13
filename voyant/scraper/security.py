@@ -15,7 +15,7 @@ It provides functionalities for:
 import ipaddress
 import re
 import socket
-from typing import Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
 import logging

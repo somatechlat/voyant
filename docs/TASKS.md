@@ -145,8 +145,11 @@ Definition of Done: Stack starts cleanly and supports production defaults.
 ## 17. Apache Platform Integration
 - [ ] Integrate Apache Iceberg as the lakehouse storage layer.  
   Files: `voyant/core/iceberg.py` (new), `config/iceberg/*` (new)
-- [ ] Add Apache Flink streaming pipelines for continuous KPIs and anomalies.  
+- [~] Add Apache Flink streaming pipelines for continuous KPIs and anomalies.
   Files: `voyant/streaming/*` (new), `config/flink/*` (new)
+  - [x] Add Flink JobManager/TaskManager to `docker-compose.yml`.
+  - [x] Implement `voyant_flink_worker` or client keys.
+  - [ ] Deploy `StreamingJob` via Temporal.
 - [ ] Enforce Apache Ranger policies at query and artifact access.  
   Files: `voyant/security/policy.py` (new), `voyant_app/api.py`
 - [ ] Publish metadata and lineage to Apache Atlas.  
