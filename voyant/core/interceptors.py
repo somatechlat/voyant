@@ -9,8 +9,8 @@ import logging
 import time
 from typing import Any, Callable
 
-from temporalio import activity
-from temporalio.worker import ActivityInboundInterceptor, Interceptor, ExecuteActivityInput
+from temporalio.worker import ActivityInboundInterceptor, Interceptor
+from temporalio.activity import ExecuteActivityInput
 
 from voyant.core.monitoring import MetricsRegistry
 

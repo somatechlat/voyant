@@ -17,14 +17,14 @@ x-common: &common
   logging:
     driver: json-file
     options:
-      max-size: "50m"
-      max-file: "5"
+      max-size: "100m"
+      max-file: "10"
 
 x-healthcheck: &healthcheck
   interval: 30s
   timeout: 10s
-  retries: 3
-  start_period: 40s
+  retries: 5
+  start_period: 60s
 
 services:
   # ===========================================================================
@@ -40,7 +40,7 @@ services:
       - "45000:8000"
     environment:
       VOYANT_ENV: production
-      VOYANT_SECRETS_BACKEND: env
+      VOYANT_SECURITY_SECRETS_BACKEND: env
       VOYANT_DEPLOYMENT_MODE: standalone
       DATABASE_URL: postgresql://voyant:voyant@voyant_postgres:5432/voyant
       REDIS_URL: redis://:voyant@voyant_redis:6379/0
@@ -61,13 +61,17 @@ services:
       VOYANT_ENABLE_QUALITY: "true"
       VOYANT_ENABLE_BILLING: "true"
       VOYANT_ENABLE_DATAHUB: "true"
+      # MCP Configuration for internal service calls
+      VOYANT_API_URL: http://voyant_api:8000
+      VOYANT_API_TOKEN: voyant-mcp-internal-token
     volumes:
-      - ../../voyant:/app/voyant:ro
-      - ../../voyant_app:/app/voyant_app:ro
-      - ../../voyant_project:/app/voyant_project:ro
-      - ../../manage.py:/app/manage.py:ro
+      - ../../voyant:/app/voyant
+      - ../../voyant_app:/app/voyant_app
+      - ../../voyant_project:/app/voyant_project
+      - ../../manage.py:/app/manage.py
       - voyant_artifacts:/app/artifacts
       - voyant_data:/app/data
+      - voyant_logs:/app/logs
     depends_on:
       voyant_postgres:
         condition: service_healthy
@@ -81,7 +85,11 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          cpus: '1.5'
+          memory: 768M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
     networks:
       - voyant_standalone
 
@@ -490,7 +498,7 @@ networks:
     name: voyant_standalone
 
 # =============================================================================
-# PERSISTENT VOLUMES
+# PERSISTENT VOLUMES (Production-Resilient)
 # =============================================================================
 volumes:
   voyant_postgres_data:
@@ -509,3 +517,5 @@ volumes:
     name: voyant_data
   voyant_flink_data:
     name: voyant_flink_data
+  voyant_logs:
+    name: voyant_logs
