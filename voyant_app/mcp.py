@@ -9,10 +9,18 @@ automatically wraps them with sync_to_async. We use httpx.Client for sync calls.
 """
 
 from typing import Any, Dict, List, Optional
-from mcp_server import MCPToolset
 import httpx
 import os
 import logging
+
+try:
+    from mcp_server import MCPToolset
+except ImportError:
+    # If django-mcp-server is not installed, create a stub
+    class MCPToolset:
+        """Stub for MCPToolset when mcp_server is not available."""
+        def __init__(self):
+            pass
 
 logger = logging.getLogger(__name__)
 
