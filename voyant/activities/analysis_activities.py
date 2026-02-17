@@ -8,12 +8,13 @@ flexible and extensible, supporting a wide range of analytical operations.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+import os
+from typing import Any, Dict, List
 
 from temporalio import activity
+from temporalio.exceptions import ApplicationError
 
 from voyant.core.config import get_settings
-from voyant.core.errors import AnalysisError
 from voyant.core.plugin_registry import get_analyzers, get_plugin
 
 logger = logging.getLogger(__name__)
@@ -30,6 +31,11 @@ class AnalysisActivities:
     def __init__(self):
         """Initializes the AnalysisActivities with application settings."""
         self.settings = get_settings()
+
+    @staticmethod
+    def _feature_enabled(flag_name: str) -> bool:
+        env_key = f"VOYANT_FEATURE_{flag_name.upper()}"
+        return os.environ.get(env_key, "false").lower() in ("1", "true", "yes", "on")
 
     @activity.defn(name="fetch_sample")
     def fetch_sample(self, params: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -119,11 +125,13 @@ class AnalysisActivities:
         activity.logger.info(f"Attempting to run {len(infos)} analyzer plugin(s).")
 
         for info in infos:
-            # Limitation/Future Work: Feature flags are currently not dynamically evaluated.
-            # TODO: Integrate with a feature flag service (e.g., LaunchDarkly) here
-            # to enable/disable plugins at runtime based on flags defined in `info.feature_flag`.
-            if info.feature_flag:
-                activity.logger.debug(f"Analyzer '{info.name}' is associated with feature flag '{info.feature_flag}'.")
+            if info.feature_flag and not self._feature_enabled(info.feature_flag):
+                activity.logger.info(
+                    "Skipping analyzer '%s' because feature flag '%s' is disabled.",
+                    info.name,
+                    info.feature_flag,
+                )
+                continue
 
             try:
                 # Dynamically load and instantiate the analyzer plugin.

@@ -69,7 +69,7 @@ class AirbyteClientConfig:
         max_retries (int): Maximum number of retries for transient HTTP errors.
         cb_failure_threshold (int): Number of consecutive failures before the circuit opens.
         cb_recovery_timeout (float): Time (in seconds) the circuit stays open before trying to close.
-        cb_half_open_requests (int): Number of requests allowed in a half-open state.
+        cb_success_threshold (int): Number of successful requests in half-open state required to close.
         api_key (Optional[str]): API key for bearer token authentication.
         basic_auth_user (Optional[str]): Username for basic authentication.
         basic_auth_password (Optional[str]): Password for basic authentication.
@@ -82,7 +82,7 @@ class AirbyteClientConfig:
     # Circuit breaker settings.
     cb_failure_threshold: int = 5
     cb_recovery_timeout: float = 60.0
-    cb_half_open_requests: int = 3
+    cb_success_threshold: int = 3
 
     # Authentication credentials.
     api_key: Optional[str] = None
@@ -121,7 +121,7 @@ class AirbyteClient:
         cb_config = CircuitBreakerConfig(
             failure_threshold=self.config.cb_failure_threshold,
             recovery_timeout=self.config.cb_recovery_timeout,
-            half_open_requests=self.config.cb_half_open_requests,
+            success_threshold=self.config.cb_success_threshold,
         )
         self._circuit_breaker = get_circuit_breaker("airbyte", cb_config)
 

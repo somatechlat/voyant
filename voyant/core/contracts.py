@@ -350,7 +350,7 @@ def validate_schema(
                 errors.append(
                     ValidationError(
                         column=col_name,
-                        error_type="missing_required_column",
+                        error_type="missing_required",
                         message=f"Required column '{col_name}' is missing.",
                     )
                 )

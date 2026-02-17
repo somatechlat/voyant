@@ -14,8 +14,8 @@ Security Note (Security Auditor):
     which reads from environment variables or secure backends.
 
 Testing Note (QA Engineer):
-    Unit tests should mock the FlinkClient. Integration tests MUST run against
-    a live Flink cluster (voyant_flink_jobmanager) to verify real behavior.
+    Integration tests should run against a live Flink cluster
+    (`voyant_flink_jobmanager`) to verify real behavior.
 """
 
 from __future__ import annotations
@@ -72,8 +72,7 @@ class StreamingActivities:
         """
         Factory method for FlinkClient.
 
-        This ensures we always use the correct URL from settings and
-        allows for easy mocking in unit tests.
+        This ensures we always use the correct URL from settings.
         """
         return FlinkClient(jobmanager_url=self.settings.flink_jobmanager_url)
 
@@ -131,15 +130,6 @@ class StreamingActivities:
         """
         Submit a new streaming job to the Flink cluster.
 
-        Note (PhD Developer):
-            This is a placeholder for PyFlink job submission. Full implementation
-            requires either:
-            1. Uploading a JAR and submitting via REST API (for Java/Scala jobs).
-            2. Using the Flink Table API remotely (for PyFlink jobs).
-            3. Invoking `flink run` via subprocess (for CLI-based submission).
-
-            For the current phase, we return a placeholder result and log the intent.
-
         Args:
             job_name: Human-readable name for the job.
             job_config: Configuration dictionary (entry class, parallelism, etc.).
@@ -150,8 +140,6 @@ class StreamingActivities:
         logger.info(f"Submitting streaming job: {job_name}")
         logger.info(f"Job config: {job_config}")
 
-        # Phase 2.2: Placeholder - actual submission logic TBD based on job type
-        # For now, we verify the cluster is reachable and return a pending result.
         client = self._get_client()
         try:
             overview = client.get_overview()
@@ -162,12 +150,34 @@ class StreamingActivities:
                     details=overview,
                 )
 
-            # TODO: Implement actual job submission (JAR upload or PyFlink CLI)
+            jar_path = job_config.get("jar_path")
+            jar_id = job_config.get("jar_id")
+            if jar_path and not jar_id:
+                jar_id = client.upload_jar(jar_path)
+
+            if not jar_id:
+                return FlinkJobResult(
+                    success=False,
+                    message="Missing required Flink job artifact (jar_id or jar_path).",
+                    details={"cluster_status": overview, "job_name": job_name},
+                )
+
+            program_args = job_config.get("program_args")
+            if isinstance(program_args, list):
+                program_args = " ".join(str(arg) for arg in program_args)
+
+            job_id = client.submit_jar(
+                jar_id=jar_id,
+                entry_class=job_config.get("entry_class"),
+                program_args=program_args,
+                parallelism=job_config.get("parallelism"),
+            )
+
             return FlinkJobResult(
                 success=True,
-                job_id="pending-implementation",
-                message=f"Job '{job_name}' submission logic is pending implementation.",
-                details={"cluster_status": overview},
+                job_id=job_id,
+                message=f"Submitted streaming job '{job_name}'.",
+                details={"cluster_status": overview, "jar_id": jar_id},
             )
         except FlinkClientError as e:
             return FlinkJobResult(

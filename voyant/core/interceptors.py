@@ -7,10 +7,10 @@ Adheres to Vibe Coding Rules: detailed observability via Interceptor pattern.
 
 import logging
 import time
-from typing import Any, Callable
+from typing import Any
 
-from temporalio.worker import ActivityInboundInterceptor, Interceptor
 from temporalio.activity import ExecuteActivityInput
+from temporalio.worker import ActivityInboundInterceptor, Interceptor
 
 from voyant.core.monitoring import MetricsRegistry
 

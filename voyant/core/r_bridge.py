@@ -6,8 +6,10 @@ Part of Phase 2: Statistical Engine.
 """
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
+
 import pandas as pd
+
 from voyant.core.config import get_settings
 from voyant.core.errors import ExternalServiceError, SystemError
 
@@ -33,7 +35,7 @@ class REngine:
     def _ensure_dependency(self):
         """Ensure pyRserve is installed."""
         try:
-            import pyRserve
+            import pyRserve  # noqa: F401 - Import check only
         except ImportError:
             raise SystemError(
                 "VYNT-6010",
@@ -73,9 +75,9 @@ class REngine:
         Performance Engineer: Circuit breaker adds <1ms overhead
         """
         from voyant.core.circuit_breaker import (
-            get_circuit_breaker,
-            CircuitBreakerOpenError,
             CircuitBreakerConfig,
+            CircuitBreakerOpenError,
+            get_circuit_breaker,
         )
         from voyant.core.errors import ServiceUnavailableError
 

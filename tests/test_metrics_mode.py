@@ -25,10 +25,8 @@ class TestMetricsModeOff:
         os.environ["VOYANT_METRICS_MODE"] = "off"
         # Reset cached settings
         config_module.get_settings.cache_clear()
-        # Reset metrics module
-        metrics_module._initialized = False
-        metrics_module.BASIC_METRICS.clear()
-        metrics_module.FULL_METRICS.clear()
+        # Reset metrics module using the proper reset function
+        metrics_module.reset_metrics()
 
     def test_metrics_mode_off_no_basic_metrics(self):
         """When mode is 'off', no basic metrics should be registered."""
@@ -56,9 +54,8 @@ class TestMetricsModeBasic:
         """Reset metrics module state."""
         os.environ["VOYANT_METRICS_MODE"] = "basic"
         config_module.get_settings.cache_clear()
-        metrics_module._initialized = False
-        metrics_module.BASIC_METRICS.clear()
-        metrics_module.FULL_METRICS.clear()
+        # Reset metrics module using the proper reset function
+        metrics_module.reset_metrics()
 
     def test_metrics_mode_basic_has_core_metrics(self):
         """When mode is 'basic', core metrics should be registered."""
@@ -88,9 +85,8 @@ class TestMetricsModeFull:
         """Reset metrics module state."""
         os.environ["VOYANT_METRICS_MODE"] = "full"
         config_module.get_settings.cache_clear()
-        metrics_module._initialized = False
-        metrics_module.BASIC_METRICS.clear()
-        metrics_module.FULL_METRICS.clear()
+        # Reset metrics module using the proper reset function
+        metrics_module.reset_metrics()
 
     def test_metrics_mode_full_has_basic_metrics(self):
         """When mode is 'full', basic metrics should be registered."""

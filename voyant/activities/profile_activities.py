@@ -8,15 +8,14 @@ effectively even on large datasets.
 """
 
 import logging
+from typing import Any, Dict
 
 import duckdb
 import pandas as pd
 from temporalio import activity
-from typing import Any, Dict, List
 
 from voyant.core.adaptive_sampling import SamplingStrategy, sample_table
 from voyant.core.config import get_settings
-from voyant.core.retry_config import DATA_PROCESSING_RETRY, TIMEOUTS
 
 logger = logging.getLogger(__name__)
 

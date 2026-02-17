@@ -30,10 +30,9 @@ from __future__ import annotations
 import logging
 import math
 from abc import ABC, abstractmethod
-from datetime import datetime, timedelta
+from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, Any, List, Optional, Tuple, Union
-from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -351,6 +350,12 @@ class LinearTrendForecaster(Forecaster):
         # Calculate residual std for confidence intervals
         residuals = [values[i] - (slope * i + intercept) for i in range(n)]
         residual_std = self._calculate_std(residuals)
+        
+        # Ensure minimum std to avoid zero-width confidence intervals
+        # Even for perfect fits, we should have some uncertainty
+        if residual_std < 1e-10:
+            residual_std = 0.1  # Minimum uncertainty
+        
         z = self._get_z_score(self.confidence_level)
 
         predictions = []

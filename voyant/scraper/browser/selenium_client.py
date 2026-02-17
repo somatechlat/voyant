@@ -140,7 +140,7 @@ class SeleniumClient:
             elif action_type == "scroll":
                 driver.execute_script("window.scrollTo(0, document.body.scrollHeight)")
             elif action_type == "wait":
-                import time # Importing here to avoid circular dependencies if time isn't used elsewhere.
+                import time  # Importing here to avoid circular dependencies if time isn't used elsewhere.
                 time.sleep(action.get("timeout", 1000) / 1000) # Timeout is in milliseconds, sleep in seconds.
             else:
                 pass # Log a warning for unknown action types if needed.

@@ -233,7 +233,7 @@ Key endpoints:
 - Search: `/v1/search/query`, `/v1/search/index`
 
 ### 4.2 MCP Interface
-JSON-RPC 2.0 tools over HTTP/stdio via `voyant.mcp.server`.
+MCP tools are exposed via `django-mcp` mounted at `/mcp` on the Django ASGI application.
 
 ### 4.3 Messaging
 Kafka topics (default):
@@ -329,7 +329,7 @@ Outbound to SomaAgent01:
 ## 11. Verification and Acceptance Criteria
 - V-1 Health endpoints return 200 with JSON status payloads.
 - V-2 SQL endpoint rejects mutating statements and enforces LIMIT.
-- V-3 MCP `tools/list` exposes the Voyant tool set.
+- V-3 MCP endpoint `/mcp` exposes the Voyant tool set.
 - V-4 Artifact retrieval returns a presigned URL when MinIO is available.
 - V-5 Kafka event emission validates payloads against registered schemas.
 - V-6 Iceberg tables can be queried via Trino.
@@ -352,7 +352,7 @@ Outbound to SomaAgent01:
 | FR-8 | `voyant_app/api.py`, `voyant/discovery/spec_parser.py` |
 | FR-9 | `voyant_app/api.py` |
 | FR-10 | `voyant_app/api.py`, `voyant/core/vector_store.py`, `voyant/core/embeddings.py` |
-| FR-11 | `voyant/mcp/server.py` |
+| FR-11 | `voyant_app/mcp_tools.py`, `voyant_project/asgi.py` |
 | FR-12 | `voyant/workflows/ingest_workflow.py`, `voyant/workflows/profile_workflow.py`, `voyant/workflows/operational_workflows.py` |
 | FR-13 | `voyant/activities/ingest_activities.py`, `voyant/activities/profile_activities.py`, `voyant/activities/analysis_activities.py` |
 | FR-14 | `voyant/core/plugin_registry.py` |

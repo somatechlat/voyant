@@ -39,12 +39,12 @@ Usage:
 
 from __future__ import annotations
 
+import contextvars
 import logging
 import uuid
-import contextvars
-from typing import Any, Dict, Optional
 from contextlib import contextmanager
 from datetime import datetime
+from typing import Any, Dict, Optional
 
 # Context variable for correlation ID (thread-safe)
 correlation_id_var: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(

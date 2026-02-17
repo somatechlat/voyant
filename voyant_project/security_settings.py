@@ -11,14 +11,14 @@ from __future__ import annotations
 import os
 from typing import List, Optional
 
-from pydantic import Field, validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class SecuritySettings(BaseSettings):
     """
     Security configuration for Voyant.
-    
+
     These settings are designed to meet ISO/IEC 27001 security requirements
     and provide defense-in-depth security controls.
     """
@@ -49,7 +49,7 @@ class SecuritySettings(BaseSettings):
         default="voyant-clients",
         description="JWT token audience (aud claim)."
     )
-    
+
     # --------------------------------------------------------------------------
     # Security Headers
     # --------------------------------------------------------------------------
@@ -89,7 +89,7 @@ class SecuritySettings(BaseSettings):
         default="strict-origin-when-cross-origin",
         description="Referrer-Policy header value."
     )
-    
+
     # --------------------------------------------------------------------------
     # Rate Limiting
     # --------------------------------------------------------------------------
@@ -109,7 +109,7 @@ class SecuritySettings(BaseSettings):
         default=60,
         description="Rate limiting window in seconds."
     )
-    
+
     # --------------------------------------------------------------------------
     # CORS Configuration
     # --------------------------------------------------------------------------
@@ -137,7 +137,7 @@ class SecuritySettings(BaseSettings):
         default=3600,
         description="CORS max age in seconds."
     )
-    
+
     # --------------------------------------------------------------------------
     # Database Security
     # --------------------------------------------------------------------------
@@ -157,7 +157,7 @@ class SecuritySettings(BaseSettings):
         default=None,
         description="Path to SSL root certificate for database connections."
     )
-    
+
     # --------------------------------------------------------------------------
     # Secrets Management
     # --------------------------------------------------------------------------
@@ -181,7 +181,7 @@ class SecuritySettings(BaseSettings):
         default=None,
         description="Fernet encryption key for file-based secrets."
     )
-    
+
     # --------------------------------------------------------------------------
     # Audit Logging
     # --------------------------------------------------------------------------
@@ -213,7 +213,7 @@ class SecuritySettings(BaseSettings):
         default=True,
         description="Include user actions in audit logs."
     )
-    
+
     # --------------------------------------------------------------------------
     # Security Monitoring
     # --------------------------------------------------------------------------
@@ -241,36 +241,41 @@ class SecuritySettings(BaseSettings):
         default=30,
         description="Duration of IP block in minutes."
     )
-    
-    @validator("cors_allow_origins", pre=True)
+
+    @field_validator("cors_allow_origins", mode="before")
+    @classmethod
     def parse_cors_origins(cls, v):
         """Parse CORS origins from string or list."""
         if isinstance(v, str):
             return [origin.strip() for origin in v.split(",") if origin.strip()]
         return v or []
 
-    @validator("cors_allow_methods", pre=True)
+    @field_validator("cors_allow_methods", mode="before")
+    @classmethod
     def parse_cors_methods(cls, v):
         """Parse CORS methods from string or list."""
         if isinstance(v, str):
             return [method.strip() for method in v.split(",") if method.strip()]
         return v or []
 
-    @validator("cors_allow_headers", pre=True)
+    @field_validator("cors_allow_headers", mode="before")
+    @classmethod
     def parse_cors_headers(cls, v):
         """Parse CORS headers from string or list."""
         if isinstance(v, str):
             return [header.strip() for header in v.split(",") if header.strip()]
         return v or []
 
-    @validator("security_enabled")
+    @field_validator("security_enabled")
+    @classmethod
     def validate_security_enabled(cls, v):
         """Ensure security is enabled in production."""
         if os.environ.get("VOYANT_ENV", "local") == "production" and not v:
             raise ValueError("Security must be enabled in production")
         return v
 
-    @validator("secrets_backend")
+    @field_validator("secrets_backend")
+    @classmethod
     def validate_secrets_backend(cls, v):
         """Validate secrets backend configuration."""
         if v == "vault":
@@ -278,7 +283,8 @@ class SecuritySettings(BaseSettings):
                 raise ValueError("Vault URL required when using vault backend")
         return v
 
-    @validator("database_ssl_require")
+    @field_validator("database_ssl_require")
+    @classmethod
     def validate_database_ssl(cls, v):
         """Validate database SSL configuration."""
         if v and not os.environ.get("DATABASE_SSL_CERT"):
@@ -292,25 +298,25 @@ class SecuritySettings(BaseSettings):
     def get_security_headers(self) -> dict:
         """
         Get security headers for HTTP responses.
-        
+
         Returns:
             Dictionary of security headers.
         """
         headers = {}
-        
+
         if self.security_enabled:
             # Content Security Policy
             headers["Content-Security-Policy"] = self.content_security_policy
-            
+
             # X-Frame-Options
             headers["X-Frame-Options"] = self.x_frame_options
-            
+
             # X-Content-Type-Options
             headers["X-Content-Type-Options"] = self.x_content_type_options
-            
+
             # Referrer Policy
             headers["Referrer-Policy"] = self.referrer_policy
-            
+
             # HSTS (if enabled)
             if self.hsts_enabled:
                 hsts_value = f"max-age={self.hsts_max_age}"
@@ -319,29 +325,29 @@ class SecuritySettings(BaseSettings):
                 if self.hsts_preload:
                     hsts_value += "; preload"
                 headers["Strict-Transport-Security"] = hsts_value
-        
+
         return headers
 
     def get_cors_headers(self) -> dict:
         """
         Get CORS headers for HTTP responses.
-        
+
         Returns:
             Dictionary of CORS headers.
         """
         if not self.cors_enabled:
             return {}
-        
+
         headers = {
             "Access-Control-Allow-Origin": ", ".join(self.cors_allow_origins),
             "Access-Control-Allow-Methods": ", ".join(self.cors_allow_methods),
             "Access-Control-Allow-Headers": ", ".join(self.cors_allow_headers),
             "Access-Control-Max-Age": str(self.cors_max_age),
         }
-        
+
         if self.cors_allow_credentials:
             headers["Access-Control-Allow-Credentials"] = "true"
-        
+
         return headers
 
 

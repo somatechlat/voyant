@@ -4,11 +4,13 @@ Statistical Engine Module
 Provides high-level statistical analysis functions using the R backend.
 """
 
-from typing import Dict, Any, List, Optional
 import logging
+from typing import Any, Dict
+
 import pandas as pd
-from voyant.core.r_bridge import REngine
+
 from voyant.core.errors import ValidationError
+from voyant.core.r_bridge import REngine
 
 logger = logging.getLogger(__name__)
 

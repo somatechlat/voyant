@@ -8,7 +8,7 @@ the results by profiling the characteristics of each identified segment.
 """
 
 from datetime import timedelta
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from temporalio import workflow
 

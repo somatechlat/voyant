@@ -10,7 +10,7 @@ Services:
 Each service provides:
 - Type-safe interfaces
 - Comprehensive documentation
-- Real implementations (no mocks in production code per VIBE rules)
+- Real implementations (no mocks in production code per Production rules)
 - Proper error handling
 - Configurable models
 
@@ -23,7 +23,7 @@ Usage:
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional
 
 import numpy as np
 import pandas as pd
@@ -36,7 +36,7 @@ class TimeForecaster:
     """
     Time series forecasting service using statistical models.
 
-    VIBE Compliance:
+    Production Compliance:
     - Real implementations (no mocks)
     - Type hints everywhere
     - Comprehensive docstrings
@@ -70,7 +70,7 @@ class TimeForecaster:
         Raises:
             ValueError: If model_type is not supported
 
-        VIBE: Real initialization with default parameters
+        Production: Real initialization with default parameters
         """
         self.model_type = model_type
         self.model_params = model_params or {}
@@ -99,7 +99,7 @@ class TimeForecaster:
             ValueError: If data is empty or invalid
             RuntimeError: If model fitting fails
 
-        VIBE: Real statistical model fitting
+        Production: Real statistical model fitting
         """
         logger.info(f"Fitting {self.model_type} model on {len(data)} data points")
 
@@ -136,7 +136,7 @@ class TimeForecaster:
         """
         Fit linear trend model (simple linear regression).
 
-        VIBE: Real numpy-based linear regression
+        Production: Real numpy-based linear regression
         """
         x = np.arange(len(data))
         y = data.values
@@ -158,7 +158,7 @@ class TimeForecaster:
         """
         Fit moving average model.
 
-        VIBE: Real pandas rolling mean
+        Production: Real pandas rolling mean
         """
         window = self.model_params.get("window", 7)
         self._model = {
@@ -172,7 +172,7 @@ class TimeForecaster:
         """
         Fit exponential smoothing model.
 
-        VIBE: Real ewma calculation
+        Production: Real ewma calculation
         """
         alpha = self.model_params.get("alpha", 0.3)
         smoothed = data.ewm(alpha=alpha).mean()
@@ -186,7 +186,7 @@ class TimeForecaster:
         """
         Fit ARIMA model (requires statsmodels).
 
-        VIBE: Real statsmodels ARIMA
+        Production: Real statsmodels ARIMA
         """
         try:
             from statsmodels.tsa.arima.model import ARIMA
@@ -204,7 +204,7 @@ class TimeForecaster:
         """
         Fit Prophet model.
 
-        VIBE: Real Prophet, or fallback to linear
+        Production: Real Prophet, or fallback to linear
         """
         try:
             from prophet import Prophet
@@ -239,7 +239,7 @@ class TimeForecaster:
         Raises:
             RuntimeError: If model not fitted
 
-        VIBE: Real statistical forecasting
+        Production: Real statistical forecasting
         """
         if self._model is None:
             raise RuntimeError("Model not fitted. Call fit() first.")
@@ -263,7 +263,7 @@ class TimeForecaster:
         """
         Generate linear trend forecast.
 
-        VIBE: Real numpy-based extrapolation
+        Production: Real numpy-based extrapolation
         """
         model = self._model
         last_x = model["last_index"]
@@ -345,7 +345,7 @@ class AnomalyDetector:
     """
     Anomaly detection using multiple statistical methods.
 
-    VIBE Compliance:
+    Production Compliance:
     - Real implementations (no mocks)
     - Type hints everywhere
     - Comprehensive docstrings
@@ -374,7 +374,7 @@ class AnomalyDetector:
         Raises:
             ValueError: If method is not supported
 
-        VIBE: Real initialization
+        Production: Real initialization
         """
         self.method = method
         self.params = params or {}
@@ -402,7 +402,7 @@ class AnomalyDetector:
             ValueError: If data is empty
             RuntimeError: If detection fails
 
-        VIBE: Real statistical detection
+        Production: Real statistical detection
         """
         if len(data) == 0:
             raise ValueError("Cannot detect anomalies on empty data")
@@ -434,7 +434,7 @@ class AnomalyDetector:
         """
         Detect anomalies using Z-score method.
 
-        VIBE: Real scipy.stats.zscore
+        Production: Real scipy.stats.zscore
         """
         threshold = self.params.get("threshold", 3.0)
         z_scores = np.abs(stats.zscore(data))
@@ -447,7 +447,7 @@ class AnomalyDetector:
         """
         Detect anomalies using Median Absolute Deviation (robust to outliers).
 
-        VIBE: Real statistical calculation
+        Production: Real statistical calculation
         """
         threshold = self.params.get("threshold", 3.5)
 
@@ -465,7 +465,7 @@ class AnomalyDetector:
         """
         Detect anomalies using Interquartile Range.
 
-        VIBE: Real quartile calculation
+        Production: Real quartile calculation
         """
         iqr_multiplier = self.params.get("iqr_multiplier", 1.5)
 
@@ -485,7 +485,7 @@ class AnomalyDetector:
         """
         Detect anomalies using Isolation Forest (ML-based).
 
-        VIBE: Real sklearn IsolationForest
+        Production: Real sklearn IsolationForest
         """
         contamination = self.params.get("contamination", 0.1)
 
@@ -506,7 +506,7 @@ class AnomalyDetector:
         """
         Detect anomalies using DBSCAN clustering.
 
-        VIBE: Real sklearn DBSCAN
+        Production: Real sklearn DBSCAN
         """
         eps = self.params.get("eps", 0.5)
         min_samples = self.params.get("min_samples", 5)
@@ -535,7 +535,7 @@ class AnomalyDetector:
         Returns:
             Series of anomaly scores (higher = more anomalous)
 
-        VIBE: Real scoring based on method
+        Production: Real scoring based on method
         """
         if len(data) == 0:
             return pd.Series([], dtype=float)

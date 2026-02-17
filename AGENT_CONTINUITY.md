@@ -108,7 +108,7 @@ Integrate Voyant as the agent-first data intelligence box within the Soma stack:
   - `docs/SRS.md`, `docs/TASKS.md`, `docs/DESIGN.md`, `AGENT_CONTINUITY.md`.
 - One-call analyze flow and MCP tool:
   - API route: `/v1/analyze` (`voyant_app/api.py`).
-  - MCP tool: `voyant.analyze` in `voyant/mcp/server.py`.
+  - MCP tool: `voyant.analyze` in `voyant_app/mcp_tools.py`.
   - Temporal workflow + activities: `voyant/workflows/analyze_workflow.py`,
     `voyant/activities/analysis_activities.py`, `voyant/activities/kpi_activities.py`.
 - Job status endpoint for MCP `voyant.status`: `/v1/jobs/{job_id}` (`voyant_app/api.py`).

@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Dict, List, Optional
 
-from voyant.discovery.models import ApiEndpoint, ApiSpec
+from voyant.discovery.models import ApiEndpoint
 
 logger = logging.getLogger(__name__)
 

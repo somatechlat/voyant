@@ -15,9 +15,9 @@ from __future__ import annotations
 import abc
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
+
 import pandas as pd
-import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -208,7 +208,7 @@ class UniqueCheck(QualityRule):
         dupes = df.duplicated(subset=[self.column]).sum()
 
         return ValidationResult(
-            self.get_name(), dupes == 0, {"duplicates": int(dupes), "total": total}
+            self.get_name(), dupes == 0, {"duplicates": int(dupes), "total": total, "unique": int(unique)}
         )
 
 

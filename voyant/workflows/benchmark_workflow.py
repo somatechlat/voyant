@@ -12,7 +12,7 @@ of results from analytical operations.
 """
 
 from datetime import timedelta
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from temporalio import workflow
 
@@ -47,7 +47,7 @@ class BenchmarkBrandWorkflow:
 
         Returns:
             A dictionary containing the benchmark results, including market share
-            figures, significance test outcomes, and a placeholder for a report URL.
+            figures, significance test outcomes, and a generated report URL.
         """
         brand_source = params["brand_source_id"]
         comp_sources = params.get("competitor_source_ids", [])

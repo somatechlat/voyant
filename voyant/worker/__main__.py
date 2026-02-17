@@ -5,6 +5,7 @@ Usage:
 """
 
 import asyncio
+
 from .worker_main import main
 
 if __name__ == "__main__":

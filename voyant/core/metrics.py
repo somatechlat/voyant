@@ -22,10 +22,9 @@ Usage:
 from __future__ import annotations
 
 import logging
-from typing import Optional, Dict, Any
-from functools import lru_cache
+from typing import Any, Dict, Optional
 
-from prometheus_client import Counter, Histogram, Gauge, REGISTRY
+from prometheus_client import REGISTRY, Counter, Gauge, Histogram
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +40,38 @@ FULL_METRICS: Dict[str, Any] = {}
 
 # Initialization flag
 _initialized = False
+
+
+def reset_metrics():
+    """
+    Reset metrics state for testing.
+    Unregisters all metrics from the Prometheus registry and clears the metric dictionaries.
+    This should ONLY be used in tests.
+    """
+    global _initialized, BASIC_METRICS, FULL_METRICS
+    
+    # Unregister all basic metrics
+    for metric_name, metric in list(BASIC_METRICS.items()):
+        try:
+            REGISTRY.unregister(metric)
+        except Exception:
+            pass  # Metric might not be registered
+    
+    # Unregister all full metrics
+    for metric_name, metric in list(FULL_METRICS.items()):
+        try:
+            REGISTRY.unregister(metric)
+        except Exception:
+            pass  # Metric might not be registered
+    
+    # Clear the dictionaries
+    BASIC_METRICS.clear()
+    FULL_METRICS.clear()
+    
+    # Reset initialization flag
+    _initialized = False
+    
+    logger.debug("Metrics reset complete")
 
 
 def _create_basic_metrics():

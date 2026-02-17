@@ -14,7 +14,7 @@ Includes: DataScraper Module (Section 19)
 - [x] Add REST endpoint `/v1/analyze` to execute full pipeline and return summary + artifact manifest.  
   Files: `voyant_app/api.py`, `voyant_project/urls.py`
 - [x] Add MCP tool `voyant.analyze` and map to REST endpoint.  
-  Files: `voyant/mcp/server.py`
+  Files: `voyant_app/mcp_tools.py`
 - [x] Implement Analyze Workflow (Temporal) with steps: normalize → profile → quality → KPI → charts → narrative.  
   Files: `voyant/workflows/analyze_workflow.py` (new), `voyant/activities/analysis_activities.py`, `voyant/activities/generation_activities.py`
 - [x] Create artifact manifest structure and return with job summary.  
@@ -60,7 +60,7 @@ Definition of Done: Quality jobs generate artifacts and status updates.
 
 ## 6. Predictive Analytics (Regression, Forecasting, Anomaly)
 - [ ] Expose regression and forecasting workflows via REST + MCP.  
-  Files: `voyant_app/api.py`, `voyant/mcp/server.py`, `voyant/workflows/operational_workflows.py`
+  Files: `voyant_app/api.py`, `voyant_app/mcp_tools.py`, `voyant/workflows/operational_workflows.py`
 - [ ] Add preset: `benchmark.brand` with KPI + comparison logic.  
   Files: `voyant_app/api.py`, `voyant/workflows/benchmark_workflow.py`
 
@@ -179,7 +179,7 @@ Definition of Done: All Apache integrations are configured, testable, and wired 
 - [ ] Add Orchestrator callback publishing job status updates to `/v1/sessions/*` when `X-Soma-Session-ID` is present.  
   Files: `voyant/integrations/soma.py` (new), `voyant_app/api.py`
 - [ ] Add tool metadata export for SomaAgent01 tool registry (MCP schema and health).  
-  Files: `voyant/mcp/server.py`, `voyant_project/urls.py`
+  Files: `voyant_app/mcp_tools.py`, `voyant_project/asgi.py`
 - [ ] Add integration tests against SomaAgentHub local stack (gateway, policy, memory).  
   Files: `tests/integration/*`
 
@@ -223,17 +223,17 @@ Definition of Done: SomaAgentHub can orchestrate Voyant workflows with policy an
 
 ### 19.4 MCP Tool Registration (COMPLETED)
 - [x] Register `scrape.fetch` tool  
-  Files: `voyant/mcp/server.py`
+  Files: `voyant_app/mcp_tools.py`
 - [x] Register `scrape.extract` tool  
-  Files: `voyant/mcp/server.py`
+  Files: `voyant_app/mcp_tools.py`
 - [x] Register `scrape.ocr` tool  
-  Files: `voyant/mcp/server.py`
+  Files: `voyant_app/mcp_tools.py`
 - [x] Register `scrape.parse_pdf` tool  
-  Files: `voyant/mcp/server.py`
+  Files: `voyant_app/mcp_tools.py`
 - [x] Register `scrape.transcribe` tool  
-  Files: `voyant/mcp/server.py`
+  Files: `voyant_app/mcp_tools.py`
 
-### 19.5 Integration & Testing (TODO)
+### 19.5 Integration & Testing (Planned)
 - [ ] Add `voyant.scraper` to INSTALLED_APPS  
   Files: `voyant_project/settings.py`
 - [ ] Run migrations for scraper models  

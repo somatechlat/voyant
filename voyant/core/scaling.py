@@ -38,12 +38,11 @@ import logging
 import os
 import time
 from contextlib import asynccontextmanager
-from dataclasses import dataclass, field
-from datetime import datetime
+from dataclasses import dataclass
 from enum import Enum
-from queue import Queue, Empty
+from queue import Empty, Queue
 from threading import Lock
-from typing import Any, Dict, List, Optional, Callable, Union
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -352,7 +351,7 @@ class QueryRouter:
                 # Read operations don't need write lock
                 return self._execute_with_connection(sql, params)
 
-        except Exception as e:
+        except Exception:
             self.pool._stats.errors += 1
             raise
         finally:

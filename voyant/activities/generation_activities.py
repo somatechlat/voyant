@@ -8,13 +8,13 @@ summaries, based on the specific context and generator capabilities.
 """
 
 import logging
-from typing import Any, Dict, List
+import os
+from typing import Any, Dict
 
 from temporalio import activity
 from temporalio.exceptions import ApplicationError
 
-from voyant.core.errors import ArtifactGenerationError
-from voyant.core.plugin_registry import PluginCategory, get_generators
+from voyant.core.plugin_registry import get_generators
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +30,11 @@ class GenerationActivities:
     def __init__(self):
         """Initializes the GenerationActivities."""
         pass
+
+    @staticmethod
+    def _feature_enabled(flag_name: str) -> bool:
+        env_key = f"VOYANT_FEATURE_{flag_name.upper()}"
+        return os.environ.get(env_key, "false").lower() in ("1", "true", "yes", "on")
 
     @activity.defn(name="run_generators")
     async def run_generators(self, params: Dict[str, Any]) -> Dict[str, Any]:
@@ -65,11 +70,13 @@ class GenerationActivities:
         activity.logger.info(f"Running {len(generator_infos)} generator plugin(s).")
 
         for info in generator_infos:
-            # Limitation/Future Work: Feature flags are currently not dynamically evaluated.
-            # TODO: Integrate with a feature flag service (e.g., LaunchDarkly) here
-            # to enable/disable generators at runtime based on flags defined in `info.feature_flag`.
-            if info.feature_flag:
-                activity.logger.debug(f"Generator '{info.name}' is associated with feature flag '{info.feature_flag}'.")
+            if info.feature_flag and not self._feature_enabled(info.feature_flag):
+                activity.logger.info(
+                    "Skipping generator '%s' because feature flag '%s' is disabled.",
+                    info.name,
+                    info.feature_flag,
+                )
+                continue
 
             try:
                 # Dynamically load and instantiate the generator plugin.

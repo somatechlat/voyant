@@ -10,11 +10,11 @@ Personas:
 - Performance: Sampled execution for large datasets
 """
 
-from typing import Any, Dict, List, Optional
 import logging
-import json
-import pandas as pd
+from typing import Any, Dict, List
+
 import numpy as np
+import pandas as pd
 
 # Try importing sklearn, handle case if missing (though required for ML)
 try:
@@ -24,8 +24,8 @@ try:
 except ImportError:
     SKLEARN_AVAILABLE = False
 
-from voyant.core.plugin_registry import register_plugin, AnalyzerPlugin, PluginCategory
 from voyant.core.errors import AnalysisError
+from voyant.core.plugin_registry import AnalyzerPlugin, PluginCategory, register_plugin
 
 logger = logging.getLogger(__name__)
 

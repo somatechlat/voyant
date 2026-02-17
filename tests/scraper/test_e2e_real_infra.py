@@ -3,9 +3,9 @@
 VOYANT DataScraper - E2E Tests on REAL Infrastructure
 
 Tests against REAL PUBLIC websites - NOT mocks!
-VIBE Standard v3 Compliant - Real infra testing mandatory.
+Production Standard v3 Compliant - Real infra testing mandatory.
 
-All 10 VIBE Personas Active:
+All 10 Production Personas Active:
 - PhD Lead Software Architect: Full system validation
 - QA Engineer: Real-world scenarios
 - Security Auditor: Real URL validation

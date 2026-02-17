@@ -6,11 +6,11 @@ Implements Roadmap Tier 3 & 4 Core Statistics.
 Adheres to Vibe Coding Rules: Uses REngine for actual computation.
 """
 
-from typing import Any, Dict, List, Optional, Union
 import logging
+from typing import Any, Dict, List, Optional
 
-from voyant.core.r_bridge import REngine
 from voyant.core.errors import AnalysisError
+from voyant.core.r_bridge import REngine
 
 logger = logging.getLogger(__name__)
 

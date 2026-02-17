@@ -7,9 +7,9 @@ Adheres to Vibe Coding Rules: Uses Prophet if available, handles deps.
 """
 
 import logging
+from typing import Any, Dict, List
+
 import pandas as pd
-from typing import Any, Dict, List, Optional
-from datetime import datetime
 
 try:
     from prophet import Prophet

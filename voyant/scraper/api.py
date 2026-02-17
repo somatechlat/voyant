@@ -7,10 +7,11 @@ are controlled by an external intelligent agent, following an Agent-Tool Archite
 """
 
 
-from typing import List, Dict, Any, Optional
-from ninja import Router, Schema
-from django.shortcuts import get_object_or_404
+from typing import Any, Dict, List, Optional
+
 from asgiref.sync import async_to_sync
+from django.shortcuts import get_object_or_404
+from ninja import Router, Schema
 
 from voyant.core.config import get_settings
 
@@ -63,6 +64,16 @@ class ScrapeTranscribeSchema(Schema):
     language: str = "es"
 
 
+class ScrapeFetchSchema(Schema):
+    """Request schema for fetching a web page."""
+
+    url: str
+    engine: str = "playwright"
+    wait_for: Optional[str] = None
+    scroll: bool = False
+    timeout: int = 30
+
+
 class ScrapeJobSchema(Schema):
     """Response schema for scrape job."""
 
@@ -104,14 +115,14 @@ class ScrapeResultSchema(Schema):
 
 def _get_models():
     """Lazy import of Django models to avoid AppRegistryNotReady."""
-    from .models import ScrapeJob, ScrapeArtifact
+    from .models import ScrapeArtifact, ScrapeJob
 
     return ScrapeJob, ScrapeArtifact
 
 
 def _get_security():
     """Lazy import of security module."""
-    from .security import validate_url, validate_urls, SSRFError
+    from .security import SSRFError, validate_url, validate_urls
 
     return validate_url, validate_urls, SSRFError
 
@@ -130,6 +141,7 @@ def _start_scrape_workflow(
 ):
     """Start Temporal workflow for scraping (pure execution)."""
     from voyant.core.temporal_client import get_temporal_client
+
     from .workflow import ScrapeWorkflow
 
     client = _run_async(get_temporal_client)
@@ -246,6 +258,60 @@ def extract_data(request, payload: ScrapeExtractSchema):
     return result
 
 
+@scrape_router.post("/fetch")
+def fetch_page(request, payload: ScrapeFetchSchema):
+    """Fetch a page using a selected engine with SSRF validation."""
+    from .activities import ScrapeActivities
+
+    activity_runner = ScrapeActivities()
+    return _run_async(
+        activity_runner.fetch_page,
+        {
+            "url": payload.url,
+            "engine": payload.engine,
+            "wait_for": payload.wait_for,
+            "scroll": payload.scroll,
+            "timeout": payload.timeout,
+        },
+    )
+
+
+@scrape_router.post("/ocr")
+def process_ocr(request, payload: ScrapeOcrSchema):
+    """Run OCR for a single image URL or path."""
+    from .activities import ScrapeActivities
+
+    activity_runner = ScrapeActivities()
+    return _run_async(
+        activity_runner.process_ocr,
+        {"images": [payload.image_url], "language": payload.language},
+    )
+
+
+@scrape_router.post("/parse_pdf")
+def parse_pdf(request, payload: ScrapePdfSchema):
+    """Extract text and optional tables from a PDF."""
+    from .activities import ScrapeActivities
+
+    activity_runner = ScrapeActivities()
+    return _run_async(
+        activity_runner.parse_pdf,
+        {"pdf_url": payload.pdf_url, "extract_tables": payload.extract_tables},
+    )
+
+
+@scrape_router.post("/transcribe")
+def transcribe_media(request, payload: ScrapeTranscribeSchema):
+    """Transcribe one media URL and return text segments."""
+    from .activities import ScrapeActivities
+
+    activity_runner = ScrapeActivities()
+    return _run_async(
+        activity_runner.transcribe_media,
+        {"media_urls": [payload.media_url], "language": payload.language},
+    )
+
+
 @scrape_router.get("/status/{job_id}", response=ScrapeJobSchema)
 def get_scrape_status(request, job_id: str):
     """Get status of a scraping job."""
@@ -271,10 +337,20 @@ def cancel_scrape(request, job_id: str):
     """Cancel a running scrape job."""
     ScrapeJob, _ = _get_models()
     job = get_object_or_404(ScrapeJob, job_id=job_id)
+
+    # Cancel workflow execution when a running scrape is stopped.
+    try:
+        from voyant.core.temporal_client import get_temporal_client
+
+        client = _run_async(get_temporal_client)
+        handle = client.get_workflow_handle(f"scrape-{job_id}")
+        _run_async(handle.cancel)
+    except Exception:
+        # Keep cancellation idempotent even if workflow handle is already closed/missing.
+        pass
+
     job.status = ScrapeJob.Status.CANCELLED
     job.save()
-
-    # TODO: Cancel Temporal workflow via client.cancel_workflow()
 
     return {"status": "cancelled", "job_id": str(job.job_id)}
 

@@ -6,6 +6,10 @@ import os
 from pathlib import Path
 from urllib.parse import urlparse
 
+# Load environment variables from .env file
+from dotenv import load_dotenv
+load_dotenv()
+
 # Import security settings
 from .security_settings import security_settings
 

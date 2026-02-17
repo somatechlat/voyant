@@ -11,7 +11,7 @@ steps to specialized activities.
 """
 
 from datetime import timedelta
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from temporalio import workflow
 
@@ -44,7 +44,7 @@ class DetectAnomaliesWorkflow:
         Returns:
             A dictionary containing the results of the anomaly detection.
         """
-        workflow.logger.info(f"DetectAnomaliesWorkflow started.")
+        workflow.logger.info("DetectAnomaliesWorkflow started.")
 
         # Execute the activity to perform the actual anomaly detection.
         # This activity uses algorithms (e.g., Isolation Forest) to identify outliers.
@@ -53,7 +53,7 @@ class DetectAnomaliesWorkflow:
             {"data": params.get("data", []), "contamination": params.get("contamination", 0.1)},
             start_to_close_timeout=timedelta(minutes=5),
         )
-        workflow.logger.info(f"DetectAnomaliesWorkflow completed.")
+        workflow.logger.info("DetectAnomaliesWorkflow completed.")
         return result
 
 
@@ -79,7 +79,7 @@ class AnalyzeSentimentWorkflow:
         Returns:
             A dictionary containing the aggregate sentiment breakdown and detailed results.
         """
-        workflow.logger.info(f"AnalyzeSentimentWorkflow started.")
+        workflow.logger.info("AnalyzeSentimentWorkflow started.")
         texts = params.get("texts", [])
 
         # Execute the activity to perform batch sentiment analysis on the provided texts.
@@ -134,7 +134,7 @@ class FixDataQualityWorkflow:
             A dictionary containing the results of the data quality fix, typically
             including a cleaned dataset and a report of changes.
         """
-        workflow.logger.info(f"FixDataQualityWorkflow started.")
+        workflow.logger.info("FixDataQualityWorkflow started.")
         data = params.get("data", [])
         numeric_columns = params.get("numeric_columns", [])
         categorical_columns = params.get("categorical_columns", [])
@@ -152,7 +152,7 @@ class FixDataQualityWorkflow:
             },
             start_to_close_timeout=timedelta(minutes=15),
         )
-        workflow.logger.info(f"FixDataQualityWorkflow completed.")
+        workflow.logger.info("FixDataQualityWorkflow completed.")
         return result
 
 
@@ -182,7 +182,7 @@ class ForecastWorkflow:
             A dictionary containing the forecast results, including predicted values
             and confidence intervals.
         """
-        workflow.logger.info(f"ForecastWorkflow started.")
+        workflow.logger.info("ForecastWorkflow started.")
         values = params.get("values", [])
         dates = params.get("dates")
 
@@ -198,5 +198,5 @@ class ForecastWorkflow:
             },
             start_to_close_timeout=timedelta(minutes=5),
         )
-        workflow.logger.info(f"ForecastWorkflow completed.")
+        workflow.logger.info("ForecastWorkflow completed.")
         return result

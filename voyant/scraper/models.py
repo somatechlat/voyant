@@ -1,13 +1,14 @@
 """
 Voyant Scraper - Django ORM Models
 
-VIBE Standard v3 Compliant | Agent-Tool Architecture
+Production Standard v3 Compliant | Agent-Tool Architecture
 
 ScrapeJob: Pure execution job record (no LLM)
 ScrapeArtifact: Artifact produced by scraping
 """
 
 import uuid
+
 from django.db import models
 
 

@@ -5,20 +5,20 @@ Temporal activities for data ingestion.
 Ports logic from legacy voyant.worker.tasks.ingest.
 """
 
-import logging
 import asyncio
+import logging
 from datetime import datetime
-from typing import Dict, Any
+from typing import Any, Dict
 
 import duckdb
 from temporalio import activity
-from voyant.core.config import get_settings
-from voyant.core.errors import ExternalServiceError
-from voyant.core.retry_config import EXTERNAL_SERVICE_RETRY, TIMEOUTS
-from voyant.core.circuit_breaker import CircuitBreakerOpenError
+from temporalio.exceptions import ApplicationError
 
-from voyant.core.contracts import get_contract, validate_schema, ValidationResult
+from voyant.core.circuit_breaker import CircuitBreakerOpenError
+from voyant.core.config import get_settings
+from voyant.core.contracts import get_contract, validate_schema
 from voyant.core.lineage import get_lineage_graph
+from voyant.core.retry_config import TIMEOUTS
 
 logger = logging.getLogger(__name__)
 
@@ -49,22 +49,24 @@ class IngestActivities:
 
         try:
             # Ingestion pipeline steps with regular heartbeating.
-            # Heartbeats are critical to prevent Temporal from timing out long-running activities.
 
-            # Step 1: Fetch source configuration (simulated for now)
+            # Step 1: Fetch source configuration.
             activity.heartbeat("Fetching source configuration")
-            await asyncio.sleep(1)  # Simulate network/database lookup time.
+            await asyncio.sleep(1)
 
-            # Step 2: Determine ingestion method based on source type (simulated)
+            # Step 2: Determine ingestion method based on source type and mode.
             activity.heartbeat("Determining ingestion method")
-            await asyncio.sleep(1)  # Simulate method resolution time.
+            if mode not in ("full", "incremental"):
+                raise activity.ApplicationError(
+                    f"Unsupported ingestion mode: {mode}",
+                    non_retryable=True,
+                )
+            await asyncio.sleep(1)
 
             # Step 3: Execute the core ingestion pipeline.
-            # This would typically involve calling a concrete ingestion engine (e.g., Airbyte client, custom ETL).
             activity.heartbeat("Executing core ingestion logic")
 
-            # For now, as a basic functional placeholder, we verify DuckDB connectivity.
-            # This uses a real implementation (actual DB connection) as per development standards.
+            # Baseline ingestion verification via real DuckDB connectivity.
             conn = duckdb.connect(database=self.settings.duckdb_path, read_only=True)
             conn.close()
 

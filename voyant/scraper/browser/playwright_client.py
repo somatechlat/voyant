@@ -8,8 +8,12 @@ Applications (SPAs). It allows for page fetching, performing browser actions
 """
 
 import asyncio
+import logging
 from typing import Any, Dict, List, Optional
-from playwright.async_api import Browser, Page, async_playwright
+
+from playwright.async_api import Browser, async_playwright
+
+logger = logging.getLogger(__name__)
 
 
 class PlaywrightClient:
@@ -141,7 +145,7 @@ class PlaywrightClient:
                 elif action_type == "screenshot" and action.get("path"):
                     await page.screenshot(path=action.get("path"))
                 else:
-                    activity.logger.warning(f"Unknown or malformed action type: {action_type}")
+                    logger.warning(f"Unknown or malformed action type: {action_type}")
 
             html = await page.content()
             return html

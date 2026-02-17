@@ -8,7 +8,7 @@ required. The client includes features such as user-agent rotation and SSL
 verification to enhance scraping robustness.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 from urllib.parse import urljoin
 
 import requests

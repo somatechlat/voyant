@@ -14,46 +14,43 @@ The worker is crucial for executing the business logic orchestrated by Temporal 
 import asyncio
 import logging
 import signal
-from concurrent.futures import ThreadPoolExecutor # Unused import, can be removed.
 
 from temporalio.worker import Worker
 
-from voyant.core.config import get_settings
-from voyant.core.temporal_client import get_temporal_client
-
-from voyant.workflows.ingest_workflow import IngestDataWorkflow
-from voyant.workflows.profile_workflow import ProfileWorkflow
-from voyant.workflows.analyze_workflow import AnalyzeWorkflow
-from voyant.workflows.quality_workflow import QualityWorkflow
-from voyant.activities.ingest_activities import IngestActivities
-from voyant.activities.profile_activities import ProfileActivities
 from voyant.activities.analysis_activities import AnalysisActivities
-from voyant.activities.generation_activities import GenerationActivities
-from voyant.activities.kpi_activities import KPIActivities
-from voyant.activities.quality_activities import QualityActivities
-from voyant.workflows.benchmark_workflow import BenchmarkBrandWorkflow
-from voyant.activities.stats_activities import StatsActivities
-from voyant.activities.ml_activities import MLActivities
 from voyant.activities.discovery_activities import DiscoveryActivities
+from voyant.activities.generation_activities import GenerationActivities
+from voyant.activities.ingest_activities import IngestActivities
+from voyant.activities.kpi_activities import KPIActivities
+from voyant.activities.ml_activities import MLActivities
 from voyant.activities.operational_activities import OperationalActivities
-from voyant.workflows.operational_workflows import (
-    DetectAnomaliesWorkflow,
-    AnalyzeSentimentWorkflow,
-    FixDataQualityWorkflow,
-)
-from voyant.workflows.segmentation_workflow import SegmentCustomersWorkflow
-from voyant.workflows.regression_workflow import LinearRegressionWorkflow
+from voyant.activities.profile_activities import ProfileActivities
+from voyant.activities.quality_activities import QualityActivities
+from voyant.activities.stats_activities import StatsActivities
+from voyant.core.config import get_settings
+from voyant.core.interceptors import MetricsInterceptor
+from voyant.core.monitoring import MetricsRegistry
+from voyant.core.temporal_client import get_temporal_client
+from voyant.scraper.activities import ScrapeActivities
 
 # DataScraper Module
 from voyant.scraper.workflow import ScrapeWorkflow
-from voyant.scraper.activities import ScrapeActivities
+from voyant.streaming.activities import StreamingActivities
 
 # Streaming Module (Apache Flink Integration - FR-21)
 from voyant.streaming.workflow import StreamingJobWorkflow
-from voyant.streaming.activities import StreamingActivities
-
-from voyant.core.monitoring import MetricsRegistry
-from voyant.core.interceptors import MetricsInterceptor
+from voyant.workflows.analyze_workflow import AnalyzeWorkflow
+from voyant.workflows.benchmark_workflow import BenchmarkBrandWorkflow
+from voyant.workflows.ingest_workflow import IngestDataWorkflow
+from voyant.workflows.operational_workflows import (
+    AnalyzeSentimentWorkflow,
+    DetectAnomaliesWorkflow,
+    FixDataQualityWorkflow,
+)
+from voyant.workflows.profile_workflow import ProfileWorkflow
+from voyant.workflows.quality_workflow import QualityWorkflow
+from voyant.workflows.regression_workflow import LinearRegressionWorkflow
+from voyant.workflows.segmentation_workflow import SegmentCustomersWorkflow
 
 # Configure logging
 logging.basicConfig(
