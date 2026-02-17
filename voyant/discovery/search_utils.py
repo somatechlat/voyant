@@ -9,8 +9,9 @@ to the Voyant discovery catalog.
 
 import logging
 import os
-import requests
 from typing import Any, Dict, List, Optional
+
+import requests
 
 from voyant.core.circuit_breaker import CircuitBreakerConfig, CircuitBreakerOpenError, get_circuit_breaker
 from voyant.core.config import get_settings

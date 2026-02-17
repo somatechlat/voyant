@@ -11,10 +11,9 @@ This directory contains the comprehensive documentation system for Voyant v3.0.0
 - **[DESIGN.md](DESIGN.md)** - Architecture and Design Specification
 - **[TASKS.md](TASKS.md)** - Production Readiness Task Plan
 - **[AGENT_CONTINUITY.md](AGENT_CONTINUITY.md)** - Agent Integration and Continuity
+- **[../RULES.md](../RULES.md)** - Repository coding and execution rules
 
 ### Quality and Standards
-- **[DJANGO_VIOLATIONS.md](DJANGO_VIOLATIONS.md)** - Django-specific code violations
-- **[VIOLATIONS.md](../VIOLATIONS.md)** - System-wide violations and issues
 - **[adr/](adr/)** - Architecture Decision Records
 
 ### Configuration and Examples
@@ -75,7 +74,7 @@ All documentation is continuously updated to reflect:
 ### For Quality Assurance
 1. **docs/SRS.md** (Section 11) - Verification criteria
 2. **docs/SRS.md** (Section 12) - Requirements traceability
-3. **docs/Violations.md** - Current issues
+3. **docs/TASKS.md** - Current issues and execution status
 4. **docs/SRS.md** (Section 13) - Error handling
 
 ## Maintenance Guidelines
@@ -84,7 +83,7 @@ All documentation is continuously updated to reflect:
 - **When requirements change**: Update SRS.md first, then trace to design
 - **When architecture changes**: Update DESIGN.md, then affected requirements
 - **When code changes**: Update TASKS.md, verify requirements still met
-- **When issues found**: Update VIOLATIONS.md, track resolution
+- **When issues found**: Update TASKS.md, track resolution
 
 ### Quality Assurance
 - **Completeness**: All requirements must be traceable to implementation
@@ -124,7 +123,7 @@ The project uses several tools to maintain documentation quality:
 
 For questions about documentation standards or content:
 - **Technical Lead**: See project maintainers
-- **Quality Assurance**: Refer to VIOLATIONS.md
+- **Quality Assurance**: Refer to TASKS.md and test reports
 - **Requirements Engineering**: See SRS.md traceability
 
 ---

@@ -2,9 +2,9 @@
 VOYANT DataScraper - HTML Parser Tests
 
 Tests CSS selector and XPath extraction.
-VIBE Standard v3 Compliant - Agent-provided selectors (NO LLM).
+Production Standard v3 Compliant - Agent-provided selectors (NO LLM).
 
-All 10 VIBE Personas Active:
+All 10 Production Personas Active:
 - PhD Software Analyst: Data flow validation
 - QA Engineer: Edge case testing
 - Domain Expert (Ecuador): Spanish content handling

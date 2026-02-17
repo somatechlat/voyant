@@ -240,7 +240,7 @@ class InMemoryCoordinator:
             "healthy_nodes": len(healthy_nodes),
             "active_locks": len(self._locks),
             "nodes": [n.to_dict() for n in self._nodes.values()],
-            "locks": [l.to_dict() for l in self._locks.values()],
+            "locks": [lock.to_dict() for lock in self._locks.values()],
         }
 
     async def start_heartbeat(self, interval_seconds: int = 10) -> None:

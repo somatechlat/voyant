@@ -42,7 +42,7 @@ This document provides comprehensive compliance tracking for Voyant v3.0.0 again
 
 **Implementation Evidence**:
 - `voyant_app/api.py` - Comprehensive REST API implementation
-- `voyant_app/mcp.py` - MCP server with 15+ tools
+- `voyant_app/mcp_tools.py` - django-mcp tool registry with agent tools
 - `voyant/workflows/` - Temporal workflow implementations
 - `voyant/activities/` - Activity implementations
 
@@ -126,7 +126,7 @@ This document provides comprehensive compliance tracking for Voyant v3.0.0 again
 - Plugin system without conflicts
 
 **Evidence**:
-- `voyant/mcp/server.py` - Independent MCP implementation
+- `voyant_project/asgi.py` - django-mcp endpoint mounted at `/mcp`
 - `voyant/core/events.py` - Schema validation
 - `voyant/core/plugin_registry.py` - Plugin isolation
 
@@ -135,13 +135,13 @@ This document provides comprehensive compliance tracking for Voyant v3.0.0 again
 
 **Implementation**:
 - Standard REST API patterns
-- JSON-RPC 2.0 MCP implementation
+- django-mcp implementation mounted over Django ASGI
 - OpenAPI specification generation
 - SomaAgentHub integration standards
 
 **Evidence**:
 - `voyant_app/api.py` - REST API implementation
-- `voyant_app/mcp.py` - MCP server implementation
+- `voyant_app/mcp_tools.py` - MCP tool definitions and routing
 - `openapi.json` - API specification
 
 ### 3.4 Usability
@@ -326,8 +326,8 @@ This document provides comprehensive compliance tracking for Voyant v3.0.0 again
 - Debugging aids insufficient
 
 **Evidence**:
-- `VIOLATIONS.md` - Current code quality issues
-- `.coverage` - Low test coverage
+- `.coverage` - Current test coverage snapshot
+- `docs/TASKS.md` - Current execution and quality status
 - Limited inline documentation for complex logic
 
 #### 3.7.4 Modifiability
@@ -349,14 +349,11 @@ This document provides comprehensive compliance tracking for Voyant v3.0.0 again
 
 **Issues**:
 - Low test coverage (13%)
-- Test suite failures (V-001)
-- Mock implementations insufficient
 - Integration testing limited
 
 **Evidence**:
-- `VIOLATIONS.md` - Test coverage and failure issues
+- `docs/TASKS.md` - Test and readiness gaps
 - `tests/` directory with many empty files
-- Limited mocking of external services
 
 ### 3.8 Portability
 

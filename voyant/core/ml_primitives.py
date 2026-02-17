@@ -7,21 +7,22 @@ Adheres to Vibe Coding Rules: Real implementations using sklearn.
 """
 
 import logging
+from typing import Any, Dict, List
+
 import numpy as np
 import pandas as pd
-from typing import Any, Dict, List, Optional, Tuple, Union
 
 try:
-    from sklearn.cluster import KMeans, DBSCAN
+    from sklearn.cluster import KMeans  # DBSCAN not yet used
     from sklearn.ensemble import (
-        RandomForestClassifier,
-        RandomForestRegressor,
         IsolationForest,
+        RandomForestClassifier,
+        # RandomForestRegressor not yet used
     )
-    from sklearn.linear_model import LinearRegression
-    from sklearn.preprocessing import StandardScaler, LabelEncoder
     from sklearn.impute import SimpleImputer
-    from sklearn.metrics import silhouette_score, accuracy_score, r2_score
+    from sklearn.linear_model import LinearRegression
+    from sklearn.metrics import silhouette_score  # r2_score and accuracy_score calculated manually
+    from sklearn.preprocessing import LabelEncoder, StandardScaler
 
     SKLEARN_AVAILABLE = True
 except ImportError:

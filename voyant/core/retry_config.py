@@ -9,8 +9,8 @@ Temporal activities.
 """
 
 from datetime import timedelta
-from temporalio.common import RetryPolicy
 
+from temporalio.common import RetryPolicy
 
 # =============================================================================
 # Retry Policies

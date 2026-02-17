@@ -2,9 +2,9 @@
 VOYANT DataScraper - Security Tests
 
 Tests SSRF protection and URL validation.
-VIBE Standard v3 Compliant - Real infrastructure testing.
+Production Standard v3 Compliant - Real infrastructure testing.
 
-All 10 VIBE Personas Active:
+All 10 Production Personas Active:
 - PhD Lead Software Architect: Validates security architecture
 - Security Auditor: Enforces Zero-Bypass security
 - QA Engineer: Edge cases testing

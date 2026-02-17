@@ -20,12 +20,13 @@ from __future__ import annotations
 import json
 import logging
 import time
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 import duckdb
+
 from voyant.core.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -561,10 +562,34 @@ def check_schema_compatibility(
     table_name: str, source_version: str, target_version: str
 ) -> Optional[Dict[str, Any]]:
     """A convenience function to generate a compatibility report between two versions."""
-    # This method is not yet implemented on the registry class.
-    # report = get_registry().check_compatibility(table_name, source_version, target_version)
-    # return report.to_dict() if report else None
-    raise NotImplementedError("check_schema_compatibility is not yet implemented.")
+    registry = get_registry()
+    source = registry.get_version(table_name, source_version)
+    target = registry.get_version(table_name, target_version)
+    if not source or not target:
+        return None
+
+    changes = compare_schemas(source.schema, target.schema)
+    breaking_changes = [change for change in changes if change.is_breaking]
+
+    if not changes:
+        compatibility = CompatibilityLevel.FULL
+    elif breaking_changes:
+        compatibility = CompatibilityLevel.NONE
+    elif any(change.change_type == ChangeType.COLUMN_ADDED for change in changes):
+        compatibility = CompatibilityLevel.BACKWARD
+    elif any(change.change_type == ChangeType.COLUMN_REMOVED for change in changes):
+        compatibility = CompatibilityLevel.FORWARD
+    else:
+        compatibility = CompatibilityLevel.FULL
+
+    report = CompatibilityReport(
+        source_version=source_version,
+        target_version=target_version,
+        compatibility=compatibility,
+        changes=changes,
+        breaking_changes=breaking_changes,
+    )
+    return report.to_dict()
 
 
 def reset_registry():

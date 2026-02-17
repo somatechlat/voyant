@@ -7,14 +7,14 @@ Reduces connection overhead and enables efficient resource reuse.
 
 from __future__ import annotations
 
-import duckdb
 import logging
 import threading
-from typing import Optional, Any, List, Tuple
 from contextlib import contextmanager
 from dataclasses import dataclass
-from queue import Queue, Empty
-from datetime import datetime
+from queue import Empty, Queue
+from typing import List, Optional, Tuple
+
+import duckdb
 
 logger = logging.getLogger(__name__)
 

@@ -29,11 +29,11 @@ Usage:
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Dict, Any, List, Optional, Set, Tuple
-from dataclasses import dataclass, field
-from collections import defaultdict
+from typing import Any, Dict, List, Optional, Set
 
 logger = logging.getLogger(__name__)
 

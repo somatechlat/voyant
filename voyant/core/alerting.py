@@ -40,16 +40,13 @@ Usage:
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import time
 from collections import deque
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional
-import hashlib
-import json
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 

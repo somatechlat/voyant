@@ -1,6 +1,6 @@
 # Voyant Scraper Module
 # DataScraper - Pure Execution Web Scraping Tools
-# VIBE Standard v3 Compliant - No LLM Integration
+# Production Standard v3 Compliant - No LLM Integration
 
 # Note: Do NOT import Django models here - causes AppRegistryNotReady
 # Import models directly: from voyant.scraper.models import ScrapeJob

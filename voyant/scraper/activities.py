@@ -2,7 +2,7 @@
 Voyant Scraper - Temporal Activities
 
 Pure execution activities for web scraping.
-VIBE Standard v3 Compliant - NO LLM integration.
+Production Standard v3 Compliant - NO LLM integration.
 
 Agent-Tool Architecture:
 - Agent provides selectors and parameters
@@ -10,11 +10,11 @@ Agent-Tool Architecture:
 - Return raw results to agent
 """
 
-from datetime import datetime
-from typing import Any, Dict, List
-from temporalio import activity
-
 import logging
+from datetime import datetime
+from typing import Any, Dict
+
+from temporalio import activity
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +26,12 @@ class ScrapeActivities:
     Each activity performs a single mechanical operation.
     NO intelligence, NO LLM, NO decision making.
     """
+
+    @staticmethod
+    def _load_models():
+        from voyant.scraper.models import ScrapeArtifact, ScrapeJob
+
+        return ScrapeJob, ScrapeArtifact
 
     @activity.defn(name="fetch_page")
     async def fetch_page(self, params: Dict[str, Any]) -> Dict[str, Any]:
@@ -46,7 +52,7 @@ class ScrapeActivities:
             activity.ApplicationError: If the URL is blocked by SSRF protection or if
                                        the fetch operation fails.
         """
-        from voyant.scraper.security import validate_url, SSRFError
+        from voyant.scraper.security import SSRFError, validate_url
 
         url = params.get("url")
         engine = params.get("engine", "playwright")
@@ -323,9 +329,10 @@ class ScrapeActivities:
                         image_data = f.read()
 
                 # OCR with Tesseract
+                import io
+
                 import pytesseract
                 from PIL import Image
-                import io
 
                 img = Image.open(io.BytesIO(image_data))
                 text = pytesseract.image_to_string(img, lang=language)
@@ -366,8 +373,9 @@ class ScrapeActivities:
         for media_url in media_urls[:5]:  # Limit to 5 files
             try:
                 # Download media
-                import httpx
                 import tempfile
+
+                import httpx
 
                 async with httpx.AsyncClient() as client:
                     resp = await client.get(media_url)
@@ -428,8 +436,9 @@ class ScrapeActivities:
 
                 validate_url(pdf_url)
 
-                import httpx
                 import tempfile
+
+                import httpx
 
                 async with httpx.AsyncClient() as client:
                     resp = await client.get(pdf_url)
@@ -471,7 +480,7 @@ class ScrapeActivities:
     async def store_artifact(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Store extracted data as a JSON artifact in an object store.
-        This activity is a placeholder for integration with a full artifact store.
+
         Args:
             params: A dictionary containing artifact parameters:
                 - job_id (str): The ID of the parent job.
@@ -481,9 +490,11 @@ class ScrapeActivities:
         Returns:
             A dictionary containing a reference to the stored artifact.
         """
-        import json
         import hashlib
 
+        from voyant.core.artifact_store import store_artifact
+
+        _, ScrapeArtifact = self._load_models()
         job_id = params.get("job_id")
         tenant_id = params.get("tenant_id", "default")
         url = params.get("url", "")
@@ -491,25 +502,34 @@ class ScrapeActivities:
 
         activity.heartbeat(f"Storing artifact for {url}")
 
-        # Serialize data
-        content = json.dumps(data, ensure_ascii=False, indent=2)
-        content_bytes = content.encode("utf-8")
-
-        # Content-addressable hash
-        content_hash = hashlib.sha256(content_bytes).hexdigest()
-
-        # Storage path
+        ref = store_artifact(
+            content=data,
+            artifact_type="scrape_json",
+            metadata={"job_id": job_id, "tenant_id": tenant_id, "source_url": url},
+        )
+        content_hash = hashlib.sha256(str(ref.hash).encode("utf-8")).hexdigest()
         artifact_id = f"scrape-{job_id}-{content_hash[:12]}"
-        storage_path = f"s3://voyant-artifacts/{tenant_id}/scrape/{artifact_id}.json"
+        storage_path = ref.hash
 
-        # TODO: Integrate with voyant.core.artifact_store
-        # For now, just record metadata
+        ScrapeArtifact.objects.update_or_create(
+            artifact_id=artifact_id,
+            defaults={
+                "job_id": job_id,
+                "artifact_type": ScrapeArtifact.ArtifactType.JSON,
+                "format": "json",
+                "storage_path": storage_path,
+                "content_hash": ref.hash,
+                "size_bytes": ref.size_bytes,
+                "source_url": url,
+                "metadata": {"artifact_ref": ref.to_dict()},
+            },
+        )
 
         return {
             "artifact_id": artifact_id,
             "storage_path": storage_path,
-            "content_hash": content_hash,
-            "size_bytes": len(content_bytes),
+            "content_hash": ref.hash,
+            "size_bytes": ref.size_bytes,
             "url": url,
         }
 
@@ -517,7 +537,6 @@ class ScrapeActivities:
     async def finalize_job(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Finalize a scrape job by updating its status and recording final metrics.
-        This is a placeholder for updating the job's status in a database.
         Args:
             params: A dictionary containing final job metrics:
                 - job_id (str): The ID of the job to finalize.
@@ -535,18 +554,20 @@ class ScrapeActivities:
         error_count = params.get("error_count", 0)
 
         activity.heartbeat(f"Finalizing job {job_id}")
-
-        # TODO: Update Django model
-        # ScrapeJob.objects.filter(job_id=job_id).update(
-        #     status='succeeded' if error_count == 0 else 'partial',
-        #     pages_fetched=pages_fetched,
-        #     bytes_processed=bytes_processed,
-        #     finished_at=datetime.utcnow(),
-        # )
+        status = "succeeded" if error_count == 0 else "partial"
+        ScrapeJob, _ = self._load_models()
+        ScrapeJob.objects.filter(job_id=job_id).update(
+            status=status,
+            pages_fetched=pages_fetched,
+            bytes_processed=bytes_processed,
+            artifact_count=artifact_count,
+            error_count=error_count,
+            finished_at=datetime.utcnow(),
+        )
 
         return {
             "job_id": job_id,
-            "status": "succeeded" if error_count == 0 else "partial",
+            "status": status,
             "pages_fetched": pages_fetched,
             "bytes_processed": bytes_processed,
             "artifact_count": artifact_count,

@@ -35,12 +35,13 @@ Usage:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -458,7 +459,3 @@ def reset_registry() -> None:
     """Reset registry (testing)."""
     global _registry
     _registry = None
-
-
-# Import for async
-import asyncio

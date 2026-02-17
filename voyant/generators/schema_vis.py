@@ -9,12 +9,10 @@ to retrieve and interpret schema version history for a given table.
 Reference: docs/CANONICAL_ROADMAP.md - Future Investigation Backlog
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 from voyant.core.plugin_registry import GeneratorPlugin, PluginCategory, register_plugin
 from voyant.core.schema_evolution import (
-    ChangeType,
-    SchemaVersion,
     get_schema_history,
 )
 

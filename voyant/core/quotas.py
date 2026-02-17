@@ -25,10 +25,9 @@ Usage:
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, Tuple
 from dataclasses import dataclass, field
-from collections import defaultdict
+from datetime import datetime
+from typing import Any, Dict, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 

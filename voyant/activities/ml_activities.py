@@ -8,15 +8,14 @@ and regression, and time series forecasting.
 """
 
 import logging
-from datetime import timedelta
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from temporalio import activity
+from temporalio.exceptions import ApplicationError
 
 from voyant.core.errors import AnalysisError
 from voyant.core.forecast_primitives import ForecastPrimitives
 from voyant.core.ml_primitives import MLPrimitives
-from voyant.core.retry_config import DATA_PROCESSING_RETRY, TIMEOUTS
 
 logger = logging.getLogger(__name__)
 

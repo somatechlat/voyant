@@ -36,16 +36,16 @@ Usage:
 
 from __future__ import annotations
 
-import time
-import logging
 import cProfile
-import pstats
 import io
-from typing import Callable, Optional, Any, Dict, List
-from functools import wraps
+import logging
+import pstats
+import time
 from contextlib import contextmanager
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
+from functools import wraps
+from typing import Any, Callable, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 

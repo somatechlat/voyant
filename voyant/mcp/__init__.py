@@ -1,11 +1,5 @@
-"""
-Voyant MCP (Model Context Protocol) Server Package.
+"""Voyant MCP launcher package (django-mcp over Django ASGI)."""
 
-This package provides the public interface for the Voyant MCP server,
-allowing external AI agents to interact with Voyant's data capabilities
-via the Model Context Protocol.
-"""
+from .server import main
 
-from .server import VoyantMCPServer, main
-
-__all__ = ["VoyantMCPServer", "main"]
+__all__ = ["main"]

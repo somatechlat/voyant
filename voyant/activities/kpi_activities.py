@@ -11,6 +11,7 @@ import logging
 from typing import Any, Dict, List
 
 from temporalio import activity
+from temporalio.exceptions import ApplicationError
 
 from voyant.core.trino import get_trino_client
 

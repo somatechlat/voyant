@@ -9,7 +9,7 @@ of available endpoints.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 from urllib.parse import urlparse
 
 import requests

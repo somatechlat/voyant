@@ -11,7 +11,7 @@ to offer flexibility based on document type and desired output quality.
 import logging
 import os
 import tempfile
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 

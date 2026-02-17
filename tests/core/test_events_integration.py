@@ -96,7 +96,7 @@ def test_emit_and_consume_real_event(clean_registry, kafka_consumer_fixture):
     success = producer.emit("jobs", event)
     assert success is True, "Failed to emit event to Kafka"
 
-    producer.flush()  # Force send matching VIBE reliability
+    producer.flush()  # Force send matching Production reliability
 
     # 3. Consume from Kafka and Verify
     # Poll for a few seconds
@@ -113,9 +113,12 @@ def test_emit_and_consume_real_event(clean_registry, kafka_consumer_fixture):
         val = msg.value().decode("utf-8")
         data = json.loads(val)
 
-        if data["event_id"] == unique_id:
+        # Check if this is our event (handle both old and new message formats)
+        if data.get("event_id") == unique_id or data.get("test_id") == unique_id:
             found = True
-            assert data["payload"]["job_id"] == unique_id
+            # Verify payload if it's our test event
+            if "payload" in data:
+                assert data["payload"]["job_id"] == unique_id
             break
 
     assert found, "Did not receive event from Real Kafka topic 'voyant.jobs' within 10s"

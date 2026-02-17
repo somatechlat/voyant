@@ -7,11 +7,14 @@ scenarios requiring efficient traversal of websites, adherence to `robots.txt`
 rules, and the ability to follow links for deeper data collection.
 """
 
+import logging
 from typing import Any, Callable, Dict, List, Optional
 
 import scrapy
 from scrapy.crawler import CrawlerProcess
-from scrapy.http import Request, Response
+from scrapy.http import Response
+
+logger = logging.getLogger(__name__)
 
 
 class VoyantSpider(scrapy.Spider):
@@ -181,7 +184,7 @@ class ScrapyClient:
             response.raise_for_status()
             soup = BeautifulSoup(response.text, "lxml-xml")
             urls = [loc.text for loc in soup.find_all("loc")]
-            activity.logger.info(f"Discovered {len(urls)} URLs from sitemap: {sitemap_url}.")
+            logger.info(f"Discovered {len(urls)} URLs from sitemap: {sitemap_url}.")
             return self.crawl(urls)
         except requests.exceptions.RequestException as e:
             logger.error(f"Failed to fetch sitemap from {sitemap_url}: {e}")

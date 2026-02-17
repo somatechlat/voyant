@@ -10,11 +10,12 @@ Personas:
 - Performance: Efficient pandas resampling
 """
 
-from typing import Any, Dict, List, Optional, Tuple
 import logging
-import pandas as pd
-import numpy as np
 from datetime import timedelta
+from typing import Any, Dict, Optional, Tuple
+
+import numpy as np
+import pandas as pd
 
 # Try importing sklearn
 try:
@@ -24,8 +25,8 @@ try:
 except ImportError:
     SKLEARN_AVAILABLE = False
 
-from voyant.core.plugin_registry import register_plugin, AnalyzerPlugin, PluginCategory
 from voyant.core.errors import AnalysisError
+from voyant.core.plugin_registry import AnalyzerPlugin, PluginCategory, register_plugin
 
 logger = logging.getLogger(__name__)
 

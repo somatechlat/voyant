@@ -35,10 +35,10 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Optional
 from contextlib import contextmanager
+from typing import Optional
 
-from prometheus_client import Counter, Histogram, Gauge
+from prometheus_client import Counter, Gauge, Histogram
 
 logger = logging.getLogger(__name__)
 

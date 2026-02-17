@@ -14,7 +14,7 @@ The workflow coordinates a series of activities to:
 """
 
 from datetime import timedelta
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from temporalio import workflow
 

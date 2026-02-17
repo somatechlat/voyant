@@ -12,9 +12,7 @@ throughout the application.
 
 from __future__ import annotations
 
-import os
 from functools import lru_cache
-from typing import List, Optional
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict

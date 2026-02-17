@@ -9,7 +9,7 @@ the model's quality.
 """
 
 from datetime import timedelta
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from temporalio import workflow
 

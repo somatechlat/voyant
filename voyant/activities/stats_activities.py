@@ -9,19 +9,17 @@ to be performed within Temporal workflows.
 """
 
 import logging
-import pandas as pd
-from typing import Any, Dict, List
-
 from datetime import datetime
+from typing import Any, Dict
+
+import pandas as pd
 from temporalio import activity
 
-from voyant.core.r_bridge import REngine
-from voyant.core.errors import ExternalServiceError, AnalysisError
 from voyant.core.circuit_breaker import CircuitBreakerOpenError
-from voyant.core.retry_config import EXTERNAL_SERVICE_RETRY, TIMEOUTS
-
+from voyant.core.errors import ExternalServiceError
+from voyant.core.r_bridge import REngine
+from voyant.core.schema_evolution import ColumnSchema, TableSchema, track_schema
 from voyant.core.stats_primitives import RStatsPrimitives
-from voyant.core.schema_evolution import track_schema, TableSchema, ColumnSchema
 
 logger = logging.getLogger(__name__)
 
@@ -286,7 +284,7 @@ class StatsActivities:
                     "method": res["method"],
                 }
             else:
-                raise NotImplementedError(f"Hypothesis test type '{test_type}' is not supported yet.")
+                raise ValueError(f"Hypothesis test type '{test_type}' is not supported.")
 
         except CircuitBreakerOpenError:
             raise activity.ApplicationError(
@@ -296,8 +294,6 @@ class StatsActivities:
             raise activity.ApplicationError(
                 f"Invalid test parameters: {e}", non_retryable=True
             ) from e
-        except NotImplementedError as e:
-            raise activity.ApplicationError(str(e), non_retryable=True) from e
         except Exception as e:
             logger.error(f"Hypothesis test failed: {e}")
             raise activity.ApplicationError(

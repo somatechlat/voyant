@@ -16,9 +16,7 @@ For future refactoring, these two modules should be consolidated.
 
 import io
 import logging
-import os
-import tempfile
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Union
 
 logger = logging.getLogger(__name__)
 
@@ -148,7 +146,7 @@ class OCRProcessor:
         Returns:
             PIL.Image.Image: The processed Pillow Image object.
         """
-        from PIL import Image, ImageEnhance, ImageFilter
+        from PIL import ImageEnhance, ImageFilter
 
         # Convert to RGB mode if necessary for consistent processing.
         if image.mode != "RGB":

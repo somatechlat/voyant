@@ -31,10 +31,9 @@ import asyncio
 import json
 import logging
 import time
-from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, List, Tuple
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from enum import Enum
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -296,6 +295,9 @@ class InMemoryJobQueue:
             if job_id in self._running:
                 job = self._running.pop(job_id)
                 job.status = JobStatus.CANCELLED
+                # Remove from all_jobs as well
+                if job_id in self._all_jobs:
+                    del self._all_jobs[job_id]
                 return True
 
             # Check queues
@@ -304,6 +306,9 @@ class InMemoryJobQueue:
                     if job.job_id == job_id:
                         queue.pop(i)
                         job.status = JobStatus.CANCELLED
+                        # Remove from all_jobs as well
+                        if job_id in self._all_jobs:
+                            del self._all_jobs[job_id]
                         return True
 
             return False

@@ -13,12 +13,11 @@ It provides functionalities for:
 """
 
 import ipaddress
+import logging
 import re
 import socket
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
-
-import logging
 
 logger = logging.getLogger(__name__)
 

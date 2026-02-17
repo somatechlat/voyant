@@ -16,6 +16,7 @@ import logging
 from typing import Any, Dict, List
 
 from temporalio import activity
+from temporalio.exceptions import ApplicationError
 
 from voyant.discovery.search_utils import SearchClient
 from voyant.discovery.spec_parser import SpecParser

@@ -16,11 +16,10 @@ from typing import Any, Dict, List
 from temporalio import activity
 
 from voyant.core.cleaning_primitives import DataCleaningPrimitives
-from voyant.core.forecast_primitives import ForecastPrimitives, PROPHET_AVAILABLE
+from voyant.core.forecast_primitives import PROPHET_AVAILABLE, ForecastPrimitives
 from voyant.core.forecasting import forecast
 from voyant.core.ml_primitives import MLPrimitives
 from voyant.core.nlp_primitives import NLPPrimitives
-from voyant.core.retry_config import DATA_PROCESSING_RETRY, TIMEOUTS
 
 logger = logging.getLogger(__name__)
 
@@ -149,21 +148,53 @@ class OperationalActivities:
         # an expected external interface contract for data quality reports.
         report_from_primitive = result["report"]
 
+        # Calculate quality scores based on data completeness
+        original_rows = len(data)
+        cleaned_rows = report_from_primitive.get("final_row_count", 0)
+        missing_before = report_from_primitive.get("missing_values_before", 0)
+        missing_after = report_from_primitive.get("missing_values_after", 0)
+
+        # Quality score calculation:
+        # - If no data, score is 0.0
+        # - Otherwise, score = (total_cells - missing_cells) / total_cells
+        if original_rows == 0:
+            quality_score_before = 0.0
+            quality_score_after = 0.0
+        else:
+            # Estimate total cells (we need to know column count)
+            # For now, use a simple heuristic based on missing values
+            numeric_cols = strategies.get("numeric_columns", [])
+            categorical_cols = strategies.get("categorical_columns", [])
+            total_cols = len(numeric_cols) + len(categorical_cols)
+            
+            if total_cols == 0 and data:
+                # Auto-detect from first row
+                total_cols = len(data[0].keys()) if data else 0
+            
+            total_cells_before = original_rows * total_cols if total_cols > 0 else original_rows
+            total_cells_after = cleaned_rows * total_cols if total_cols > 0 else cleaned_rows
+            
+            quality_score_before = (
+                (total_cells_before - missing_before) / total_cells_before
+                if total_cells_before > 0
+                else 1.0
+            )
+            quality_score_after = (
+                (total_cells_after - missing_after) / total_cells_after
+                if total_cells_after > 0
+                else 1.0
+            )
+
         return {
             "cleaned_data": result["cleaned_data"],
             "quality_report": {
-                "original_rows": len(data),
-                "cleaned_rows": report_from_primitive.get("final_row_count", 0),
-                "missing_value_fixes": report_from_primitive.get("missing_values_before", 0)
-                - report_from_primitive.get("missing_values_after", 0),
+                "original_rows": original_rows,
+                "cleaned_rows": cleaned_rows,
+                "missing_value_fixes": missing_before - missing_after,
                 "outliers_treated": report_from_primitive.get("outliers_treated", 0),
-                # Historical note: 'quality_score_before' and 'quality_score_after'
-                # were previously part of an older contract. The current primitive
-                # focuses on detailed metrics rather than a single aggregated score.
-                # If these scores are strictly required, the primitive or this activity
-                # would need enhancement to re-introduce a rigorous calculation.
-                "quality_score_before": 0.0,
-                "quality_score_after": 1.0,
+                "quality_score_before": quality_score_before,
+                "quality_score_after": quality_score_after,
+                "improvement": quality_score_after - quality_score_before,
             },
         }
 
@@ -205,7 +236,7 @@ class OperationalActivities:
             # Handle Prophet-based forecasting if requested and available.
             if method == "prophet":
                 if not PROPHET_AVAILABLE:
-                    # VIBE Rule: Real implementations. If Prophet is explicitly requested
+                    # Production Rule: Real implementations. If Prophet is explicitly requested
                     # and not available, it's a hard failure to avoid unexpected behavior.
                     raise RuntimeError("Prophet library is not available in this environment.")
                 if not dates:

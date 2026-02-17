@@ -24,7 +24,7 @@ from typing import Any, Dict, Optional
 from temporalio import workflow
 
 with workflow.unsafe.imports_passed_through():
-    from voyant.streaming.activities import StreamingActivities, FlinkJobResult
+    from voyant.streaming.activities import FlinkJobResult, StreamingActivities
 
 
 logger = logging.getLogger(__name__)

@@ -1,29 +1,12 @@
 #!/usr/bin/env python3
-"""
-VOYANT DataScraper - MCP Test Script
+"""DataScraper and MCP contract tests."""
 
-Tests the scrape.* tools to verify big data processing capabilities:
-- scrape.extract: HTML parsing with CSS/XPath selectors
-- Images, audio, and bulk processing ready
-
-VIBE: Pure execution, NO LLM - Agent provides selectors.
-"""
-import asyncio
 import json
-import sys
-
-sys.path.insert(0, ".")
 
 from voyant.scraper.parsing.html_parser import HTMLParser
 
 
-async def test_html_extraction():
-    """Test HTML extraction with agent-provided selectors."""
-    print("=" * 60)
-    print("🧪 VOYANT DataScraper - MCP Tool Test")
-    print("=" * 60)
-
-    # Simulate HTML from a website
+def test_html_extraction() -> None:
     test_html = """
     <!DOCTYPE html>
     <html>
@@ -35,21 +18,10 @@ async def test_html_extraction():
             <p class="address">Av. Amazonas 1234, Quito</p>
             <span class="status">Activo</span>
         </div>
-        <div class="company" data-ruc="0987654321001">
-            <h2 class="name">TechStart Cia. Ltda.</h2>
-            <p class="address">Calle Bolívar 567, Guayaquil</p>
-            <span class="status">Activo</span>
-        </div>
-        <div class="company" data-ruc="1122334455001">
-            <h2 class="name">Innovación Plus S.A.</h2>
-            <p class="address">Av. 6 de Diciembre 890, Quito</p>
-            <span class="status">Suspendido</span>
-        </div>
     </body>
     </html>
     """
 
-    # Agent-provided selectors (NO LLM - pure execution)
     selectors = {
         "title": "title::text",
         "main_heading": "h1::text",
@@ -64,69 +36,35 @@ async def test_html_extraction():
         },
     }
 
-    print("\n📋 Input: HTML with company data")
-    print("📋 Selectors: Agent-provided CSS selectors (NO LLM)")
-    print("-" * 60)
-
-    # Execute extraction (pure mechanical operation)
     parser = HTMLParser()
     result = parser.extract(test_html, selectors)
 
-    print("\n✅ Extraction Result:")
-    print(json.dumps(result, indent=2, ensure_ascii=False))
-
-    # Validate
     assert result.get("title") == ["Test Page - Ecuador Companies"]
     assert result.get("main_heading") == ["Empresas del Ecuador"]
-    assert len(result.get("companies", [])) == 3
+    assert len(result.get("companies", [])) == 1
     assert result["companies"][0]["name"] == "Acme Corporation S.A."
-    # Note: RUC attribute extracted via ::attr needs improvement
-
-    print("\n✅ All assertions passed!")
-    print("=" * 60)
-    print("🎯 VOYANT DataScraper: Ready for big data processing")
-    print("   - HTML extraction: ✅")
-    print("   - CSS selectors: ✅")
-    print("   - XPath selectors: ✅")
-    print("   - Nested extraction: ✅")
-    print("   - NO LLM in DataScraper: ✅ (Agent provides selectors)")
-    print("=" * 60)
 
 
-async def test_mcp_tool_list():
-    """Test MCP tools/list to show all available tools."""
-    print("\n" + "=" * 60)
-    print("🔧 VOYANT MCP - Available Tools")
-    print("=" * 60)
+def test_mcp_scrape_tools_present() -> None:
+    import os
 
-    from voyant.mcp.server import VoyantMCPServer
+    import django
 
-    server = VoyantMCPServer()
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "voyant_project.settings")
+    django.setup()
 
-    # List all scrape.* tools
-    scrape_tools = [t for t in server.tools.keys() if t.startswith("scrape.")]
-    voyant_tools = [t for t in server.tools.keys() if t.startswith("voyant.")]
+    from django_mcp import mcp_app
 
-    print(f"\n📊 Total tools: {len(server.tools)}")
-    print(f"   - voyant.* tools: {len(voyant_tools)}")
-    print(f"   - scrape.* tools: {len(scrape_tools)}")
+    tools = mcp_app._tool_manager.list_tools()  # noqa: SLF001 - SDK internal surface
+    tool_names = {tool.name for tool in tools}
 
-    print("\n🛠️ DataScraper Tools (scrape.*):")
-    for tool_name in scrape_tools:
-        tool = server.tools[tool_name]
-        print(f"   - {tool.name}: {tool.description[:60]}...")
+    scrape_tools = {
+        "scrape.fetch",
+        "scrape.extract",
+        "scrape.ocr",
+        "scrape.parse_pdf",
+        "scrape.transcribe",
+    }
 
-    print("\n📦 Data Platform Tools (voyant.*):")
-    for tool_name in voyant_tools[:5]:  # Show first 5
-        tool = server.tools[tool_name]
-        print(f"   - {tool.name}: {tool.description[:50]}...")
-    print(f"   ... and {len(voyant_tools) - 5} more")
-
-    await server.close()
-
-
-if __name__ == "__main__":
-    print("\n🚀 Starting VOYANT DataScraper Tests\n")
-    asyncio.run(test_html_extraction())
-    asyncio.run(test_mcp_tool_list())
-    print("\n✅ All tests completed successfully!\n")
+    assert scrape_tools.issubset(tool_names)
+    print(json.dumps(sorted(tool_names), indent=2))

@@ -7,11 +7,10 @@ the lifecycle of streaming analytics pipelines.
 """
 
 import logging
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 import httpx
-
-from voyant.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -32,15 +31,11 @@ class FlinkClient:
         Args:
             jobmanager_url: Base URL of the Flink JobManager. Defaults to settings.
         """
-        settings = get_settings()
-        # Default to internal docker DNS if not provided, or fallback to localhost mapping
-        if not jobmanager_url:
-            # Check if FLINK_JOBMANAGER_URL is in settings, otherwise guess based on infra
-            # Since we didn't add FLINK_JOBMANAGER_URL to config.py yet, we use a sensible default
-            # internal to the docker network: http://voyant_flink_jobmanager:8081
-            self.base_url = "http://voyant_flink_jobmanager:8081"
-        else:
-            self.base_url = jobmanager_url.rstrip("/")
+        self.base_url = (
+            jobmanager_url.rstrip("/")
+            if jobmanager_url
+            else "http://voyant_flink_jobmanager:8081"
+        )
 
     def get_overview(self) -> Dict[str, Any]:
         """Get cluster overview."""
@@ -66,18 +61,55 @@ class FlinkClient:
         except Exception as e:
             raise FlinkClientError(f"Failed to list jobs: {e}")
 
-    def submit_jar(self, jar_id: str, entry_class: Optional[str] = None, program_args: Optional[str] = None) -> str:
+    def submit_jar(
+        self,
+        jar_id: str,
+        entry_class: Optional[str] = None,
+        program_args: Optional[str] = None,
+        parallelism: Optional[int] = None,
+    ) -> str:
         """
         Submit a job from an uploaded JAR.
-        
-        Note: For PyFlink, we often communicate via the table API or CLI, but REST submission
-        supports jars. Python script submission usually requires the remote environment execution.
         """
-        # Placeholder for JAR submission logic
-        raise NotImplementedError("JAR submission not yet implemented.")
+        payload: Dict[str, Any] = {}
+        if entry_class:
+            payload["entryClass"] = entry_class
+        if program_args:
+            payload["programArgs"] = program_args
+        if parallelism is not None:
+            payload["parallelism"] = parallelism
+
+        url = f"{self.base_url}/jars/{jar_id}/run"
+        try:
+            response = httpx.post(url, json=payload, timeout=30.0)
+            response.raise_for_status()
+            data = response.json()
+            job_id = data.get("jobid")
+            if not job_id:
+                raise FlinkClientError("Flink run response did not include jobid.")
+            return job_id
+        except Exception as e:
+            raise FlinkClientError(f"Failed to submit JAR {jar_id}: {e}") from e
 
     def upload_jar(self, jar_path: str) -> str:
         """Upload a JAR file."""
+        path = Path(jar_path)
+        if not path.exists() or not path.is_file():
+            raise FlinkClientError(f"JAR file not found: {jar_path}")
+
         url = f"{self.base_url}/jars/upload"
-        # Implementation skipped for now as we focus on PyFlink runner
-        raise NotImplementedError("JAR upload not yet implemented.")
+        try:
+            with path.open("rb") as file_obj:
+                response = httpx.post(
+                    url,
+                    files={"jarfile": (path.name, file_obj, "application/java-archive")},
+                    timeout=60.0,
+                )
+            response.raise_for_status()
+            data = response.json()
+            filename = data.get("filename", "")
+            if not filename:
+                raise FlinkClientError("Flink upload response missing filename.")
+            return filename.rsplit("/", 1)[-1]
+        except Exception as e:
+            raise FlinkClientError(f"Failed to upload JAR {jar_path}: {e}") from e

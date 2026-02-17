@@ -6,7 +6,7 @@ subpackage, exporting key parser classes for HTML, PDF, and OCR.
 """
 
 from .html_parser import HTMLParser
-from .pdf_parser import PDFParser
 from .ocr_processor import OCRProcessor
+from .pdf_parser import PDFParser
 
 __all__ = ["HTMLParser", "PDFParser", "OCRProcessor"]

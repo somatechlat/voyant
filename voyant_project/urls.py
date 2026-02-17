@@ -182,6 +182,4 @@ urlpatterns = [
     path("version", version_view),
     # Includes all v1 application API routes from the NinjaAPI instance.
     path("v1/", v1_api.urls),
-    # Model Context Protocol (MCP) Endpoint
-    path("mcp/", include("mcp_server.urls")),
 ]

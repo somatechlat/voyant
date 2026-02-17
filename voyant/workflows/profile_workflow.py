@@ -11,6 +11,7 @@ from datetime import timedelta
 from typing import Any, Dict
 
 from temporalio import workflow
+
 from voyant.core.retry_config import EXTERNAL_SERVICE_RETRY
 
 # This context manager is necessary to allow importing non-workflow/activity

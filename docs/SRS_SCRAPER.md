@@ -16,7 +16,7 @@
 
 This document specifies the requirements for the **DataScraper** module, a web scraping subsystem built as an integral part of the Voyant platform. The module extends Voyant's data intelligence capabilities with browser automation, agent-provided CSS/XPath extraction, OCR, and media transcription.
 
-> **VIBE COMPLIANCE**: DataScraper is a PURE EXECUTION module. NO LLM integration. Agent Zero provides all selectors and intelligence.
+> **Production COMPLIANCE**: DataScraper is a PURE EXECUTION module. NO LLM integration. Agent Zero provides all selectors and intelligence.
 
 ### 1.2 Scope
 
@@ -57,7 +57,7 @@ voyant/
     └── server.py               # UPDATE: Add scrape.* tools
 ```
 
-### 1.4 Technology Stack (VIBE Compliant + Full Scraping Toolkit)
+### 1.4 Technology Stack (Production Compliant + Full Scraping Toolkit)
 
 | Layer | Technology | Purpose |
 |-------|------------|---------|
@@ -148,7 +148,7 @@ class PlaywrightClient:
 | **Input** | Agent-provided CSS/XPath selectors |
 | **Mode** | Pure mechanical execution |
 
-> **VIBE COMPLIANCE**: DataScraper does NOT generate selectors. Agent Zero (the Brain) provides all selectors. DataScraper (the Muscle) executes extraction mechanically.
+> **Production COMPLIANCE**: DataScraper does NOT generate selectors. Agent Zero (the Brain) provides all selectors. DataScraper (the Muscle) executes extraction mechanically.
 
 **Selector Input Format:**
 ```python

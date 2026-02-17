@@ -9,7 +9,7 @@ formats like Excel, to enable fast and straightforward data loading for analysis
 
 import logging
 import os
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict
 
 import duckdb
 import pandas as pd
@@ -78,7 +78,7 @@ class DirectFileIngester:
                 )
             elif ext in [".xlsx", ".xls"]:
                 # For Excel files, use pandas for robust parsing, then load into DuckDB.
-                df = pd.read_excel(file_path)
+                df = pd.read_excel(file_path)  # noqa: F841 - DuckDB references this DataFrame directly
                 self.conn.execute(
                     f"CREATE TABLE IF NOT EXISTS {table_name} AS SELECT * FROM df"
                 )

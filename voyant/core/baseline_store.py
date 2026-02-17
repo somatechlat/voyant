@@ -36,11 +36,10 @@ import hashlib
 import json
 import logging
 import time
+from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from pathlib import Path
-from typing import Dict, Any, List, Optional, Tuple
-from dataclasses import dataclass, field, asdict
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 

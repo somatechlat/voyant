@@ -19,10 +19,10 @@ from temporalio import workflow
 # modules within the workflow definition. It passes control to the Python
 # import system directly, bypassing Temporal's default import handling.
 with workflow.unsafe.imports_passed_through():
-    from voyant.activities.profile_activities import ProfileActivities
     from voyant.activities.analysis_activities import AnalysisActivities
     from voyant.activities.generation_activities import GenerationActivities
     from voyant.activities.kpi_activities import KPIActivities
+    from voyant.activities.profile_activities import ProfileActivities
 
 
 @workflow.defn
