@@ -25,7 +25,7 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
             - name: AIRBYTE_URL
-              value: {{ ternary (printf "http://%s-airbyte-server:8001" (include "voyant-udb.name" .)) (.Values.airbyte.externalUrl | default "http://airbyte-server:8001") .Values.airbyte.enabled }}
+              value: {{ ternary .Values.airbyte.internalUrl .Values.airbyte.externalUrl .Values.airbyte.enabled | quote }}
             - name: DUCKDB_PATH
               value: /data/warehouse.duckdb
             - name: ARTIFACTS_ROOT
@@ -58,7 +58,7 @@ spec:
             {{- end }}
             {{- if .Values.redis.enabled }}
             - name: REDIS_URL
-              value: redis://redis:6379/0
+              value: {{ .Values.redis.url | quote }}
             {{- end }}
             {{- if .Values.features.kestra }}
             - name: UDB_ENABLE_KESTRA

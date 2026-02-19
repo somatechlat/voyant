@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ENDPOINT=${1:-http://localhost:8000/readyz}
+ENDPOINT=${1:-${VOYANT_READY_ENDPOINT:-}}
+if [[ -z "${ENDPOINT}" ]]; then
+  echo "VOYANT_READY_ENDPOINT is required" >&2
+  exit 1
+fi
 TIMEOUT=${TIMEOUT:-120}
 INTERVAL=3
 

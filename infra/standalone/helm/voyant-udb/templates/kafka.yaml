@@ -22,7 +22,7 @@ spec:
             - name: KAFKA_CFG_NODE_ID
               value: {{ .Values.kafka.kraft.nodeId | quote }}
             - name: KAFKA_CFG_CONTROLLER_QUORUM_VOTERS
-              value: "{{ .Values.kafka.kraft.nodeId }}@localhost:{{ .Values.kafka.kraft.controllerPort }}"
+              value: "{{ .Values.kafka.kraft.nodeId }}@{{ .Values.kafka.kraft.controllerHost }}:{{ .Values.kafka.kraft.controllerPort }}"
             - name: KAFKA_CFG_LISTENERS
               value: "PLAINTEXT://:9092,CONTROLLER://:{{ .Values.kafka.kraft.controllerPort }}"
             - name: KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP

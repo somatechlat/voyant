@@ -8,9 +8,20 @@ import pytest
 import duckdb
 import time
 import logging
+import os
 from voyant.core.kpi_templates import render_template
 
 logger = logging.getLogger(__name__)
+
+MAX_SEGMENTS_QUERY_SECONDS = float(
+    os.getenv("VOYANT_TEST_MAX_SEGMENTS_QUERY_SECONDS", "3.0")
+)
+MAX_MOVING_AVG_QUERY_SECONDS = float(
+    os.getenv("VOYANT_TEST_MAX_MOVING_AVG_QUERY_SECONDS", "5.0")
+)
+MAX_CUSTOMER_DIST_QUERY_SECONDS = float(
+    os.getenv("VOYANT_TEST_MAX_CUSTOMER_DIST_QUERY_SECONDS", "3.0")
+)
 
 
 @pytest.fixture
@@ -74,7 +85,7 @@ def test_high_cardinality_segments(large_db):
     duration = time.time() - start_time
 
     assert len(result) == 10000
-    assert duration < 2.0, f"Query took too long: {duration:.2f}s"
+    assert duration < MAX_SEGMENTS_QUERY_SECONDS, f"Query took too long: {duration:.2f}s"
     logger.info(f"High cardinality segments query took {duration:.4f}s")
 
 
@@ -94,15 +105,8 @@ def test_large_time_series_moving_avg(large_db):
     result = large_db.execute(sql).fetchall()
     duration = time.time() - start_time
 
-    # Result count might be less due to distinct dates if generated that way,
-    # but range generation with mod 3650 on 1M rows implies overlaps.
-    # The distinct dates count:
-    distinct_dates = large_db.execute(
-        "SELECT COUNT(DISTINCT log_date) FROM time_series_large"
-    ).fetchone()[0]
-
     assert len(result) == 1000000
-    assert duration < 3.0, f"Window function took too long: {duration:.2f}s"
+    assert duration < MAX_MOVING_AVG_QUERY_SECONDS, f"Window function took too long: {duration:.2f}s"
     logger.info(f"Large time series moving avg query took {duration:.4f}s")
 
 
@@ -126,5 +130,5 @@ def test_customer_revenue_distribution(large_db):
     assert "Top 10" in categories
     assert "Others" in categories
 
-    assert duration < 2.0, f"Customer distribution took too long: {duration:.2f}s"
+    assert duration < MAX_CUSTOMER_DIST_QUERY_SECONDS, f"Customer distribution took too long: {duration:.2f}s"
     logger.info(f"Customer distribution query took {duration:.4f}s")

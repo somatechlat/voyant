@@ -32,7 +32,7 @@ class PlaywrightClient:
 
         Args:
             headless (bool): If True, the browser runs in headless mode (without a UI).
-            proxy (Optional[str]): A proxy server URL (e.g., "http://localhost:8080") for network requests.
+            proxy (Optional[str]): A proxy server URL (e.g., "http://proxy.internal:8080") for network requests.
         """
         self.headless = headless
         self.proxy = proxy

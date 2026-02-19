@@ -1002,7 +1002,7 @@ class Dataset:
 **Unit Tests** (pytest):
 - 80%+ coverage
 - All scraper strategies
-- Temporal activities (mocked)
+- Temporal activities and workflow-facing service logic
 - Data validation logic
 
 **Integration Tests**:

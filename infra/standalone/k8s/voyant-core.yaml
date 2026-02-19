@@ -31,11 +31,11 @@ spec:
           image: postgres:16-alpine
           env:
             - name: POSTGRES_USER
-              value: voyant
+              value: "${POSTGRES_USER}"
             - name: POSTGRES_PASSWORD
-              value: voyant
+              value: "${POSTGRES_PASSWORD}"
             - name: POSTGRES_DB
-              value: voyant
+              value: "${POSTGRES_DB}"
           ports:
             - containerPort: 5432
           volumeMounts:
@@ -86,7 +86,7 @@ spec:
           command:
             - redis-server
             - --requirepass
-            - voyant
+            - "${REDIS_PASSWORD}"
             - --maxmemory
             - 100mb
             - --maxmemory-policy
@@ -139,9 +139,9 @@ spec:
           args: [ "server", "/data", "--console-address", ":9001" ]
           env:
             - name: MINIO_ROOT_USER
-              value: voyant
+              value: "${MINIO_ROOT_USER}"
             - name: MINIO_ROOT_PASSWORD
-              value: voyant123
+              value: "${MINIO_ROOT_PASSWORD}"
           ports:
             - containerPort: 9000
             - containerPort: 9001
@@ -178,7 +178,7 @@ spec:
             - /bin/sh
             - -c
             - |
-              mc alias set voyant http://minio:9000 voyant voyant123;
+              mc alias set voyant ${MINIO_INTERNAL_URL} ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
               mc mb voyant/artifacts --ignore-existing;
               mc mb voyant/warehouse --ignore-existing;
               mc mb voyant/staging --ignore-existing;
@@ -238,7 +238,7 @@ spec:
             - name: KAFKA_AUTO_CREATE_TOPICS_ENABLE
               value: "true"
             - name: CLUSTER_ID
-              value: voyant-local-cluster
+              value: "${KAFKA_CLUSTER_ID}"
             - name: KAFKA_HEAP_OPTS
               value: -Xmx512m -Xms256m
           ports:
@@ -295,11 +295,11 @@ spec:
             - name: DB_PORT
               value: "5432"
             - name: POSTGRES_USER
-              value: voyant
+              value: "${POSTGRES_USER}"
             - name: POSTGRES_PWD
-              value: voyant
+              value: "${POSTGRES_PASSWORD}"
             - name: POSTGRES_SEEDS
-              value: postgres
+              value: "${POSTGRES_HOST}"
           ports:
             - containerPort: 7233
           resources:
@@ -344,7 +344,7 @@ spec:
             - name: TEMPORAL_ADDRESS
               value: temporal:7233
             - name: TEMPORAL_CORS_ORIGINS
-              value: http://localhost:3000
+              value: "${TEMPORAL_CORS_ORIGINS}"
           ports:
             - containerPort: 8080
           resources:
@@ -390,37 +390,37 @@ spec:
             - containerPort: 8000
           env:
             - name: VOYANT_ENV
-              value: local
+              value: "${VOYANT_ENV}"
             - name: VOYANT_SECRETS_BACKEND
-              value: env
+              value: "${VOYANT_SECRETS_BACKEND}"
             - name: DATABASE_URL
-              value: postgresql://voyant:voyant@postgres:5432/voyant
+              value: "${DATABASE_URL}"
             - name: REDIS_URL
-              value: redis://:voyant@redis:6379/0
+              value: "${REDIS_URL}"
             - name: KAFKA_BOOTSTRAP_SERVERS
-              value: kafka:29092
+              value: "${KAFKA_BOOTSTRAP_SERVERS}"
             - name: MINIO_ENDPOINT
-              value: minio:9000
+              value: "${MINIO_ENDPOINT}"
             - name: MINIO_ACCESS_KEY
-              value: voyant
+              value: "${MINIO_ACCESS_KEY}"
             - name: MINIO_SECRET_KEY
-              value: voyant123
+              value: "${MINIO_SECRET_KEY}"
             - name: DATAHUB_GMS_URL
-              value: http://datahub-gms:8080
+              value: "${DATAHUB_GMS_URL}"
             - name: TRINO_URL
-              value: http://trino:8080
+              value: "${TRINO_URL}"
             - name: KEYCLOAK_URL
-              value: http://keycloak:8080
+              value: "${KEYCLOAK_URL}"
             - name: KEYCLOAK_REALM
-              value: voyant
+              value: "${KEYCLOAK_REALM}"
             - name: KEYCLOAK_CLIENT_ID
-              value: voyant-api
+              value: "${KEYCLOAK_CLIENT_ID}"
             - name: KEYCLOAK_CLIENT_SECRET
-              value: voyant-api-secret
+              value: "${KEYCLOAK_CLIENT_SECRET}"
             - name: LAGO_API_URL
-              value: http://lago-api:3000
+              value: "${LAGO_API_URL}"
             - name: LAGO_API_KEY
-              value: lago-api-key
+              value: "${LAGO_API_KEY}"
             - name: VOYANT_ENABLE_QUALITY
               value: "true"
             - name: VOYANT_ENABLE_BILLING
@@ -428,9 +428,9 @@ spec:
             - name: VOYANT_ENABLE_DATAHUB
               value: "true"
             - name: TEMPORAL_HOST
-              value: temporal:7233
+              value: "${TEMPORAL_HOST}"
             - name: TEMPORAL_TASK_QUEUE
-              value: voyant-tasks
+              value: "${TEMPORAL_TASK_QUEUE}"
           readinessProbe:
             httpGet:
               path: /ready
@@ -472,15 +472,15 @@ spec:
           command: [ "python", "-m", "voyant.worker.worker_main" ]
           env:
             - name: DATABASE_URL
-              value: postgresql://voyant:voyant@postgres:5432/voyant
+              value: "${DATABASE_URL}"
             - name: REDIS_URL
-              value: redis://:voyant@redis:6379/0
+              value: "${REDIS_URL}"
             - name: KAFKA_BOOTSTRAP_SERVERS
-              value: kafka:29092
+              value: "${KAFKA_BOOTSTRAP_SERVERS}"
             - name: TEMPORAL_HOST
-              value: temporal:7233
+              value: "${TEMPORAL_HOST}"
             - name: TEMPORAL_TASK_QUEUE
-              value: voyant-tasks
+              value: "${TEMPORAL_TASK_QUEUE}"
           ports:
             - containerPort: 9090
           resources:

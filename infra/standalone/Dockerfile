@@ -39,6 +39,25 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Optional: transcription dependencies (CPU/GPU controlled explicitly)
+# CPU-only default: VOYANT_WITH_TRANSCRIBE=0 means no Whisper/torch installed.
+ARG VOYANT_WITH_TRANSCRIBE=0
+ARG VOYANT_TORCH_DEVICE=cpu
+ARG PYTORCH_INDEX_URL_CPU=
+ARG PYTORCH_INDEX_URL_CUDA=
+RUN if [ "${VOYANT_WITH_TRANSCRIBE}" = "1" ]; then \
+      if [ "${VOYANT_TORCH_DEVICE}" = "cpu" ]; then \
+        test -n "${PYTORCH_INDEX_URL_CPU}" || (echo "PYTORCH_INDEX_URL_CPU is required when VOYANT_TORCH_DEVICE=cpu" && exit 1); \
+        pip install --no-cache-dir --index-url "${PYTORCH_INDEX_URL_CPU}" torch; \
+      elif [ "${VOYANT_TORCH_DEVICE}" = "cuda" ]; then \
+        test -n "${PYTORCH_INDEX_URL_CUDA}" || (echo "PYTORCH_INDEX_URL_CUDA is required when VOYANT_TORCH_DEVICE=cuda" && exit 1); \
+        pip install --no-cache-dir --index-url "${PYTORCH_INDEX_URL_CUDA}" torch; \
+      else \
+        echo "Invalid VOYANT_TORCH_DEVICE=${VOYANT_TORCH_DEVICE} (expected cpu|cuda)" && exit 1; \
+      fi; \
+      pip install --no-cache-dir openai-whisper; \
+    fi
+
 # Install Playwright browsers (Chromium only for smaller image)
 RUN playwright install chromium
 
@@ -51,10 +70,6 @@ COPY voyant_project/ ./voyant_project/
 # Set environment
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
 
 # Run the application
 EXPOSE 8000

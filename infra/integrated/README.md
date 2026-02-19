@@ -45,10 +45,10 @@ docker compose --env-file .env.integrated up -d
 
 ```bash
 # Check Voyant health
-curl http://localhost:8080/health
+curl "${VOYANT_API_HEALTHCHECK_URL}"
 
 # Test MCP (from agent)
-curl -X POST http://localhost:8081/mcp \
+curl -X POST "${VOYANT_MCP_API_URL}/mcp" \
   -H "Content-Type: application/json" \
   -d '{"method": "voyant.analyze", "params": {...}}'
 ```

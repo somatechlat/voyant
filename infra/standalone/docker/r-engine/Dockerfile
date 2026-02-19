@@ -1,5 +1,8 @@
 FROM r-base:4.3.1
 
+ARG CRAN_REPO
+ENV CRAN_REPO=${CRAN_REPO}
+
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     libcurl4-openssl-dev \
@@ -13,7 +16,7 @@ RUN apt-get update && apt-get install -y \
 # forecast: for time series (Phase 3 prep)
 # tseries: for time series analysis
 # dplyr: for data manipulation
-RUN R -e "install.packages(c('jsonlite', 'Rserve', 'forecast', 'tseries', 'dplyr', 'readr'), repos='http://cran.rstudio.com/')"
+RUN R -e "install.packages(c('jsonlite', 'Rserve', 'forecast', 'tseries', 'dplyr', 'readr'), repos=Sys.getenv('CRAN_REPO'))"
 
 # Create user
 RUN useradd -m -s /bin/bash voyant

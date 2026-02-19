@@ -8,7 +8,8 @@ from urllib.parse import urlparse
 
 # Load environment variables from .env file
 from dotenv import load_dotenv
-load_dotenv()
+if os.environ.get("VOYANT_ENV") == "local":
+    load_dotenv()
 
 # Import security settings
 from .security_settings import security_settings
@@ -86,7 +87,7 @@ def _parse_database_url(url: str) -> dict[str, str | int]:
 # Always override these with secure values in production environments.
 
 # SECURITY WARNING: Keep the secret key used in production secret!
-SECRET_KEY = _get_env("VOYANT_SECRET_KEY")
+SECRET_KEY = _get_env("VOYANT_SECRET_KEY", _get_env("DJANGO_SECRET_KEY"))
 
 # SECURITY WARNING: Don't run with debug turned on in production!
 DEBUG = _get_env("VOYANT_DEBUG", "false").lower() in ("1", "true", "yes")
@@ -95,10 +96,12 @@ DEBUG = _get_env("VOYANT_DEBUG", "false").lower() in ("1", "true", "yes")
 # '*' is insecure and should not be used in a production environment.
 ALLOWED_HOSTS = [h for h in _get_env("VOYANT_ALLOWED_HOSTS", "").split(",") if h]
 
-# SECURITY WARNING: Always use HTTPS in production. This setting forces HTTPS when security is enabled.
-SECURE_SSL_REDIRECT = security_settings.security_enabled and not DEBUG
-SESSION_COOKIE_SECURE = security_settings.security_enabled and not DEBUG
-CSRF_COOKIE_SECURE = security_settings.security_enabled and not DEBUG
+# SECURITY WARNING: Always use HTTPS in production.
+# Local/dev environments commonly run without TLS; enforce HTTPS only outside local.
+_voyant_env = _get_env("VOYANT_ENV", "local")
+SECURE_SSL_REDIRECT = security_settings.security_enabled and not DEBUG and _voyant_env != "local"
+SESSION_COOKIE_SECURE = security_settings.security_enabled and not DEBUG and _voyant_env != "local"
+CSRF_COOKIE_SECURE = security_settings.security_enabled and not DEBUG and _voyant_env != "local"
 
 # --- Application Definition ---
 
@@ -162,9 +165,9 @@ ASGI_APPLICATION = "voyant_project.asgi.application"
 # --- Database Configuration ---
 # https://docs.djangoproject.com/en/stable/ref/settings/#databases
 # Database connection is configured via a single DATABASE_URL environment variable.
-DATABASE_URL = _get_env(
-    "DATABASE_URL", "postgresql://voyant:voyant@localhost:45432/voyant"
-)
+DATABASE_URL = _get_env("DATABASE_URL")
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL must be configured")
 DATABASES = {"default": _parse_database_url(DATABASE_URL)}
 
 
@@ -241,12 +244,12 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # --- Email Settings (for notifications) ---
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = _get_env("EMAIL_HOST", "localhost")
+EMAIL_HOST = _get_env("EMAIL_HOST")
 EMAIL_PORT = int(_get_env("EMAIL_PORT", "587"))
 EMAIL_USE_TLS = _get_env("EMAIL_USE_TLS", "true").lower() in ("1", "true", "yes")
 EMAIL_HOST_USER = _get_env("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = _get_env("EMAIL_HOST_PASSWORD", "")
-DEFAULT_FROM_EMAIL = _get_env("DEFAULT_FROM_EMAIL", "noreply@voyant.local")
+DEFAULT_FROM_EMAIL = _get_env("DEFAULT_FROM_EMAIL")
 
 # --- Logging Configuration ---
 LOGGING = {
@@ -328,7 +331,7 @@ os.makedirs(os.path.join(BASE_DIR, "logs"), exist_ok=True)
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": _get_env("REDIS_URL", "redis://:voyant@localhost:45379/0"),
+        "LOCATION": _get_env("REDIS_URL"),
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
             "IGNORE_EXCEPTIONS": True,

@@ -17,7 +17,10 @@ async def test_airbyte_health():
     This test attempts to get an Airbyte client instance and perform a health check.
     If Airbyte is not reachable, the test is skipped.
     """
-    client = get_airbyte_client()
+    try:
+        client = get_airbyte_client()
+    except ValueError:
+        pytest.skip("Airbyte base_url is not configured in this environment. Skipping test.")
     healthy = await client.is_healthy()  # Corrected method call from .health() to .is_healthy()
     if not healthy:
         pytest.skip("Airbyte not reachable in this environment. Skipping test.")

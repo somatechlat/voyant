@@ -8,6 +8,7 @@ replicaCount: 2
 service:
   type: ClusterIP
   port: 80
+  internalUrl: "${API_INTERNAL_URL}"
 
 features:
   quality: true
@@ -20,8 +21,8 @@ features:
   kestra: false
 
 kestra:
-  baseUrl: "http://kestra:8080"
-  apiToken: ""
+  baseUrl: "${KESTRA_BASE_URL}"
+  apiToken: "${KESTRA_API_TOKEN}"
 
 resources:
   limits:
@@ -48,6 +49,7 @@ persistence:
 redis:
   enabled: true
   image: redis:7
+  url: "${REDIS_URL}"
 
 kafka:
   enabled: true
@@ -56,6 +58,7 @@ kafka:
     enabled: true
     nodeId: 1
     controllerPort: 9093
+    controllerHost: "${KAFKA_CONTROLLER_HOST}"
 
 postgres:
   enabled: true
@@ -65,11 +68,13 @@ postgres:
 airbyte:
   enabled: true
   version: 0.50.48
+  externalUrl: "${AIRBYTE_URL}"
+  internalUrl: "${AIRBYTE_INTERNAL_URL}"
 
 ingress:
   enabled: false
   className: nginx
-  host: udb.local
+  host: "${INGRESS_HOST}"
   annotations: {}
   tls: []
 

@@ -25,7 +25,7 @@ def test_kmeans():
     logger.info("Testing K-Means...")
     ml = MLPrimitives()
 
-    # Generate mock data
+    # Generate synthetic data for deterministic-style verification
     data = []
     # Cluster 1
     for _ in range(10):
@@ -46,7 +46,7 @@ def test_prophet():
     logger.info("Testing Prophet...")
     fc = ForecastPrimitives()
 
-    # Generate mock time series
+    # Generate synthetic time series
     dates = []
     values = []
     base = datetime.now()

@@ -21,8 +21,8 @@ nodeSelector: {}
 tolerations: []
 affinity: {}
 env:
-  AIRBYTE_URL: http://airbyte-server:8001
-  AIRBYTE_WORKSPACE_ID: ""
+  AIRBYTE_URL: "${AIRBYTE_URL}"
+  AIRBYTE_WORKSPACE_ID: "${AIRBYTE_WORKSPACE_ID}"
   DUCKDB_PATH: /data/warehouse.duckdb
   ARTIFACTS_ROOT: /artifacts
 persistence:

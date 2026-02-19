@@ -64,7 +64,7 @@ class AirbyteClientConfig:
     Configuration settings for the Airbyte client.
 
     Attributes:
-        base_url (str): The base URL for the Airbyte API (e.g., "http://localhost:8000/api/v1").
+        base_url (str): The base URL for the Airbyte API.
         timeout_seconds (float): Default timeout for HTTP requests in seconds.
         max_retries (int): Maximum number of retries for transient HTTP errors.
         cb_failure_threshold (int): Number of consecutive failures before the circuit opens.
@@ -75,7 +75,7 @@ class AirbyteClientConfig:
         basic_auth_password (Optional[str]): Password for basic authentication.
     """
 
-    base_url: str = "http://localhost:8000/api/v1"
+    base_url: str = ""
     timeout_seconds: float = 30.0
     max_retries: int = 3
 
@@ -114,6 +114,8 @@ class AirbyteClient:
                                                     If None, a default configuration is used.
         """
         self.config = config or AirbyteClientConfig()
+        if not self.config.base_url:
+            raise ValueError("Airbyte base_url must be configured")
         self._client: Optional[httpx.AsyncClient] = None
         self._circuit_breaker: CircuitBreaker
 

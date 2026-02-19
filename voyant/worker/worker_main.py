@@ -14,6 +14,8 @@ The worker is crucial for executing the business logic orchestrated by Temporal 
 import asyncio
 import logging
 import signal
+from concurrent.futures import ThreadPoolExecutor
+import os
 
 from temporalio.worker import Worker
 
@@ -59,6 +61,24 @@ logging.basicConfig(
 logger = logging.getLogger("voyant.worker")
 
 
+def _setup_django() -> None:
+    """
+    Ensure Django is configured for activities that use the ORM.
+
+    Temporal workers execute activities in a plain Python process; unlike the API
+    server they don't automatically configure Django. Several activities (e.g.
+    scraper artifact persistence) rely on the ORM, so we must call django.setup()
+    before the worker starts polling tasks.
+    """
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "voyant_project.settings")
+    try:
+        import django
+
+        django.setup()
+    except Exception:
+        logger.exception("Failed to initialize Django. ORM-backed activities will fail.")
+
+
 async def run_worker():
     """
     Runs the Temporal worker process.
@@ -74,6 +94,9 @@ async def run_worker():
         Exception: If the worker fails to connect to Temporal or crashes during execution.
     """
     settings = get_settings()
+    logger.info("Worker mode: %s", settings.worker_mode)
+
+    _setup_django()
 
     # 0. Start Metrics Server for Prometheus exposition.
     metrics = MetricsRegistry()
@@ -87,63 +110,86 @@ async def run_worker():
         return
 
     # 2. Define and Register Workflows and Activities.
-    # All workflows and activities must be registered with the worker
-    # so Temporal knows how to execute them.
-    workflows = [
-        IngestDataWorkflow,
-        ProfileWorkflow,
-        AnalyzeWorkflow,
-        QualityWorkflow,
-        BenchmarkBrandWorkflow,
-        DetectAnomaliesWorkflow,
-        AnalyzeSentimentWorkflow,
-        FixDataQualityWorkflow,
-        SegmentCustomersWorkflow,
-        LinearRegressionWorkflow,
-        ScrapeWorkflow,
-        StreamingJobWorkflow,  # Flink Integration (FR-21)
-    ]
-    activities = [
-        IngestActivities().run_ingestion,
-        IngestActivities().sync_airbyte,
-        ProfileActivities().profile_data,
-        AnalysisActivities().fetch_sample,
-        AnalysisActivities().run_analyzers,
-        GenerationActivities().run_generators,
-        KPIActivities().run_kpis,
-        QualityActivities().fetch_sample,
-        QualityActivities().run_quality_checks,
-        StatsActivities().calculate_market_share,
-        StatsActivities().perform_hypothesis_test,
-        StatsActivities().describe_distribution,
-        StatsActivities().calculate_correlation,
-        StatsActivities().fit_distribution,
-        MLActivities().cluster_data,
-        MLActivities().train_classifier_model,
-        MLActivities().forecast_time_series,
-        MLActivities().train_regression_model,
-        DiscoveryActivities().search_for_apis,
-        DiscoveryActivities().scan_spec_url,
-        OperationalActivities().detect_anomalies,
-        OperationalActivities().analyze_sentiment_batch,
-        OperationalActivities().fix_data_quality,
-        OperationalActivities().clean_data,
-        # DataScraper activities (Pure Execution)
-        ScrapeActivities().fetch_page,
-        ScrapeActivities().extract_data,
-        ScrapeActivities().process_ocr,
-        ScrapeActivities().transcribe_media,
-        ScrapeActivities().parse_pdf,
-        ScrapeActivities().store_artifact,
-        ScrapeActivities().finalize_job,
-        # Streaming activities (Flink - FR-21)
-        StreamingActivities().get_cluster_overview,
-        StreamingActivities().list_running_jobs,
-        StreamingActivities().submit_streaming_job,
-    ]
+    # Temporal validates workflows in a sandbox. Some optional modules used by
+    # non-scraper workflows can violate sandbox restrictions at import-time.
+    # We support a dedicated "scraper" mode to run scraping workflows/tools reliably.
+    if settings.worker_mode == "scraper":
+        workflows = [ScrapeWorkflow]
+        activities = [
+            ScrapeActivities().fetch_page,
+            ScrapeActivities().extract_data,
+            ScrapeActivities().process_ocr,
+            ScrapeActivities().transcribe_media,
+            ScrapeActivities().parse_pdf,
+            ScrapeActivities().store_artifact,
+            ScrapeActivities().finalize_job,
+        ]
+    else:
+        workflows = [
+            IngestDataWorkflow,
+            ProfileWorkflow,
+            AnalyzeWorkflow,
+            QualityWorkflow,
+            BenchmarkBrandWorkflow,
+            DetectAnomaliesWorkflow,
+            AnalyzeSentimentWorkflow,
+            FixDataQualityWorkflow,
+            SegmentCustomersWorkflow,
+            LinearRegressionWorkflow,
+            ScrapeWorkflow,
+            StreamingJobWorkflow,  # Flink Integration (FR-21)
+        ]
+        activities = [
+            IngestActivities().run_ingestion,
+            IngestActivities().sync_airbyte,
+            ProfileActivities().profile_data,
+            AnalysisActivities().fetch_sample,
+            AnalysisActivities().run_analyzers,
+            GenerationActivities().run_generators,
+            KPIActivities().run_kpis,
+            QualityActivities().fetch_sample,
+            QualityActivities().run_quality_checks,
+            StatsActivities().calculate_market_share,
+            StatsActivities().perform_hypothesis_test,
+            StatsActivities().describe_distribution,
+            StatsActivities().calculate_correlation,
+            StatsActivities().fit_distribution,
+            MLActivities().cluster_data,
+            MLActivities().train_classifier_model,
+            MLActivities().forecast_time_series,
+            MLActivities().train_regression_model,
+            DiscoveryActivities().search_for_apis,
+            DiscoveryActivities().scan_spec_url,
+            OperationalActivities().detect_anomalies,
+            OperationalActivities().analyze_sentiment_batch,
+            OperationalActivities().fix_data_quality,
+            OperationalActivities().clean_data,
+            # DataScraper activities (Pure Execution)
+            ScrapeActivities().fetch_page,
+            ScrapeActivities().extract_data,
+            ScrapeActivities().process_ocr,
+            ScrapeActivities().transcribe_media,
+            ScrapeActivities().parse_pdf,
+            ScrapeActivities().store_artifact,
+            ScrapeActivities().finalize_job,
+            # Streaming activities (Flink - FR-21)
+            StreamingActivities().get_cluster_overview,
+            StreamingActivities().list_running_jobs,
+            StreamingActivities().submit_streaming_job,
+        ]
 
     task_queue = settings.temporal_task_queue
     logger.info(f"Starting worker and listening on task queue: {task_queue}")
+
+    # Temporal Python requires an activity executor when any registered activity is synchronous.
+    # We use a thread pool sized from config (or derived from CPU) to keep this production-safe.
+    cpu_count = os.cpu_count() or 2
+    max_workers = (
+        settings.temporal_activity_max_workers
+        if settings.temporal_activity_max_workers and settings.temporal_activity_max_workers > 0
+        else min(32, cpu_count * 5)
+    )
+    activity_executor = ThreadPoolExecutor(max_workers=max_workers)
 
     # 3. Create the Temporal Worker instance.
     worker = Worker(
@@ -151,6 +197,7 @@ async def run_worker():
         task_queue=task_queue,
         workflows=workflows,
         activities=activities,
+        activity_executor=activity_executor,
         interceptors=[MetricsInterceptor()], # Interceptors for cross-cutting concerns like metrics.
     )
 
@@ -175,6 +222,7 @@ async def run_worker():
         logger.critical(f"Temporal worker crashed unexpectedly: {e}", exc_info=True)
     finally:
         logger.info("Temporal worker shutdown complete.")
+        activity_executor.shutdown(wait=False)
 
 
 async def main():
@@ -188,3 +236,7 @@ async def main():
         await run_worker()
     except KeyboardInterrupt:
         logger.info("Worker process interrupted by user (Ctrl+C). Exiting.")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

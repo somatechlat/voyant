@@ -5,37 +5,32 @@ Full self-contained deployment with all infrastructure services.
 ## Quick Start
 
 ```bash
-# Development mode
+# Standalone mode (full local stack)
 docker compose up -d
-
-# Production mode (with persistent volumes)
-cp .env.production.example .env.production
-# Edit .env.production with secure values
-docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.production up -d
 ```
 
-## Services Included (17 Total)
+## Services Included (18 Total)
 
 | Service | Port | Purpose |
 |---------|------|---------|
-| voyant-api | 45000 | Main REST API |
-| voyant-mcp | 45001 | MCP Server for Agents |
-| voyant-worker | - | Temporal Workers |
-| postgres | 45432 | PostgreSQL 16 |
-| redis | 45379 | Redis 7 Cache |
-| kafka | 45092 | Kafka 3.7 KRaft |
-| minio | 45900/45901 | Object Storage (S3) |
-| temporal | 45233 | Workflow Orchestration |
-| temporal-ui | 45089 | Temporal Dashboard |
-| spark-master | 45088 | Spark Master |
-| spark-worker | - | Spark Worker |
-| r-engine | 45311 | R Statistical Engine |
-| trino | 45090 | SQL Federation |
-| elasticsearch | - | DataHub Search |
-| datahub-gms | 45080 | DataHub Backend |
-| datahub-frontend | 45002 | DataHub UI |
-| keycloak | 45180 | Identity & Auth |
-| lago-api | 45300 | Billing API |
+| voyant_api | 45000 | Main REST API |
+| voyant_worker | 45090 | Temporal Workers |
+| voyant_postgres | 45432 | PostgreSQL 16 |
+| voyant_redis | 45379 | Redis 7 Cache |
+| voyant_kafka | 45092 | Kafka 3.7 KRaft |
+| voyant_minio | 45900/45901 | Object Storage (S3) |
+| voyant_minio_init | - | MinIO bucket bootstrap |
+| voyant_temporal | 45233 | Workflow Orchestration |
+| voyant_temporal_ui | 45089 | Temporal Dashboard |
+| voyant_trino | 45080 | SQL Federation |
+| voyant_elasticsearch | 45200 | DataHub Search |
+| voyant_datahub_gms | 45081 | DataHub Backend |
+| voyant_datahub_frontend | 45002 | DataHub UI |
+| voyant_keycloak | 45180 | Identity & Auth |
+| voyant_lago_api | 45300 | Billing API |
+| voyant_lago_worker | - | Billing worker |
+| voyant_flink_jobmanager | 45082 | Flink JobManager UI |
+| voyant_flink_taskmanager | - | Flink TaskManager |
 
 ## Memory Budget
 
@@ -53,7 +48,7 @@ Total: ~10GB allocated across all services.
 
 ```bash
 # Check health
-curl http://localhost:45000/health
+curl "${VOYANT_API_HEALTHCHECK_URL}"
 
 # Check all services
 docker compose ps
@@ -62,7 +57,6 @@ docker compose ps
 ## Files
 
 - `docker-compose.yml` - Main stack (dev mode)
-- `docker-compose.prod.yml` - Production overrides
 - `.env.example` - Environment template
 - `.env.production.example` - Production secrets template
 - `Dockerfile` - App image

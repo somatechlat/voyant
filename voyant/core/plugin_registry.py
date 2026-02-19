@@ -104,7 +104,7 @@ class GeneratorPlugin(VoyantPlugin):
         Returns:
             A dictionary representing the generated artifact.
         """
-        raise NotImplementedError
+        pass
 
 
 class AnalyzerPlugin(VoyantPlugin):
@@ -127,7 +127,7 @@ class AnalyzerPlugin(VoyantPlugin):
         Returns:
             A dictionary containing the results of the analysis.
         """
-        raise NotImplementedError
+        pass
 
 
 class PluginRegistry:

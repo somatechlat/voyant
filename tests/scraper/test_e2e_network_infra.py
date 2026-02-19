@@ -17,15 +17,15 @@ from voyant.scraper.parsing.html_parser import HTMLParser
 from voyant.scraper.security import validate_url_ssrf
 
 
-class TestRealWebsiteScraping:
-    """Test scraping REAL public websites."""
+class TestPublicWebsiteScraping:
+    """Test scraping public websites."""
 
     @pytest.fixture
     def parser(self):
         return HTMLParser()
 
     @pytest.mark.asyncio
-    async def test_fetch_real_website_httpbin(self):
+    async def test_fetch_website_httpbin(self):
         """
         E2E Test: Fetch REAL HTML from httpbin.org
         This is a PUBLIC test service.
@@ -48,7 +48,7 @@ class TestRealWebsiteScraping:
         print(f"✅ Fetched {len(html)} bytes from httpbin.org")
 
     @pytest.mark.asyncio
-    async def test_extract_from_real_website(self, parser):
+    async def test_extract_from_website(self, parser):
         """
         E2E Test: Extract data from REAL public website.
         """
@@ -93,11 +93,11 @@ class TestRealWebsiteScraping:
             pytest.skip("SRI.gob.ec unreachable - network issue")
 
 
-class TestRealDNSResolution:
-    """Test real DNS resolution (not mocked)."""
+class TestDnsResolution:
+    """Test DNS resolution (not mocked)."""
 
-    def test_real_dns_google(self):
-        """Verify real DNS resolution works."""
+    def test_dns_google(self):
+        """Verify DNS resolution works."""
         from voyant.scraper.security import resolve_hostname
 
         ip = resolve_hostname("google.com")
@@ -105,7 +105,7 @@ class TestRealDNSResolution:
         # Google IPs typically start with 142. or 172. or 216.
         print(f"✅ google.com resolved to: {ip}")
 
-    def test_real_dns_ecuador(self):
+    def test_dns_ecuador(self):
         """Verify Ecuador domain resolution."""
         from voyant.scraper.security import resolve_hostname
 
@@ -114,11 +114,11 @@ class TestRealDNSResolution:
         print(f"✅ sri.gob.ec resolved to: {ip or 'N/A'}")
 
 
-class TestRealNetworkSecurity:
-    """Test real network security validations."""
+class TestNetworkSecurity:
+    """Test network security validations."""
 
     @pytest.mark.asyncio
-    async def test_ssrf_blocked_in_real_request(self):
+    async def test_ssrf_blocked_before_request(self):
         """
         E2E: Verify SSRF is blocked BEFORE making real request.
         """

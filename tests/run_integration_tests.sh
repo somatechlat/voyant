@@ -11,7 +11,7 @@ export DATABASE_URL=postgresql://voyant:voyant@localhost:45432/voyant
 export REDIS_URL=redis://:voyant@localhost:45379/0
 export KAFKA_BOOTSTRAP_SERVERS=localhost:45092
 export TEMPORAL_HOST=localhost:45233
-export VOYANT_API_URL=http://localhost:45000
+export VOYANT_MCP_API_URL=http://localhost:45000
 export VOYANT_ENV=production
 
 # 2. Check Dependencies

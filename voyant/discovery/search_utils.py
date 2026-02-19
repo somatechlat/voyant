@@ -8,7 +8,6 @@ to the Voyant discovery catalog.
 """
 
 import logging
-import os
 from typing import Any, Dict, List, Optional
 
 import requests
@@ -37,8 +36,8 @@ class SearchClient:
             api_key (Optional[str]): The API key for the Serper search engine. If None,
                                      it defaults to the `SERPER_API_KEY` environment variable.
         """
-        self.api_key = api_key or os.getenv("SERPER_API_KEY")
-        self.base_url = "https://google.serper.dev/search"
+        self.api_key = api_key or settings.serper_api_key
+        self.base_url = settings.serper_search_url
 
     def search_apis(self, query: str, limit: int = 10) -> List[Dict[str, str]]:
         """
@@ -56,6 +55,10 @@ class SearchClient:
                                   contains "title", "link", and "snippet" of a search result.
                                   Returns an empty list if the API key is missing or the search fails.
         """
+        if not self.base_url:
+            logger.warning("SERPER_SEARCH_URL not set. Returning empty search results for query: '%s'.", query)
+            return []
+
         # Ensure that the Serper API key is available.
         if not self.api_key:
             logger.warning("SERPER_API_KEY not set. Returning empty search results for query: '%s'.", query)

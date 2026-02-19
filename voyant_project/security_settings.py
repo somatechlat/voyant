@@ -8,11 +8,12 @@ requirements.
 
 from __future__ import annotations
 
-import os
 from typing import List, Optional
 
-from pydantic import Field, field_validator
+from pydantic import Field, ValidationInfo, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from voyant.core.config import get_settings
 
 
 class SecuritySettings(BaseSettings):
@@ -162,7 +163,7 @@ class SecuritySettings(BaseSettings):
     # Secrets Management
     # --------------------------------------------------------------------------
     secrets_backend: str = Field(
-        default="vault",
+        default="env",
         description="Secrets backend: 'env', 'k8s', 'vault', 'file'."
     )
     secrets_vault_url: Optional[str] = Field(
@@ -270,24 +271,25 @@ class SecuritySettings(BaseSettings):
     @classmethod
     def validate_security_enabled(cls, v):
         """Ensure security is enabled in production."""
-        if os.environ.get("VOYANT_ENV", "local") == "production" and not v:
+        if get_settings().env == "production" and not v:
             raise ValueError("Security must be enabled in production")
         return v
 
     @field_validator("secrets_backend")
     @classmethod
-    def validate_secrets_backend(cls, v):
+    def validate_secrets_backend(cls, v, info: ValidationInfo):
         """Validate secrets backend configuration."""
         if v == "vault":
-            if not os.environ.get("VOYANT_SECURITY_SECRETS_VAULT_URL"):
+            vault_url = info.data.get("secrets_vault_url") or get_settings().secrets_vault_url
+            if not vault_url:
                 raise ValueError("Vault URL required when using vault backend")
         return v
 
     @field_validator("database_ssl_require")
     @classmethod
-    def validate_database_ssl(cls, v):
+    def validate_database_ssl(cls, v, info: ValidationInfo):
         """Validate database SSL configuration."""
-        if v and not os.environ.get("DATABASE_SSL_CERT"):
+        if v and not info.data.get("database_ssl_cert"):
             import warnings
             warnings.warn(
                 "Database SSL required but certificate not configured",

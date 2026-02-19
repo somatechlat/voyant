@@ -356,7 +356,7 @@ class RedisJobQueue(InMemoryJobQueue):
 
     def __init__(
         self,
-        redis_url: str = "redis://localhost:6379/0",
+        redis_url: str,
         default_lease_seconds: int = 300,
     ):
         super().__init__(default_lease_seconds)
