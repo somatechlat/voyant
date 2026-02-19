@@ -29,7 +29,7 @@ Usage:
     # Create authorization URL
     auth_url, state = create_authorization_url(
         provider="google",
-        redirect_uri="http://localhost/callback",
+        redirect_uri="<configured-redirect-uri>",
         scopes=["openid", "email"],
     )
 
@@ -80,48 +80,15 @@ class OAuthConfig:
     def from_env(cls, provider: OAuthProvider) -> "OAuthConfig":
         """Load configuration from environment variables."""
         prefix = f"VOYANT_OAUTH_{provider.value.upper()}_"
-
-        # Provider-specific defaults
-        defaults = {
-            OAuthProvider.GOOGLE: {
-                "authorization_endpoint": "https://accounts.google.com/o/oauth2/v2/auth",
-                "token_endpoint": "https://oauth2.googleapis.com/token",
-                "userinfo_endpoint": "https://openidconnect.googleapis.com/v1/userinfo",
-                "scopes": ["openid", "email", "profile"],
-            },
-            OAuthProvider.GITHUB: {
-                "authorization_endpoint": "https://github.com/login/oauth/authorize",
-                "token_endpoint": "https://github.com/login/oauth/access_token",
-                "userinfo_endpoint": "https://api.github.com/user",
-                "scopes": ["read:user", "user:email"],
-            },
-            OAuthProvider.MICROSOFT: {
-                "authorization_endpoint": "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
-                "token_endpoint": "https://login.microsoftonline.com/common/oauth2/v2.0/token",
-                "userinfo_endpoint": "https://graph.microsoft.com/v1.0/me",
-                "scopes": ["openid", "email", "profile"],
-            },
-        }
-
-        provider_defaults = defaults.get(provider, {})
-
+        raw_scopes = os.getenv(f"{prefix}SCOPES", "")
         return cls(
             provider=provider,
-            client_id=os.getenv(f"{prefix}CLIENT_ID", ""),
-            client_secret=os.getenv(f"{prefix}CLIENT_SECRET", ""),
-            authorization_endpoint=os.getenv(
-                f"{prefix}AUTH_ENDPOINT",
-                provider_defaults.get("authorization_endpoint", ""),
-            ),
-            token_endpoint=os.getenv(
-                f"{prefix}TOKEN_ENDPOINT",
-                provider_defaults.get("token_endpoint", ""),
-            ),
-            userinfo_endpoint=os.getenv(
-                f"{prefix}USERINFO_ENDPOINT",
-                provider_defaults.get("userinfo_endpoint"),
-            ),
-            scopes=provider_defaults.get("scopes", []),
+            client_id=(os.getenv(f"{prefix}CLIENT_ID") or "").strip(),
+            client_secret=(os.getenv(f"{prefix}CLIENT_SECRET") or "").strip(),
+            authorization_endpoint=(os.getenv(f"{prefix}AUTH_ENDPOINT") or "").strip(),
+            token_endpoint=(os.getenv(f"{prefix}TOKEN_ENDPOINT") or "").strip(),
+            userinfo_endpoint=(os.getenv(f"{prefix}USERINFO_ENDPOINT") or "").strip() or None,
+            scopes=[scope.strip() for scope in raw_scopes.split(",") if scope.strip()],
         )
 
 
@@ -442,8 +409,8 @@ def get_oauth_client(provider: OAuthProvider) -> OAuthClient:
     """Get or create OAuth client for provider."""
     if provider.value not in _clients:
         config = OAuthConfig.from_env(provider)
-        if not config.client_id:
-            raise OAuthError(f"OAuth not configured for {provider.value}")
+        if not config.client_id or not config.authorization_endpoint or not config.token_endpoint:
+            raise OAuthError(f"OAuth not fully configured for {provider.value}")
         _clients[provider.value] = OAuthClient(config)
     return _clients[provider.value]
 

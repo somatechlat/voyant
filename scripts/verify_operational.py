@@ -23,7 +23,7 @@ def test_anomaly_detection():
     logger.info("Testing Anomaly Detection...")
     ml = MLPrimitives()
 
-    # Generate mock data with outliers
+    # Generate synthetic data with outliers
     data = []
     # Normal data (N=100)
     for _ in range(100):

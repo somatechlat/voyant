@@ -47,7 +47,7 @@ class ScrapeOcrSchema(Schema):
     """Request schema for OCR processing."""
 
     image_url: str
-    language: str = "spa+eng"
+    language: str = settings.scraper_default_ocr_language
 
 
 class ScrapePdfSchema(Schema):
@@ -61,17 +61,24 @@ class ScrapeTranscribeSchema(Schema):
     """Request schema for audio transcription."""
 
     media_url: str
-    language: str = "es"
+    language: str = settings.scraper_default_transcribe_language
 
 
 class ScrapeFetchSchema(Schema):
     """Request schema for fetching a web page."""
 
     url: str
-    engine: str = "playwright"
+    engine: str = settings.scraper_default_engine
     wait_for: Optional[str] = None
     scroll: bool = False
-    timeout: int = 30
+    timeout: int = settings.scraper_default_timeout_seconds
+    wait_until: Optional[str] = None
+    settle_ms: Optional[int] = None
+    block_resources: Optional[bool] = None
+    capture_json: bool = False
+    capture_url_contains: Optional[List[str]] = None
+    capture_max_bytes: Optional[int] = None
+    capture_max_items: Optional[int] = None
 
 
 class ScrapeJobSchema(Schema):
@@ -183,7 +190,7 @@ def start_scrape(request, payload: ScrapeStartSchema):
     ScrapeJob, _ = _get_models()
     validate_url, validate_urls, SSRFError = _get_security()
 
-    tenant_id = request.headers.get("X-Tenant-ID", "default")
+    tenant_id = request.headers.get("X-Tenant-ID", settings.default_tenant_id)
 
     # Validate all URLs (SSRF protection - Security Auditor)
     try:
@@ -272,6 +279,13 @@ def fetch_page(request, payload: ScrapeFetchSchema):
             "wait_for": payload.wait_for,
             "scroll": payload.scroll,
             "timeout": payload.timeout,
+            "wait_until": payload.wait_until,
+            "settle_ms": payload.settle_ms,
+            "block_resources": payload.block_resources,
+            "capture_json": payload.capture_json,
+            "capture_url_contains": payload.capture_url_contains,
+            "capture_max_bytes": payload.capture_max_bytes,
+            "capture_max_items": payload.capture_max_items,
         },
     )
 
@@ -304,6 +318,9 @@ def parse_pdf(request, payload: ScrapePdfSchema):
 def transcribe_media(request, payload: ScrapeTranscribeSchema):
     """Transcribe one media URL and return text segments."""
     from .activities import ScrapeActivities
+
+    if not settings.scraper_enable_transcribe:
+        return 503, {"error_code": "TRANSCRIPTION_DISABLED"}
 
     activity_runner = ScrapeActivities()
     return _run_async(

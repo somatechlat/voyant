@@ -23,6 +23,7 @@ from temporalio import workflow
 # import system directly, bypassing Temporal's default import handling.
 with workflow.unsafe.imports_passed_through():
     from voyant.scraper.activities import ScrapeActivities
+    from voyant.core.config import get_settings
 
 
 @workflow.defn
@@ -58,6 +59,7 @@ class ScrapeWorkflow:
         selectors = params.get("selectors")  # These selectors are agent-provided.
         options = params.get("options", {})
         tenant_id = params.get("tenant_id", "default")
+        settings = get_settings()
 
         if not urls:
             raise workflow.ApplicationError("List of URLs is required for scraping.", non_retryable=True)
@@ -121,7 +123,11 @@ class ScrapeWorkflow:
                     extract_result["ocr_text"] = ocr_result.get("text", "")
 
                 # 4. Transcribe Media Activity (Optional): If transcription is enabled and media URLs are found.
-                if options.get("transcribe") and extract_result.get("media_urls"):
+                if (
+                    settings.scraper_enable_transcribe
+                    and options.get("transcribe")
+                    and extract_result.get("media_urls")
+                ):
                     media_result = await workflow.execute_activity(
                         ScrapeActivities.transcribe_media,
                         {

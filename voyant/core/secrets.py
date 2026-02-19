@@ -46,6 +46,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from voyant.core.config import get_settings
+
 logger = logging.getLogger(__name__)
 
 
@@ -175,6 +177,94 @@ class InMemorySecretsBackend(SecretsBackend):
 
     async def get_metadata(self, key: str) -> Optional[SecretMetadata]:
         return self._metadata.get(key)
+
+
+# =============================================================================
+# Environment Provider
+# =============================================================================
+
+
+class EnvSecretsBackend(SecretsBackend):
+    """Environment-variable-backed secrets provider."""
+
+    @property
+    def provider_name(self) -> str:
+        return "env"
+
+    @staticmethod
+    def _key_to_env(key: str) -> str:
+        return key.upper().replace("/", "_").replace("-", "_")
+
+    async def get(self, key: str) -> Optional[str]:
+        return os.environ.get(self._key_to_env(key))
+
+    async def set(self, key: str, value: str, expires_in: Optional[int] = None) -> bool:
+        os.environ[self._key_to_env(key)] = value
+        return True
+
+    async def delete(self, key: str) -> bool:
+        return os.environ.pop(self._key_to_env(key), None) is not None
+
+    async def list_keys(self) -> List[str]:
+        return sorted(os.environ.keys())
+
+    async def get_metadata(self, key: str) -> Optional[SecretMetadata]:
+        if await self.get(key) is None:
+            return None
+        now = datetime.utcnow().isoformat() + "Z"
+        return SecretMetadata(key=key, created_at=now, updated_at=now, version=1)
+
+
+# =============================================================================
+# Kubernetes Provider
+# =============================================================================
+
+
+class K8sSecretsBackend(SecretsBackend):
+    """Kubernetes mounted-secrets provider."""
+
+    def __init__(self, root: str = "/var/run/secrets/voyant"):
+        self._root = Path(root)
+
+    @property
+    def provider_name(self) -> str:
+        return "k8s"
+
+    def _path(self, key: str) -> Path:
+        return self._root / key
+
+    async def get(self, key: str) -> Optional[str]:
+        try:
+            return self._path(key).read_text(encoding="utf-8").strip()
+        except FileNotFoundError:
+            return None
+        except OSError as e:
+            logger.error(f"K8s secret read error for '{key}': {e}")
+            return None
+
+    async def set(self, key: str, value: str, expires_in: Optional[int] = None) -> bool:
+        logger.error(f"K8s secrets backend is read-only; cannot set '{key}'")
+        return False
+
+    async def delete(self, key: str) -> bool:
+        logger.error(f"K8s secrets backend is read-only; cannot delete '{key}'")
+        return False
+
+    async def list_keys(self) -> List[str]:
+        if not self._root.exists():
+            return []
+        return sorted(
+            str(path.relative_to(self._root))
+            for path in self._root.rglob("*")
+            if path.is_file()
+        )
+
+    async def get_metadata(self, key: str) -> Optional[SecretMetadata]:
+        path = self._path(key)
+        if not path.exists():
+            return None
+        updated = datetime.utcfromtimestamp(path.stat().st_mtime).isoformat() + "Z"
+        return SecretMetadata(key=key, created_at=updated, updated_at=updated, version=1)
 
 
 # =============================================================================
@@ -326,8 +416,9 @@ class VaultSecretsBackend(SecretsBackend):
         token: Optional[str] = None,
         mount_point: str = "secret",
     ):
-        self._addr = addr or os.getenv("VAULT_ADDR", "http://localhost:8200")
-        self._token = token or os.getenv("VAULT_TOKEN")
+        settings = get_settings()
+        self._addr = addr or settings.secrets_vault_url
+        self._token = token or settings.secrets_vault_token
         self._mount_point = mount_point
         self._client = None
 
@@ -445,23 +536,40 @@ def get_secrets_backend() -> SecretsBackend:
     """
     Get the configured secrets backend.
 
-    Provider selection (from VOYANT_SECRETS_BACKEND env):
-    - memory: In-memory (testing)
-    - file: File-based with optional encryption (development)
-    - vault: HashiCorp Vault (production)
+    Provider selection (from VOYANT_SECRETS_BACKEND):
+    - env: Environment variables
+    - k8s: Kubernetes mounted secrets
+    - file: File-based with optional encryption
+    - vault: HashiCorp Vault
+    - memory: In-memory (testing only)
     """
     global _backend
 
     if _backend is None:
-        provider = os.getenv("VOYANT_SECRETS_BACKEND", "memory")
+        settings = get_settings()
+        provider = settings.secrets_backend.lower()
 
-        if provider == "file":
-            path = os.getenv("VOYANT_SECRETS_FILE", ".secrets.json")
+        if provider == "env":
+            _backend = EnvSecretsBackend()
+        elif provider == "k8s":
+            _backend = K8sSecretsBackend()
+        elif provider == "file":
+            path = ".secrets.json"
             _backend = FileSecretsBackend(path=path)
         elif provider == "vault":
-            _backend = VaultSecretsBackend()
-        else:
+            _backend = VaultSecretsBackend(
+                addr=settings.secrets_vault_url,
+                token=settings.secrets_vault_token,
+                mount_point=settings.secrets_vault_mount_point,
+            )
+        elif provider == "memory":
             _backend = InMemorySecretsBackend()
+        else:
+            logger.warning(
+                "Unknown VOYANT_SECRETS_BACKEND='%s'; falling back to env backend",
+                provider,
+            )
+            _backend = EnvSecretsBackend()
 
         logger.info(f"Initialized secrets backend: {_backend.provider_name}")
 

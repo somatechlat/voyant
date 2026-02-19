@@ -15,9 +15,9 @@ spec:
         - name: server
           image: airbyte/airbyte-server:0.50.48
           env:
-            - { name: DATABASE_USER, value: airbyte }
-            - { name: DATABASE_PASSWORD, value: airbyte }
-            - { name: DATABASE_URL, value: jdbc:postgresql://postgres:5432/airbyte }
+            - { name: DATABASE_USER, value: "${AIRBYTE_DATABASE_USER}" }
+            - { name: DATABASE_PASSWORD, value: "${AIRBYTE_DATABASE_PASSWORD}" }
+            - { name: DATABASE_URL, value: "${AIRBYTE_DATABASE_URL}" }
           ports:
             - containerPort: 8001
           resources:
@@ -42,9 +42,9 @@ spec:
           image: airbyte/airbyte-worker:0.50.48
           env:
             - { name: AIRBYTE_ROLE, value: worker }
-            - { name: DATABASE_USER, value: airbyte }
-            - { name: DATABASE_PASSWORD, value: airbyte }
-            - { name: DATABASE_URL, value: jdbc:postgresql://postgres:5432/airbyte }
+            - { name: DATABASE_USER, value: "${AIRBYTE_DATABASE_USER}" }
+            - { name: DATABASE_PASSWORD, value: "${AIRBYTE_DATABASE_PASSWORD}" }
+            - { name: DATABASE_URL, value: "${AIRBYTE_DATABASE_URL}" }
           resources:
             limits: { memory: "2Gi", cpu: "1000m" }
             requests: { memory: "1Gi", cpu: "300m" }

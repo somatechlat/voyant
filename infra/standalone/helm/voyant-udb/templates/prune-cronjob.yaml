@@ -16,7 +16,7 @@ spec:
               imagePullPolicy: {{ .Values.image.pullPolicy }}
               command: ["/bin/sh", "-c"]
               args:
-                - "apk add --no-cache curl >/dev/null 2>&1 || true; curl -s -X POST http://{{ include \"voyant-udb.name\" . }}:80/admin/prune -H 'X-Role: admin' || echo 'prune call failed'"
+                - "apk add --no-cache curl >/dev/null 2>&1 || true; curl -s -X POST {{ .Values.service.internalUrl }}/admin/prune -H 'X-Role: admin' || echo 'prune call failed'"
               env:
                 - name: UDB_ARTIFACT_RETENTION_DAYS
                   value: {{ .Values.prune.retentionDays | quote }}

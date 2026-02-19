@@ -11,12 +11,17 @@ Agent-Tool Architecture:
 """
 
 import logging
+import asyncio
+import json
 from datetime import datetime
 from typing import Any, Dict
 
 from temporalio import activity
+from temporalio.exceptions import ApplicationError
+from voyant.core.config import get_settings
 
 logger = logging.getLogger(__name__)
+settings = get_settings()
 
 
 class ScrapeActivities:
@@ -32,6 +37,15 @@ class ScrapeActivities:
         from voyant.scraper.models import ScrapeArtifact, ScrapeJob
 
         return ScrapeJob, ScrapeArtifact
+
+    @staticmethod
+    def _heartbeat_safe(message: str) -> None:
+        """Emit Temporal heartbeat only when running inside activity context."""
+        try:
+            activity.heartbeat(message)
+        except RuntimeError:
+            # REST/MCP direct execution path (not Temporal activity runtime).
+            return
 
     @activity.defn(name="fetch_page")
     async def fetch_page(self, params: Dict[str, Any]) -> Dict[str, Any]:
@@ -55,22 +69,51 @@ class ScrapeActivities:
         from voyant.scraper.security import SSRFError, validate_url
 
         url = params.get("url")
-        engine = params.get("engine", "playwright")
+        engine = params.get("engine", settings.scraper_default_engine)
         wait_for = params.get("wait_for")
         scroll = params.get("scroll", False)
-        timeout = params.get("timeout", 30)
+        timeout = params.get("timeout", settings.scraper_default_timeout_seconds)
+        wait_until = params.get("wait_until") or settings.scraper_playwright_wait_until
+        settle_ms = params.get("settle_ms")
+        if settle_ms is None:
+            settle_ms = settings.scraper_playwright_settle_ms_default
+        block_resources = params.get("block_resources")
+        if block_resources is None:
+            block_resources = settings.scraper_playwright_block_resources_default
+        capture_json = params.get(
+            "capture_json", settings.scraper_playwright_capture_json_default
+        )
+        capture_url_contains = params.get("capture_url_contains") or None
+        capture_max_bytes = params.get("capture_max_bytes")
+        if capture_max_bytes is None:
+            capture_max_bytes = settings.scraper_playwright_capture_max_bytes
+        capture_max_items = params.get("capture_max_items")
+        if capture_max_items is None:
+            capture_max_items = settings.scraper_playwright_capture_max_items
 
         # SSRF Protection (Zero-Bypass)
         try:
             validate_url(url)
         except SSRFError as e:
-            raise activity.ApplicationError(f"SSRF blocked: {e}", non_retryable=True)
+            raise ApplicationError(f"SSRF blocked: {e}", non_retryable=True)
 
-        activity.heartbeat(f"Fetching {url} with {engine}")
+        self._heartbeat_safe(f"Fetching {url} with {engine}")
 
         try:
             if engine == "playwright":
-                result = await self._fetch_playwright(url, wait_for, scroll, timeout)
+                result = await self._fetch_playwright(
+                    url,
+                    wait_for=wait_for,
+                    scroll=scroll,
+                    timeout=timeout,
+                    wait_until=str(wait_until),
+                    settle_ms=int(settle_ms),
+                    block_resources=bool(block_resources),
+                    capture_json=bool(capture_json),
+                    capture_url_contains=capture_url_contains,
+                    capture_max_bytes=int(capture_max_bytes),
+                    capture_max_items=int(capture_max_items),
+                )
             elif engine == "httpx":
                 result = await self._fetch_httpx(url, timeout)
             elif engine == "scrapy":
@@ -83,12 +126,21 @@ class ScrapeActivities:
 
         except Exception as e:
             logger.error(f"Fetch failed for {url}: {e}")
-            raise activity.ApplicationError(
-                f"Fetch failed: {e}", non_retryable=False  # May retry
-            )
+            raise ApplicationError(f"Fetch failed: {e}", non_retryable=False)  # May retry
 
     async def _fetch_playwright(
-        self, url: str, wait_for: str = None, scroll: bool = False, timeout: int = 30
+        self,
+        url: str,
+        wait_for: str | None = None,
+        scroll: bool = False,
+        timeout: int = 30,
+        wait_until: str = "domcontentloaded",
+        settle_ms: int = 0,
+        block_resources: bool = True,
+        capture_json: bool = False,
+        capture_url_contains: list[str] | None = None,
+        capture_max_bytes: int = 524288,
+        capture_max_items: int = 25,
     ) -> Dict[str, Any]:
         """
         Fetch a URL using Playwright to support JavaScript rendering.
@@ -103,34 +155,153 @@ class ScrapeActivities:
         from playwright.async_api import async_playwright
 
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
-            context = await browser.new_context(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-                locale="es-EC",
-            )
-            page = await context.new_page()
+            captured_json: list[dict[str, Any]] = []
+            capture_tasks: set[asyncio.Task] = set()
+            capturing_enabled = True
 
-            response = await page.goto(
-                url, wait_until="networkidle", timeout=timeout * 1000
-            )
+            browser = None
+            context = None
+            page = None
+            response = None
+            html = ""
 
-            if wait_for:
-                await page.wait_for_selector(wait_for, timeout=timeout * 1000)
+            try:
+                browser = await p.chromium.launch(headless=True)
+                context = await browser.new_context(
+                    user_agent=settings.scraper_playwright_user_agent,
+                    locale=settings.scraper_playwright_locale,
+                )
+                page = await context.new_page()
 
-            if scroll:
-                await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-                await page.wait_for_timeout(1000)
+                if block_resources:
 
-            html = await page.content()
+                    async def _route_handler(route, request) -> None:
+                        try:
+                            if request.resource_type in ("image", "media", "font"):
+                                await route.abort()
+                            else:
+                                await route.continue_()
+                        except Exception:
+                            try:
+                                await route.continue_()
+                            except Exception:
+                                return
 
-            await browser.close()
+                    await page.route("**/*", _route_handler)
 
-            return {
+                async def _maybe_capture_response(response) -> None:
+                    # Capture only JSON XHR/fetch responses, with strict size limits.
+                    try:
+                        if not capture_json:
+                            return
+                        if len(captured_json) >= capture_max_items:
+                            return
+                        req = response.request
+                        if req.resource_type not in ("xhr", "fetch"):
+                            return
+                        if response.status < 200 or response.status >= 300:
+                            return
+                        resp_url = str(response.url)
+                        if capture_url_contains and not any(
+                            s in resp_url for s in capture_url_contains
+                        ):
+                            return
+                        ct = (response.headers or {}).get("content-type", "")
+                        if "json" not in (ct or "").lower():
+                            return
+                        if len(captured_json) >= capture_max_items:
+                            return
+                        try:
+                            body = await response.text()
+                        except Exception:
+                            return
+                        if body is None:
+                            return
+                        if len(body) > capture_max_bytes:
+                            return
+                        try:
+                            parsed = json.loads(body)
+                        except Exception:
+                            return
+                        captured_json.append(
+                            {
+                                "url": resp_url,
+                                "status": response.status,
+                                "content_type": ct,
+                                "body": parsed,
+                            }
+                        )
+                    except Exception:
+                        return
+
+                if capture_json:
+
+                    def _on_response(response) -> None:
+                        # Playwright event handlers are sync; schedule async capture.
+                        nonlocal capturing_enabled
+                        if not capturing_enabled:
+                            return
+                        try:
+                            task = asyncio.create_task(_maybe_capture_response(response))
+                        except RuntimeError:
+                            # No running loop (shutdown); ignore.
+                            return
+                        capture_tasks.add(task)
+                        task.add_done_callback(lambda t: capture_tasks.discard(t))
+
+                    page.on("response", _on_response)
+
+            # Note: "networkidle" can hang indefinitely on pages that keep long-lived
+            # connections open (analytics, streaming, etc.). Make this configurable.
+                response = await page.goto(
+                    url,
+                    wait_until=wait_until,
+                    timeout=timeout * 1000,
+                )
+
+                if wait_for:
+                    await page.wait_for_selector(wait_for, timeout=timeout * 1000)
+
+                if scroll:
+                    await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                    await page.wait_for_timeout(1000)
+
+                if settle_ms and settle_ms > 0:
+                    await page.wait_for_timeout(settle_ms)
+
+                html = await page.content()
+            finally:
+                capturing_enabled = False
+                if capture_tasks:
+                    try:
+                        await asyncio.gather(*list(capture_tasks), return_exceptions=True)
+                    except Exception:
+                        pass
+                try:
+                    if page is not None:
+                        await page.close()
+                except Exception:
+                    pass
+                try:
+                    if context is not None:
+                        await context.close()
+                except Exception:
+                    pass
+                try:
+                    if browser is not None:
+                        await browser.close()
+                except Exception:
+                    pass
+
+            result = {
                 "html": html,
                 "url": url,
                 "status_code": response.status if response else 0,
                 "fetched_at": datetime.utcnow().isoformat(),
             }
+            if capture_json:
+                result["captured_json"] = captured_json
+            return result
 
     async def _fetch_httpx(self, url: str, timeout: int = 30) -> Dict[str, Any]:
         """
@@ -141,14 +312,31 @@ class ScrapeActivities:
         Returns:
             A dictionary containing the page's HTML and metadata.
         """
+        import ssl
+
+        import certifi
         import httpx
 
-        async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
+        if not settings.scraper_tls_verify:
+            verify: bool | ssl.SSLContext = False
+        elif settings.scraper_tls_trust_store == "certifi":
+            # Certifi can lag OS trust stores. Keep it configurable.
+            verify = ssl.create_default_context(cafile=certifi.where())
+        else:
+            # Use the OS trust store; this is the most compatible option in containerized
+            # environments where system CAs are managed/updated independently.
+            verify = ssl.create_default_context()
+
+        async with httpx.AsyncClient(
+            timeout=timeout,
+            follow_redirects=True,
+            verify=verify,
+        ) as client:
             response = await client.get(
                 url,
                 headers={
-                    "User-Agent": "Mozilla/5.0 (compatible; VoyantBot/1.0)",
-                    "Accept-Language": "es-EC,es;q=0.9,en;q=0.8",
+                    "User-Agent": settings.scraper_http_user_agent,
+                    "Accept-Language": settings.scraper_http_accept_language,
                 },
             )
 
@@ -189,7 +377,7 @@ class ScrapeActivities:
         selectors = params.get("selectors", {})
         url = params.get("url", "")
 
-        activity.heartbeat(f"Extracting from {url}")
+        self._heartbeat_safe(f"Extracting from {url}")
 
         from lxml import html as lxml_html
 
@@ -308,14 +496,14 @@ class ScrapeActivities:
             A dictionary containing the combined extracted text and individual results.
         """
         images = params.get("images", [])
-        language = params.get("language", "spa+eng")
+        language = params.get("language", settings.scraper_default_ocr_language)
 
-        activity.heartbeat(f"OCR processing {len(images)} images")
+        self._heartbeat_safe(f"OCR processing {len(images)} images")
 
         results = []
         combined_text = []
 
-        for image_url in images[:10]:  # Limit to 10 images
+        for image_url in images[: settings.scraper_max_ocr_images]:
             try:
                 # Download image if URL
                 if image_url.startswith(("http://", "https://")):
@@ -364,13 +552,27 @@ class ScrapeActivities:
             A dictionary containing a list of transcription results.
         """
         media_urls = params.get("media_urls", [])
-        language = params.get("language", "es")
+        language = params.get(
+            "language", settings.scraper_default_transcribe_language
+        )
 
-        activity.heartbeat(f"Transcribing {len(media_urls)} media files")
+        if not settings.scraper_enable_transcribe:
+            return {
+                "transcriptions": [
+                    {
+                        "source": url,
+                        "error_code": "TRANSCRIPTION_DISABLED",
+                    }
+                    for url in media_urls[: settings.scraper_max_transcribe_media]
+                ],
+                "processed": 0,
+            }
+
+        self._heartbeat_safe(f"Transcribing {len(media_urls)} media files")
 
         transcriptions = []
 
-        for media_url in media_urls[:5]:  # Limit to 5 files
+        for media_url in media_urls[: settings.scraper_max_transcribe_media]:
             try:
                 # Download media
                 import tempfile
@@ -385,9 +587,15 @@ class ScrapeActivities:
                         temp_path = f.name
 
                 # Transcribe with Whisper
-                import whisper
+                try:
+                    import whisper  # type: ignore
+                except Exception as exc:
+                    raise RuntimeError(
+                        "Whisper is not installed in this runtime. "
+                        "Enable transcription and include the transcription dependency set."
+                    ) from exc
 
-                model = whisper.load_model("base")
+                model = whisper.load_model(settings.scraper_whisper_model_name)
                 result = model.transcribe(temp_path, language=language)
 
                 transcriptions.append(
@@ -405,7 +613,9 @@ class ScrapeActivities:
 
             except Exception as e:
                 logger.warning(f"Transcription failed for {media_url}: {e}")
-                transcriptions.append({"source": media_url, "error": str(e)})
+                transcriptions.append(
+                    {"source": media_url, "error_code": "TRANSCRIPTION_FAILED"}
+                )
 
         return {
             "transcriptions": transcriptions,
@@ -427,7 +637,7 @@ class ScrapeActivities:
         pdf_url = params.get("pdf_url", "")
         extract_tables = params.get("extract_tables", False)
 
-        activity.heartbeat(f"Parsing PDF: {pdf_url}")
+        self._heartbeat_safe(f"Parsing PDF: {pdf_url}")
 
         try:
             # Download PDF if URL
@@ -477,7 +687,7 @@ class ScrapeActivities:
             return {"error": str(e), "source": pdf_url}
 
     @activity.defn(name="store_artifact")
-    async def store_artifact(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    def store_artifact(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Store extracted data as a JSON artifact in an object store.
 
@@ -496,11 +706,11 @@ class ScrapeActivities:
 
         _, ScrapeArtifact = self._load_models()
         job_id = params.get("job_id")
-        tenant_id = params.get("tenant_id", "default")
+        tenant_id = params.get("tenant_id", settings.default_tenant_id)
         url = params.get("url", "")
         data = params.get("data", {})
 
-        activity.heartbeat(f"Storing artifact for {url}")
+        self._heartbeat_safe(f"Storing artifact for {url}")
 
         ref = store_artifact(
             content=data,
@@ -534,7 +744,7 @@ class ScrapeActivities:
         }
 
     @activity.defn(name="finalize_job")
-    async def finalize_job(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    def finalize_job(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Finalize a scrape job by updating its status and recording final metrics.
         Args:
@@ -553,7 +763,7 @@ class ScrapeActivities:
         artifact_count = params.get("artifact_count", 0)
         error_count = params.get("error_count", 0)
 
-        activity.heartbeat(f"Finalizing job {job_id}")
+        self._heartbeat_safe(f"Finalizing job {job_id}")
         status = "succeeded" if error_count == 0 else "partial"
         ScrapeJob, _ = self._load_models()
         ScrapeJob.objects.filter(job_id=job_id).update(

@@ -2,8 +2,8 @@
 Voyant Scraper - Selenium Client for Browser Automation.
 
 This module provides a client for web scraping and browser automation using
-Selenium WebDriver. It is particularly useful for interacting with legacy
-websites, performing complex form filling, or handling scenarios where
+Selenium WebDriver. It is useful for interacting with complex websites,
+performing form filling, or handling scenarios where
 JavaScript execution and full browser simulation are required.
 """
 
@@ -21,7 +21,7 @@ class SeleniumClient:
     A client for automating web browser interactions using Selenium WebDriver.
 
     This client simulates a full user browsing experience, making it suitable for:
-    - Websites with older or complex JavaScript rendering.
+    - Websites with complex JavaScript rendering.
     - Scenarios requiring interaction with forms, buttons, or dynamic elements.
     - Testing browser-based workflows.
 
@@ -36,7 +36,7 @@ class SeleniumClient:
 
         Args:
             headless (bool): If True, the browser runs in headless mode (without a UI).
-            proxy (Optional[str]): A proxy server address (e.g., "http://localhost:8080") for network requests.
+            proxy (Optional[str]): A proxy server address (e.g., "http://proxy.internal:8080") for network requests.
         """
         self.headless = headless
         self.proxy = proxy

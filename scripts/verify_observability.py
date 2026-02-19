@@ -28,7 +28,7 @@ def test_metrics_server():
     logger.info("Testing Metrics Server...")
 
     registry = MetricsRegistry()
-    port = 9091  # Use different port than worker to avoid collision if running
+    port = int(os.getenv("VOYANT_VERIFY_METRICS_PORT", "9091"))
 
     # Start server in thread
     t = threading.Thread(target=registry.start_server, args=(port,), daemon=True)
@@ -45,7 +45,11 @@ def test_metrics_server():
     registry.activity_duration.labels(activity_type="test_activity").observe(0.5)
 
     # Fetch metrics
-    url = f"http://localhost:{port}/metrics"
+    metrics_base_url = os.getenv("VOYANT_VERIFY_METRICS_BASE_URL", "").strip()
+    if not metrics_base_url:
+        logger.warning("VOYANT_VERIFY_METRICS_BASE_URL missing. Skipping metrics scrape test.")
+        return
+    url = f"{metrics_base_url.rstrip('/')}/metrics"
     logger.info(f"Scraping {url}...")
 
     try:

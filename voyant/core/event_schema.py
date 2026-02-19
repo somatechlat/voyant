@@ -48,7 +48,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -143,7 +143,10 @@ class EventSchema:
     def __post_init__(self):
         """Set the creation timestamp if not provided."""
         if not self.created_at:
-            self.created_at = datetime.utcnow().isoformat() + "Z"
+            # NOTE: This module is imported in Temporal workflow validation contexts.
+            # Import-time non-determinism (e.g., datetime.now()) is disallowed by Temporal's sandbox.
+            # Schemas here are canonical/static, so a deterministic placeholder timestamp is correct.
+            self.created_at = "1970-01-01T00:00:00Z"
 
     def to_json_schema(self) -> Dict[str, Any]:
         """Convert the EventSchema into a standard JSON Schema format."""

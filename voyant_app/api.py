@@ -421,7 +421,7 @@ class JobResponse(Schema):
     error_message: Optional[str] = Field(None, description="An error message if the job failed.")
 
 
-def _create_job(job_type: str, source_id: str, params: Dict[str, Any]) -> Job:
+def _create_job(request, job_type: str, source_id: str, params: Dict[str, Any]) -> Job:
     """
     A helper function to create a new Job record in the database.
 
@@ -433,7 +433,7 @@ def _create_job(job_type: str, source_id: str, params: Dict[str, Any]) -> Job:
     Returns:
         The newly created `Job` model instance.
     """
-    tenant_id = get_tenant_id()
+    tenant_id = get_tenant_id(request)
     soma_session_id = get_soma_session_id() or None
     job = Job.objects.create(
         tenant_id=tenant_id,
@@ -491,6 +491,7 @@ def trigger_ingest(request, payload: IngestRequest):
     )
 
     job = _create_job(
+        request,
         "ingest",
         payload.source_id,
         {"mode": payload.mode, "tables": payload.tables},
@@ -583,6 +584,7 @@ def trigger_profile(request, payload: ProfileRequest):
     )
 
     job = _create_job(
+        request,
         "profile",
         payload.source_id,
         {"table": payload.table, "sample_size": payload.sample_size},
@@ -672,6 +674,7 @@ def trigger_quality(request, payload: QualityRequest):
     )
 
     job = _create_job(
+        request,
         "quality",
         payload.source_id,
         {"table": payload.table, "checks": payload.checks},
@@ -1284,20 +1287,20 @@ def list_quota_tiers(request):
 
 @governance_router.get("/quotas/usage", response=QuotaUsageStatus, auth=_auth_guard)
 def get_quota_usage(request):
-    tenant_id = get_tenant_id()
+    tenant_id = get_tenant_id(request)
     status = _get_usage_status(tenant_id)
     return QuotaUsageStatus(**status)
 
 
 @governance_router.get("/quotas/limits", auth=_auth_guard)
 def get_quota_limits(request):
-    tenant_id = get_tenant_id()
+    tenant_id = get_tenant_id(request)
     return _get_quota_limits(tenant_id)
 
 
 @governance_router.post("/quotas/tier")
 def set_quota_tier(request, payload: SetTierRequest):
-    tenant_id = get_tenant_id()
+    tenant_id = get_tenant_id(request)
     try:
         _set_tenant_tier(tenant_id, payload.tier)
         return {"status": "updated", "tenant_id": tenant_id, "tier": payload.tier}
@@ -1929,7 +1932,7 @@ def analyze(request, payload: AnalyzeRequest):
     if not table:
         raise HttpError(400, "table or source_id is required")
 
-    tenant_id = get_tenant_id()
+    tenant_id = get_tenant_id(request)
     try:
         validate_table_access(tenant_id, table)
     except NamespaceViolationError as exc:
@@ -1951,6 +1954,7 @@ def analyze(request, payload: AnalyzeRequest):
     )
 
     job = _create_job(
+        request,
         "analyze",
         payload.source_id or table,
         {"table": table, "tables": payload.tables, "sample_size": payload.sample_size},

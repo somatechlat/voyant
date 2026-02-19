@@ -12,6 +12,8 @@ from typing import Any, Dict, Optional
 
 import httpx
 
+from voyant.core.config import get_settings
+
 logger = logging.getLogger(__name__)
 
 
@@ -31,11 +33,11 @@ class FlinkClient:
         Args:
             jobmanager_url: Base URL of the Flink JobManager. Defaults to settings.
         """
-        self.base_url = (
-            jobmanager_url.rstrip("/")
-            if jobmanager_url
-            else "http://voyant_flink_jobmanager:8081"
-        )
+        settings = get_settings()
+        resolved_url = jobmanager_url or settings.flink_jobmanager_url
+        if not resolved_url:
+            raise ValueError("FLINK_JOBMANAGER_URL must be configured")
+        self.base_url = resolved_url.rstrip("/")
 
     def get_overview(self) -> Dict[str, Any]:
         """Get cluster overview."""

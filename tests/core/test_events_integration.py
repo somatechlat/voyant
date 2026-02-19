@@ -1,7 +1,7 @@
 """
-Test Events Integration (Real Kafka)
+Test Events Integration (Kafka)
 
-Verifies that events are validated and successfully transmitted to a Real Kafka Broker.
+Verifies that events are validated and successfully transmitted to a Kafka broker.
 NO MOCKS.
 """
 
@@ -39,7 +39,7 @@ def clean_registry():
 
 @pytest.fixture
 def kafka_consumer_fixture():
-    """Real Kafka Consumer to verify events."""
+    """Kafka consumer to verify events."""
     if not KAFKA_AVAILABLE:
         pytest.skip("confluent-kafka not installed")
 
@@ -55,6 +55,11 @@ def kafka_consumer_fixture():
                 "auto.offset.reset": "earliest",
             }
         )
+        # Force a broker metadata round-trip so unavailable brokers skip early.
+        md = c.list_topics(timeout=3.0)
+        if not getattr(md, "brokers", None):
+            c.close()
+            pytest.skip(f"No reachable Kafka brokers at {bootstrap}")
         c.subscribe(["voyant.jobs"])
         yield c
         c.close()
@@ -64,9 +69,9 @@ def kafka_consumer_fixture():
 
 @pytest.mark.integration
 @pytest.mark.skipif(not KAFKA_AVAILABLE, reason="requires confluent-kafka")
-def test_emit_and_consume_real_event(clean_registry, kafka_consumer_fixture):
+def test_emit_and_consume_event(clean_registry, kafka_consumer_fixture):
     """
-    Integration Test: Emit Valid Event -> Real Kafka -> Consume & Verify.
+    Integration Test: Emit valid event -> Kafka -> consume and verify.
     """
     # 1. Register Schema
     schema = EventSchema(
@@ -79,7 +84,7 @@ def test_emit_and_consume_real_event(clean_registry, kafka_consumer_fixture):
     )
     register_schema(schema)
 
-    # 2. Emit Event using Real Producer
+    # 2. Emit Event using Kafka producer
     # Note: KafkaProducer internal logic loads settingsenv
     producer = get_kafka_producer()
 
@@ -92,7 +97,7 @@ def test_emit_and_consume_real_event(clean_registry, kafka_consumer_fixture):
         payload={"job_id": unique_id, "status": "active"},
     )
 
-    # This calls producer.produce() -> Real Network Call
+    # This calls producer.produce() -> network call
     success = producer.emit("jobs", event)
     assert success is True, "Failed to emit event to Kafka"
 
@@ -121,7 +126,7 @@ def test_emit_and_consume_real_event(clean_registry, kafka_consumer_fixture):
                 assert data["payload"]["job_id"] == unique_id
             break
 
-    assert found, "Did not receive event from Real Kafka topic 'voyant.jobs' within 10s"
+    assert found, "Did not receive event from Kafka topic 'voyant.jobs' within 10s"
 
 
 def test_emit_invalid_event_schema_check(clean_registry):

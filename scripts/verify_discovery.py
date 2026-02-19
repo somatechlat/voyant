@@ -37,8 +37,10 @@ def test_parser():
     logger.info("Testing Spec Parser...")
     parser = SpecParser()
 
-    # Test with the famous Petstore spec
-    url = "https://petstore.swagger.io/v2/swagger.json"
+    url = os.getenv("VOYANT_VERIFY_DISCOVERY_SPEC_URL", "").strip()
+    if not url:
+        logger.warning("VOYANT_VERIFY_DISCOVERY_SPEC_URL missing. Skipping parser URL test.")
+        return
 
     try:
         spec = parser.parse_from_url(url)

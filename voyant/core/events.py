@@ -25,7 +25,12 @@ from voyant.core.config import get_settings
 from voyant.core.event_schema import validate_event
 
 logger = logging.getLogger(__name__)
-settings = get_settings()
+
+
+def _get_settings():
+    # Lazy settings access to avoid import-time side effects (e.g., during Temporal
+    # workflow sandbox validation).
+    return get_settings()
 
 
 @dataclass
@@ -76,7 +81,7 @@ class KafkaProducer:
 
     def __init__(self):
         """Initialize the KafkaProducer wrapper."""
-        self.bootstrap_servers = settings.kafka_bootstrap_servers
+        self.bootstrap_servers = _get_settings().kafka_bootstrap_servers
         self._producer = None
 
     def _get_producer(self):

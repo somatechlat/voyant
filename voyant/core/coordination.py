@@ -36,7 +36,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
 import socket
 import time
 import uuid
@@ -44,6 +43,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
+
+from voyant.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -292,9 +293,8 @@ class RedisCoordinator:
         redis_url: Optional[str] = None,
         node_id: Optional[str] = None,
     ):
-        self.redis_url = redis_url or os.getenv(
-            "VOYANT_REDIS_URL", "redis://localhost:6379"
-        )
+        settings = get_settings()
+        self.redis_url = redis_url or settings.redis_url
         self.node_id = node_id or f"{socket.gethostname()}_{uuid.uuid4().hex[:8]}"
         self._client = None
         self._running = False
@@ -407,7 +407,7 @@ def get_coordinator() -> InMemoryCoordinator:
     global _coordinator
     if _coordinator is None:
         # Use in-memory by default, Redis if configured
-        redis_url = os.getenv("VOYANT_REDIS_URL")
+        redis_url = get_settings().redis_url
         if redis_url:
             logger.info("Using Redis coordinator")
             # Note: RedisCoordinator would need async initialization

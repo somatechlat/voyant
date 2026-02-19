@@ -4,13 +4,15 @@ import os
 
 import uvicorn
 
+from voyant.core.config import get_settings
 
 
 def main() -> None:
     """Run Voyant with django-mcp mounted at `/mcp`."""
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "voyant_project.settings")
-    host = os.environ.get("VOYANT_MCP_HOST", "0.0.0.0")
-    port = int(os.environ.get("VOYANT_MCP_PORT", "8001"))
+    settings = get_settings()
+    host = settings.mcp_host
+    port = settings.mcp_port
     uvicorn.run("voyant_project.asgi:application", host=host, port=port)
 
 

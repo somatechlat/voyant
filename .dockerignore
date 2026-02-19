@@ -1,0 +1,78 @@
+# ============================================================================
+# Docker Build Context Hygiene (Django/Python)
+# ============================================================================
+
+# VCS and metadata
+.git
+.github
+.gitignore
+
+# Python cache/build/env
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.nox/
+.tox/
+.coverage
+.coverage.*
+htmlcov/
+*.egg-info/
+build/
+dist/
+
+# Local env/secrets (allow templates only)
+.env
+.env.*
+!.env.example
+!**/.env.example
+!**/.env.production.example
+!infra/integrated/.env.integrated
+
+# Runtime/local data not needed in image
+tmp/
+temp/
+*.tmp
+*.log
+logs/
+data/
+artifacts/
+uploads/
+*.sqlite
+*.sqlite3
+*.db
+*.duckdb
+*.duckdb*
+
+# Frontend and optional docs/test/dev material
+node_modules/
+dashboard/node_modules/
+tests/
+docs/
+scripts/
+examples/
+.codex/
+.kiro/
+
+# Editor and OS artifacts
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Archives and backups
+*.tar
+*.tar.gz
+*.zip
+*.7z
+*.rar
+*.bak

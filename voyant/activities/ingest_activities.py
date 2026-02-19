@@ -2,12 +2,12 @@
 Ingestion Activities
 
 Temporal activities for data ingestion.
-Ports logic from legacy voyant.worker.tasks.ingest.
 """
 
 import asyncio
 import logging
-from datetime import datetime
+import re
+from datetime import datetime, timezone
 from typing import Any, Dict
 
 import duckdb
@@ -21,6 +21,7 @@ from voyant.core.lineage import get_lineage_graph
 from voyant.core.retry_config import TIMEOUTS
 
 logger = logging.getLogger(__name__)
+_SAFE_IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
 class IngestActivities:
@@ -79,7 +80,10 @@ class IngestActivities:
                 conn = duckdb.connect(
                     database=self.settings.duckdb_path, read_only=True
                 )
-                # Assuming source_id can be directly used as a table name or mapped
+                if not source_id or not _SAFE_IDENTIFIER.match(source_id):
+                    raise ValueError(
+                        f"Invalid source identifier for row count query: {source_id}"
+                    )
                 row_count = conn.execute(
                     f"SELECT COUNT(*) FROM {source_id}"
                 ).fetchone()[0]
@@ -96,7 +100,7 @@ class IngestActivities:
                 "status": "completed",
                 "rows_ingested": row_count,
                 "tables_synced": tables or ["default_table"],
-                "completed_at": datetime.utcnow().isoformat(),
+                "completed_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             }
 
             activity.logger.info(f"Ingestion activity for job {job_id} completed")

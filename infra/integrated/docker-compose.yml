@@ -16,34 +16,41 @@ services:
     build:
       context: ../..
       dockerfile: infra/standalone/Dockerfile
+      args:
+        VOYANT_WITH_TRANSCRIBE: ${VOYANT_WITH_TRANSCRIBE}
+        VOYANT_TORCH_DEVICE: ${VOYANT_TORCH_DEVICE}
+        PYTORCH_INDEX_URL_CPU: ${PYTORCH_INDEX_URL_CPU}
+        PYTORCH_INDEX_URL_CUDA: ${PYTORCH_INDEX_URL_CUDA}
     container_name: voyant-api-integrated
     ports:
-      - "${VOYANT_API_PORT:-8080}:8000"
+      - "${VOYANT_API_PORT}:8000"
     environment:
-      VOYANT_ENV: ${VOYANT_ENV:-production}
+      VOYANT_ENV: ${VOYANT_ENV}
       VOYANT_DEPLOYMENT_MODE: integrated
 
       # SomaAgentHub Services
-      SOMA_POLICY_URL: ${SOMA_POLICY_URL:-http://policy-engine:10020}
-      SOMA_MEMORY_URL: ${SOMA_MEMORY_URL:-http://memory-gateway:8000}
-      SOMA_ORCHESTRATOR_URL: ${SOMA_ORCHESTRATOR_URL:-http://orchestrator:10001}
-      SOMA_IDENTITY_URL: ${SOMA_IDENTITY_URL:-http://identity-service:10002}
+      SOMA_POLICY_URL: ${SOMA_POLICY_URL}
+      SOMA_MEMORY_URL: ${SOMA_MEMORY_URL}
+      SOMA_ORCHESTRATOR_URL: ${SOMA_ORCHESTRATOR_URL}
+      SOMA_IDENTITY_URL: ${SOMA_IDENTITY_URL}
 
       # Shared Infrastructure (from Hub cluster)
-      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:5432/voyant}
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
-      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
 
       # MinIO (from Hub or external)
-      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-minio:9000}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
 
       # Temporal
-      TEMPORAL_HOST: ${TEMPORAL_HOST:-temporal:7233}
-      TEMPORAL_TASK_QUEUE: voyant-tasks
+      TEMPORAL_HOST: ${TEMPORAL_HOST}
+      TEMPORAL_TASK_QUEUE: ${TEMPORAL_TASK_QUEUE}
+    env_file:
+      - ../../.env
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      test: [ "CMD", "curl", "-f", "${VOYANT_API_HEALTHCHECK_URL}" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -62,13 +69,20 @@ services:
     build:
       context: ../..
       dockerfile: infra/standalone/Dockerfile
+      args:
+        VOYANT_WITH_TRANSCRIBE: ${VOYANT_WITH_TRANSCRIBE}
+        VOYANT_TORCH_DEVICE: ${VOYANT_TORCH_DEVICE}
+        PYTORCH_INDEX_URL_CPU: ${PYTORCH_INDEX_URL_CPU}
+        PYTORCH_INDEX_URL_CUDA: ${PYTORCH_INDEX_URL_CUDA}
     container_name: voyant-mcp-integrated
     command: [ "python", "-m", "voyant.mcp.server" ]
     ports:
-      - "${VOYANT_MCP_PORT:-8081}:8001"
+      - "${VOYANT_MCP_PORT}:8001"
     environment:
-      VOYANT_API_URL: http://voyant-api:8000
+      VOYANT_MCP_API_URL: ${VOYANT_MCP_API_URL}
       VOYANT_DEPLOYMENT_MODE: integrated
+    env_file:
+      - ../../.env
     depends_on:
       voyant-api:
         condition: service_healthy
@@ -87,18 +101,31 @@ services:
     build:
       context: ../..
       dockerfile: infra/standalone/Dockerfile
+      args:
+        VOYANT_WITH_TRANSCRIBE: ${VOYANT_WITH_TRANSCRIBE}
+        VOYANT_TORCH_DEVICE: ${VOYANT_TORCH_DEVICE}
+        PYTORCH_INDEX_URL_CPU: ${PYTORCH_INDEX_URL_CPU}
+        PYTORCH_INDEX_URL_CUDA: ${PYTORCH_INDEX_URL_CUDA}
     container_name: voyant-worker-integrated
     command: [ "python", "-m", "voyant.worker.worker_main" ]
     environment:
       VOYANT_DEPLOYMENT_MODE: integrated
-      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:5432/voyant}
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
-      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
-      TEMPORAL_HOST: ${TEMPORAL_HOST:-temporal:7233}
-      TEMPORAL_TASK_QUEUE: voyant-tasks
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      TEMPORAL_HOST: ${TEMPORAL_HOST}
+      TEMPORAL_TASK_QUEUE: ${TEMPORAL_TASK_QUEUE}
+    env_file:
+      - ../../.env
     depends_on:
       voyant-api:
         condition: service_healthy
+    healthcheck:
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+      test: [ "CMD", "curl", "-f", "http://localhost:9090/metrics" ]
     deploy:
       resources:
         limits:
@@ -113,4 +140,4 @@ services:
 networks:
   somastack-net:
     external: true
-    name: ${SOMA_NETWORK:-somastack-net}
+    name: ${SOMA_NETWORK}

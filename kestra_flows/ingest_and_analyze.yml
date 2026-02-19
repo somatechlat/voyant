@@ -6,7 +6,7 @@ labels:
   purpose: demo
 
 description: >
-  Demonstration flow that (placeholder) triggers an ingest step and then calls the UDB analyze endpoint.
+  Demonstration flow that triggers an ingest step and then calls the UDB analyze endpoint.
 
 inputs:
   - id: kpi_sql

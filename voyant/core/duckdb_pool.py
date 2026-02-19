@@ -141,7 +141,10 @@ class DuckDBConnectionPool:
             return False
 
     def get_connection(
-        self, timeout: Optional[float] = None
+        self,
+        timeout: Optional[float] = None,
+        *,
+        allow_create: bool = True,
     ) -> duckdb.DuckDBPyConnection:
         """
         Get a connection from the pool.
@@ -182,7 +185,10 @@ class DuckDBConnectionPool:
         except Empty:
             # Pool empty - try to create new connection if under max
             with self._lock:
-                if len(self._all_connections) < self.config.max_connections:
+                if (
+                    allow_create
+                    and len(self._all_connections) < self.config.max_connections
+                ):
                     logger.info("Pool empty, creating new connection")
                     conn = self._create_connection()
                     self._total_checkouts += 1
@@ -219,7 +225,7 @@ class DuckDBConnectionPool:
             logger.error(f"Failed to return connection: {e}")
 
     @contextmanager
-    def connection(self):
+    def connection(self, *, timeout: Optional[float] = None, allow_create: bool = True):
         """
         Context manager for automatic connection management.
 
@@ -227,7 +233,7 @@ class DuckDBConnectionPool:
             with pool.connection() as conn:
                 result = conn.execute(query)
         """
-        conn = self.get_connection()
+        conn = self.get_connection(timeout=timeout, allow_create=allow_create)
         try:
             yield conn
         finally:

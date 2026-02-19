@@ -15,7 +15,7 @@ on startup.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from asgiref.sync import async_to_sync
 from django.http import JsonResponse
@@ -39,7 +39,7 @@ def health(_request) -> JsonResponse:
         {
             "status": "healthy",
             "version": "3.0.0",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         }
     )
 
@@ -60,10 +60,16 @@ def ready(_request) -> JsonResponse:
     overall_ready = True
 
     try:
-        from voyant.core.duckdb_pool import get_connection
+        from voyant.core.duckdb_pool import get_pool
 
-        with get_connection() as conn:
+        # Readiness must fail fast: do not block for long waits on a pooled connection
+        # and do not create new connections (which can block on file locks).
+        pool = get_pool()
+        conn = pool.get_connection(timeout=0.5, allow_create=False)
+        try:
             conn.execute("SELECT 1").fetchone()
+        finally:
+            pool.return_connection(conn)
         checks["duckdb"] = {"status": "up", "details": "Connection successful"}
     except Exception as exc:
         checks["duckdb"] = {"status": "down", "error": str(exc)}
@@ -107,7 +113,7 @@ def ready(_request) -> JsonResponse:
     return JsonResponse(
         {
             "status": "ready" if overall_ready else "not_ready",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             "checks": checks,
         },
         status=status,
@@ -125,7 +131,7 @@ def status_view(_request) -> JsonResponse:
     settings = get_settings()
     status_info = {
         "version": "3.0.0",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "environment": settings.env,
         "services": {},
         "circuit_breakers": {},

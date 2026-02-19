@@ -27,9 +27,9 @@ spec:
         - name: postgres
           image: postgres:15
           env:
-            - { name: POSTGRES_PASSWORD, value: airbyte }
-            - { name: POSTGRES_USER, value: airbyte }
-            - { name: POSTGRES_DB, value: airbyte }
+            - { name: POSTGRES_PASSWORD, value: "${AIRBYTE_POSTGRES_PASSWORD}" }
+            - { name: POSTGRES_USER, value: "${AIRBYTE_POSTGRES_USER}" }
+            - { name: POSTGRES_DB, value: "${AIRBYTE_POSTGRES_DB}" }
           ports:
             - containerPort: 5432
           volumeMounts:
