@@ -21,7 +21,7 @@ Expected Output:
 # on success or failure, providing a quick check on the application's
 # foundational components.
 try:
-    from voyant.core.schema_evolution import (
+    from apps.core.lib.schema_evolution import (
         ColumnSchema,
         TableSchema,
         get_latest_schema,
@@ -29,7 +29,7 @@ try:
         get_schema_history,
         reset_registry,
         track_schema,
-    )
+    )  # noqa: F401
 
     print("Imports successful!")
 except ImportError as e:

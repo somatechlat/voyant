@@ -64,7 +64,7 @@
 **Validates:** All requirements indirectly
 
 ### 1.1 Fix Test Collection Failures
-- [ ] 1.1.1 Fix ModuleNotFoundError for temporalio imports
+- [-] 1.1.1 Fix ModuleNotFoundError for temporalio imports
   - Files: `tests/activities/test_analysis_activities.py`, `tests/activities/test_generation_activities.py`
   - Root cause: Missing or incorrect temporalio test dependencies
   - Resolution: Add proper test fixtures and mocks for Temporal activities

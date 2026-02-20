@@ -444,7 +444,7 @@ class TestRateLimiting:
     async def test_rate_limited_requests(self, load_config):
         """
         Test that rate limiting is respected.
-        
+
         Note: This test uses sequential execution (concurrency=1) to properly
         test rate limiting. With high concurrency, tasks complete in bursts
         rather than at a steady rate.

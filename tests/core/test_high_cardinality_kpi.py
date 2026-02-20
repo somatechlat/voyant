@@ -4,12 +4,14 @@ High Cardinality KPI Tests
 Stress tests for KPI SQL templates using large synthetic datasets in DuckDB.
 """
 
-import pytest
-import duckdb
-import time
 import logging
 import os
-from voyant.core.kpi_templates import render_template
+import time
+
+import duckdb
+import pytest
+
+from apps.core.lib.kpi_templates import render_template
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +87,9 @@ def test_high_cardinality_segments(large_db):
     duration = time.time() - start_time
 
     assert len(result) == 10000
-    assert duration < MAX_SEGMENTS_QUERY_SECONDS, f"Query took too long: {duration:.2f}s"
+    assert (
+        duration < MAX_SEGMENTS_QUERY_SECONDS
+    ), f"Query took too long: {duration:.2f}s"
     logger.info(f"High cardinality segments query took {duration:.4f}s")
 
 
@@ -106,7 +110,9 @@ def test_large_time_series_moving_avg(large_db):
     duration = time.time() - start_time
 
     assert len(result) == 1000000
-    assert duration < MAX_MOVING_AVG_QUERY_SECONDS, f"Window function took too long: {duration:.2f}s"
+    assert (
+        duration < MAX_MOVING_AVG_QUERY_SECONDS
+    ), f"Window function took too long: {duration:.2f}s"
     logger.info(f"Large time series moving avg query took {duration:.4f}s")
 
 
@@ -130,5 +136,7 @@ def test_customer_revenue_distribution(large_db):
     assert "Top 10" in categories
     assert "Others" in categories
 
-    assert duration < MAX_CUSTOMER_DIST_QUERY_SECONDS, f"Customer distribution took too long: {duration:.2f}s"
+    assert (
+        duration < MAX_CUSTOMER_DIST_QUERY_SECONDS
+    ), f"Customer distribution took too long: {duration:.2f}s"
     logger.info(f"Customer distribution query took {duration:.4f}s")

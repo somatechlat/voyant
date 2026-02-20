@@ -7,12 +7,12 @@ Reference: docs/CANONICAL_ROADMAP.md - P1 Extended Insights
 
 import pytest
 
-from voyant.core.kpi_templates import (
+from apps.core.lib.kpi_templates import (
+    KPI_TEMPLATES,
+    get_categories,
     get_template,
     list_templates,
     render_template,
-    get_categories,
-    KPI_TEMPLATES,
 )
 
 

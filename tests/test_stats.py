@@ -1,9 +1,10 @@
-import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
+
 import pandas as pd
-from voyant.core.r_bridge import REngine
-from voyant.core.stats import StatisticalEngine
-from voyant.core.errors import ExternalServiceError, ValidationError
+import pytest
+
+from apps.core.lib.errors import ValidationError
+from apps.core.lib.stats import StatisticalEngine
 
 
 @pytest.fixture

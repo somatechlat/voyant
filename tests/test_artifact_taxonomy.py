@@ -15,9 +15,7 @@ Canonical Artifact Types:
 - manifest.json
 """
 
-import pytest
 import re
-from typing import Set
 
 # Canonical artifact key patterns
 CANONICAL_PATTERNS = {
@@ -186,7 +184,9 @@ class TestGeneratorArtifactCompliance:
             "narrative.txt",
         ]
         for key in extended_artifacts:
-            assert is_valid_artifact_key(key), f"Extended artifact '{key}' is not valid."
+            assert is_valid_artifact_key(
+                key
+            ), f"Extended artifact '{key}' is not valid."
 
     def test_manifest_always_valid(self):
         """

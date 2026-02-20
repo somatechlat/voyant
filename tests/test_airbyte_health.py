@@ -6,7 +6,8 @@ status of the Airbyte API integration.
 """
 
 import pytest
-from voyant.ingestion.airbyte_client import get_airbyte_client
+
+from apps.ingestion.airbyte_client import get_airbyte_client
 
 
 @pytest.mark.asyncio
@@ -20,8 +21,12 @@ async def test_airbyte_health():
     try:
         client = get_airbyte_client()
     except ValueError:
-        pytest.skip("Airbyte base_url is not configured in this environment. Skipping test.")
-    healthy = await client.is_healthy()  # Corrected method call from .health() to .is_healthy()
+        pytest.skip(
+            "Airbyte base_url is not configured in this environment. Skipping test."
+        )
+    healthy = (
+        await client.is_healthy()
+    )  # Corrected method call from .health() to .is_healthy()
     if not healthy:
         pytest.skip("Airbyte not reachable in this environment. Skipping test.")
     assert healthy is True

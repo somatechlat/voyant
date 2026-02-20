@@ -5,15 +5,15 @@ Tests Anomaly Detection and Sentiment Analysis primitives.
 """
 
 import logging
-import sys
 import os
 import random
+import sys
 
 # Add project root to path
 sys.path.append(os.getcwd())
 
-from voyant.core.ml_primitives import MLPrimitives
-from voyant.core.nlp_primitives import NLPPrimitives
+from apps.core.lib.ml_primitives import MLPrimitives
+from apps.core.lib.nlp_primitives import NLPPrimitives
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("verify_ops")

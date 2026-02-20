@@ -4,16 +4,17 @@ Test Plugin Registry
 Verifies the "Platform of Platforms" pattern implementation.
 """
 
-import pytest
-from typing import Dict, Any
+from typing import Any, Dict
 
-from voyant.core.plugin_registry import (
-    PluginRegistry,
-    register_plugin,
+import pytest
+
+from apps.core.lib.plugin_registry import (
     GeneratorPlugin,
     PluginCategory,
+    PluginRegistry,
     get_generators,
     get_plugin,
+    register_plugin,
 )
 
 

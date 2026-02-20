@@ -12,50 +12,39 @@ These tests ensure the correctness and reliability of the analytical core compon
 Reference: docs/CANONICAL_ROADMAP.md - P6 Advanced Analytics
 """
 
-import math
 from typing import Any, Dict, List
 
 import pytest
 
 # Anomaly Detection
-from voyant.core.anomaly import (
-    IQRDetector,
-    MADDetector,
-    ZScoreDetector,
+from apps.core.lib.anomaly import (
     detect_anomalies,
+)
+from apps.core.lib.anomaly import (
     get_available_methods as get_anomaly_methods,
 )
 
-# Forecasting
-from voyant.core.forecasting import (
-    ExponentialSmoothingForecaster,
-    LinearTrendForecaster,
-    MovingAverageForecaster,
-    NaiveForecaster,
-    detect_trend,
-    forecast,
-    get_available_methods as get_forecast_methods,
-)
-
-# Segmentation
-from voyant.core.segmentation import (
-    SegmentProfiler,
-    compare_segments,
-    detect_segment_drift,
-    profile_segments,
-)
-
 # Embeddings
-from voyant.core.embeddings import (
-    calculate_similarity,
+from apps.core.lib.embeddings import (
     cosine_similarity,
-    euclidean_distance,
     embed_texts,
     find_similar,
     get_available_models,
     reduce_dimensions,
 )
 
+# Forecasting
+from apps.core.lib.forecasting import (
+    detect_trend,
+    forecast,
+)
+
+# Segmentation
+from apps.core.lib.segmentation import (
+    compare_segments,
+    detect_segment_drift,
+    profile_segments,
+)
 
 # =============================================================================
 # Anomaly Detection Tests
@@ -292,11 +281,15 @@ class TestEmbeddings:
         a = [1, 0, 0]
         b = [1, 0, 0]
         sim = cosine_similarity(a, b)
-        assert sim == pytest.approx(1.0)  # Identical vectors should have a similarity of 1.0.
+        assert sim == pytest.approx(
+            1.0
+        )  # Identical vectors should have a similarity of 1.0.
 
         c = [0, 1, 0]
         sim2 = cosine_similarity(a, c)
-        assert sim2 == pytest.approx(0.0)  # Orthogonal vectors should have a similarity of 0.0.
+        assert sim2 == pytest.approx(
+            0.0
+        )  # Orthogonal vectors should have a similarity of 0.0.
 
     def test_similar_texts_have_higher_similarity(self):
         """
@@ -309,7 +302,9 @@ class TestEmbeddings:
         sim_01 = cosine_similarity(result.embeddings[0], result.embeddings[1])
         sim_02 = cosine_similarity(result.embeddings[0], result.embeddings[2])
 
-        assert sim_01 > sim_02  # Expect "quick brown fox" to be more similar to "fast brown fox" than "pizza delivery".
+        assert (
+            sim_01 > sim_02
+        )  # Expect "quick brown fox" to be more similar to "fast brown fox" than "pizza delivery".
 
     def test_find_similar(self):
         """

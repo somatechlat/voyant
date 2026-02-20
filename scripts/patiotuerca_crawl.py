@@ -44,8 +44,12 @@ LOC_RE = re.compile(
     re.IGNORECASE,
 )
 
-META_PROP_RE_TPL = r"<meta[^>]+property=['\"]{prop}['\"][^>]+content=['\"]([^'\"]+)['\"]"
-META_CONTENT_RE_TPL = r"<meta[^>]+content=['\"]([^'\"]+)['\"][^>]+property=['\"]{prop}['\"]"
+META_PROP_RE_TPL = (
+    r"<meta[^>]+property=['\"]{prop}['\"][^>]+content=['\"]([^'\"]+)['\"]"
+)
+META_CONTENT_RE_TPL = (
+    r"<meta[^>]+content=['\"]([^'\"]+)['\"][^>]+property=['\"]{prop}['\"]"
+)
 
 
 def _utcnow_iso() -> str:
@@ -57,7 +61,9 @@ def pick_meta(html: str, prop: str) -> str | None:
         return None
     m = re.search(META_PROP_RE_TPL.format(prop=re.escape(prop)), html, re.IGNORECASE)
     if not m:
-        m = re.search(META_CONTENT_RE_TPL.format(prop=re.escape(prop)), html, re.IGNORECASE)
+        m = re.search(
+            META_CONTENT_RE_TPL.format(prop=re.escape(prop)), html, re.IGNORECASE
+        )
     return m.group(1).strip() if m else None
 
 
@@ -301,7 +307,10 @@ def _json_contains_vehicle_id(obj, vehicle_id: int) -> bool:
             return False
         if isinstance(v, dict):
             for k, vv in v.items():
-                if k in ("vehicleId", "vehicle_id", "id") and vv in (target_s, target_i):
+                if k in ("vehicleId", "vehicle_id", "id") and vv in (
+                    target_s,
+                    target_i,
+                ):
                     return True
                 if walk(vv, depth + 1):
                     return True
@@ -427,7 +436,12 @@ async def fetch_via_tool(
     r = await client.post(
         scrape_fetch_url,
         # Note: endpoint schema expects `timeout` (seconds). Keep it explicit.
-        json={"url": url, "engine": engine, "timeout": 60, "capture_json": capture_json},
+        json={
+            "url": url,
+            "engine": engine,
+            "timeout": 60,
+            "capture_json": capture_json,
+        },
         timeout=60,
     )
     r.raise_for_status()
@@ -450,7 +464,9 @@ async def worker(
         vehicle_id, url = item
         try:
             if cfg.engine == "auto":
-                j = await fetch_via_tool(client, limiter, cfg.scrape_fetch_url, url, "httpx")
+                j = await fetch_via_tool(
+                    client, limiter, cfg.scrape_fetch_url, url, "httpx"
+                )
             else:
                 j = await fetch_via_tool(
                     client, limiter, cfg.scrape_fetch_url, url, cfg.engine
@@ -461,7 +477,11 @@ async def worker(
             captured = j.get("captured_json") if isinstance(j, dict) else None
 
             # If SSR HTML lacks rich sections, fall back to Playwright JSON capture.
-            if cfg.engine == "auto" and not extracted.get("technical_data") and not extracted.get("additional_properties"):
+            if (
+                cfg.engine == "auto"
+                and not extracted.get("technical_data")
+                and not extracted.get("additional_properties")
+            ):
                 j2 = await fetch_via_tool(
                     client,
                     limiter,
@@ -540,7 +560,9 @@ async def worker(
                 )
             )
         except Exception as e:  # noqa: BLE001 - this is a long-running crawl loop
-            await outq.put((vehicle_id, url, None, None, None, None, None, None, repr(e)))
+            await outq.put(
+                (vehicle_id, url, None, None, None, None, None, None, repr(e))
+            )
         finally:
             inq.task_done()
 
@@ -552,7 +574,9 @@ async def writer(cfg: CrawlConfig, outq: asyncio.Queue, total: int) -> None:
     done = 0
     start = time.time()
     while done < total:
-        vehicle_id, url, title, price, location, attrs_json, html, fetched_at, err = await outq.get()
+        vehicle_id, url, title, price, location, attrs_json, html, fetched_at, err = (
+            await outq.get()
+        )
         try:
             if err is not None:
                 con.execute(
@@ -573,7 +597,16 @@ async def writer(cfg: CrawlConfig, outq: asyncio.Queue, total: int) -> None:
                       source_html=excluded.source_html,
                       fetched_at=excluded.fetched_at
                     """,
-                    (vehicle_id, url, title, price, location, attrs_json, html, fetched_at),
+                    (
+                        vehicle_id,
+                        url,
+                        title,
+                        price,
+                        location,
+                        attrs_json,
+                        html,
+                        fetched_at,
+                    ),
                 )
             con.commit()
         finally:
@@ -624,9 +657,7 @@ async def run(cfg: CrawlConfig) -> None:
                     cur.execute(
                         "update listings set attributes_json=? where id=?",
                         (
-                            json.dumps(
-                                attrs, ensure_ascii=True, separators=(",", ":")
-                            ),
+                            json.dumps(attrs, ensure_ascii=True, separators=(",", ":")),
                             vehicle_id,
                         ),
                     )

@@ -8,17 +8,18 @@ Tests that:
 """
 
 import logging
-import sys
 import os
-import time
+import sys
 import threading
+import time
+
 import requests
 from prometheus_client.parser import text_string_to_metric_families
 
 # Add project root to path
 sys.path.append(os.getcwd())
 
-from voyant.core.monitoring import MetricsRegistry
+from apps.core.lib.monitoring import MetricsRegistry
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("verify_obs")
@@ -47,7 +48,9 @@ def test_metrics_server():
     # Fetch metrics
     metrics_base_url = os.getenv("VOYANT_VERIFY_METRICS_BASE_URL", "").strip()
     if not metrics_base_url:
-        logger.warning("VOYANT_VERIFY_METRICS_BASE_URL missing. Skipping metrics scrape test.")
+        logger.warning(
+            "VOYANT_VERIFY_METRICS_BASE_URL missing. Skipping metrics scrape test."
+        )
         return
     url = f"{metrics_base_url.rstrip('/')}/metrics"
     logger.info(f"Scraping {url}...")

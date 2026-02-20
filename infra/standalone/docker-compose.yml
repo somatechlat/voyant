@@ -36,13 +36,21 @@ services:
       context: ../..
       dockerfile: infra/standalone/Dockerfile
       args:
-        VOYANT_WITH_TRANSCRIBE: ${VOYANT_WITH_TRANSCRIBE}
         VOYANT_TORCH_DEVICE: ${VOYANT_TORCH_DEVICE}
         PYTORCH_INDEX_URL_CPU: ${PYTORCH_INDEX_URL_CPU}
         PYTORCH_INDEX_URL_CUDA: ${PYTORCH_INDEX_URL_CUDA}
     container_name: voyant_api
     ports:
       - "45000:8000"
+    depends_on:
+      voyant_postgres:
+        condition: service_healthy
+      voyant_redis:
+        condition: service_healthy
+      voyant_kafka:
+        condition: service_started
+      voyant_vault:
+        condition: service_started
     env_file:
       - ./.env
     environment:
@@ -58,6 +66,8 @@ services:
       MINIO_ENDPOINT: ${MINIO_ENDPOINT}
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      VOYANT_SECRETS_VAULT_URL: "http://voyant_vault:8200"
+      VOYANT_SECRETS_VAULT_TOKEN: ${VOYANT_VAULT_TOKEN:-root}
       DATAHUB_GMS_URL: ${DATAHUB_GMS_URL}
       TRINO_URL: ${TRINO_URL}
       KEYCLOAK_URL: ${KEYCLOAK_URL}
@@ -82,13 +92,7 @@ services:
       - voyant_artifacts:/app/artifacts
       - voyant_data:/app/data
       - voyant_logs:/app/logs
-    depends_on:
-      voyant_postgres:
-        condition: service_healthy
-      voyant_redis:
-        condition: service_healthy
-      voyant_kafka:
-        condition: service_started
+
     healthcheck:
       <<: *healthcheck
       test: [ "CMD", "curl", "-f", "${VOYANT_API_HEALTHCHECK_URL}" ]
@@ -392,8 +396,38 @@ services:
       - voyant_standalone
 
   # ===========================================================================
-  # SECURITY (Keycloak)
+  # SECURITY (Vault & Keycloak)
   # ===========================================================================
+  voyant_vault:
+    <<: *common
+    image: hashicorp/vault:1.15
+    container_name: voyant_vault
+    ports:
+      - "45820:8200"
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: ${VOYANT_VAULT_TOKEN:-root}
+      VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
+    cap_add:
+      - IPC_LOCK
+    volumes:
+      - voyant_vault_data:/vault/file
+    networks:
+      - voyant_standalone
+
+  voyant_spicedb:
+    <<: *common
+    image: authzed/spicedb:v1.29.0
+    container_name: voyant_spicedb
+    command: serve --grpc-preshared-key "somerandomkey" --readonly-grpc-preshared-key "readonlykey" --datastore-engine memory
+    ports:
+      - "50051:50051"
+      - "50052:50052"
+      - "8443:8443"
+    environment:
+      SPICEDB_GRPC_PRESHARED_KEY: "somerandomkey"
+    networks:
+      - voyant_standalone
+
   voyant_keycloak:
     <<: *common
     image: quay.io/keycloak/keycloak:23.0
@@ -545,3 +579,5 @@ volumes:
     name: voyant_flink_data
   voyant_logs:
     name: voyant_logs
+  voyant_vault_data:
+    name: voyant_vault_data

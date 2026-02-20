@@ -1,7 +1,7 @@
 import json
 from unittest.mock import patch
 
-from voyant.core.trino import QueryResult
+from apps.core.lib.trino import QueryResult
 
 
 def test_sql_select_allowed(client):

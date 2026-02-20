@@ -10,12 +10,33 @@ of core network-related dependencies, ensuring higher fidelity for integration t
 import inspect
 import os
 import types
-from typing import Any, Dict, List
+from typing import Any, Dict
 
-import django
-import pytest
-from django.test import Client
+# Configure environment variables BEFORE any Django imports
+# This must happen at module level before pytest-django loads settings
+os.environ.setdefault("VOYANT_ENV", "test")
+os.environ.setdefault(
+    "DATABASE_URL", "postgresql://voyant:voyant@localhost:45432/voyant_test"
+)
+os.environ.setdefault("REDIS_URL", "redis://:voyant@localhost:45379/1")
+os.environ.setdefault(
+    "VOYANT_SECRET_KEY",
+    "test-secret-key-for-testing-only-min-50-chars-long-django-security",
+)
+os.environ.setdefault(
+    "SECRET_KEY",
+    "test-secret-key-for-testing-only-min-50-chars-long-django-security",
+)
+os.environ.setdefault("VOYANT_DEBUG", "false")
+os.environ.setdefault("VOYANT_SECURITY_ENABLED", "false")
+os.environ.setdefault("VOYANT_ALLOWED_HOSTS", "localhost,127.0.0.1,testserver")
 
+# Load .env file for additional configuration (but don't override test settings)
+from dotenv import load_dotenv
+
+load_dotenv(override=False)
+import pytest  # noqa: E402
+from django.test import Client  # noqa: E402
 
 
 @pytest.fixture
@@ -70,7 +91,9 @@ def pytest_runtest_call(item: Any) -> Any:
         original_setattr = mp.setattr
         original_setitem = mp.setitem
 
-        def guarded_setattr(target: Any, name: str, value: Any, *a: Any, **kw: Any) -> Any:
+        def guarded_setattr(
+            target: Any, name: str, value: Any, *a: Any, **kw: Any
+        ) -> Any:
             """
             A wrapper around `monkeypatch.setattr` that checks for forbidden targets.
             """
@@ -87,14 +110,18 @@ def pytest_runtest_call(item: Any) -> Any:
                 )
             return original_setattr(target, name, value, *a, **kw)
 
-        def guarded_setitem(mapping: Dict[Any, Any], key: Any, value: Any, *a: Any, **kw: Any) -> Any:
+        def guarded_setitem(
+            mapping: Dict[Any, Any], key: Any, value: Any, *a: Any, **kw: Any
+        ) -> Any:
             """
             A wrapper around `monkeypatch.setitem` that checks for forbidden targets.
             """
             # This check is less precise for setitem as 'key' might not be a fqdn,
             # but it attempts to catch top-level module/package name mismatches.
-            if isinstance(key, str) and any(key.startswith(p.split(".")[0]) for p in _FORBIDDEN_PREFIXES):
-                 raise RuntimeError(
+            if isinstance(key, str) and any(
+                key.startswith(p.split(".")[0]) for p in _FORBIDDEN_PREFIXES
+            ):
+                raise RuntimeError(
                     f"Forbidden monkeypatch attempt on core real dependency detected affecting: {key}. "
                     "Ensure you are testing real network interactions or mock at a different level."
                 )
@@ -118,13 +145,16 @@ def disable_ssl_redirect(settings):
     settings.SECURE_SSL_REDIRECT = False
     settings.SESSION_COOKIE_SECURE = False
     settings.CSRF_COOKIE_SECURE = False
-    
+
     # Ensure SECRET_KEY is set for tests
     if not settings.SECRET_KEY:
-        settings.SECRET_KEY = "test-secret-key-for-testing-only-min-50-chars-long-django-security"
+        settings.SECRET_KEY = (
+            "test-secret-key-for-testing-only-min-50-chars-long-django-security"
+        )
 
     # Fix for NinjaAPI ConfigError: "Already registered: ['v1']"
     # This happens when pytest-django re-imports URL configurations.
     from ninja import NinjaAPI
+
     if hasattr(NinjaAPI, "_registry"):
         NinjaAPI._registry.clear()

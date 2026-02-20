@@ -7,20 +7,17 @@ Adheres to Vibe Coding Rules: Real integration test, no mocks.
 QA Engineer: Validates state transitions and recovery
 """
 
-import sys
-import os
-import time
 import logging
+import os
+import sys
 
 sys.path.append(os.getcwd())
 
-from voyant.core.circuit_breaker import (
-    get_circuit_breaker,
-    CircuitBreakerConfig,
+from apps.core.lib.circuit_breaker import (
     CircuitState,
+    get_circuit_breaker,
 )
-from voyant.core.r_bridge import REngine
-from voyant.core.errors import ServiceUnavailableError
+from apps.core.lib.r_bridge import REngine
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("verify_cb")
@@ -75,7 +72,7 @@ def test_serper_circuit_breaker():
     """
     logger.info("\n=== Testing Serper API Circuit Breaker ===")
 
-    from voyant.discovery.search_utils import SearchClient
+    from apps.discovery.lib.search_utils import SearchClient
 
     client = SearchClient()
     cb = get_circuit_breaker("serper_api")

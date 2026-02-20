@@ -4,20 +4,22 @@ Test Schema Evolution Persistence
 Verifies DuckDB-backed schema versioning.
 """
 
-import pytest
+import os
 import shutil
 import tempfile
-import os
-from voyant.core.schema_evolution import (
-    track_schema,
-    get_schema_history,
-    get_latest_schema,
-    TableSchema,
+
+import pytest
+
+from apps.core.config import Settings
+from apps.core.lib.schema_evolution import (
     ColumnSchema,
-    reset_registry,
+    TableSchema,
+    get_latest_schema,
     get_registry,
+    get_schema_history,
+    reset_registry,
+    track_schema,
 )
-from voyant.core.config import Settings, get_settings
 
 
 @pytest.fixture

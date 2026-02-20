@@ -8,10 +8,13 @@ from urllib.parse import urlparse
 
 # Load environment variables from .env file
 from dotenv import load_dotenv
+
 if os.environ.get("VOYANT_ENV") == "local":
     load_dotenv()
 
 # Import security settings
+from apps.core.config import get_settings
+
 from .security_settings import security_settings
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -19,28 +22,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # --- Helper Functions ---
-
-
-def _get_env(name: str, default: str = "") -> str:
-    """
-    Safely retrieve and strip an environment variable.
-
-    Args:
-        name: The name of the environment variable.
-        default: The default value to use if the variable is not set.
-
-    Returns:
-        The stripped value of the environment variable or the default.
-    """
-    value = os.environ.get(name, default).strip()
-    
-    # Log security warnings for sensitive data
-    sensitive_vars = ["SECRET_KEY", "DATABASE_PASSWORD", "API_KEY", "TOKEN"]
-    if any(sensitive in name.upper() for sensitive in sensitive_vars) and value and value != default:
-        # In production, this should be logged to a secure audit log
-        pass
-    
-    return value
 
 
 def _parse_database_url(url: str) -> dict[str, str | int]:
@@ -59,7 +40,7 @@ def _parse_database_url(url: str) -> dict[str, str | int]:
     parsed = urlparse(url)
     if parsed.scheme not in ("postgres", "postgresql"):
         raise RuntimeError(f"Unsupported DATABASE_URL scheme: {parsed.scheme}")
-    
+
     # SSL configuration for production
     ssl_config = {}
     if security_settings.database_ssl_require:
@@ -70,7 +51,7 @@ def _parse_database_url(url: str) -> dict[str, str | int]:
             ssl_config["sslkey"] = security_settings.database_ssl_key
         if security_settings.database_ssl_root_cert:
             ssl_config["sslrootcert"] = security_settings.database_ssl_root_cert
-    
+
     return {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": parsed.path.lstrip("/"),
@@ -78,7 +59,7 @@ def _parse_database_url(url: str) -> dict[str, str | int]:
         "PASSWORD": parsed.password or "",
         "HOST": parsed.hostname or "",
         "PORT": parsed.port or 5432,
-        **ssl_config
+        **ssl_config,
     }
 
 
@@ -86,22 +67,29 @@ def _parse_database_url(url: str) -> dict[str, str | int]:
 # SECURITY WARNING: The following settings have been enhanced for production security.
 # Always override these with secure values in production environments.
 
+app_settings = get_settings()
+
 # SECURITY WARNING: Keep the secret key used in production secret!
-SECRET_KEY = _get_env("VOYANT_SECRET_KEY", _get_env("DJANGO_SECRET_KEY"))
+SECRET_KEY = app_settings.secret_key
 
 # SECURITY WARNING: Don't run with debug turned on in production!
-DEBUG = _get_env("VOYANT_DEBUG", "false").lower() in ("1", "true", "yes")
+DEBUG = app_settings.debug
 
 # SECURITY WARNING: Set to the specific hostnames/domains of your server in production.
 # '*' is insecure and should not be used in a production environment.
-ALLOWED_HOSTS = [h for h in _get_env("VOYANT_ALLOWED_HOSTS", "").split(",") if h]
+ALLOWED_HOSTS = app_settings.allowed_hosts
 
 # SECURITY WARNING: Always use HTTPS in production.
 # Local/dev environments commonly run without TLS; enforce HTTPS only outside local.
-_voyant_env = _get_env("VOYANT_ENV", "local")
-SECURE_SSL_REDIRECT = security_settings.security_enabled and not DEBUG and _voyant_env != "local"
-SESSION_COOKIE_SECURE = security_settings.security_enabled and not DEBUG and _voyant_env != "local"
-CSRF_COOKIE_SECURE = security_settings.security_enabled and not DEBUG and _voyant_env != "local"
+SECURE_SSL_REDIRECT = (
+    security_settings.security_enabled and not DEBUG and app_settings.env != "local"
+)
+SESSION_COOKIE_SECURE = (
+    security_settings.security_enabled and not DEBUG and app_settings.env != "local"
+)
+CSRF_COOKIE_SECURE = (
+    security_settings.security_enabled and not DEBUG and app_settings.env != "local"
+)
 
 # --- Application Definition ---
 
@@ -115,9 +103,15 @@ INSTALLED_APPS = [
     "corsheaders",  # For handling Cross-Origin Resource Sharing
     "ninja",  # For building the REST API
     "django_mcp",  # Django MCP Server (django-mcp 0.3.1)
-    # Internal apps
-    "voyant_app",  # Core Voyant application, models, and API logic
-    "voyant.scraper",  # Data scraping module and models
+    # Internal apps - New Django App Structure
+    "apps.core",  # Core models (TimeStampedModel, TenantModel, AuditLog, SystemSetting)
+    "apps.workflows",  # Workflows (Jobs, Artifacts, Presets)
+    "apps.analysis",  # Statistical analysis
+    "apps.sql",  # SQL query execution via Trino
+    "apps.search",  # Semantic search with vector embeddings (Milvus)
+    "apps.discovery",  # Service discovery, API catalog, Sources
+    "apps.governance",  # Data governance, lineage, policies, quotas
+    "apps.scraper",  # Data scraping module (Pure Execution)
 ]
 
 # --- Middleware Configuration ---
@@ -165,9 +159,15 @@ ASGI_APPLICATION = "voyant_project.asgi.application"
 # --- Database Configuration ---
 # https://docs.djangoproject.com/en/stable/ref/settings/#databases
 # Database connection is configured via a single DATABASE_URL environment variable.
-DATABASE_URL = _get_env("DATABASE_URL")
+DATABASE_URL = app_settings.database_url
 if not DATABASE_URL:
-    raise RuntimeError("DATABASE_URL must be configured")
+    # For testing, use a default test database URL
+    if "pytest" in os.environ.get("_", "") or "test" in os.environ.get(
+        "VOYANT_ENV", ""
+    ):
+        DATABASE_URL = "postgresql://voyant:voyant@localhost:45432/voyant_test"
+    else:
+        raise RuntimeError("DATABASE_URL must be configured")
 DATABASES = {"default": _parse_database_url(DATABASE_URL)}
 
 
@@ -186,7 +186,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # --- Security Headers Configuration ---
 # Apply security headers based on security settings
-SECURE_HSTS_SECONDS = security_settings.hsts_max_age if security_settings.hsts_enabled else 0
+SECURE_HSTS_SECONDS = (
+    security_settings.hsts_max_age if security_settings.hsts_enabled else 0
+)
 SECURE_HSTS_INCLUDE_SUBDOMAINS = security_settings.hsts_include_subdomains
 SECURE_HSTS_PRELOAD = security_settings.hsts_preload
 SECURE_CONTENT_TYPE_NOSNIFF = security_settings.security_enabled
@@ -207,9 +209,7 @@ CORS_MAX_AGE = security_settings.cors_max_age
 
 # --- Cross-Site Request Forgery (CSRF) Settings ---
 # A list of hosts that are trusted for CSRF purposes.
-CSRF_TRUSTED_ORIGINS = [
-    origin for origin in _get_env("CSRF_TRUSTED_ORIGINS", "").split(",") if origin
-]
+CSRF_TRUSTED_ORIGINS = app_settings.csrf_trusted_origins
 
 # --- Authentication Settings ---
 AUTHENTICATION_BACKENDS = [
@@ -221,7 +221,7 @@ SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 SESSION_CACHE_ALIAS = "default"
 SESSION_COOKIE_SECURE = security_settings.security_enabled and not DEBUG
 SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SAMESITE = "Lax"
 
 # --- Password Validation Settings ---
 AUTH_PASSWORD_VALIDATORS = [
@@ -232,7 +232,7 @@ AUTH_PASSWORD_VALIDATORS = [
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
         "OPTIONS": {
             "min_length": 12,
-        }
+        },
     },
     {
         "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
@@ -244,12 +244,12 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # --- Email Settings (for notifications) ---
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = _get_env("EMAIL_HOST")
-EMAIL_PORT = int(_get_env("EMAIL_PORT", "587"))
-EMAIL_USE_TLS = _get_env("EMAIL_USE_TLS", "true").lower() in ("1", "true", "yes")
-EMAIL_HOST_USER = _get_env("EMAIL_HOST_USER", "")
-EMAIL_HOST_PASSWORD = _get_env("EMAIL_HOST_PASSWORD", "")
-DEFAULT_FROM_EMAIL = _get_env("DEFAULT_FROM_EMAIL")
+EMAIL_HOST = app_settings.email_host
+EMAIL_PORT = app_settings.email_port
+EMAIL_USE_TLS = app_settings.email_use_tls
+EMAIL_HOST_USER = app_settings.email_host_user
+EMAIL_HOST_PASSWORD = app_settings.email_host_password
+DEFAULT_FROM_EMAIL = app_settings.default_from_email
 
 # --- Logging Configuration ---
 LOGGING = {
@@ -331,11 +331,11 @@ os.makedirs(os.path.join(BASE_DIR, "logs"), exist_ok=True)
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": _get_env("REDIS_URL"),
+        "LOCATION": app_settings.redis_url,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
             "IGNORE_EXCEPTIONS": True,
-        }
+        },
     }
 }
 
