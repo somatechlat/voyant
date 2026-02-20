@@ -5,17 +5,17 @@ Tests the Scikit-Learn and Prophet integration.
 """
 
 import logging
-import sys
-from datetime import datetime, timedelta
-import random
 
 # Add project root to path
 import os
+import random
+import sys
+from datetime import datetime, timedelta
 
 sys.path.append(os.getcwd())
 
-from voyant.core.ml_primitives import MLPrimitives
-from voyant.core.forecast_primitives import ForecastPrimitives
+from apps.core.lib.forecast_primitives import ForecastPrimitives
+from apps.core.lib.ml_primitives import MLPrimitives
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("verify_ml")

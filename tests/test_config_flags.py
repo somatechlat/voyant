@@ -6,7 +6,7 @@ load and apply feature flag settings from environment variables, ensuring
 conditional functionalities behave as expected based on configuration.
 """
 
-from voyant.core.config import get_settings
+from apps.core.config import get_settings
 
 
 def test_feature_flags_env(monkeypatch):
@@ -24,7 +24,7 @@ def test_feature_flags_env(monkeypatch):
     monkeypatch.setenv("VOYANT_ENABLE_NARRATIVE", "1")
 
     # Clear the cached settings to force a reload from environment variables.
-    from voyant.core.config import get_settings as gs
+    from apps.core.config import get_settings as gs
 
     gs.cache_clear()  # type: ignore
 

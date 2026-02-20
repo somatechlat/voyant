@@ -6,13 +6,11 @@ Reference: docs/CANONICAL_ARCHITECTURE.md Section 8
 """
 
 import os
-import pytest
 
 # Set metrics mode before importing metrics module
 os.environ["VOYANT_METRICS_MODE"] = "off"
 
 # Clear any cached settings
-import importlib
 import voyant.core.config as config_module
 import voyant.core.metrics as metrics_module
 

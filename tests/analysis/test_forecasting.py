@@ -2,12 +2,11 @@
 Tests for Time Series Forecasting Service.
 """
 
-import pytest
-import pandas as pd
 import numpy as np
-from datetime import datetime, timedelta
+import pandas as pd
+import pytest
 
-from voyant.services.analysis.forecasting import TimeForecaster, SKLEARN_AVAILABLE
+from apps.services.analysis.forecasting import SKLEARN_AVAILABLE, TimeForecaster
 
 
 @pytest.fixture

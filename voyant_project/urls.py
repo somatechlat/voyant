@@ -19,12 +19,12 @@ from datetime import datetime, timezone
 
 from asgiref.sync import async_to_sync
 from django.http import JsonResponse
-from django.urls import path, include
+from django.urls import path
 
-from voyant.api.middleware import get_version_info
-from voyant.core.circuit_breaker import _circuit_breakers
-from voyant.core.config import get_settings
-from voyant_app.api import api as v1_api
+from apps.core.middleware import get_version_info
+from apps.core.lib.circuit_breaker import _circuit_breakers
+from apps.core.config import get_settings
+from apps.core.api import api as v1_api
 
 
 def health(_request) -> JsonResponse:
@@ -60,7 +60,7 @@ def ready(_request) -> JsonResponse:
     overall_ready = True
 
     try:
-        from voyant.core.duckdb_pool import get_pool
+        from apps.core.lib.duckdb_pool import get_pool
 
         # Readiness must fail fast: do not block for long waits on a pooled connection
         # and do not create new connections (which can block on file locks).
@@ -76,7 +76,7 @@ def ready(_request) -> JsonResponse:
         overall_ready = False
 
     try:
-        from voyant.core.r_bridge import REngine
+        from apps.core.lib.r_bridge import REngine
 
         r_engine = REngine()
         if r_engine.is_healthy():
@@ -89,7 +89,7 @@ def ready(_request) -> JsonResponse:
         overall_ready = False
 
     try:
-        from voyant.core.temporal_client import get_temporal_client
+        from apps.core.lib.temporal_client import get_temporal_client
 
         async_to_sync(get_temporal_client)()
         checks["temporal"] = {"status": "up", "details": "Client connected"}
@@ -138,7 +138,7 @@ def status_view(_request) -> JsonResponse:
     }
 
     try:
-        from voyant.core.r_bridge import REngine
+        from apps.core.lib.r_bridge import REngine
 
         r_engine = REngine()
         status_info["services"]["r_engine"] = {

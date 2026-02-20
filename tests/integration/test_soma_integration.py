@@ -23,7 +23,9 @@ def _skip_if_unreachable(exc: Exception, service: str, base_url: str) -> None:
     pytest.skip(f"{service} unavailable at {base_url}: {exc}")
 
 
-def _skip_or_raise_http_status(exc: httpx.HTTPStatusError, service: str, base_url: str) -> None:
+def _skip_or_raise_http_status(
+    exc: httpx.HTTPStatusError, service: str, base_url: str
+) -> None:
     if exc.response.status_code in {502, 503, 504}:
         _skip_if_unreachable(exc, service, base_url)
     raise exc

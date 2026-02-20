@@ -10,13 +10,10 @@ version context.
 Reference: docs/CANONICAL_ROADMAP.md - P3 Extensibility (API Versioning)
 """
 
-import pytest
-
-from voyant.api.middleware import (
+from apps.core.middleware import (
     CURRENT_VERSION,
     DEFAULT_VERSION,
     SUPPORTED_VERSIONS,
-    APIVersionMiddleware,
     get_api_version,
     get_version_info,
 )
@@ -150,7 +147,7 @@ class TestVersionPatternParsing:
         Verifies that the `VERSION_PATTERN` regex correctly extracts "1"
         from `application/vnd.voyant.v1+json`.
         """
-        from voyant.api.middleware import VERSION_PATTERN
+        from apps.core.middleware import VERSION_PATTERN
 
         match = VERSION_PATTERN.search("application/vnd.voyant.v1+json")
         assert match is not None
@@ -161,7 +158,7 @@ class TestVersionPatternParsing:
         Verifies that the `VERSION_PATTERN` regex correctly extracts "2"
         from `application/vnd.voyant.v2+json`.
         """
-        from voyant.api.middleware import VERSION_PATTERN
+        from apps.core.middleware import VERSION_PATTERN
 
         match = VERSION_PATTERN.search("application/vnd.voyant.v2+json")
         assert match is not None
@@ -172,7 +169,7 @@ class TestVersionPatternParsing:
         Ensures that the `VERSION_PATTERN` regex does not match a plain
         `application/json` media type.
         """
-        from voyant.api.middleware import VERSION_PATTERN
+        from apps.core.middleware import VERSION_PATTERN
 
         match = VERSION_PATTERN.search("application/json")
         assert match is None

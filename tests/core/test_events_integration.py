@@ -5,24 +5,25 @@ Verifies that events are validated and successfully transmitted to a Kafka broke
 NO MOCKS.
 """
 
-import pytest
-import os
 import json
-import uuid
+import os
 import time
-from typing import Optional
-from voyant.core.events import KafkaProducer, VoyantEvent, get_kafka_producer
-from voyant.core.event_schema import (
-    register_schema,
+import uuid
+
+import pytest
+
+from apps.core.lib.event_schema import (
     EventSchema,
     FieldSpec,
     FieldType,
     clear_registry,
+    register_schema,
 )
+from apps.core.lib.events import KafkaProducer, VoyantEvent, get_kafka_producer
 
 KAFKA_AVAILABLE = False
 try:
-    from confluent_kafka import Consumer, Producer
+    from confluent_kafka import Consumer
 
     # Check simple connection? For now assume if import works we try integration
     KAFKA_AVAILABLE = True

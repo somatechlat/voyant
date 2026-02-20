@@ -122,7 +122,9 @@ class TestHealthEndpoints:
         Tests that the `/ready` endpoint correctly reports a 503 Service Unavailable
         when the DuckDB connection fails.
         """
-        mock_duckdb.side_effect = Exception("Database connection failed")  # Simulate DuckDB error.
+        mock_duckdb.side_effect = Exception(
+            "Database connection failed"
+        )  # Simulate DuckDB error.
 
         mock_r = MagicMock()
         mock_r.is_healthy.return_value = True
@@ -152,7 +154,9 @@ class TestHealthEndpoints:
         Tests that the `/ready` endpoint correctly reports a 503 Service Unavailable
         when the Temporal client fails to connect.
         """
-        mock_temporal.side_effect = Exception("Temporal connection failed")  # Simulate Temporal error.
+        mock_temporal.side_effect = Exception(
+            "Temporal connection failed"
+        )  # Simulate Temporal error.
 
         mock_db_conn = MagicMock()
         mock_db_conn.execute.return_value.fetchone.return_value = (1,)
@@ -268,7 +272,7 @@ class TestHealthEndpoints:
 
         mock_temporal.return_value = MagicMock()
 
-        from voyant.core.circuit_breaker import CircuitState
+        from apps.core.lib.circuit_breaker import CircuitState
 
         # Simulate a circuit breaker being open for a critical service.
         mock_cb = MagicMock()

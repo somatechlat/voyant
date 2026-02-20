@@ -5,7 +5,6 @@ import os
 
 import django
 
-
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "voyant_project.settings")
 
 

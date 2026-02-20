@@ -5,15 +5,16 @@ Tests FIX_DATA_QUALITY primitives.
 """
 
 import logging
-import sys
 import os
-import pandas as pd
+import sys
+
 import numpy as np
+import pandas as pd
 
 # Add project root to path
 sys.path.append(os.getcwd())
 
-from voyant.core.cleaning_primitives import DataCleaningPrimitives
+from apps.core.lib.cleaning_primitives import DataCleaningPrimitives
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("verify_clean")

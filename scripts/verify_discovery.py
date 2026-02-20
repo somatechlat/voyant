@@ -6,14 +6,14 @@ Requires: pip install requests
 """
 
 import logging
-import sys
 import os
+import sys
 
 # Add project root to path
 sys.path.append(os.getcwd())
 
-from voyant.discovery.search_utils import SearchClient
-from voyant.discovery.spec_parser import SpecParser
+from apps.discovery.lib.search_utils import SearchClient
+from apps.discovery.lib.spec_parser import SpecParser
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("verify_discovery")
@@ -39,7 +39,9 @@ def test_parser():
 
     url = os.getenv("VOYANT_VERIFY_DISCOVERY_SPEC_URL", "").strip()
     if not url:
-        logger.warning("VOYANT_VERIFY_DISCOVERY_SPEC_URL missing. Skipping parser URL test.")
+        logger.warning(
+            "VOYANT_VERIFY_DISCOVERY_SPEC_URL missing. Skipping parser URL test."
+        )
         return
 
     try:

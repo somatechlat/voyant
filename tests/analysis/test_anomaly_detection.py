@@ -2,15 +2,14 @@
 Tests for Anomaly Detection Service.
 """
 
-import pytest
-import pandas as pd
 import numpy as np
+import pandas as pd
+import pytest
 
-from voyant.services.analysis.anomaly_detection import (
-    AnomalyDetector,
+from apps.services.analysis.anomaly_detection import (
     SKLEARN_AVAILABLE,
+    AnomalyDetector,
 )
-from voyant.core.errors import AnalysisError
 
 
 @pytest.fixture

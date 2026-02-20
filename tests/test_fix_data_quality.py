@@ -9,9 +9,7 @@ quality scores. Tests also cover edge cases like empty datasets and performance
 with large datasets.
 """
 
-import math
-import os
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
@@ -20,7 +18,7 @@ import pytest
 # Mock NLTK to avoid data download requirement during testing.
 # This assumes the sentiment analyzer is only used in operational_activities.
 with patch("voyant.core.nlp_primitives.SentimentIntensityAnalyzer"):
-    from voyant.activities.operational_activities import OperationalActivities
+    from apps.worker.activities.operational_activities import OperationalActivities
 
 
 class TestFixDataQuality:

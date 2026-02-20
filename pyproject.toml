@@ -37,6 +37,8 @@ dependencies = [
     "minio>=7.2.0",
     "pyRserve>=1.0.0",
     "temporalio>=1.4.0",
+    "hvac>=2.1.0",
+    "authzed>=1.0.0",
 ]
 
 [project.optional-dependencies]
@@ -71,6 +73,15 @@ addopts = "-v --cov=voyant --cov-report=term-missing --ds=voyant_project.setting
 markers = [
     "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
     "benchmark: marks tests as benchmark tests (deselect with '-m \"not benchmark\"')",
+]
+# Set environment variables for tests
+env = [
+    "VOYANT_ENV=test",
+    "DATABASE_URL=postgresql://voyant:voyant@localhost:45432/voyant_test",
+    "REDIS_URL=redis://:voyant@localhost:45379/1",
+    "VOYANT_SECRET_KEY=test-secret-key-for-testing-only-min-50-chars-long-django-security",
+    "VOYANT_DEBUG=false",
+    "VOYANT_SECURITY_ENABLED=false",
 ]
 
 [tool.ruff]

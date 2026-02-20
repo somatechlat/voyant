@@ -3,11 +3,11 @@ Tests for MLPrimitives Core Component.
 Verifies real scikit-learn integration without mocking internal logic.
 """
 
-import pytest
-import pandas as pd
 import numpy as np
-from voyant.core.ml_primitives import MLPrimitives, SKLEARN_AVAILABLE
-from voyant.core.errors import AnalysisError
+import pytest
+
+from apps.core.lib.errors import AnalysisError
+from apps.core.lib.ml_primitives import SKLEARN_AVAILABLE, MLPrimitives
 
 
 @pytest.fixture

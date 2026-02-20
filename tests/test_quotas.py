@@ -7,21 +7,21 @@ Reference: docs/CANONICAL_ROADMAP.md - P4 Scale & Multi-Tenant
 
 import pytest
 
-from voyant.core.quotas import (
-    QUOTA_TIERS,
+from apps.core.lib.quotas import (
     DEFAULT_TIER,
-    set_tenant_tier,
-    get_tenant_tier,
-    get_quota_limits,
-    get_usage_status,
+    QUOTA_TIERS,
     check_quota,
-    record_job_start,
-    record_job_end,
+    get_quota_limits,
+    get_tenant_tier,
+    get_usage_status,
+    list_tiers,
     record_artifact_size,
+    record_job_end,
+    record_job_start,
     record_source_added,
     record_source_removed,
     reset_tenant_usage,
-    list_tiers,
+    set_tenant_tier,
 )
 
 

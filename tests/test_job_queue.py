@@ -19,14 +19,12 @@ Reference: docs/CANONICAL_ROADMAP.md - P4 Scale & Multi-Tenant
 
 import asyncio
 import time
-from typing import Any, Dict, List
 
 import pytest
 
-from voyant.core.job_queue import (
+from apps.core.lib.job_queue import (
     InMemoryJobQueue,
     JobStatus,
-    QueuedJob,
     get_job_queue,
     reset_job_queue,
 )
@@ -40,7 +38,9 @@ def queue() -> InMemoryJobQueue:
     This ensures test isolation and a consistent state for job queue operations.
     """
     reset_job_queue()  # Clear any global instance for clean slate.
-    return InMemoryJobQueue(default_lease_seconds=0.1) # Use short lease for lease management tests.
+    return InMemoryJobQueue(
+        default_lease_seconds=0.1
+    )  # Use short lease for lease management tests.
 
 
 class TestEnqueue:
@@ -85,7 +85,9 @@ class TestEnqueue:
         """
         Verifies that `enqueue` correctly stores and retrieves associated job metadata.
         """
-        await queue.enqueue("tenant1", "job1", metadata={"key": "value", "user": "test_user"})
+        await queue.enqueue(
+            "tenant1", "job1", metadata={"key": "value", "user": "test_user"}
+        )
 
         job = await queue.get_job("job1")
         assert job is not None

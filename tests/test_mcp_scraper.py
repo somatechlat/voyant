@@ -3,7 +3,7 @@
 
 import json
 
-from voyant.scraper.parsing.html_parser import HTMLParser
+from apps.scraper.parsing.html_parser import HTMLParser
 
 
 def test_html_extraction() -> None:

@@ -1,1 +1,0 @@
-"""Voyant Django application."""

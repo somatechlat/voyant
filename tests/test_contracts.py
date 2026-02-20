@@ -12,17 +12,11 @@ different versions of data contracts.
 Reference: docs/CANONICAL_ROADMAP.md - P5 Governance & Contracts
 """
 
-import json
-from typing import Any, Dict, List, Optional
-
-import pytest
-
-from voyant.core.contracts import (
+from apps.core.lib.contracts import (
     ColumnSpec,
     DataContract,
     DataType,
     SensitivityLevel,
-    ValidationResult,
     clear_registry,
     get_contract,
     list_contracts,
@@ -333,7 +327,10 @@ class TestValidation:
             ],
         )
         actual_columns = [
-            {"name": "price", "type": "varchar"},  # Actual type is string, contract expects float.
+            {
+                "name": "price",
+                "type": "varchar",
+            },  # Actual type is string, contract expects float.
         ]
 
         result = validate_schema(contract, actual_columns)
@@ -354,11 +351,16 @@ class TestValidation:
         )
         actual_columns = [
             {"name": "id", "type": "int"},
-            {"name": "extra_col", "type": "string"},  # This column is not in the contract.
+            {
+                "name": "extra_col",
+                "type": "string",
+            },  # This column is not in the contract.
         ]
 
         result = validate_schema(contract, actual_columns)
-        assert result.valid is True  # Extra columns should typically result in warnings, not hard errors.
+        assert (
+            result.valid is True
+        )  # Extra columns should typically result in warnings, not hard errors.
         assert any("extra_col" in w for w in result.warnings)
 
 

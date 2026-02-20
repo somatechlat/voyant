@@ -7,8 +7,9 @@ Requires 'docker-compose up -d temporal'
 
 import asyncio
 import logging
-from voyant.core.temporal_client import get_temporal_client
-from voyant.workflows.benchmark_workflow import BenchmarkBrandWorkflow
+
+from apps.core.lib.temporal_client import get_temporal_client
+from apps.workflows.benchmark_workflow import BenchmarkBrandWorkflow
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("verify")
