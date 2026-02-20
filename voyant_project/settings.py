@@ -71,6 +71,8 @@ app_settings = get_settings()
 
 # SECURITY WARNING: Keep the secret key used in production secret!
 SECRET_KEY = app_settings.secret_key
+if not SECRET_KEY and app_settings.env in {"test", "local"}:
+    SECRET_KEY = "voyant-local-test-secret-key-not-for-production"
 
 # SECURITY WARNING: Don't run with debug turned on in production!
 DEBUG = app_settings.debug
@@ -110,6 +112,7 @@ INSTALLED_APPS = [
     "apps.sql",  # SQL query execution via Trino
     "apps.search",  # Semantic search with vector embeddings (Milvus)
     "apps.discovery",  # Service discovery, API catalog, Sources
+    "apps.ingestion",  # Ingestion jobs bound to canonical discovery sources
     "apps.governance",  # Data governance, lineage, policies, quotas
     "apps.scraper",  # Data scraping module (Pure Execution)
 ]
@@ -128,10 +131,10 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     # Custom Voyant middleware. Order is important for request processing.
-    "voyant.api.middleware.RequestIdMiddleware",  # Adds a unique ID to each request.
-    "voyant.api.middleware.TenantMiddleware",  # Identifies the tenant for the request.
-    "voyant.api.middleware.SomaContextMiddleware",  # Injects agent context if available.
-    "voyant.api.middleware.APIVersionMiddleware",  # Handles API versioning.
+    "apps.core.middleware.RequestIdMiddleware",  # Adds a unique ID to each request.
+    "apps.core.middleware.TenantMiddleware",  # Identifies the tenant for the request.
+    "apps.core.middleware.SomaContextMiddleware",  # Injects agent context if available.
+    "apps.core.middleware.APIVersionMiddleware",  # Handles API versioning.
 ]
 
 ROOT_URLCONF = "voyant_project.urls"

@@ -17,6 +17,5 @@ class CoreConfig(AppConfig):
         This method is called once Django has loaded all apps.
         Use it to register signals, perform startup checks, etc.
         """
-        # Import signals to register them
-        # from . import signals  # noqa: F401
-        pass
+        # Register MCP tools at startup so django-mcp exposes a stable tool surface.
+        from apps.mcp import tools as _mcp_tools  # noqa: F401

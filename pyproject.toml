@@ -57,10 +57,10 @@ processing = [
 ]
 
 [project.scripts]
-voyant-mcp = "voyant.mcp.server:main"
+voyant-mcp = "apps.mcp.server:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["voyant"]
+packages = ["apps", "voyant_project"]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "voyant_project.settings"
@@ -69,7 +69,7 @@ python_classes = ["Test*"]
 python_functions = ["test_*"]
 asyncio_mode = "auto"
 testpaths = ["tests"]
-addopts = "-v --cov=voyant --cov-report=term-missing --ds=voyant_project.settings"
+addopts = "-v --cov=apps --cov-report=term-missing --ds=voyant_project.settings"
 markers = [
     "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
     "benchmark: marks tests as benchmark tests (deselect with '-m \"not benchmark\"')",
