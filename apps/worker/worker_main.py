@@ -41,18 +41,18 @@ from apps.streaming.activities import StreamingActivities
 
 # Streaming Module (Apache Flink Integration - FR-21)
 from apps.streaming.workflow import StreamingJobWorkflow
-from apps.workflows.analyze_workflow import AnalyzeWorkflow
-from apps.workflows.benchmark_workflow import BenchmarkBrandWorkflow
-from apps.workflows.ingest_workflow import IngestDataWorkflow
-from apps.workflows.operational_workflows import (
+from apps.worker.workflows.analyze_workflow import AnalyzeWorkflow
+from apps.worker.workflows.benchmark_workflow import BenchmarkBrandWorkflow
+from apps.worker.workflows.ingest_workflow import IngestDataWorkflow
+from apps.worker.workflows.operational_workflows import (
     AnalyzeSentimentWorkflow,
     DetectAnomaliesWorkflow,
     FixDataQualityWorkflow,
 )
 from apps.worker.workflows.profile_workflow import ProfileWorkflow
 from apps.worker.workflows.quality_workflow import QualityWorkflow
-from apps.workflows.regression_workflow import LinearRegressionWorkflow
-from apps.workflows.segmentation_workflow import SegmentCustomersWorkflow
+from apps.worker.workflows.regression_workflow import LinearRegressionWorkflow
+from apps.worker.workflows.segmentation_workflow import SegmentCustomersWorkflow
 
 # Configure logging
 logging.basicConfig(

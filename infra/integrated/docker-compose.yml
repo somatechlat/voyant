@@ -75,7 +75,7 @@ services:
         PYTORCH_INDEX_URL_CPU: ${PYTORCH_INDEX_URL_CPU}
         PYTORCH_INDEX_URL_CUDA: ${PYTORCH_INDEX_URL_CUDA}
     container_name: voyant-mcp-integrated
-    command: [ "python", "-m", "voyant.mcp.server" ]
+    command: [ "python", "-m", "apps.mcp.server" ]
     ports:
       - "${VOYANT_MCP_PORT}:8001"
     environment:
@@ -107,7 +107,7 @@ services:
         PYTORCH_INDEX_URL_CPU: ${PYTORCH_INDEX_URL_CPU}
         PYTORCH_INDEX_URL_CUDA: ${PYTORCH_INDEX_URL_CUDA}
     container_name: voyant-worker-integrated
-    command: [ "python", "-m", "voyant.worker.worker_main" ]
+    command: [ "python", "-m", "apps.worker.worker_main" ]
     environment:
       VOYANT_DEPLOYMENT_MODE: integrated
       DATABASE_URL: ${DATABASE_URL}

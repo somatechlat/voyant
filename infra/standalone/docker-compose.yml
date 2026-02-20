@@ -118,7 +118,7 @@ services:
         PYTORCH_INDEX_URL_CPU: ${PYTORCH_INDEX_URL_CPU}
         PYTORCH_INDEX_URL_CUDA: ${PYTORCH_INDEX_URL_CUDA}
     container_name: voyant_worker
-    command: [ "python", "-m", "voyant.worker.worker_main" ]
+    command: [ "python", "-m", "apps.worker.worker_main" ]
     ports:
       - "45090:9090"
     env_file:

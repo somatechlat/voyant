@@ -27,6 +27,11 @@ class Job(TenantModel, UUIDModel):
         db_table = "voyant_job"
         ordering = ["-created_at"]
 
+    @property
+    def job_id(self) -> str:
+        """Compatibility alias used across API responses and integrations."""
+        return str(self.id)
+
 class Artifact(TenantModel):
     """
     Represents a file or data artifact produced by a job.
@@ -53,3 +58,8 @@ class PresetJob(TenantModel, UUIDModel):
 
     class Meta:
         db_table = "voyant_preset_job"
+
+    @property
+    def job_id(self) -> str:
+        """Compatibility alias used across API responses and integrations."""
+        return str(self.id)

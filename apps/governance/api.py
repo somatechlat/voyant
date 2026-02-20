@@ -1,16 +1,29 @@
+"""Governance REST API endpoints."""
+
+from __future__ import annotations
 
 import logging
-import httpx
 from typing import Any, Dict, List, Optional
-from ninja import Router, Schema, Field
+
+import httpx
+from ninja import Field, Router, Schema
 from ninja.errors import HttpError
+
 from apps.core.api_utils import auth_guard
-from apps.core.config import get_settings
+from apps.core.lib.tenant_quotas import (
+    QuotaTier,
+    ResourceType,
+    get_quota_manager,
+    get_usage_stats,
+    set_tenant_tier,
+)
 from apps.core.middleware import get_tenant_id
+from apps.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
 governance_router = Router(tags=["governance"])
+
 
 class GovernanceSearchResult(Schema):
     urn: str
@@ -56,6 +69,33 @@ class SchemaResponse(Schema):
     fields: List[SchemaField]
 
 
+class QuotaTierInfo(Schema):
+    tier_id: str
+    name: str
+    max_jobs_per_day: int
+    max_artifacts_gb: float
+    max_sources: int
+    max_concurrent_jobs: int
+
+
+class QuotaUsageStatus(Schema):
+    tenant_id: str
+    tier: str
+    jobs_today: int
+    jobs_limit: int
+    jobs_remaining: int
+    artifacts_gb: float
+    artifacts_limit_gb: float
+    sources_count: int
+    sources_limit: int
+    concurrent_jobs: int
+    concurrent_limit: int
+
+
+class SetTierRequest(Schema):
+    tier: str
+
+
 DATAHUB_SEARCH_QUERY = """
 query search($input: SearchInput!) {
   search(input: $input) {
@@ -67,16 +107,8 @@ query search($input: SearchInput!) {
         ... on Dataset {
           name
           description
-          platform {
-            name
-          }
-          tags {
-            tags {
-              tag {
-                name
-              }
-            }
-          }
+          platform { name }
+          tags { tags { tag { name } } }
         }
       }
     }
@@ -88,9 +120,7 @@ DATAHUB_LINEAGE_QUERY = """
 query lineage($urn: String!, $direction: LineageDirection!, $depth: Int!) {
   entity(urn: $urn) {
     urn
-    ... on Dataset {
-      name
-    }
+    ... on Dataset { name }
   }
   lineage(input: { urn: $urn, direction: $direction, depth: $depth }) {
     relationships {
@@ -125,41 +155,73 @@ def _datahub_graphql(query: str, variables: Dict[str, Any]) -> Dict[str, Any]:
     return data.get("data", {})
 
 
+def _quota_usage_for_tenant(tenant_id: str) -> QuotaUsageStatus:
+    manager = get_quota_manager()
+    tier = manager.get_tenant_tier(tenant_id)
+    policy = manager.get_policy(tenant_id)
+    usage_map = {s.resource.value: s for s in get_usage_stats(tenant_id)}
+
+    jobs_limit = policy.get_limit(ResourceType.JOBS_PER_DAY)
+    artifacts_limit = policy.get_limit(ResourceType.TOTAL_STORAGE_MB)
+    sources_limit = policy.get_limit(ResourceType.WORKFLOWS_PER_DAY)
+    concurrent_limit = policy.get_limit(ResourceType.JOBS_CONCURRENT)
+
+    jobs_usage = usage_map.get(ResourceType.JOBS_PER_DAY.value)
+    artifacts_usage = usage_map.get(ResourceType.TOTAL_STORAGE_MB.value)
+    sources_usage = usage_map.get(ResourceType.WORKFLOWS_PER_DAY.value)
+    concurrent_usage = usage_map.get(ResourceType.JOBS_CONCURRENT.value)
+
+    jobs_cap = int(jobs_limit.limit) if jobs_limit else 0
+    jobs_now = int(jobs_usage.current_usage) if jobs_usage else 0
+    artifacts_cap_mb = float(artifacts_limit.limit) if artifacts_limit else 0.0
+    artifacts_now_mb = float(artifacts_usage.current_usage) if artifacts_usage else 0.0
+    sources_cap = int(sources_limit.limit) if sources_limit else 0
+    sources_now = int(sources_usage.current_usage) if sources_usage else 0
+    concurrent_cap = int(concurrent_limit.limit) if concurrent_limit else 0
+    concurrent_now = int(concurrent_usage.current_usage) if concurrent_usage else 0
+
+    return QuotaUsageStatus(
+        tenant_id=tenant_id,
+        tier=tier.value,
+        jobs_today=jobs_now,
+        jobs_limit=jobs_cap,
+        jobs_remaining=max(0, jobs_cap - jobs_now),
+        artifacts_gb=round(artifacts_now_mb / 1024.0, 3),
+        artifacts_limit_gb=round(artifacts_cap_mb / 1024.0, 3),
+        sources_count=sources_now,
+        sources_limit=sources_cap,
+        concurrent_jobs=concurrent_now,
+        concurrent_limit=concurrent_cap,
+    )
+
+
+def _policy_limit(policy, resource: ResourceType) -> float:
+    limit_cfg = policy.get_limit(resource)
+    if not limit_cfg:
+        return 0.0
+    return float(limit_cfg.limit)
+
+
 @governance_router.get("/search", response=SearchResponse, auth=auth_guard)
 def search_metadata(request, query: str, types: Optional[str] = None, limit: int = 10):
     try:
         data = _datahub_graphql(
             DATAHUB_SEARCH_QUERY,
-            {
-                "input": {
-                    "type": "DATASET",
-                    "query": query,
-                    "start": 0,
-                    "count": limit,
-                }
-            },
+            {"input": {"type": "DATASET", "query": query, "start": 0, "count": limit}},
         )
-
-        results = []
         search_data = data.get("search", {})
+        results: List[GovernanceSearchResult] = []
 
         for item in search_data.get("searchResults", []):
             entity = item.get("entity", {})
-            tags = []
-            if entity.get("tags"):
-                tags = [t["tag"]["name"] for t in entity["tags"].get("tags", [])]
-
+            tags = [t["tag"]["name"] for t in entity.get("tags", {}).get("tags", [])]
             results.append(
                 GovernanceSearchResult(
                     urn=entity.get("urn", ""),
                     name=entity.get("name", ""),
                     type=entity.get("type", "DATASET"),
                     description=entity.get("description"),
-                    platform=(
-                        entity.get("platform", {}).get("name")
-                        if entity.get("platform")
-                        else None
-                    ),
+                    platform=(entity.get("platform") or {}).get("name"),
                     tags=tags,
                 )
             )
@@ -175,23 +237,16 @@ def search_metadata(request, query: str, types: Optional[str] = None, limit: int
 @governance_router.get("/lineage/{urn}", response=LineageResponse, auth=auth_guard)
 def get_lineage(request, urn: str, direction: str = "both", depth: int = 3):
     try:
-        nodes = [
-            LineageNode(
-                urn=urn, name=urn.split(",")[1] if "," in urn else urn, type="dataset"
-            )
-        ]
-        edges = []
+        nodes = [LineageNode(urn=urn, name=urn.split(",")[1] if "," in urn else urn, type="dataset")]
+        edges: List[LineageEdge] = []
+        directions = ["UPSTREAM", "DOWNSTREAM"] if direction == "both" else [direction.upper()]
 
-        directions = (
-            ["UPSTREAM", "DOWNSTREAM"] if direction == "both" else [direction.upper()]
-        )
         for dir_enum in directions:
             data = _datahub_graphql(
                 DATAHUB_LINEAGE_QUERY,
                 {"urn": urn, "direction": dir_enum, "depth": min(depth, 10)},
             )
-            lineage = data.get("lineage", {})
-            for rel in lineage.get("relationships", []):
+            for rel in data.get("lineage", {}).get("relationships", []):
                 entity = rel.get("entity", {})
                 node_urn = entity.get("urn", "")
                 nodes.append(
@@ -199,32 +254,16 @@ def get_lineage(request, urn: str, direction: str = "both", depth: int = 3):
                         urn=node_urn,
                         name=entity.get("name", node_urn),
                         type=entity.get("type", "dataset").lower(),
-                        platform=(
-                            entity.get("platform", {}).get("name")
-                            if entity.get("platform")
-                            else None
-                        ),
+                        platform=(entity.get("platform") or {}).get("name"),
                     )
                 )
                 if dir_enum == "UPSTREAM":
-                    edges.append(
-                        LineageEdge(
-                            source=node_urn,
-                            target=urn,
-                            type=rel.get("type", "PRODUCES"),
-                        )
-                    )
+                    edges.append(LineageEdge(source=node_urn, target=urn, type=rel.get("type", "PRODUCES")))
                 else:
-                    edges.append(
-                        LineageEdge(
-                            source=urn,
-                            target=node_urn,
-                            type=rel.get("type", "PRODUCES"),
-                        )
-                    )
+                    edges.append(LineageEdge(source=urn, target=node_urn, type=rel.get("type", "PRODUCES")))
 
+        unique_nodes: List[LineageNode] = []
         seen = set()
-        unique_nodes = []
         for node in nodes:
             if node.urn not in seen:
                 seen.add(node.urn)
@@ -242,25 +281,21 @@ def get_lineage(request, urn: str, direction: str = "both", depth: int = 3):
 def get_schema(request, urn: str):
     try:
         with httpx.Client(timeout=30.0) as client:
-            response = client.get(
-                f"{settings.datahub_gms_url}/aspects/{urn}?aspect=schemaMetadata",
-            )
+            response = client.get(f"{settings.datahub_gms_url}/aspects/{urn}?aspect=schemaMetadata")
         if response.status_code == 404:
             raise HttpError(404, "Schema not found")
         response.raise_for_status()
-        data = response.json()
 
-        fields = []
-        schema_data = data.get("value", {}).get("schemaMetadata", {})
-        for field in schema_data.get("fields", []):
-            fields.append(
-                SchemaField(
-                    name=field.get("fieldPath", ""),
-                    type=field.get("nativeDataType", "unknown"),
-                    nullable=field.get("nullable", True),
-                    description=field.get("description"),
-                )
+        schema_data = response.json().get("value", {}).get("schemaMetadata", {})
+        fields = [
+            SchemaField(
+                name=field.get("fieldPath", ""),
+                type=field.get("nativeDataType", "unknown"),
+                nullable=field.get("nullable", True),
+                description=field.get("description"),
             )
+            for field in schema_data.get("fields", [])
+        ]
         return SchemaResponse(urn=urn, fields=fields)
     except HttpError:
         raise
@@ -268,37 +303,48 @@ def get_schema(request, urn: str):
         logger.error("DataHub request failed: %s", exc)
         raise HttpError(503, "DataHub unavailable") from exc
 
-class QuotaTierInfo(Schema):
-    tier_id: str
-    name: str
-    max_jobs_per_day: int
-    max_artifacts_gb: float
-    max_sources: int
-    max_concurrent_jobs: int
+
+@governance_router.get("/quotas/tiers", response=List[QuotaTierInfo], auth=auth_guard)
+def list_quota_tiers(request):
+    manager = get_quota_manager()
+    tiers: List[QuotaTierInfo] = []
+    for tier in QuotaTier:
+        policy = manager.policies.get(tier)
+        if not policy:
+            continue
+        tiers.append(
+            QuotaTierInfo(
+                tier_id=tier.value,
+                name=tier.value,
+                max_jobs_per_day=int(_policy_limit(policy, ResourceType.JOBS_PER_DAY)),
+                max_artifacts_gb=round(
+                    _policy_limit(policy, ResourceType.TOTAL_STORAGE_MB) / 1024.0, 3
+                ),
+                max_sources=int(_policy_limit(policy, ResourceType.WORKFLOWS_PER_DAY)),
+                max_concurrent_jobs=int(
+                    _policy_limit(policy, ResourceType.JOBS_CONCURRENT)
+                ),
+            )
+        )
+    return tiers
 
 
-class QuotaUsageStatus(Schema):
-    tenant_id: str
-    tier: str
-    jobs_today: int
-    jobs_limit: int
-    jobs_remaining: int
-    artifacts_gb: float
-    artifacts_limit_gb: float
-    sources_count: int
-    sources_limit: int
-    concurrent_jobs: int
-    concurrent_limit: int
+@governance_router.get("/quotas/usage", response=QuotaUsageStatus, auth=auth_guard)
+def get_quota_usage(request):
+    return _quota_usage_for_tenant(get_tenant_id(request))
 
 
-class SetTierRequest(Schema):
-    tier: str
+@governance_router.get("/quotas/limits", response=QuotaUsageStatus, auth=auth_guard)
+def get_quota_limits(request):
+    return _quota_usage_for_tenant(get_tenant_id(request))
 
 
-# Assuming _list_tiers, _get_usage_status etc are imported or defined.
-# They seemed to be missing from the viewed file chunk or I missed them?
-# Ah, I see them used in the previous view (`_list_tiers` etc).
-# I need to implement them or import them.
-# They are likely defined later in the file or imported.
-# Let's stub them for now or verify where they come from.
-# Actually, I'll need to check the rest of the file to see if they were helpers defined after.
+@governance_router.post("/quotas/set-tier", response=Dict[str, str], auth=auth_guard)
+def update_quota_tier(request, payload: SetTierRequest):
+    tenant_id = get_tenant_id(request)
+    try:
+        tier = QuotaTier(payload.tier)
+    except ValueError as exc:
+        raise HttpError(400, f"Invalid tier: {payload.tier}") from exc
+    set_tenant_tier(tenant_id, tier)
+    return {"tenant_id": tenant_id, "tier": tier.value, "status": "updated"}

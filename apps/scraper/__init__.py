@@ -6,4 +6,3 @@
 # Import models directly: from apps.scraper.models import ScrapeJob
 
 __version__ = "1.0.0"
-default_app_config = "voyant.scraper.apps.ScraperConfig"

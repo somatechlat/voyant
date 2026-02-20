@@ -1,7 +1,7 @@
 """Voyant Temporal Worker - Main Entry Point.
 
 Usage:
-    python -m voyant.worker.worker_main
+    python -m apps.worker.worker_main
 """
 
 import asyncio

@@ -469,7 +469,7 @@ spec:
       containers:
         - name: voyant-worker
           image: voyant-app
-          command: [ "python", "-m", "voyant.worker.worker_main" ]
+          command: [ "python", "-m", "apps.worker.worker_main" ]
           env:
             - name: DATABASE_URL
               value: "${DATABASE_URL}"

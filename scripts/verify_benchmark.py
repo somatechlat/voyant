@@ -9,7 +9,7 @@ import asyncio
 import logging
 
 from apps.core.lib.temporal_client import get_temporal_client
-from apps.workflows.benchmark_workflow import BenchmarkBrandWorkflow
+from apps.worker.workflows.benchmark_workflow import BenchmarkBrandWorkflow
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("verify")

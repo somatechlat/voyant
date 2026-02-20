@@ -111,7 +111,6 @@ def analyze(request, payload: AnalyzeRequest):
             id=f"analyze-{job_id}",
             task_queue=settings.temporal_task_queue,
         )
-        # Simplified handling for brevity - in real code we process artifacts
         summary = workflow_result.get("summary", {})
         job.status = "completed"
         job.completed_at = datetime.utcnow()
