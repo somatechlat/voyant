@@ -541,6 +541,24 @@ def tool_scrape_fetch(url: str, engine: str = "playwright", wait_for=None, scrol
     )
 
 
+@mcp_app.tool(name="scrape.deep_archive")
+async def tool_scrape_deep_archive(url: str, interaction_selectors: list[str] = None, download_patterns: list[str] = None, target_dir: str = "scrapes/unknown", wait_settle_ms: int = 2000, timeout_ms: int = 60000):
+    """
+    Generic deep archival web scrape. Connects to the URL and programmatically clicks
+    the `interaction_selectors` waiting for the DOM to settle, then matches and downloads
+    all files matching the `download_patterns` to the `target_dir`.
+    """
+    params = {
+        "url": url,
+        "interaction_selectors": interaction_selectors or [],
+        "download_patterns": download_patterns or [],
+        "target_dir": target_dir,
+        "wait_settle_ms": wait_settle_ms,
+        "timeout_ms": timeout_ms
+    }
+    return await ScrapeActivities().deep_archive(params)
+
+
 @mcp_app.tool(name="scrape.extract")
 def tool_scrape_extract(html: str, selectors, url: str = ""):
     return run_async(ScrapeActivities().extract_data, {"html": html, "selectors": selectors, "url": url})

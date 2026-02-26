@@ -312,6 +312,151 @@ class ScrapeActivities:
                 result["captured_json"] = captured_json
             return result
 
+    @activity.defn(name="deep_archive")
+    async def deep_archive(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Generic deep archival scrape. Connects to obfuscated SPAs/Tabbed interfaces,
+        invokes UI clicks programmatically, and automatically intercepts and downloads
+        matching files.
+        """
+        from playwright.async_api import async_playwright
+        import httpx
+        from urllib.parse import urljoin
+        import os
+        from pathlib import Path
+
+        url = params.get("url")
+        interaction_selectors = params.get("interaction_selectors", [])
+        download_patterns = params.get("download_patterns", [])
+        target_dir = params.get("target_dir", "scrapes/unknown")
+        wait_settle_ms = params.get("wait_settle_ms", 2000)
+        timeout_ms = params.get("timeout_ms", 60000)
+
+        self._heartbeat_safe(f"Deep Archiving: {url}")
+
+        # Security validation
+        from apps.scraper.security import validate_url, SSRFError
+        try:
+            validate_url(url)
+        except SSRFError as e:
+            raise ApplicationError(f"SSRF blocked: {e}", non_retryable=True)
+
+        out_dir = Path(target_dir)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        files_dir = out_dir / "files"
+        files_dir.mkdir(exist_ok=True)
+
+        extracted_data = {
+            "source_url": url,
+            "target_dir": target_dir,
+            "interaction_states": {},
+            "files_downloaded": []
+        }
+
+        async def download_file(target_url, filename):
+            self._heartbeat_safe(f"Downloading {filename}...")
+            try:
+                # We do NOT verify TLS for deep archival downloads to handle rogue certs universally
+                async with httpx.AsyncClient(verify=False, timeout=60.0) as client:
+                    resp = await client.get(target_url)
+                    if resp.status_code == 200:
+                        with open(files_dir / filename, "wb") as f:
+                            f.write(resp.content)
+                        return True
+            except Exception as e:
+                logger.error(f"Failed to download {target_url}: {e}")
+            return False
+
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=True)
+            context = await browser.new_context(ignore_https_errors=True)
+            page = await context.new_page()
+
+            # Ignore popups natively
+            page.on("popup", lambda popup: None)
+
+            try:
+                await page.goto(url, wait_until="networkidle", timeout=timeout_ms)
+
+                # Capture baseline DOM
+                extracted_data["interaction_states"]["baseline"] = await page.content()
+
+                # Process UI Interactions
+                if interaction_selectors:
+                    for selector in interaction_selectors:
+                        self._heartbeat_safe(f"Clicking selector: {selector}")
+                        try:
+                            # 10s short timeout for buttons since they might be missing or hidden
+                            element = await page.wait_for_selector(selector, timeout=10000)
+                            if element:
+                                await element.click()
+                                await page.wait_for_timeout(wait_settle_ms)
+                                # Capture new state
+                                extracted_data["interaction_states"][selector] = await page.content()
+
+                        except Exception as e:
+                            logger.warning(f"Failed to interact with {selector}: {e}")
+
+                # Find all downloadable files matching patterns in the current DOM state
+                # We check the final state of the DOM
+                if download_patterns:
+                    self._heartbeat_safe(f"Scanning DOM for file downloads...")
+
+                    # Ensure file matching matches anchor href attributes
+                    file_links = await page.query_selector_all("a")
+                    for link in file_links:
+                        href = await link.get_attribute("href")
+
+                        if not href:
+                            continue
+
+                        # Standard Link processing
+                        matched = any(pattern.lower() in href.lower() for pattern in download_patterns)
+
+                        if matched:
+                            full_url = urljoin(page.url, href)
+                            safe_name = f"artifact_{len(extracted_data['files_downloaded'])}.download"
+
+                            if "archivo=" in href.lower():
+                                safe_name = href.split("=")[-1].split("&")[0][:50]
+                            elif href.split("?")[0].endswith(".pdf"):
+                                safe_name = f"artifact_{len(extracted_data['files_downloaded'])}.pdf"
+
+                            extracted_data["files_downloaded"].append({
+                                "url": full_url,
+                                "filename": safe_name
+                            })
+                            await download_file(full_url, safe_name)
+
+                        # Deep JS embedded links like javascript:abrirDoc('/path/to/doc')
+                        elif "javascript" in href.lower() and "'" in href:
+                            extracted_path = href.split("'")[1]
+                            matched_js = any(pattern.lower() in extracted_path.lower() for pattern in download_patterns)
+                            if matched_js:
+                                full_url = urljoin(page.url, extracted_path)
+                                safe_name = f"js_artifact_{len(extracted_data['files_downloaded'])}.download"
+                                if "archivo=" in extracted_path.lower():
+                                    safe_name = extracted_path.split("=")[-1].split("&")[0][:50]
+
+                                extracted_data["files_downloaded"].append({
+                                    "url": full_url,
+                                    "filename": safe_name
+                                })
+                                await download_file(full_url, safe_name)
+
+            except Exception as e:
+                logger.error(f"Deep archive failed during execution: {e}")
+                extracted_data["error"] = str(e)
+            finally:
+                await browser.close()
+
+            # Serialize payload to disk to ensure pure extraction
+            json_path = out_dir / "deep_archive_manifest.json"
+            with open(json_path, "w", encoding="utf-8") as f:
+                json.dump(extracted_data, f, indent=2, ensure_ascii=False)
+
+            return extracted_data
+
     async def _fetch_httpx(self, url: str, timeout: int = 30) -> Dict[str, Any]:
         """
         Fetch a URL using httpx for fast, static HTML retrieval.
