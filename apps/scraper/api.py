@@ -79,6 +79,17 @@ class ScrapeFetchSchema(Schema):
     capture_max_items: Optional[int] = None
 
 
+class ScrapeDeepArchiveSchema(Schema):
+    """Request schema for generic deep archival scraping."""
+
+    url: str
+    interaction_selectors: List[str] = []
+    download_patterns: List[str] = []
+    target_dir: str
+    wait_settle_ms: int = 2000
+    timeout_ms: int = 60000
+
+
 class ScrapeJobSchema(Schema):
     """Response schema for scrape job."""
 
@@ -284,6 +295,25 @@ def fetch_page(request, payload: ScrapeFetchSchema):
             "capture_url_contains": payload.capture_url_contains,
             "capture_max_bytes": payload.capture_max_bytes,
             "capture_max_items": payload.capture_max_items,
+        },
+    )
+
+
+@scrape_router.post("/deep_archive")
+def deep_archive(request, payload: ScrapeDeepArchiveSchema):
+    """Run a deep archive scrape combining interactions and file downloads."""
+    from .activities import ScrapeActivities
+
+    activity_runner = ScrapeActivities()
+    return _run_async(
+        activity_runner.deep_archive,
+        {
+            "url": payload.url,
+            "interaction_selectors": payload.interaction_selectors,
+            "download_patterns": payload.download_patterns,
+            "target_dir": payload.target_dir,
+            "wait_settle_ms": payload.wait_settle_ms,
+            "timeout_ms": payload.timeout_ms,
         },
     )
 

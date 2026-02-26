@@ -63,6 +63,7 @@ RUN playwright install chromium
 
 # Copy application code
 COPY manage.py ./manage.py
+COPY apps/ ./apps/
 COPY voyant/ ./voyant/
 COPY voyant_app/ ./voyant_app/
 COPY voyant_project/ ./voyant_project/

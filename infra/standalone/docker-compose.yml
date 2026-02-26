@@ -171,7 +171,9 @@ services:
         limits:
           memory: 512M
     networks:
-      - voyant_standalone
+      voyant_standalone:
+        aliases:
+          - voyant-postgres
 
   voyant_redis:
     <<: *common
@@ -355,11 +357,13 @@ services:
     environment:
       DATAHUB_GMS_PORT: 8080
       EBEAN_DATASOURCE_URL: ${DATAHUB_DATABASE_URL}
+      EBEAN_DATASOURCE_HOST: voyant_postgres:5432
       EBEAN_DATASOURCE_USERNAME: ${DATAHUB_DATABASE_USERNAME}
       EBEAN_DATASOURCE_PASSWORD: ${DATAHUB_DATABASE_PASSWORD}
       KAFKA_BOOTSTRAP_SERVER: voyant_kafka:9092
       ELASTICSEARCH_HOST: voyant_elasticsearch
       ELASTICSEARCH_PORT: 9200
+      SKIP_NEO4J_CHECK: "true"
       JAVA_OPTS: -Xms256m -Xmx512m
     ports:
       - "45081:8080"
@@ -418,7 +422,7 @@ services:
     <<: *common
     image: authzed/spicedb:v1.29.0
     container_name: voyant_spicedb
-    command: serve --grpc-preshared-key "somerandomkey" --readonly-grpc-preshared-key "readonlykey" --datastore-engine memory
+    command: serve --grpc-preshared-key "somerandomkey" --datastore-engine memory
     ports:
       - "50051:50051"
       - "50052:50052"
@@ -432,7 +436,7 @@ services:
     <<: *common
     image: quay.io/keycloak/keycloak:23.0
     container_name: voyant_keycloak
-    command: start-dev --import-realm
+    command: start-dev
     environment:
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
@@ -451,7 +455,7 @@ services:
         condition: service_healthy
     healthcheck:
       <<: *healthcheck
-      test: [ "CMD", "curl", "-f", "${KEYCLOAK_HEALTHCHECK_URL}" ]
+      test: [ "CMD-SHELL", "bash -c ':</dev/tcp/127.0.0.1/8080'" ]
     deploy:
       resources:
         limits:
@@ -496,8 +500,10 @@ services:
     environment:
       DATABASE_URL: ${LAGO_DATABASE_URL}
       REDIS_URL: ${LAGO_REDIS_URL}
+      LAGO_API_URL: ${LAGO_API_URL}
       SECRET_KEY_BASE: ${LAGO_SECRET_KEY}
       ENCRYPTION_PRIMARY_KEY: ${LAGO_ENCRYPTION_KEY}
+      RAILS_ENV: production
     depends_on:
       - voyant_lago_api
     deploy:

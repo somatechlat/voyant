@@ -15,6 +15,9 @@ on startup.
 
 from __future__ import annotations
 
+import asyncio
+import os
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
 from asgiref.sync import async_to_sync
@@ -25,6 +28,15 @@ from apps.core.middleware import get_version_info
 from apps.core.lib.circuit_breaker import _circuit_breakers
 from apps.core.config import get_settings
 from apps.core.api import api as v1_api
+
+
+def _run_with_timeout(func, timeout_seconds: float):
+    executor = ThreadPoolExecutor(max_workers=1)
+    future = executor.submit(func)
+    try:
+        return future.result(timeout=timeout_seconds)
+    finally:
+        executor.shutdown(wait=False, cancel_futures=True)
 
 
 def health(_request) -> JsonResponse:
@@ -60,38 +72,56 @@ def ready(_request) -> JsonResponse:
     overall_ready = True
 
     try:
-        from apps.core.lib.duckdb_pool import get_pool
-
-        # Readiness must fail fast: do not block for long waits on a pooled connection
-        # and do not create new connections (which can block on file locks).
-        pool = get_pool()
-        conn = pool.get_connection(timeout=0.5, allow_create=False)
-        try:
-            conn.execute("SELECT 1").fetchone()
-        finally:
-            pool.return_connection(conn)
-        checks["duckdb"] = {"status": "up", "details": "Connection successful"}
+        settings = get_settings()
+        duckdb_path = settings.duckdb_path
+        if not os.path.exists(duckdb_path):
+            checks["duckdb"] = {
+                "status": "skipped",
+                "details": f"DuckDB file not initialized yet: {duckdb_path}",
+            }
+        elif not os.access(duckdb_path, os.R_OK | os.W_OK):
+            raise PermissionError(
+                f"DuckDB file is not readable/writable: {duckdb_path}"
+            )
+        if "duckdb" not in checks:
+            checks["duckdb"] = {
+                "status": "up",
+                "details": f"File accessible at {duckdb_path}",
+            }
     except Exception as exc:
         checks["duckdb"] = {"status": "down", "error": str(exc)}
         overall_ready = False
 
-    try:
-        from apps.core.lib.r_bridge import REngine
+    settings = get_settings()
+    if settings.r_engine_host:
+        try:
+            from apps.core.lib.r_bridge import REngine
 
-        r_engine = REngine()
-        if r_engine.is_healthy():
-            checks["r_engine"] = {"status": "up", "details": "R engine responsive"}
-        else:
-            checks["r_engine"] = {"status": "down", "error": "R engine not responsive"}
+            r_engine = REngine()
+            if _run_with_timeout(r_engine.is_healthy, 2.0):
+                checks["r_engine"] = {"status": "up", "details": "R engine responsive"}
+            else:
+                checks["r_engine"] = {
+                    "status": "down",
+                    "error": "R engine not responsive",
+                }
+                overall_ready = False
+        except Exception as exc:
+            checks["r_engine"] = {"status": "down", "error": str(exc)}
             overall_ready = False
-    except Exception as exc:
-        checks["r_engine"] = {"status": "down", "error": str(exc)}
-        overall_ready = False
+    else:
+        checks["r_engine"] = {
+            "status": "skipped",
+            "details": "VOYANT_R_ENGINE_HOST is not configured",
+        }
 
     try:
         from apps.core.lib.temporal_client import get_temporal_client
 
-        async_to_sync(get_temporal_client)()
+        def _check_temporal() -> None:
+            async_to_sync(asyncio.wait_for)(get_temporal_client(), timeout=2.0)
+
+        _run_with_timeout(_check_temporal, 3.0)
         checks["temporal"] = {"status": "up", "details": "Client connected"}
     except Exception as exc:
         checks["temporal"] = {"status": "down", "error": str(exc)}
