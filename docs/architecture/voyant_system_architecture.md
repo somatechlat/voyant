@@ -34,7 +34,7 @@ Based on `voyant_project/settings.py` and `apps/core/api.py`, Voyant contains **
 
 ## 2. Infrastructure Technologies (The Underbelly)
 
-According to the official `docs/DESIGN.md`, the platform rests on heavy infrastructure components:
+According to the official `docs/architecture/DESIGN.md`, the platform rests on heavy infrastructure components:
 - **API & RPC:** Django Ninja + django-mcp
 - **Orchestration:** Temporal (for long-running jobs)
 - **Data Lakehouse:** Apache Iceberg + Trino (distributed SQL) + MinIO (S3 Artifacts)

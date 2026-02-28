@@ -8,6 +8,9 @@
 | Status | APPROVED |
 | Parent | Voyant v3.0.0 |
 
+> Status Note (2026-02-27): This document includes planned ecosystem integrations.
+> Canonical cross-module source-of-truth for current repo state is `docs/specifications/SRS.md`.
+
 ---
 
 ## 1. Introduction
@@ -31,30 +34,23 @@ This document specifies the requirements for the **DataScraper** module, a web s
 
 ### 1.3 Module Location
 
-```
+```text
 apps/
-├── scraper/                    # THIS MODULE
-│   ├── __init__.py
+├── scraper/
 │   ├── models.py               # Django ORM models
 │   ├── api.py                  # Django Ninja router
-│   ├── tasks.py                # Celery/Temporal tasks
-│   ├── browser/
-│   │   ├── __init__.py
-│   │   └── playwright_client.py
-│   ├── extraction/
-│   │   ├── __init__.py
-│   │   ├── selectors.py           # CSS/XPath execution
-│   │   └── html_parser.py          # Agent-provided selector parsing
-│   └── media/
-│       ├── __init__.py
-│       ├── ocr.py
-│       └── transcription.py
-├── workflows/
-│   └── scrape_workflow.py      # Temporal workflow
-├── activities/
-│   └── scrape_activities.py    # Temporal activities
+│   ├── activities.py           # Scraper activities
+│   ├── workflow.py             # Scraper workflow
+│   ├── security.py             # SSRF and URL validation
+│   ├── browser/                # Playwright/Selenium/Scrapy/BS4 clients
+│   ├── parsing/                # HTML/PDF/OCR parsing
+│   ├── media/                  # OCR/transcription helpers
+│   └── tests/                  # Module tests
+├── worker/
+│   ├── workflows/              # Shared workflow runtime surface
+│   └── activities/             # Shared activity runtime surface
 └── mcp/
-    └── server.py               # UPDATE: Add scrape.* tools
+    └── tools.py               # `scrape.*` and `voyant.*` tool definitions
 ```
 
 ### 1.4 Technology Stack (Production Compliant + Full Scraping Toolkit)
@@ -81,8 +77,8 @@ apps/
 
 | Apache Tool | Purpose | Integration |
 |-------------|---------|-------------|
-| **Apache Tika** | Document extraction (PDF, DOC, etc.) | `apps/ingestion/lib/tika.py` |
-| **Apache NiFi** | Dataflow routing, ETL pipelines | `apps/ingestion/lib/nifi.py` |
+| **Apache Tika** | Document extraction (PDF, DOC, etc.) | `apps/ingestion/lib/tika.py` (planned) |
+| **Apache NiFi** | Dataflow routing, ETL pipelines | `apps/ingestion/lib/nifi.py` (planned) |
 | **Apache Kafka** | Event streaming | Existing Voyant integration |
 | **Apache Iceberg** | Lakehouse storage | Existing Voyant integration |
 

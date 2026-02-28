@@ -12,7 +12,6 @@ throughout the application.
 
 from __future__ import annotations
 
-import os
 from functools import lru_cache
 from typing import ClassVar
 
@@ -543,46 +542,6 @@ class Settings(BaseSettings):
         alias="SCRAPER_WHISPER_MODEL_NAME",
         description="Whisper model name to load when transcription is enabled.",
     )
-
-    @model_validator(mode="before")
-    @classmethod
-    def normalize_legacy_security_env(cls, data):
-        """Normalize legacy security env var names into canonical VOYANT_* settings."""
-        if not isinstance(data, dict):
-            data = {}
-        if "secrets_backend" not in data:
-            legacy_backend = os.environ.get("VOYANT_SECURITY_SECRETS_BACKEND")
-            if legacy_backend:
-                data["secrets_backend"] = legacy_backend
-        if "secrets_vault_url" not in data:
-            legacy_vault_url = os.environ.get("VOYANT_SECURITY_SECRETS_VAULT_URL")
-            if legacy_vault_url:
-                data["secrets_vault_url"] = legacy_vault_url
-        if "secrets_vault_token" not in data:
-            legacy_vault_token = os.environ.get("VOYANT_SECURITY_SECRETS_VAULT_TOKEN")
-            if legacy_vault_token:
-                data["secrets_vault_token"] = legacy_vault_token
-        if "secrets_vault_mount_point" not in data:
-            legacy_mount = os.environ.get("VOYANT_SECURITY_SECRETS_VAULT_MOUNT_POINT")
-            if legacy_mount:
-                data["secrets_vault_mount_point"] = legacy_mount
-        if "mcp_api_url" not in data:
-            legacy_api_url = os.environ.get("VOYANT_API_URL")
-            if legacy_api_url:
-                data["mcp_api_url"] = legacy_api_url
-        if "mcp_api_token" not in data:
-            legacy_api_token = os.environ.get("VOYANT_API_TOKEN")
-            if legacy_api_token:
-                data["mcp_api_token"] = legacy_api_token
-        if "mcp_host" not in data:
-            legacy_mcp_host = os.environ.get("VOYANT_MCP_HOST")
-            if legacy_mcp_host:
-                data["mcp_host"] = legacy_mcp_host
-        if "mcp_port" not in data:
-            legacy_mcp_port = os.environ.get("VOYANT_MCP_PORT")
-            if legacy_mcp_port:
-                data["mcp_port"] = int(legacy_mcp_port)
-        return data
 
 
 @lru_cache

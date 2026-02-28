@@ -178,10 +178,10 @@ spec:
             - /bin/sh
             - -c
             - |
-              mc alias set voyant ${MINIO_INTERNAL_URL} ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
-              mc mb voyant/artifacts --ignore-existing;
-              mc mb voyant/warehouse --ignore-existing;
-              mc mb voyant/staging --ignore-existing;
+              mc alias set minio ${MINIO_INTERNAL_URL} ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
+              mc mb minio/artifacts --ignore-existing;
+              mc mb minio/warehouse --ignore-existing;
+              mc mb minio/staging --ignore-existing;
               exit 0
 ---
 apiVersion: v1

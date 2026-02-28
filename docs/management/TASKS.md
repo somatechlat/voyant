@@ -26,7 +26,7 @@ Definition of Done: Agent can call `voyant.analyze` and get artifacts + summary 
 - [x] Add Django ORM models for Source, Job, Preset, Artifact.  
   Files: `apps/workflows/models.py` (new)
 - [x] Add migrations (Django) and bootstrapping.  
-  Files: `apps/migrations/`
+  Files: `apps/*/migrations/`
 - [x] Replace in-memory stores with DB-backed CRUD.  
   Files: `apps/core/api.py`
 
@@ -120,7 +120,7 @@ Definition of Done: All error responses contain error code and message.
 
 ## 14. Test Coverage (Production Grade)
 - [ ] Add end-to-end tests for analyze pipeline and artifacts.  
-  Files: `tests/test_analyze_failure.py`, `tests/test_e2e_smoke.py`
+  Files: `tests/test_analyze_failure.py`, `tests/test_e2e_smoke.py` (new)
 - [ ] Add integration tests for Airbyte, DataHub, MinIO flows.  
   Files: `tests/integration/*`
 
@@ -218,7 +218,7 @@ Definition of Done: SomaAgentHub can orchestrate Voyant workflows with policy an
   Files: `apps/scraper/browser/beautifulsoup_client.py`
 - [x] Implement Scrapy client for high volume  
   Files: `apps/scraper/browser/scrapy_client.py`
-- [x] Implement Selenium client for legacy browser automation  
+- [x] Implement Selenium client for broad browser automation coverage  
   Files: `apps/scraper/browser/selenium_client.py`
 
 ### 19.4 MCP Tool Registration (COMPLETED)
@@ -241,9 +241,9 @@ Definition of Done: SomaAgentHub can orchestrate Voyant workflows with policy an
 - [ ] Register workflow in worker_main.py  
   Files: `apps/worker/worker_main.py`
 - [ ] Create unit tests for security module  
-  Files: `tests/scraper/test_security.py`
+  Files: `apps/scraper/tests/test_security.py`
 - [ ] Create integration tests for workflow  
-  Files: `tests/scraper/test_workflow.py`
+  Files: `apps/scraper/tests/test_workflow.py`
 
 Definition of Done: Agent Zero can use `scrape.*` MCP tools for pure execution web scraping.
 

@@ -327,7 +327,7 @@ This document provides comprehensive compliance tracking for Voyant v3.0.0 again
 
 **Evidence**:
 - `.coverage` - Current test coverage snapshot
-- `docs/TASKS.md` - Current execution and quality status
+- `docs/management/TASKS.md` - Current execution and quality status
 - Limited inline documentation for complex logic
 
 #### 3.7.4 Modifiability
@@ -352,7 +352,7 @@ This document provides comprehensive compliance tracking for Voyant v3.0.0 again
 - Integration testing limited
 
 **Evidence**:
-- `docs/TASKS.md` - Test and readiness gaps
+- `docs/management/TASKS.md` - Test and readiness gaps
 - `tests/` directory with many empty files
 
 ### 3.8 Portability
@@ -367,7 +367,7 @@ This document provides comprehensive compliance tracking for Voyant v3.0.0 again
 - Configurable external dependencies
 
 **Evidence**:
-- Environment variables in `apps/core/lib/config.py`
+- Environment variables in `apps/core/config.py`
 - Docker Compose configuration
 - Configuration-driven service clients
 

@@ -141,6 +141,7 @@ We selected a modern Python-based stack with Django as the primary framework, co
 ---
 
 **Related ADRs**:  
-- [ADR 002: API Design Pattern](002-api-design-pattern.md)  
-- [ADR 003: Workflow Orchestration](003-workflow-orchestration.md)  
-- [ADR 004: Plugin System Architecture](004-plugin-system-architecture.md)
+- Planned follow-up ADRs:
+  - ADR 002: API Design Pattern
+  - ADR 003: Workflow Orchestration
+  - ADR 004: Plugin System Architecture

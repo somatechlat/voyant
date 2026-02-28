@@ -5,6 +5,9 @@
 **Standard**: ISO/IEC 29148:2018  
 **Authors**: SOMA Engineering Team
 
+> Status Note (2026-02-27): This document is a historical detailed draft and contains aspirational sections.
+> Canonical repo source-of-truth specification is `docs/specifications/SRS.md`.
+
 ---
 
 ## 1. Introduction
@@ -91,7 +94,7 @@ Voyant is the **Data Platform pillar** of the SOMA ecosystem, providing the raw 
 4. **Job Scheduling**: Temporal-based cron and event triggers
 
 #### AI Integration
-1. **MCP Server**: 29 tools for Agent Zero integration
+1. **MCP Server**: 45 registered tools in `apps/mcp/tools.py` (current repository snapshot)
 2. **Policy Enforcement**: Dynamic governance rules
 3. **Cost Optimization**: Resource allocation decisions
 
@@ -151,7 +154,7 @@ Voyant is the **Data Platform pillar** of the SOMA ecosystem, providing the raw 
   - `logging.py`: Structured logging
 - `config/`: Configuration management
   - `settings.py`: Django settings
-  - `temporal_config.py`: Temporal worker configuration
+  - Worker configuration is implemented in `apps/worker/worker_main.py`
   - `spark_config.py`: Spark cluster configuration
 
 **Key Responsibilities**:
@@ -271,7 +274,7 @@ Voyant is the **Data Platform pillar** of the SOMA ecosystem, providing the raw 
   - `scrape_workflow.py`: End-to-end scraping workflow
   - `etl_workflow.py`: Spark ETL pipeline workflow
   - `export_workflow.py`: Data export workflow
-- `activities/`: Temporal activities (see apps/activities)
+- `activities/`: Temporal activities (see `apps/worker/activities`)
 - `signals.py`: Workflow signal handlers
 - `queries.py`: Workflow query implementations
 
@@ -381,7 +384,7 @@ class ETLWorkflow:
 
 ---
 
-#### 3.1.4 **apps/activities**
+#### 3.1.4 **apps/worker/activities**
 **Purpose**: Temporal activity implementations (atomic units of work).
 
 **Modules** (10 files):
@@ -519,7 +522,7 @@ async def store_to_data_lake(data: ScrapedData) -> str:
 
 **Modules** (2 files):
 - `server.py`: MCP server implementation
-- `tools.py`: Tool definitions (29 tools)
+- `tools.py`: Tool definitions (45 tools in current snapshot)
 
 **Available MCP Tools** (29 total):
 
@@ -617,7 +620,7 @@ async def start_scrape_job(
 
 ---
 
-#### 3.1.6 **apps/api**
+#### 3.1.6 **apps/core/api.py**
 **Purpose**: REST API endpoints for external clients and dashboard.
 
 **Modules** (2 files):
@@ -742,7 +745,7 @@ if __name__ == "__main__":
 
 ---
 
-#### 3.1.10 **apps/security**
+#### 3.1.10 **apps/core/security**
 **Purpose**: Security controls and authentication.
 
 **Modules** (3 files):
@@ -1033,7 +1036,7 @@ class Dataset:
 - ✅ Workflow history persists indefinitely
 
 **MCP Integration**:
-- ✅ Agent Zero can invoke all 29 tools
+- ✅ Current repository snapshot contains 45 registered MCP tools
 - ✅ Tool responses conform to schema
 
 ### 10.2 Manual Verification

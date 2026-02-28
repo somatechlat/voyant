@@ -154,7 +154,7 @@ The DataScraper module encompasses:
 - Playwright for JavaScript-rendered pages
 - httpx for fast static HTML retrieval
 - Scrapy for large-scale crawling
-- Selenium for legacy browser support
+- Selenium for broad browser support
 
 **FR-SCR-001.2** The system shall automatically select the optimal engine based on:
 - URL characteristics (static vs. dynamic)
