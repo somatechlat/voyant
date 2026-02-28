@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-python -m uvicorn udb_api.app:app --reload --host 0.0.0.0 --port 8000
+python -m uvicorn voyant_project.asgi:application --reload --host 0.0.0.0 --port 8000

@@ -1,0 +1,18 @@
+# Universal Parametric Data Box: Mathematical Sandbox
+# Security Mandate: No standard networking libraries allowed.
+
+FROM python:3.12-slim
+
+# Restrict user
+RUN useradd -m -s /bin/bash sandbox_user
+WORKDIR /home/sandbox_user
+
+# Install purely mathematical libraries.
+# Explicitly omitting requests, httpx to prevent data exfiltration.
+RUN pip install --no-cache-dir pandas scikit-learn numpy scipy statsmodels pyarrow
+
+# Switch to unprivileged user
+USER sandbox_user
+
+# Entrypoint executes code passed via standard input securely
+CMD ["python", "-"]

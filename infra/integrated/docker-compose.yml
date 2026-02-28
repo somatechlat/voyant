@@ -1,0 +1,143 @@
+# =============================================================================
+# VOYANT - Docker Compose INTEGRATED Mode (SomaAgentHub)
+# =============================================================================
+# Minimal Voyant deployment connecting to SomaAgentHub services.
+# SomaAgentHub provides: Policy Engine, Memory Gateway, Orchestrator
+#
+# Usage:
+#   docker compose --env-file .env.integrated up -d
+# =============================================================================
+
+services:
+  # ===========================================================================
+  # CORE: Voyant API (Connects to Hub)
+  # ===========================================================================
+  voyant-api:
+    build:
+      context: ../..
+      dockerfile: infra/standalone/Dockerfile
+      args:
+        VOYANT_WITH_TRANSCRIBE: ${VOYANT_WITH_TRANSCRIBE}
+        VOYANT_TORCH_DEVICE: ${VOYANT_TORCH_DEVICE}
+        PYTORCH_INDEX_URL_CPU: ${PYTORCH_INDEX_URL_CPU}
+        PYTORCH_INDEX_URL_CUDA: ${PYTORCH_INDEX_URL_CUDA}
+    container_name: voyant-api-integrated
+    ports:
+      - "${VOYANT_API_PORT}:8000"
+    environment:
+      VOYANT_ENV: ${VOYANT_ENV}
+      VOYANT_DEPLOYMENT_MODE: integrated
+
+      # SomaAgentHub Services
+      SOMA_POLICY_URL: ${SOMA_POLICY_URL}
+      SOMA_MEMORY_URL: ${SOMA_MEMORY_URL}
+      SOMA_ORCHESTRATOR_URL: ${SOMA_ORCHESTRATOR_URL}
+      SOMA_IDENTITY_URL: ${SOMA_IDENTITY_URL}
+
+      # Shared Infrastructure (from Hub cluster)
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+
+      # MinIO (from Hub or external)
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+
+      # Temporal
+      TEMPORAL_HOST: ${TEMPORAL_HOST}
+      TEMPORAL_TASK_QUEUE: ${TEMPORAL_TASK_QUEUE}
+    env_file:
+      - ../../.env
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "${VOYANT_API_HEALTHCHECK_URL}" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - somastack-net
+    restart: unless-stopped
+
+  # ===========================================================================
+  # MCP Server (For AI Agents)
+  # ===========================================================================
+  voyant-mcp:
+    build:
+      context: ../..
+      dockerfile: infra/standalone/Dockerfile
+      args:
+        VOYANT_WITH_TRANSCRIBE: ${VOYANT_WITH_TRANSCRIBE}
+        VOYANT_TORCH_DEVICE: ${VOYANT_TORCH_DEVICE}
+        PYTORCH_INDEX_URL_CPU: ${PYTORCH_INDEX_URL_CPU}
+        PYTORCH_INDEX_URL_CUDA: ${PYTORCH_INDEX_URL_CUDA}
+    container_name: voyant-mcp-integrated
+    command: [ "python", "-m", "apps.mcp.server" ]
+    ports:
+      - "${VOYANT_MCP_PORT}:8001"
+    environment:
+      VOYANT_MCP_API_URL: ${VOYANT_MCP_API_URL}
+      VOYANT_DEPLOYMENT_MODE: integrated
+    env_file:
+      - ../../.env
+    depends_on:
+      voyant-api:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    networks:
+      - somastack-net
+    restart: unless-stopped
+
+  # ===========================================================================
+  # Temporal Worker
+  # ===========================================================================
+  voyant-worker:
+    build:
+      context: ../..
+      dockerfile: infra/standalone/Dockerfile
+      args:
+        VOYANT_WITH_TRANSCRIBE: ${VOYANT_WITH_TRANSCRIBE}
+        VOYANT_TORCH_DEVICE: ${VOYANT_TORCH_DEVICE}
+        PYTORCH_INDEX_URL_CPU: ${PYTORCH_INDEX_URL_CPU}
+        PYTORCH_INDEX_URL_CUDA: ${PYTORCH_INDEX_URL_CUDA}
+    container_name: voyant-worker-integrated
+    command: [ "python", "-m", "apps.worker.worker_main" ]
+    environment:
+      VOYANT_DEPLOYMENT_MODE: integrated
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      TEMPORAL_HOST: ${TEMPORAL_HOST}
+      TEMPORAL_TASK_QUEUE: ${TEMPORAL_TASK_QUEUE}
+    env_file:
+      - ../../.env
+    depends_on:
+      voyant-api:
+        condition: service_healthy
+    healthcheck:
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+      test: [ "CMD", "curl", "-f", "http://localhost:9090/metrics" ]
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - somastack-net
+    restart: unless-stopped
+
+# =============================================================================
+# NETWORK (Connect to SomaAgentHub Network)
+# =============================================================================
+networks:
+  somastack-net:
+    external: true
+    name: ${SOMA_NETWORK}

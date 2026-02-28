@@ -1,119 +1,262 @@
-# Universal Data Box (UDB)
+# Voyant v3.0.0 - Autonomous Data Intelligence for AI Agents
 
-Production-grade, Kubernetes-native "black box" service providing agent-accessible data source discovery, ingestion, normalization, automated exploratory & quality analysis, KPI computation, and artifact publication through both MCP tools and REST APIs.
+## Document Information
+- **Document ID:** VOYANT-README-3.0.0
+- **Status:** Active Development
+- **Version:** 3.0.0
+- **Last Updated:** 2026-01-12
+- **Compliance:** ISO/IEC 25010 Software Quality Standards
 
-## Key Features (v1 Scope)
-- Hot-plug connectivity to new data sources at runtime via simple hints (URL, path, domain).
-- Auto-detection of provider, auth type, and required Airbyte source spec.
-- Unified ingestion through Airbyte into DuckDB (primary analytical store) and/or Postgres.
-- Automated analysis: ydata-profiling (EDA), Evidently (quality/drift), KPI SQL & Plotly charts.
-- Unstructured document parsing to tabular/text rows.
-- MCP tools and REST API symmetry for agent and non-agent clients.
-- Secure-by-default: scoped credentials, network policies, PII/PHI guards, audit logs.
+## Executive Summary
 
-## High-Level Architecture
-Core components:
-- udb-api (FastAPI + MCP server) orchestrating detection → connect → sync → analyze.
-- Airbyte OSS (connectors) + Postgres metadata DB.
-- DuckDB analytical store + artifacts persistent volume.
-- Redis (cache/status), Kafka (event bus), optional Dagster (orchestration), optional Superset/Metabase.
-- Analysis stack: ydata-profiling, Evidently, Plotly, Unstructured.
+Voyant is an autonomous data intelligence service designed specifically for AI agents, providing end-to-end data discovery, ingestion, profiling, quality analysis, and predictive capabilities through REST APIs and Model Context Protocol (MCP) tools. The system operates as a Django-based microservice with Temporal workflow orchestration and integrates seamlessly with modern data stacks including Apache Iceberg, Trino, and the SomaAgentHub orchestration platform.
 
-See `docs/ARCHITECTURE.md` for detailed diagrams & flows.
+## System Architecture
 
-## Roadmap & Sprints
-A rapid development roadmap is maintained in `docs/ROADMAP.md` with sprint goals (Foundations, Auto-Detection & OAuth, Analysis & Artifacts, Hardening & Observability, etc.).
+### Core Technology Stack
+- **Web Framework:** Django 5.0 with Django Ninja REST API
+- **Workflow Engine:** Temporal.io for reliable orchestration
+- **Database:** PostgreSQL for metadata persistence
+- **Object Storage:** MinIO for artifact management
+- **Query Engine:** Trino for distributed SQL analytics
+- **Authentication:** Keycloak JWT integration
+- **Message Queue:** Kafka for event-driven operations
+- **Containerization:** Docker Compose development environment
 
-## Core Principles
-See `docs/PRINCIPLES.md` – Truth, No Mocking Core Paths, Elegance, Simplicity, Security, Observability, Reproducibility.
-
-## Getting Started (Developer)
-For a complete hands-on walkthrough (bring up stack, ingest sample data, run analysis, view artifacts, lineage, metrics) see `GETTING_STARTED.md`.
-
-Quick summary:
-1. Clone repository & create virtual env.
-2. Install dependencies.
-3. Launch real stack: `docker compose up -d --build`.
-4. Run API locally (alternative): `uvicorn udb_api.app:app --reload`.
-5. Use the example script: `python examples/ingest_and_analyze.py`.
-
-Example assets live under `examples/` (including a sample CSV and Python script).
-
-### Real-Mode Quickstart (No Mocks)
+### Service Integration Architecture
 ```
-docker compose up -d --build
-curl -s localhost:8000/readyz | jq
-curl -s -X POST localhost:8000/analyze -H 'Content-Type: application/json' -d '{}'
-curl -s localhost:8000/metrics | grep udb_sufficiency_score
-```
-Environment Flags (selected):
-- UDB_ENABLE_EVENTS=1 : Enable Kafka event emission
-- UDB_ENABLE_KESTRA=1 : Enable Kestra trigger endpoint
-- UDB_STRICT_STARTUP=1 : Fail fast if dependencies unhealthy
-- UDB_DISABLE_RATE_LIMIT=1 : Disable rate limiting for local dev
-
-### Feature Flags Mapping
-Flag -> Env Var -> Description
-- quality -> UDB_ENABLE_QUALITY -> Generate profiling/quality artifacts
-- charts -> UDB_ENABLE_CHARTS -> Build Plotly charts
-- unstructured -> UDB_ENABLE_UNSTRUCTURED -> Enable document ingestion path
-- events -> UDB_ENABLE_EVENTS -> Emit Kafka lifecycle events
-- tracing -> UDB_ENABLE_TRACING -> OTEL tracing export
-- rbac -> UDB_ENABLE_RBAC -> Enforce analyst/admin role checks
-- narrative -> UDB_ENABLE_NARRATIVE -> Generate narrative summary
-- kestra -> UDB_ENABLE_KESTRA -> Allow /kestra/trigger usage
-
-### Observability (Metrics & ServiceMonitor)
-- Core Metrics Subset:
-```
-curl -s localhost:8000/metrics/select?mode=core
-```
-Excludes high-cardinality metrics (e.g., artifact size with jobId label). Use full `/metrics` for complete set.
-The API exposes Prometheus metrics at `/metrics`. To have Prometheus Operator scrape automatically, enable in Helm values:
-```
-metrics:
-	serviceMonitor:
-		enabled: true
-		interval: 30s
-```
-This renders a `ServiceMonitor` resource targeting the API service.
-
-Key Metrics (selected):
-- `udb_jobs_total{type,state}` – job lifecycle counts
-- `udb_job_duration_seconds` – analyze & sync durations
-- `udb_sufficiency_score` – readiness score distribution
-- `udb_dependency_up{component}` – dependency health gauges
-- `udb_airbyte_retries_total` / `udb_kestra_retries_total` – client retry attempts
-- `udb_dependency_check_failures_total` – failed dependency probes
-- `udb_kpi_exec_latency_seconds` – KPI execution latency
-- `udb_artifact_size_bytes{jobId}` – artifact size per job
-- `udb_duckdb_queue_length` – queued writers for DuckDB lock
-
-### Retry Logic
-Airbyte & Kestra clients use exponential backoff (0.5s → 1s → 2s → 4s → 5s cap) up to 5 attempts, counting each retry. Surface via metrics above.
-
-### Recent Events
-Fetch most recent in-process events (ring buffer) for quick debug:
-```
-curl -s localhost:8000/events/recent | jq
+┌─────────────────────────────────────────────────────────────┐
+│ SomaAgentHub - Gateway/Orchestrator/Policy/Memory Services │
+└─────────────────────────────────────────────────────────────┘
+                              │
+┌─────────────────────────────▼─────────────────────────────────┐
+│          Voyant v3.0.0 - Data Intelligence Service           │
+│ ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐ │
+│ │   REST API     │ │   MCP Server    │ │  Temporal Workflows │ │
+│ │ (Django Ninja) │ │ (Tool Registry) │ │ (Ingest/Profile/Analyze) │ │
+│ └─────────────────┘ └─────────────────┘ └─────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+                              │
+┌─────────────────────────────▼─────────────────────────────────┐
+│                External Data Ecosystem                       │
+│ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐   │
+│ │ Airbyte │ │   NiFi   │ │  DataHub│ │   Iceberg│ │  Apache │   │
+│ │ Connectors│ │ Flows   │ │Governance│ │Lakehouse│ │  Stack  │   │
+│ └─────────┘ └─────────┘ └─────────┘ └─────────┘ └─────────┘   │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-Full list of metrics & guidance: see `docs/OBSERVABILITY.md`. Scaling considerations: `docs/SCALING.md`.
+## Key Features
 
-## MCP Tools (Preview)
-- `udb.discover_connect`
-- `udb.analyze`
-- `udb.status`
-- `udb.artifact`
-- `udb.sql`
+### 1. Agent-First Data Intelligence
+- **One-Call Analyze:** Complete data analysis pipeline from source to artifacts
+- **MCP Tool Integration:** 15+ tools for agent orchestration
+- **Pure Execution:** DataScraper module for web scraping without LLM integration
 
-Schema contracts documented in `docs/MCP_INTERFACE.md`.
+### 2. Data Ingestion & Processing
+- **Multi-Source Connectors:** Airbyte integration for batch sync
+- **Direct Ingestion:** File-to-DuckDB, file-to-Iceberg pipelines
+- **Document Processing:** PDF, HTML, OCR, and media transcription
+- **Stream Processing:** Apache Flink for real-time analytics
 
-## License
-Apache 2.0 (see `LICENSE`).
+### 3. Analytics & Intelligence
+- **Exploratory Data Analysis:** Adaptive sampling and profiling
+- **Quality Assessment:** Rule-based and Evidently integration
+- **Predictive Analytics:** Regression, forecasting, anomaly detection
+- **KPI Generation:** SQL-based metric computation
+
+### 4. Governance & Security
+- **Multi-Tenant Isolation:** Tenant-scoped data and operations
+- **Policy Enforcement:** Apache Ranger integration planned
+- **Lineage Tracking:** DataHub metadata governance
+- **Audit Logging:** Comprehensive event tracking
+
+### 5. Soma Stack Integration
+- **Agent Orchestration:** Native support for SomaAgentHub workflows
+- **Policy Integration:** Real-time decision making via Policy Engine
+- **Memory Integration:** Analysis summary persistence and recall
+- **Distributed Tracing:** SkyWalking integration for observability
+
+## API Documentation
+
+### REST API Endpoints
+- Health & Status: `/health`, `/ready`, `/status`
+- Source Management: `/v1/sources/*`
+- Job Execution: `/v1/jobs/ingest`, `/v1/jobs/profile`, `/v1/jobs/quality`
+- Analysis Pipeline: `/v1/analyze` (one-call endpoint)
+- SQL Query: `/v1/sql/query`, `/v1/sql/tables`
+- Artifacts: `/v1/artifacts/*`
+- Governance: `/v1/governance/*`
+- Discovery: `/v1/discovery/*`
+
+### MCP Tools Available
+- `voyant.discover` - Auto-detect data source types
+- `voyant.connect` - Establish data connections
+- `voyant.ingest` - Trigger data ingestion
+- `voyant.profile` - Generate data profiles
+- `voyant.quality` - Run quality checks
+- `voyant.analyze` - End-to-end analysis
+- `voyant.kpi` - Execute KPI queries
+- `voyant.status` - Check job status
+- `voyant.artifact` - Retrieve artifacts
+- `voyant.sql_query` - Execute SQL queries
+- `voyant.search` - Search data catalog
+- `voyant.lineage` - Get data lineage
+
+Plus DataScraper tools:
+- `scrape.fetch`, `scrape.extract`, `scrape.ocr`, `scrape.parse_pdf`, `scrape.transcribe`
+
+## Documentation Index
+
+The Voyant codebase is exhaustively documented. The master entry point and module breakdowns can be found in the `docs/` repository:
+
+- 📖 **[Master Documentation Index](docs/VOYANT_MASTER_DOCUMENTATION.md)**
+- 🏗️ **Architecture & Modules:** `docs/architecture/`
+- 🎯 **Specifications (SRS):** `docs/specifications/`
+- 🔒 **Compliance & Security:** `docs/compliance/`
+- 🚀 **Operations & Deployment:** `docs/operations/`
+- 🛠️ **Management & Tasks:** `docs/management/`
+- 🧪 **Testing & Development:** `docs/development/`
+
+## Development Setup
+
+### Prerequisites
+- Python 3.11+
+- Docker & Docker Compose
+- PostgreSQL, Redis, Kafka, Temporal services
+
+### Quick Start
+```bash
+# Clone repository
+git clone https://github.com/somatech/voyant.git
+cd voyant
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Start development environment
+docker-compose up -d
+
+# Run application
+python manage.py runserver
+```
+
+### Configuration
+All configuration is managed through environment variables with `VOYANT_` prefix. Key settings include:
+
+```bash
+# Database
+DATABASE_URL=postgresql://user:pass@localhost:5432/voyant
+
+# External Services
+TEMPORAL_HOST=localhost:7233
+KAFKA_BOOTSTRAP_SERVERS=localhost:9092
+MINIO_ENDPOINT=localhost:9000
+
+# Authentication
+KEYCLOAK_URL=http://localhost:8080
+KEYCLOAK_CLIENT_ID=voyant-api
+```
+
+## Deployment
+
+### Docker Compose
+```bash
+docker-compose -f docker-compose.yml up -d
+```
+
+### Production Considerations
+- Use secure secrets management (not default values)
+- Configure proper CORS and SSL settings
+- Implement rate limiting and authentication
+- Set up monitoring and logging infrastructure
+- Configure backup and disaster recovery
+
+## Quality & Compliance
+
+### Current Status
+- **Code Quality:** 13% test coverage (needs improvement)
+- **Security:** JWT authentication implemented, tenant isolation enforced
+- **Performance:** Circuit breakers and retry policies for external calls
+- **Reliability:** Temporal workflows with retry mechanisms
+- **Documentation:** ISO-compliant documentation standards
+
+### Development Standards
+- **Code Style:** Black formatter, Ruff linter
+- **Type Checking:** MyPy for static analysis
+- **Testing:** pytest framework with async support
+- **Documentation:** Comprehensive docstrings and API docs
+
+## Integration Capabilities
+
+### Data Sources Supported
+- Database connectors via Airbyte (PostgreSQL, MySQL, etc.)
+- File ingestion (CSV, JSON, Parquet)
+- Web scraping with DataScraper module
+- Stream processing via Apache Flink
+- Document processing (PDF, HTML, media)
+
+### Output Formats
+- Analysis artifacts (JSON, CSV, Parquet)
+- Visualizations and charts
+- Narrative summaries
+- SQL query results
+- Lineage graphs
+
+### Integration Patterns
+- **SomaAgentHub Native:** Full integration with orchestration workflows
+- **REST API:** Standard HTTP/JSON interface
+- **MCP Tools:** Agent-first tool integration
+- **Event-Driven:** Kafka-based event emission
+- **Batch Processing:** Temporal workflow orchestration
 
 ## Contributing
-Please read `CONTRIBUTING.md` and `CODE_OF_CONDUCT.md` (to be added).
+
+### Development Workflow
+1. Fork the repository
+2. Create feature branch
+3. Implement changes with tests
+4. Update documentation
+5. Submit pull request
+
+### Code Quality Requirements
+- All new code must include comprehensive tests
+- Documentation must be updated for new features
+- Security considerations must be addressed
+- Performance impact must be evaluated
+
+## License
+
+This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for details.
+
+## Support
+
+For technical support, bug reports, or feature requests, please:
+1. Check the existing issues on GitHub
+2. Create a new issue with detailed description
+3. Include environment information and reproduction steps
+
+## Roadmap
+
+### Current Development Focus
+- M1: One-call analyze pipeline completion
+- M2: Persistence and real connector integration
+- M3: Quality and predictive workflows
+- M4: Security and observability hardening
+- M5: Production deployment and testing
+
+### Future Enhancements
+- Apache Iceberg lakehouse integration
+- Apache Ranger policy enforcement
+- Apache Atlas metadata governance
+- Apache SkyWalking distributed tracing
+- Apache NiFi dataflow integration
+- Apache Superset BI integration
+- Apache Druid/Pinot OLAP support
+- Apache Tika document processing
+- Apache Flink streaming analytics
 
 ---
-Refer also to `GETTING_STARTED.md` for end-to-end usage; this repository intentionally avoids mocks for core paths—examples exercise production code paths.
+
+**Voyant** - Autonomous Data Intelligence for AI Agents
+*Building the future of data-driven AI systems*

@@ -1,0 +1,1 @@
+"""Voyant Django project package."""

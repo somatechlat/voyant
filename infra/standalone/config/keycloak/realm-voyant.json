@@ -1,0 +1,178 @@
+{
+    "realm": "${KEYCLOAK_REALM}",
+    "enabled": true,
+    "sslRequired": "external",
+    "registrationAllowed": true,
+    "loginWithEmailAllowed": true,
+    "duplicateEmailsAllowed": false,
+    "resetPasswordAllowed": true,
+    "editUsernameAllowed": false,
+    "bruteForceProtected": true,
+    "permanentLockout": false,
+    "maxFailureWaitSeconds": 900,
+    "minimumQuickLoginWaitSeconds": 60,
+    "waitIncrementSeconds": 60,
+    "quickLoginCheckMilliSeconds": 1000,
+    "maxDeltaTimeSeconds": 43200,
+    "failureFactor": 5,
+    "accessTokenLifespan": 300,
+    "accessTokenLifespanForImplicitFlow": 300,
+    "ssoSessionIdleTimeout": 1800,
+    "ssoSessionMaxLifespan": 28800,
+    "offlineSessionIdleTimeout": 2592000,
+    "offlineSessionMaxLifespan": 5184000,
+    "accessCodeLifespan": 60,
+    "accessCodeLifespanLogin": 1800,
+    "accessCodeLifespanUserAction": 300,
+    "passwordPolicy": "length(8) and upperCase(1) and lowerCase(1) and digits(1)",
+    "roles": {
+        "realm": [
+            {
+                "name": "voyant-admin",
+                "description": "Full system administrator",
+                "composite": true,
+                "composites": {
+                    "realm": [
+                        "voyant-engineer",
+                        "voyant-analyst",
+                        "voyant-viewer"
+                    ]
+                }
+            },
+            {
+                "name": "voyant-engineer",
+                "description": "Data engineer - can create sources, run jobs",
+                "composite": true,
+                "composites": {
+                    "realm": [
+                        "voyant-analyst"
+                    ]
+                }
+            },
+            {
+                "name": "voyant-analyst",
+                "description": "Analyst - can run queries, view reports",
+                "composite": true,
+                "composites": {
+                    "realm": [
+                        "voyant-viewer"
+                    ]
+                }
+            },
+            {
+                "name": "voyant-viewer",
+                "description": "Read-only access to dashboards"
+            }
+        ]
+    },
+    "clients": [
+        {
+            "clientId": "voyant-api",
+            "name": "Voyant API",
+            "enabled": true,
+            "protocol": "openid-connect",
+            "publicClient": false,
+            "secret": "${KEYCLOAK_CLIENT_SECRET_API}",
+            "standardFlowEnabled": false,
+            "directAccessGrantsEnabled": true,
+            "serviceAccountsEnabled": true,
+            "authorizationServicesEnabled": false
+        },
+        {
+            "clientId": "voyant-mcp",
+            "name": "Voyant MCP Server",
+            "enabled": true,
+            "protocol": "openid-connect",
+            "publicClient": false,
+            "secret": "${KEYCLOAK_CLIENT_SECRET_MCP}",
+            "directAccessGrantsEnabled": true,
+            "serviceAccountsEnabled": true
+        },
+        {
+            "clientId": "voyant-web",
+            "name": "Voyant Web Application",
+            "enabled": true,
+            "protocol": "openid-connect",
+            "publicClient": true,
+            "standardFlowEnabled": true,
+            "implicitFlowEnabled": false,
+            "directAccessGrantsEnabled": false,
+            "redirectUris": [
+                "${KEYCLOAK_WEB_REDIRECT_URI_1}",
+                "${KEYCLOAK_WEB_REDIRECT_URI_2}"
+            ],
+            "webOrigins": [
+                "${KEYCLOAK_WEB_ORIGIN_1}",
+                "${KEYCLOAK_WEB_ORIGIN_2}"
+            ]
+        },
+        {
+            "clientId": "datahub",
+            "name": "DataHub",
+            "enabled": true,
+            "protocol": "openid-connect",
+            "publicClient": false,
+            "secret": "${KEYCLOAK_CLIENT_SECRET_DATAHUB}",
+            "standardFlowEnabled": true,
+            "redirectUris": [
+                "${KEYCLOAK_DATAHUB_REDIRECT_URI_1}"
+            ]
+        }
+    ],
+    "users": [
+        {
+            "username": "admin",
+            "enabled": true,
+            "email": "${KEYCLOAK_ADMIN_EMAIL}",
+            "emailVerified": true,
+            "firstName": "Admin",
+            "lastName": "User",
+            "credentials": [
+                {
+                    "type": "password",
+                    "value": "${KEYCLOAK_ADMIN_PASSWORD}",
+                    "temporary": false
+                }
+            ],
+            "realmRoles": [
+                "voyant-admin"
+            ]
+        },
+        {
+            "username": "engineer",
+            "enabled": true,
+            "email": "${KEYCLOAK_ENGINEER_EMAIL}",
+            "emailVerified": true,
+            "firstName": "Data",
+            "lastName": "Engineer",
+            "credentials": [
+                {
+                    "type": "password",
+                    "value": "${KEYCLOAK_ENGINEER_PASSWORD}",
+                    "temporary": false
+                }
+            ],
+            "realmRoles": [
+                "voyant-engineer"
+            ]
+        },
+        {
+            "username": "analyst",
+            "enabled": true,
+            "email": "${KEYCLOAK_ANALYST_EMAIL}",
+            "emailVerified": true,
+            "firstName": "Data",
+            "lastName": "Analyst",
+            "credentials": [
+                {
+                    "type": "password",
+                    "value": "${KEYCLOAK_ANALYST_PASSWORD}",
+                    "temporary": false
+                }
+            ],
+            "realmRoles": [
+                "voyant-analyst"
+            ]
+        }
+    ]
+}

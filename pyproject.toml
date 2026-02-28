@@ -14,7 +14,7 @@ authors = [
 requires-python = ">=3.11"
 classifiers = [
     "Development Status :: 4 - Beta",
-    "Framework :: FastAPI",
+    "Framework :: Django",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3.11",
@@ -23,18 +23,22 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
-    "fastapi>=0.104.0",
+    "Django>=5.0.0",
+    "django-ninja>=1.1.0",
+    "django-mcp>=0.3.1",
+    "django-cors-headers>=4.3.0",
     "uvicorn[standard]>=0.24.0",
     "pydantic>=2.5.0",
     "pydantic-settings>=2.1.0",
-    "sqlalchemy[asyncio]>=2.0.0",
-    "asyncpg>=0.29.0",
+    "psycopg[binary]>=3.1.18",
     "redis>=5.0.0",
     "httpx>=0.25.0",
     "trino>=0.327.0",
     "minio>=7.2.0",
     "pyRserve>=1.0.0",
     "temporalio>=1.4.0",
+    "hvac>=2.1.0",
+    "authzed>=1.0.0",
 ]
 
 [project.optional-dependencies]
@@ -44,6 +48,7 @@ dev = [
     "pytest-cov>=4.1.0",
     "ruff>=0.1.0",
     "mypy>=1.7.0",
+    "django-types>=0.19.0",
 ]
 processing = [
     "pandas>=2.1.0",
@@ -53,16 +58,32 @@ processing = [
 ]
 
 [project.scripts]
-voyant-api = "voyant.api.app:main"
-voyant-mcp = "voyant.mcp.server:main"
+voyant-mcp = "apps.mcp.server:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["voyant"]
+packages = ["apps", "voyant_project"]
 
 [tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "voyant_project.settings"
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
 asyncio_mode = "auto"
 testpaths = ["tests"]
-addopts = "-v --cov=voyant --cov-report=term-missing"
+addopts = "-v --cov=apps --cov-report=term-missing --ds=voyant_project.settings"
+markers = [
+    "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
+    "benchmark: marks tests as benchmark tests (deselect with '-m \"not benchmark\"')",
+]
+# Set environment variables for tests
+env = [
+    "VOYANT_ENV=test",
+    "DATABASE_URL=postgresql://voyant:voyant@localhost:45432/voyant_test",
+    "REDIS_URL=redis://:voyant@localhost:45379/1",
+    "VOYANT_SECRET_KEY=test-secret-key-for-testing-only-min-50-chars-long-django-security",
+    "VOYANT_DEBUG=false",
+    "VOYANT_SECURITY_ENABLED=false",
+]
 
 [tool.ruff]
 line-length = 100
