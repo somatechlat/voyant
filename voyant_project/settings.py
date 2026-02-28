@@ -74,7 +74,7 @@ SECRET_KEY = app_settings.secret_key
 if not SECRET_KEY and app_settings.env in {"test", "local"}:
     SECRET_KEY = os.environ.get("VOYANT_LOCAL_FALLBACK_SECRET_KEY", "")
 if not SECRET_KEY:
-    raise RuntimeError("VOYANT_SECRET_KEY must be configured")
+    raise RuntimeError("SECRET_KEY must be configured")
 
 # SECURITY WARNING: Don't run with debug turned on in production!
 DEBUG = app_settings.debug
