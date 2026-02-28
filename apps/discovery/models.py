@@ -94,6 +94,7 @@ class Source(TenantModel, UUIDModel):
     """
     Represents a data source configuration.
     """
+
     name = models.CharField(max_length=255)
     source_type = models.CharField(max_length=128)
     status = models.CharField(max_length=64, default="pending")
@@ -105,4 +106,3 @@ class Source(TenantModel, UUIDModel):
     class Meta:
         db_table = "voyant_source"
         ordering = ["-created_at"]
-

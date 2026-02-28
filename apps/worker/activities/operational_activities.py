@@ -121,7 +121,8 @@ class OperationalActivities:
                 - `data` (List[Dict]): The records to clean.
                 - `numeric_columns` (List[str]): Names of numeric columns.
                 - `categorical_columns` (List[str]): Names of categorical columns.
-                - `imputation_strategy` (str, optional): Strategy for missing values ("mean", "median", "mode", "ffill").
+                - `imputation_strategy` (str, optional): Strategy for missing values
+                                                         ("mean", "median", "mode", "ffill").
                 - `outlier_strategy` (str, optional): Strategy for outliers ("remove", "cap", "winsorize").
                 - `outlier_threshold` (float, optional): Threshold for outlier detection (e.g., Z-score threshold).
 

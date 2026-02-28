@@ -74,7 +74,8 @@ class UnstructuredPipeline:
             logger.error(f"Unstructured library not installed: {e}")
             raise IngestionError(
                 "VYNT-4005",
-                "The 'unstructured' library is not installed. Please install it to use unstructured document processing.",
+                "The 'unstructured' library is not installed. "
+                "Please install it to use unstructured document processing.",
                 resolution="pip install unstructured[all]",
             ) from e
         except Exception as e:

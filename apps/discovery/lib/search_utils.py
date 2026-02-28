@@ -12,12 +12,12 @@ from typing import Any, Dict, List, Optional
 
 import requests
 
+from apps.core.config import get_settings
 from apps.core.lib.circuit_breaker import (
     CircuitBreakerConfig,
     CircuitBreakerOpenError,
     get_circuit_breaker,
 )
-from apps.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 settings = get_settings()

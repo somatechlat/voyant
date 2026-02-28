@@ -26,7 +26,11 @@ except ImportError:
     SKLEARN_AVAILABLE = False
 
 from apps.core.lib.errors import AnalysisError
-from apps.core.lib.plugin_registry import AnalyzerPlugin, PluginCategory, register_plugin
+from apps.core.lib.plugin_registry import (
+    AnalyzerPlugin,
+    PluginCategory,
+    register_plugin,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -161,7 +165,8 @@ class TimeForecaster(AnalyzerPlugin):
         df_feat = pd.DataFrame(index=dates)
         df_feat["trend"] = dates.to_julian_date()
         # One-hot encoding for seasonality? linear regression handles ordinal poorly for cyclic
-        # but for simple 'analyst' view, ordinal or dummies. Let's use basic sin/cos for seasonality if we want to be PhD level,
+        # but for simple 'analyst' view, ordinal or dummies. Let's use basic sin/cos for seasonality
+        # if we want to be PhD level,
         # or just simple dummies. Let's stick to simple numeric for 'month' to capture broad seasonality
         # or dummies for correctness.
         # Developer Persona: Correct approach for linear regression is dummies or fourier terms.

@@ -14,8 +14,8 @@ import duckdb
 import pandas as pd
 from temporalio import activity
 
-from apps.core.lib.adaptive_sampling import SamplingStrategy, sample_table
 from apps.core.config import get_settings
+from apps.core.lib.adaptive_sampling import SamplingStrategy, sample_table
 
 logger = logging.getLogger(__name__)
 

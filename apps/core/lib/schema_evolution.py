@@ -378,8 +378,7 @@ class SchemaEvolutionRegistry:
     def _init_db(self):
         """Initializes the `schema_versions` table in the database if it doesn't exist."""
         try:
-            self._conn.execute(
-                """
+            self._conn.execute("""
                 CREATE TABLE IF NOT EXISTS schema_versions (
                     table_name VARCHAR,
                     version VARCHAR,
@@ -390,8 +389,7 @@ class SchemaEvolutionRegistry:
                     changes_json VARCHAR,
                     PRIMARY KEY (table_name, version)
                 );
-                """
-            )
+                """)
         except Exception as e:
             logger.error(f"Failed to initialize schema evolution database: {e}")
             raise

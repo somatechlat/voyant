@@ -1,8 +1,15 @@
-
-from ninja import NinjaAPI
-from django.conf import settings
 import sys
 import uuid
+
+from ninja import NinjaAPI
+
+from apps.analysis.api import analyze_router
+from apps.discovery.api import discovery_router, sources_router
+from apps.governance.api import governance_router
+from apps.scraper.api import scrape_router
+from apps.search.api import router as search_router
+from apps.sql.api import sql_router
+from apps.workflows.api import artifacts_router, jobs_router, presets_router
 
 # Use a unique namespace during testing to avoid NinjaAPI registry collisions
 urls_namespace = "v1"
@@ -19,15 +26,6 @@ api = NinjaAPI(
     version="3.0.0",
     urls_namespace=urls_namespace,
 )
-
-# Import Routers
-from apps.discovery.api import sources_router, discovery_router
-from apps.workflows.api import jobs_router, presets_router, artifacts_router
-from apps.analysis.api import analyze_router
-from apps.sql.api import sql_router
-from apps.governance.api import governance_router
-from apps.scraper.api import scrape_router
-from apps.search.api import router as search_router
 
 # Register Routers
 api.add_router("/sources", sources_router, tags=["sources"])

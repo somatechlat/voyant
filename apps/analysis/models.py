@@ -51,6 +51,3 @@ class AnalysisJob(TenantModel, UUIDModel):
 
     def __str__(self) -> str:
         return f"Analysis Job {self.id} ({self.status})"
-
-
-

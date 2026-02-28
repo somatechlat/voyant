@@ -111,7 +111,8 @@ class BenchmarkBrandWorkflow:
             "status": "completed",
             "market_share": market_share,
             "significance_test": t_test,
-            "report_url": "s3://artifacts/report_123.html",  # Placeholder: Actual report generation would be a separate activity.
+            # Placeholder: Actual report generation would be a separate activity.
+            "report_url": "s3://artifacts/report_123.html",
         }
 
         workflow.logger.info("BENCHMARK_MY_BRAND completed.")

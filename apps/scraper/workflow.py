@@ -22,8 +22,8 @@ from temporalio import workflow
 # modules within the workflow definition. It passes control to the Python
 # import system directly, bypassing Temporal's default import handling.
 with workflow.unsafe.imports_passed_through():
-    from apps.scraper.activities import ScrapeActivities
     from apps.core.config import get_settings
+    from apps.scraper.activities import ScrapeActivities
 
 
 @workflow.defn
@@ -47,7 +47,8 @@ class ScrapeWorkflow:
                 - `job_id` (str): Unique identifier for the scraping job.
                 - `urls` (List[str]): A list of URLs to scrape.
                 - `selectors` (Dict): Agent-provided CSS/XPath selectors for data extraction.
-                - `options` (Dict): Configuration for the scraping engine (e.g., 'engine', 'timeout', 'scroll', 'ocr', 'transcribe').
+                - `options` (Dict): Configuration for the scraping engine
+                                    (e.g., 'engine', 'timeout', 'scroll', 'ocr', 'transcribe').
                 - `tenant_id` (str): Identifier of the tenant initiating the job.
 
         Returns:

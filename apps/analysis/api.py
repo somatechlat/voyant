@@ -1,28 +1,35 @@
-
 import logging
-import json
-import io
 from datetime import datetime
 from typing import Any, Dict, List, Optional
-from ninja import Router, Schema, Field
+
+from ninja import Field, Router, Schema
 from ninja.errors import HttpError
-from apps.core.api_utils import auth_guard, run_async, apply_policy
+
+from apps.core.api_utils import apply_policy, run_async
 from apps.core.config import get_settings
-from apps.workflows.models import Job, Artifact
-from apps.core.middleware import get_tenant_id
-from apps.integrations.soma import create_task_for_job, update_task_status, remember_summary
+from apps.core.lib.namespace_analyzer import (
+    NamespaceViolationError,
+    validate_table_access,
+)
 from apps.core.lib.temporal_client import get_temporal_client
-from apps.core.lib.namespace_analyzer import validate_table_access, NamespaceViolationError
+from apps.core.middleware import get_tenant_id
+from apps.integrations.soma import (
+    create_task_for_job,
+    remember_summary,
+    update_task_status,
+)
 from apps.worker.workflows.analyze_workflow import AnalyzeWorkflow
-from apps.workflows.api import get_minio_client
+from apps.workflows.models import Job
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
 analyze_router = Router(tags=["analyze"])
 
+
 class KPIQuery(Schema):
     name: str
     sql: str
+
 
 class AnalyzeRequest(Schema):
     source_id: Optional[str] = None
@@ -36,6 +43,7 @@ class AnalyzeRequest(Schema):
     run_analyzers: bool = True
     generate_artifacts: bool = True
 
+
 class AnalyzeResponse(Schema):
     job_id: str
     tenant_id: str
@@ -44,11 +52,16 @@ class AnalyzeResponse(Schema):
     artifacts: Dict[str, Any]
     manifest: List[Dict[str, Any]]
 
+
 def _resolve_table(payload: AnalyzeRequest) -> Optional[str]:
-    if payload.table: return payload.table
-    if payload.source_id: return payload.source_id
-    if payload.tables: return payload.tables[0]
+    if payload.table:
+        return payload.table
+    if payload.source_id:
+        return payload.source_id
+    if payload.tables:
+        return payload.tables[0]
     return None
+
 
 def _create_job(request, job_type: str, source_id: str, params: Dict[str, Any]) -> Job:
     tenant_id = get_tenant_id(request)
@@ -61,6 +74,7 @@ def _create_job(request, job_type: str, source_id: str, params: Dict[str, Any]) 
         parameters=params,
     )
     return job
+
 
 @analyze_router.post("", response=AnalyzeResponse)
 def analyze(request, payload: AnalyzeRequest):
@@ -80,7 +94,9 @@ def analyze(request, payload: AnalyzeRequest):
     job = _create_job(request, "analyze", payload.source_id or table, {"table": table})
     job_id = str(job.job_id)
 
-    soma_task_id = run_async(create_task_for_job, job_id, job.job_type, job.source_id, policy_prompt)
+    soma_task_id = run_async(
+        create_task_for_job, job_id, job.job_type, job.source_id, policy_prompt
+    )
     if soma_task_id:
         Job.objects.filter(job_id=job.job_id).update(soma_task_id=soma_task_id)
 
@@ -103,7 +119,9 @@ def analyze(request, payload: AnalyzeRequest):
                 "table": table,
                 "tables": payload.tables,
                 "sample_size": payload.sample_size,
-                "kpis": [kpi.model_dump() for kpi in payload.kpis] if payload.kpis else None,
+                "kpis": (
+                    [kpi.model_dump() for kpi in payload.kpis] if payload.kpis else None
+                ),
                 "analyzers": payload.analyzers,
                 "job_id": job_id,
                 "tenant_id": tenant_id,
@@ -121,8 +139,12 @@ def analyze(request, payload: AnalyzeRequest):
         run_async(remember_summary, job_id, job.status, summary, manifest)
 
         return AnalyzeResponse(
-            job_id=job_id, tenant_id=tenant_id, status=job.status,
-            summary=summary, artifacts=artifacts, manifest=manifest
+            job_id=job_id,
+            tenant_id=tenant_id,
+            status=job.status,
+            summary=summary,
+            artifacts=artifacts,
+            manifest=manifest,
         )
     except Exception as exc:
         job.status = "failed"

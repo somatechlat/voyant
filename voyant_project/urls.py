@@ -24,10 +24,10 @@ from asgiref.sync import async_to_sync
 from django.http import JsonResponse
 from django.urls import path
 
-from apps.core.middleware import get_version_info
-from apps.core.lib.circuit_breaker import _circuit_breakers
-from apps.core.config import get_settings
 from apps.core.api import api as v1_api
+from apps.core.config import get_settings
+from apps.core.lib.circuit_breaker import _circuit_breakers
+from apps.core.middleware import get_version_info
 
 
 def _run_with_timeout(func, timeout_seconds: float):

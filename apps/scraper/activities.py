@@ -319,11 +319,11 @@ class ScrapeActivities:
         invokes UI clicks programmatically, and automatically intercepts and downloads
         matching files.
         """
-        from playwright.async_api import async_playwright
-        import httpx
-        from urllib.parse import urljoin
-        import os
         from pathlib import Path
+        from urllib.parse import urljoin
+
+        import httpx
+        from playwright.async_api import async_playwright
 
         url = params.get("url")
         interaction_selectors = params.get("interaction_selectors", [])
@@ -335,7 +335,8 @@ class ScrapeActivities:
         self._heartbeat_safe(f"Deep Archiving: {url}")
 
         # Security validation
-        from apps.scraper.security import validate_url, SSRFError
+        from apps.scraper.security import SSRFError, validate_url
+
         try:
             validate_url(url)
         except SSRFError as e:
@@ -350,7 +351,7 @@ class ScrapeActivities:
             "source_url": url,
             "target_dir": target_dir,
             "interaction_states": {},
-            "files_downloaded": []
+            "files_downloaded": [],
         }
 
         async def download_file(target_url, filename):
@@ -387,12 +388,16 @@ class ScrapeActivities:
                         self._heartbeat_safe(f"Clicking selector: {selector}")
                         try:
                             # 10s short timeout for buttons since they might be missing or hidden
-                            element = await page.wait_for_selector(selector, timeout=10000)
+                            element = await page.wait_for_selector(
+                                selector, timeout=10000
+                            )
                             if element:
                                 await element.click()
                                 await page.wait_for_timeout(wait_settle_ms)
                                 # Capture new state
-                                extracted_data["interaction_states"][selector] = await page.content()
+                                extracted_data["interaction_states"][
+                                    selector
+                                ] = await page.content()
 
                         except Exception as e:
                             logger.warning(f"Failed to interact with {selector}: {e}")
@@ -400,7 +405,7 @@ class ScrapeActivities:
                 # Find all downloadable files matching patterns in the current DOM state
                 # We check the final state of the DOM
                 if download_patterns:
-                    self._heartbeat_safe(f"Scanning DOM for file downloads...")
+                    self._heartbeat_safe("Scanning DOM for file downloads...")
 
                     # Ensure file matching matches anchor href attributes
                     file_links = await page.query_selector_all("a")
@@ -411,7 +416,10 @@ class ScrapeActivities:
                             continue
 
                         # Standard Link processing
-                        matched = any(pattern.lower() in href.lower() for pattern in download_patterns)
+                        matched = any(
+                            pattern.lower() in href.lower()
+                            for pattern in download_patterns
+                        )
 
                         if matched:
                             full_url = urljoin(page.url, href)
@@ -422,26 +430,29 @@ class ScrapeActivities:
                             elif href.split("?")[0].endswith(".pdf"):
                                 safe_name = f"artifact_{len(extracted_data['files_downloaded'])}.pdf"
 
-                            extracted_data["files_downloaded"].append({
-                                "url": full_url,
-                                "filename": safe_name
-                            })
+                            extracted_data["files_downloaded"].append(
+                                {"url": full_url, "filename": safe_name}
+                            )
                             await download_file(full_url, safe_name)
 
                         # Deep JS embedded links like javascript:abrirDoc('/path/to/doc')
                         elif "javascript" in href.lower() and "'" in href:
                             extracted_path = href.split("'")[1]
-                            matched_js = any(pattern.lower() in extracted_path.lower() for pattern in download_patterns)
+                            matched_js = any(
+                                pattern.lower() in extracted_path.lower()
+                                for pattern in download_patterns
+                            )
                             if matched_js:
                                 full_url = urljoin(page.url, extracted_path)
                                 safe_name = f"js_artifact_{len(extracted_data['files_downloaded'])}.download"
                                 if "archivo=" in extracted_path.lower():
-                                    safe_name = extracted_path.split("=")[-1].split("&")[0][:50]
+                                    safe_name = extracted_path.split("=")[-1].split(
+                                        "&"
+                                    )[0][:50]
 
-                                extracted_data["files_downloaded"].append({
-                                    "url": full_url,
-                                    "filename": safe_name
-                                })
+                                extracted_data["files_downloaded"].append(
+                                    {"url": full_url, "filename": safe_name}
+                                )
                                 await download_file(full_url, safe_name)
 
             except Exception as e:

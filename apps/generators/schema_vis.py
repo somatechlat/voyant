@@ -11,7 +11,11 @@ Reference: docs/CANONICAL_ROADMAP.md - Future Investigation Backlog
 
 from typing import Any, Dict
 
-from apps.core.lib.plugin_registry import GeneratorPlugin, PluginCategory, register_plugin
+from apps.core.lib.plugin_registry import (
+    GeneratorPlugin,
+    PluginCategory,
+    register_plugin,
+)
 from apps.core.lib.schema_evolution import (
     get_schema_history,
 )
@@ -49,7 +53,8 @@ class SchemaTimelineGenerator(GeneratorPlugin):
             context (Dict[str, Any]): A dictionary containing the necessary context for generation.
                                        Expected keys include:
                                        - `table_name` (str): The name of the table to generate the timeline for.
-                                       - `tables` (List[str], optional): A list of tables, if `table_name` is not directly provided.
+                                       - `tables` (List[str], optional): A list of tables, if `table_name`
+                                         is not directly provided.
 
         Returns:
             Dict[str, Any]: A dictionary representing the generated timeline artifact,

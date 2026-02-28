@@ -3,7 +3,7 @@
 # =============================================================================
 # Version: 3.0.0 (aligned with SRS)
 # Mode: STANDALONE - Full infrastructure, persistent volumes
-# Cluster: voyant_standalone
+# Cluster: voyant_cluster
 # Port Range: 45xxx
 #
 # Usage:
@@ -105,7 +105,7 @@ services:
           cpus: '0.5'
           memory: 256M
     networks:
-      - voyant_standalone
+      - voyant_cluster
 
   voyant_worker:
     <<: *common
@@ -145,7 +145,7 @@ services:
         limits:
           memory: 512M
     networks:
-      - voyant_standalone
+      - voyant_cluster
 
   # ===========================================================================
   # DATA INFRASTRUCTURE
@@ -171,7 +171,7 @@ services:
         limits:
           memory: 512M
     networks:
-      voyant_standalone:
+      voyant_cluster:
         aliases:
           - voyant-postgres
 
@@ -192,7 +192,7 @@ services:
         limits:
           memory: 256M
     networks:
-      - voyant_standalone
+      - voyant_cluster
 
   voyant_kafka:
     <<: *common
@@ -225,7 +225,7 @@ services:
         limits:
           memory: 1G
     networks:
-      - voyant_standalone
+      - voyant_cluster
 
   voyant_minio:
     <<: *common
@@ -248,7 +248,7 @@ services:
         limits:
           memory: 512M
     networks:
-      - voyant_standalone
+      - voyant_cluster
 
   voyant_minio_init:
     image: minio/mc
@@ -259,7 +259,30 @@ services:
     entrypoint: >
       /bin/sh -c " mc alias set voyant ${MINIO_INTERNAL_URL} ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD}; mc mb voyant/artifacts --ignore-existing; mc mb voyant/warehouse --ignore-existing; mc mb voyant/staging --ignore-existing; exit 0; "
     networks:
-      - voyant_standalone
+      - voyant_cluster
+
+  voyant_searxng:
+    <<: *common
+    image: searxng/searxng:latest
+    container_name: voyant_searxng
+    ports:
+      - "45088:8080"
+    volumes:
+      - ./config/searxng:/etc/searxng:rw
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8080/
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    networks:
+      - voyant_cluster
 
   # ===========================================================================
   # TEMPORAL (Workflow Orchestration)
@@ -284,7 +307,7 @@ services:
         limits:
           memory: 512M
     networks:
-      - voyant_standalone
+      - voyant_cluster
 
   voyant_temporal_ui:
     <<: *common
@@ -302,7 +325,7 @@ services:
         limits:
           memory: 256M
     networks:
-      - voyant_standalone
+      - voyant_cluster
 
   # ===========================================================================
   # ANALYTICS (Trino)
@@ -320,7 +343,7 @@ services:
         limits:
           memory: 1G
     networks:
-      - voyant_standalone
+      - voyant_cluster
 
   # ===========================================================================
   # GOVERNANCE (DataHub)
@@ -348,7 +371,7 @@ services:
         limits:
           memory: 768M
     networks:
-      - voyant_standalone
+      - voyant_cluster
 
   voyant_datahub_gms:
     <<: *common
@@ -379,7 +402,7 @@ services:
         limits:
           memory: 1G
     networks:
-      - voyant_standalone
+      - voyant_cluster
 
   voyant_datahub_frontend:
     <<: *common
@@ -397,7 +420,7 @@ services:
         limits:
           memory: 512M
     networks:
-      - voyant_standalone
+      - voyant_cluster
 
   # ===========================================================================
   # SECURITY (Vault & Keycloak)
@@ -416,7 +439,7 @@ services:
     volumes:
       - voyant_vault_data:/vault/file
     networks:
-      - voyant_standalone
+      - voyant_cluster
 
   voyant_spicedb:
     <<: *common
@@ -430,7 +453,7 @@ services:
     environment:
       SPICEDB_GRPC_PRESHARED_KEY: "somerandomkey"
     networks:
-      - voyant_standalone
+      - voyant_cluster
 
   voyant_keycloak:
     <<: *common
@@ -461,7 +484,7 @@ services:
         limits:
           memory: 512M
     networks:
-      - voyant_standalone
+      - voyant_cluster
 
   # ===========================================================================
   # BILLING (Lago)
@@ -490,7 +513,7 @@ services:
         limits:
           memory: 512M
     networks:
-      - voyant_standalone
+      - voyant_cluster
 
   voyant_lago_worker:
     <<: *common
@@ -511,7 +534,7 @@ services:
         limits:
           memory: 256M
     networks:
-      - voyant_standalone
+      - voyant_cluster
 
   # ===========================================================================
   # STREAMING (Apache Flink)
@@ -529,7 +552,7 @@ services:
     volumes:
       - voyant_flink_data:/opt/flink/volume
     networks:
-      - voyant_standalone
+      - voyant_cluster
     deploy:
       resources:
         limits:
@@ -549,19 +572,19 @@ services:
     depends_on:
       - voyant_flink_jobmanager
     networks:
-      - voyant_standalone
+      - voyant_cluster
     deploy:
       resources:
         limits:
           memory: 1G
 
 # =============================================================================
-# NETWORK: voyant_standalone
+# NETWORK: voyant_cluster
 # =============================================================================
 networks:
-  voyant_standalone:
+  voyant_cluster:
     driver: bridge
-    name: voyant_standalone
+    name: voyant_cluster
 
 # =============================================================================
 # PERSISTENT VOLUMES (Production-Resilient)

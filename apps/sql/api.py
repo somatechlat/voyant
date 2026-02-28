@@ -1,14 +1,15 @@
-
 import logging
 from typing import Any, Dict, List, Optional
-from ninja import Router, Schema, Field
+
+from ninja import Field, Router, Schema
 from ninja.errors import HttpError
+
 from apps.core.api_utils import auth_guard
 from apps.core.lib.trino import get_trino_client
-from apps.core.models import TenantModel
 
 logger = logging.getLogger(__name__)
 sql_router = Router(tags=["sql"])
+
 
 class SqlRequest(Schema):
     """Request schema for executing an ad-hoc SQL query."""

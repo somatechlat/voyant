@@ -132,7 +132,8 @@ class AirbyteConfigGenerator:
             Dict[str, Any]: A dictionary representing the Airbyte source configuration for a REST API.
         """
         # This is a simplified generation for common patterns.
-        # In a full implementation, this would construct a more comprehensive YAML/JSON manifest for the Airbyte Connector Builder.
+        # In a full implementation, this would construct a more comprehensive YAML/JSON manifest for
+        # the Airbyte Connector Builder.
         manifest = {
             "version": "0.29.0",
             "type": "DeclarativeSource",

@@ -602,7 +602,8 @@ def get_settings() -> Settings:
     overrides = {}
     try:
         from django.apps import apps
-        SystemSetting = apps.get_model("core", "SystemSetting")
+
+        apps.get_model("core", "SystemSetting")
 
         # Basic query to get overrides
         # In a real scenario, you'd filter by keys
@@ -611,8 +612,6 @@ def get_settings() -> Settings:
     except Exception:
         pass
     if overrides:
-            settings = settings.model_copy(update=overrides)
-
+        settings = settings.model_copy(update=overrides)
 
     return settings
-

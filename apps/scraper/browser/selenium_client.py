@@ -81,7 +81,8 @@ class SeleniumClient:
             str: The HTML content of the page after rendering.
 
         Raises:
-            selenium.common.exceptions.TimeoutException: If the element specified by `wait_for` is not found within the timeout.
+            selenium.common.exceptions.TimeoutException: If the element specified by `wait_for`
+                                                         is not found within the timeout.
             selenium.common.exceptions.WebDriverException: For other WebDriver-related errors.
         """
         driver = self._get_driver()

@@ -25,7 +25,11 @@ except ImportError:
     SKLEARN_AVAILABLE = False
 
 from apps.core.lib.errors import AnalysisError
-from apps.core.lib.plugin_registry import AnalyzerPlugin, PluginCategory, register_plugin
+from apps.core.lib.plugin_registry import (
+    AnalyzerPlugin,
+    PluginCategory,
+    register_plugin,
+)
 
 logger = logging.getLogger(__name__)
 

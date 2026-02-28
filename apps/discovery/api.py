@@ -1,14 +1,14 @@
-
 import logging
 from typing import Any, Dict, List, Optional
-from ninja import Router, Schema, Field
+
+from ninja import Field, Router, Schema
 from ninja.errors import HttpError
-from apps.core.api_utils import auth_guard
+
 from apps.core.config import get_settings
-from apps.discovery.models import ServiceDefinition, Source
 from apps.core.middleware import get_tenant_id
 from apps.discovery.lib.catalog import DiscoveryRepo, ServiceDef
 from apps.discovery.lib.spec_parser import SpecParser
+from apps.discovery.models import Source
 from apps.discovery.source_detection import detect_source_type
 
 logger = logging.getLogger(__name__)
@@ -24,8 +24,12 @@ _spec_parser = SpecParser()
 # Sources Router
 # =============================================================================
 
+
 class DiscoverRequest(Schema):
-    hint: str = Field(..., description="A string that provides a hint about the data source.")
+    hint: str = Field(
+        ..., description="A string that provides a hint about the data source."
+    )
+
 
 class DiscoverResponse(Schema):
     source_type: str
@@ -33,12 +37,14 @@ class DiscoverResponse(Schema):
     suggested_connector: str
     confidence: float
 
+
 class CreateSourceRequest(Schema):
     name: str
     source_type: str
     connection_config: Dict[str, Any]
     credentials: Optional[Dict[str, Any]] = None
     sync_schedule: Optional[str] = None
+
 
 class SourceResponse(Schema):
     source_id: str
@@ -49,6 +55,7 @@ class SourceResponse(Schema):
     created_at: str
     datahub_urn: Optional[str] = None
 
+
 @sources_router.post("/discover", response=DiscoverResponse)
 def discover_source(request, payload: DiscoverRequest):
     detected = detect_source_type(payload.hint)
@@ -58,6 +65,7 @@ def discover_source(request, payload: DiscoverRequest):
         suggested_connector=detected["connector"],
         confidence=detected["confidence"],
     )
+
 
 @sources_router.post("", response={201: SourceResponse})
 def create_source(request, payload: CreateSourceRequest):
@@ -81,6 +89,7 @@ def create_source(request, payload: CreateSourceRequest):
         datahub_urn=source.datahub_urn,
     )
 
+
 @sources_router.get("", response=List[SourceResponse])
 def list_sources(request):
     tenant_id = get_tenant_id(request)
@@ -97,6 +106,7 @@ def list_sources(request):
         )
         for source in sources
     ]
+
 
 @sources_router.get("/{source_id}", response=SourceResponse)
 def get_source(request, source_id: str):
@@ -116,6 +126,7 @@ def get_source(request, source_id: str):
         datahub_urn=source.datahub_urn,
     )
 
+
 @sources_router.delete("/{source_id}", response={200: Dict[str, str]})
 def delete_source(request, source_id: str):
     source = Source.objects.filter(source_id=source_id).first()
@@ -127,9 +138,11 @@ def delete_source(request, source_id: str):
     source.delete()
     return {"status": "deleted", "source_id": str(source_id)}
 
+
 # =============================================================================
 # Discovery Router
 # =============================================================================
+
 
 class ServiceRegisterRequest(Schema):
     name: str
@@ -139,8 +152,10 @@ class ServiceRegisterRequest(Schema):
     owner: str = "unknown"
     tags: List[str] = []
 
+
 class SpecScanRequest(Schema):
     url: str
+
 
 @discovery_router.post("/services", response=ServiceDef)
 def register_service(request, payload: ServiceRegisterRequest):
@@ -167,6 +182,7 @@ def register_service(request, payload: ServiceRegisterRequest):
         logger.exception("Failed to register service")
         raise HttpError(500, f"Failed to register service: {exc}") from exc
 
+
 @discovery_router.get("/services", response=List[ServiceDef])
 def list_services(request, tag: Optional[str] = None):
     try:
@@ -175,6 +191,7 @@ def list_services(request, tag: Optional[str] = None):
         return _discovery_repo.list_services()
     except Exception as exc:
         raise HttpError(500, f"Failed to list services: {exc}") from exc
+
 
 @discovery_router.get("/services/{name}", response=ServiceDef)
 def get_service(request, name: str):
@@ -187,6 +204,7 @@ def get_service(request, name: str):
         raise
     except Exception as exc:
         raise HttpError(500, f"Failed to retrieve service: {exc}") from exc
+
 
 @discovery_router.post("/scan", response=Dict[str, Any])
 def scan_spec(request, payload: SpecScanRequest):

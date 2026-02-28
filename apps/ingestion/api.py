@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from django.http import HttpRequest
 from ninja import Router, Schema
@@ -13,8 +13,8 @@ from pydantic import Field
 
 from apps.core.api_utils import run_async
 from apps.core.config import get_settings
-from apps.core.middleware import get_tenant_id
 from apps.core.lib.temporal_client import get_temporal_client
+from apps.core.middleware import get_tenant_id
 from apps.discovery.models import Source
 from apps.ingestion.models import IngestionJob
 from apps.worker.workflows.ingest_workflow import IngestDataWorkflow

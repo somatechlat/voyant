@@ -13,8 +13,8 @@ from typing import Any, Dict
 import duckdb
 from temporalio import activity
 
-from apps.core.lib.circuit_breaker import CircuitBreakerOpenError
 from apps.core.config import get_settings
+from apps.core.lib.circuit_breaker import CircuitBreakerOpenError
 from apps.core.lib.contracts import get_contract, validate_schema
 from apps.core.lib.lineage import get_lineage_graph
 from apps.core.lib.retry_config import TIMEOUTS
@@ -133,20 +133,44 @@ class IngestActivities:
         Performance Engineer: Async HTTP with connection reuse
         """
         from apps.ingestion.airbyte_client import get_airbyte_client
+        from apps.uptp_core.parser import URIParser
 
         connection_id = params.get("connection_id")
+        generic_uri = params.get("generic_uri")
+        tenant_id = params.get("tenant_id", "default")
         job_id = params.get("job_id")
         wait_for_completion = params.get("wait_for_completion", False)
 
-        if not connection_id:
-            raise activity.ApplicationError(
-                "connection_id is required", non_retryable=True
-            )
-
-        activity.logger.info(f"Triggering Airbyte sync: {connection_id}")
-
         try:
             client = get_airbyte_client()
+
+            # --- UPTP Generic URI Resolution ---
+            if generic_uri:
+                activity.heartbeat("Parsing UPTP generic URI configuration")
+                activity.logger.info(
+                    f"Deconstructing generic URI for tenant {tenant_id}"
+                )
+
+                parsed_source = URIParser.parse_uri(generic_uri)
+                destination_namespace = f"tenant_{tenant_id}_iceberg"
+
+                # Dynamic connection resolution via Voyant Airbyte Client
+                connection_id = await client.create_dynamic_connection(
+                    workspace_id=tenant_id,
+                    connector_id=parsed_source["connector_id"],
+                    credentials=parsed_source["config"],
+                    target_namespace=destination_namespace,
+                )
+
+            if not connection_id:
+                raise activity.ApplicationError(
+                    "connection_id or generic_uri is exclusively required",
+                    non_retryable=True,
+                )
+
+            activity.logger.info(
+                f"Triggering Airbyte sync for configured UPTP connection: {connection_id}"
+            )
 
             # Trigger the sync
             activity.heartbeat("Triggering Airbyte sync")

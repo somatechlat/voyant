@@ -499,7 +499,7 @@ class ServiceUnavailableError(VoyantError):
             http_status=503,
             description="The service is temporarily unavailable, likely due to high failure rates.",
             resolution=(
-                "- `outlier_strategy` (str, optional): Strategy for outliers (\"remove\", \"cap\", \"winsorize\").\n"
+                '- `outlier_strategy` (str, optional): Strategy for outliers ("remove", "cap", "winsorize").\n'
                 "- `outlier_threshold` (float, optional): Threshold for outlier detection (e.g., Z-score)."
             ),
             retry_allowed=True,
