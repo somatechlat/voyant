@@ -4,7 +4,7 @@ kind: Ingress
 metadata:
   name: {{ include "udb-api.fullname" . }}
   annotations:
-  {{- range $k, $v in .Values.ingress.annotations }}
+  {{- range $k, $v := .Values.ingress.annotations }}
     {{ $k }}: {{ $v | quote }}
   {{- end }}
 spec:

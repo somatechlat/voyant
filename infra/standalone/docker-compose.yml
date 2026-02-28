@@ -161,7 +161,7 @@ services:
       - "45432:5432"
     volumes:
       - voyant_postgres_data:/var/lib/postgresql/data
-      - ./scripts/sql/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       <<: *healthcheck
       test: [ "CMD-SHELL", "pg_isready -U voyant" ]

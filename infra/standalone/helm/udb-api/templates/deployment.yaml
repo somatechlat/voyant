@@ -25,7 +25,7 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
-          {{- range $k, $v in .Values.env }}
+          {{- range $k, $v := .Values.env }}
             - name: {{ $k }}
               value: "{{ $v }}"
           {{- end }}
