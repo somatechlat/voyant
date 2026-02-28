@@ -502,6 +502,7 @@ services:
       LAGO_API_URL: ${LAGO_API_URL}
       SECRET_KEY_BASE: ${LAGO_SECRET_KEY}
       ENCRYPTION_PRIMARY_KEY: ${LAGO_ENCRYPTION_KEY}
+      LAGO_RSA_PRIVATE_KEY: ${LAGO_RSA_PRIVATE_KEY}
       LAGO_WEBHOOK_ATTEMPTS: 3
       RAILS_ENV: production
     ports:
@@ -529,6 +530,7 @@ services:
       LAGO_API_URL: ${LAGO_API_URL}
       SECRET_KEY_BASE: ${LAGO_SECRET_KEY}
       ENCRYPTION_PRIMARY_KEY: ${LAGO_ENCRYPTION_KEY}
+      LAGO_RSA_PRIVATE_KEY: ${LAGO_RSA_PRIVATE_KEY}
       RAILS_ENV: production
     depends_on:
       - voyant_lago_api
