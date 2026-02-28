@@ -9,6 +9,7 @@
 # Usage:
 #   cd infra/standalone
 #   docker compose up -d
+#   docker compose --profile datahub up -d  # optional DataHub services
 #
 # =============================================================================
 
@@ -376,6 +377,7 @@ services:
     <<: *common
     image: linkedin/datahub-gms:v0.12.1
     container_name: voyant_datahub_gms
+    profiles: [ "datahub" ]
     environment:
       DATAHUB_GMS_PORT: 8080
       EBEAN_DATASOURCE_URL: ${DATAHUB_DATABASE_URL}
@@ -385,6 +387,7 @@ services:
       KAFKA_BOOTSTRAP_SERVER: voyant_kafka:9092
       ELASTICSEARCH_HOST: voyant_elasticsearch
       ELASTICSEARCH_PORT: 9200
+      ENTITY_REGISTRY_CONFIG_PATH: /datahub/datahub-gms/resources/entity-registry.yml
       SKIP_NEO4J_CHECK: "true"
       JAVA_OPTS: -Xms256m -Xmx512m
     ports:
@@ -409,6 +412,7 @@ services:
     <<: *common
     image: linkedin/datahub-frontend-react:v0.12.1
     container_name: voyant_datahub_frontend
+    profiles: [ "datahub" ]
     environment:
       DATAHUB_GMS_HOST: voyant-datahub-gms
       DATAHUB_GMS_PORT: 8080
