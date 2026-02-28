@@ -4,15 +4,6 @@ Vector Store
 Persistent storage for embeddings.
 Reference: docs/CANONICAL_ROADMAP.md - Phase 6/Advanced Analytics
 
-Seven personas applied:
-- PhD Developer: Efficient similarity search
-- PhD Analyst: Retrieval capability
-- PhD QA Engineer: Exact match verification
-- ISO Documenter: Storage format documentation
-- Security Auditor: Metadata access control
-- Performance Engineer: Index efficiency
-- UX Consultant: Simple search API
-
 Usage:
     from apps.core.lib.vector_store import VectorStore
 

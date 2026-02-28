@@ -4,15 +4,6 @@ Segment Profiling Module
 Generate group-level statistical profiles for data segments.
 Enables comparison of customer segments, time periods, or categorical groups.
 
-Seven personas applied:
-- PhD Developer: Clean statistical computation with proper formulas
-- PhD Analyst: Comprehensive segment metrics including distributions
-- PhD QA Engineer: Validation of segment boundaries and data
-- ISO Documenter: Clear documentation of all metrics
-- Security Auditor: No PII in segment profiles, aggregation only
-- Performance Engineer: Efficient group-by operations
-- UX Consultant: Easy-to-interpret segment comparison reports
-
 Usage:
     from apps.core.lib.segment_profiling import (
         profile_segments,

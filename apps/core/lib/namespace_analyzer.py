@@ -4,15 +4,6 @@ Table Namespace Analyzer
 Enforces tenant isolation by validating table access patterns.
 Reference: docs/CANONICAL_ROADMAP.md - P4 Scale & Multi-Tenant
 
-Seven personas applied:
-- PhD Developer: Configurable namespace patterns
-- PhD Analyst: Clear validation errors
-- PhD QA Engineer: Strict negative testing
-- ISO Documenter: Security controls documentation
-- Security Auditor: Prevent IDOR and cross-tenant data leakage
-- Performance Engineer: Fast regex validation (linting)
-- UX Consultant: Helpful error messages
-
 Usage:
     from apps.core.lib.namespace_analyzer import NamespaceAnalyzer, NamespaceConfig
 

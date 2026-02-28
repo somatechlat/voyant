@@ -452,13 +452,13 @@ services:
     <<: *common
     image: authzed/spicedb:v1.29.0
     container_name: voyant_spicedb
-    command: serve --grpc-preshared-key "somerandomkey" --datastore-engine memory
+    command: serve --grpc-preshared-key "${SPICEDB_GRPC_PRESHARED_KEY}" --datastore-engine memory
     ports:
       - "50051:50051"
       - "50052:50052"
       - "8443:8443"
     environment:
-      SPICEDB_GRPC_PRESHARED_KEY: "somerandomkey"
+      SPICEDB_GRPC_PRESHARED_KEY: ${SPICEDB_GRPC_PRESHARED_KEY}
     networks:
       - voyant_cluster
 

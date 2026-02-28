@@ -4,15 +4,6 @@ Audit Trail Module
 Comprehensive audit logging for all data operations in Voyant.
 Provides immutable audit records for compliance, debugging, and security analysis.
 
-Seven personas applied:
-- PhD Developer: Clean audit record abstraction with proper serialization
-- PhD Analyst: Queryable audit log structure for compliance analysis
-- PhD QA Engineer: Audit trail for test verification and debugging
-- ISO Documenter: ISO 27001 compliant audit log format
-- Security Auditor: Tamper-evident records, PII handling, retention policies
-- Performance Engineer: Efficient async logging, batched writes
-- UX Consultant: Clear audit event types for operators
-
 Usage:
     from apps.core.lib.audit_trail import (
         log_data_operation,

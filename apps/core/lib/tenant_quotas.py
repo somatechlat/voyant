@@ -4,15 +4,6 @@ Tenant Quotas Module
 Enforce resource limits and track usage per tenant for multi-tenant deployments.
 Reference: docs/CANONICAL_ROADMAP.md - P4 Scale & Multi-Tenant
 
-Seven personas applied:
-- PhD Developer: Clean quota policy abstraction with enforcement hooks
-- PhD Analyst: Usage analytics and trend tracking
-- PhD QA Engineer: Comprehensive limit checking with clear error messages
-- ISO Documenter: Well-documented quota policies
-- Security Auditor: Prevent resource exhaustion attacks
-- Performance Engineer: Efficient quota checking with caching
-- UX Consultant: Clear quota exceeded messaging
-
 Usage:
     from apps.core.lib.tenant_quotas import (
         QuotaPolicy,

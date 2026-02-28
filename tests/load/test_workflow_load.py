@@ -4,15 +4,6 @@ Load Testing Suite for Voyant Temporal Workflows
 Comprehensive load tests for concurrent workflow execution, large dataset processing,
 and external API rate limiting validation.
 
-Seven personas applied:
-- PhD Developer: Robust async test patterns with proper resource cleanup
-- PhD Analyst: Statistical analysis of load test results
-- PhD QA Engineer: Edge case testing, failure injection
-- ISO Documenter: Clear test documentation and reporting
-- Security Auditor: No credentials in test code, safe cleanup
-- Performance Engineer: Accurate timing, resource monitoring
-- UX Consultant: Clear test output and progress indicators
-
 Usage:
     # Run all load tests
     pytest tests/load/ -v

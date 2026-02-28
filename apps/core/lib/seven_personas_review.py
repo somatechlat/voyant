@@ -5,15 +5,6 @@ Formal review checklists and automated validation for all seven PhD-level person
 Ensures comprehensive coverage of architecture, analysis, testing, documentation,
 security, performance, and usability across the Voyant codebase.
 
-Seven personas applied:
-- PhD Developer: Architecture patterns validation
-- PhD Analyst: Data flow and pipeline analysis
-- PhD QA Engineer: Test coverage metrics
-- ISO Documenter: Documentation completeness
-- Security Auditor: Security posture assessment
-- Performance Engineer: Performance benchmarks
-- UX Consultant: API usability review
-
 Usage:
     from apps.core.lib.seven_personas_review import run_full_review, get_review_report
 
