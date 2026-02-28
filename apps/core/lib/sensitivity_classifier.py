@@ -4,15 +4,6 @@ Column Sensitivity Classification Module
 Auto-detect PII and sensitive data in columns using regex patterns and ML-based heuristics.
 Reference: docs/CANONICAL_ROADMAP.md - P5 Governance & Contracts
 
-Seven personas applied:
-- PhD Developer: Clean pattern matching with extensible rules
-- PhD Analyst: Statistical analysis of column content
-- PhD QA Engineer: Comprehensive pattern coverage
-- ISO Documenter: Clear sensitivity level definitions
-- Security Auditor: Comprehensive PII detection, err on side of caution
-- Performance Engineer: Efficient regex compilation and sampling
-- UX Consultant: Clear classification results with confidence scores
-
 Usage:
     from apps.core.lib.sensitivity_classifier import (
         classify_column,

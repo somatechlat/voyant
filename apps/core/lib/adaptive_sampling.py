@@ -4,15 +4,6 @@ Adaptive Sampling Module
 Intelligent sampling strategies for large table profiling.
 Reference: docs/CANONICAL_ROADMAP.md - Future Investigation Backlog
 
-Seven personas applied:
-- PhD Developer: Statistically sound sampling algorithms
-- PhD Analyst: Preserves distribution characteristics
-- PhD QA Engineer: Validation of sample representativeness
-- ISO Documenter: Clear sampling methodology documentation
-- Security Auditor: No data leakage, deterministic for audit
-- Performance Engineer: Efficient sampling without full scan
-- UX Consultant: Simple API with sensible defaults
-
 Usage:
     from apps.core.lib.adaptive_sampling import (
         sample_table,

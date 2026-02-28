@@ -1,3 +1,4 @@
+import os
 import logging
 
 from authzed.api.v1 import (
@@ -24,9 +25,10 @@ class SpiceDBClient:
 
     def __init__(self):
         get_settings()
-        # Defaults for local dev if not in settings yet
-        self.endpoint = "voyant_spicedb:50051"
-        self.token = "somerandomkey"
+        self.endpoint = os.getenv("VOYANT_SPICEDB_ENDPOINT", "voyant_spicedb:50051")
+        self.token = os.getenv("VOYANT_SPICEDB_GRPC_PRESHARED_KEY", "")
+        if not self.token:
+            logger.warning("VOYANT_SPICEDB_GRPC_PRESHARED_KEY is not set")
         self._client = None
 
     @property

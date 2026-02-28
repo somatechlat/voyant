@@ -94,7 +94,7 @@ server:
   # If your instance owns a /etc/searxng/settings.yml file, then set the following
   # values there.
 
-  secret_key: "uTj6CI4YFb4dfoj663ZUwfxIyoS7UQZ"  # Is overwritten by ${SEARXNG_SECRET}
+  secret_key: "replace-searxng-secret-key"  # Is overwritten by ${SEARXNG_SECRET}
   # Proxy image results through SearXNG. Is overwritten by ${SEARXNG_IMAGE_PROXY}
   image_proxy: false
   # 1.0 and 1.1 are supported
@@ -1027,7 +1027,7 @@ engines:
       # * bearer
       # When none is passed, the token is not requried.
       type: "none"
-      token: "token"
+      token: ""
     # specify whether to highlight the matching lines to the query
     ghc_highlight_matching_lines: true
     ghc_strip_new_lines: true

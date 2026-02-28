@@ -6,15 +6,6 @@ allowing for dynamic registration and execution of various plugins, such as
 artifact generators and data analyzers. It provides a centralized, singleton
 registry that decouples the core application from its extensions.
 
-Seven personas applied:
-- PhD Developer: Uses Singleton and Abstract Base Class patterns for a clean, extensible architecture.
-- PhD Analyst: Enables categorization of plugins for targeted execution in analysis pipelines.
-- PhD QA Engineer: Provides registry clearing functions for robust test isolation.
-- ISO Documenter: Ensures plugins are self-describing via metadata.
-- Security Auditor: Confirms that plugin execution is an explicit and controlled process.
-- Performance Engineer: Implements lazy instantiation of plugins to reduce startup overhead.
-- UX Consultant: Uses metadata to allow for dynamic discovery and presentation of plugins in a UI.
-
 Usage:
     from apps.core.lib.plugin_registry import (
         register_plugin, GeneratorPlugin, PluginCategory

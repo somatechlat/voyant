@@ -4,15 +4,6 @@ Performance Profiling for Temporal Activities
 Lightweight profiling utilities for identifying slow operations and bottlenecks.
 Integrates with existing monitoring (temporal_metrics.py) and logging infrastructure.
 
-Seven personas applied:
-- PhD Developer: Decorator pattern, minimal code changes
-- PhD Analyst: Statistical profiling with percentile analysis
-- PhD QA Engineer: Profile-guided performance testing
-- ISO Documenter: Detailed performance reports for compliance
-- Security Auditor: No sensitive data in profiles
-- Performance Engineer: Low-overhead profiling (<5%), hot path optimization
-- UX Consultant: Clear performance reports for operators
-
 Usage:
     from apps.core.lib.performance_profiling import (
         profile_activity,

@@ -4,15 +4,6 @@ Content-Addressable Artifact Store
 Efficient artifact storage using content hashing for deduplication.
 Reference: docs/CANONICAL_ROADMAP.md - Future Investigation Backlog
 
-Seven personas applied:
-- PhD Developer: Clean content hashing with pluggable backends
-- PhD Analyst: Artifact metadata and lineage tracking
-- PhD QA Engineer: Integrity verification with checksums
-- ISO Documenter: Clear storage format documentation
-- Security Auditor: Tamper detection via hash verification
-- Performance Engineer: Deduplication, compression, lazy loading
-- UX Consultant: Simple store/retrieve API
-
 Usage:
     from apps.core.lib.artifact_store import (
         ArtifactStore,

@@ -4,15 +4,6 @@ Temporal Activity & Workflow Metrics
 Comprehensive monitoring for Temporal activities and workflows.
 Integrates with existing voyant.core.metrics infrastructure.
 
-Seven personas applied:
-- PhD Developer: Clean integration with existing metrics system
-- PhD Analyst: Histograms for distribution analysis
-- PhD QA Engineer: Metrics for flaky test detection (retry counts)
-- ISO Documenter: Clear metric naming conventions
-- Security Auditor: No PII in metric labels
-- Performance Engineer: Efficient metric collection, low overhead
-- UX Consultant: Observable system behavior for operators
-
 Usage:
     from apps.core.lib.temporal_metrics import (
         record_activity_start,

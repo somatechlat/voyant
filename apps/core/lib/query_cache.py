@@ -4,15 +4,6 @@ Query Result Caching
 LRU-based caching for DuckDB query results to reduce database load
 and improve response times for repeated queries.
 
-Seven personas applied:
-- PhD Developer: Generic caching abstraction with proper TTL handling
-- PhD Analyst: Cache statistics for hit rate analysis
-- PhD QA Engineer: Cache invalidation correctness
-- ISO Documenter: Clear cache key documentation
-- Security Auditor: No sensitive data caching by default
-- Performance Engineer: Memory-efficient LRU eviction
-- UX Consultant: Transparent caching, no behavior surprises
-
 Usage:
     from apps.core.lib.query_cache import get_cached_result, cache_result, invalidate_cache
 

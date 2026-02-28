@@ -4,15 +4,6 @@ Structured Logging with Correlation IDs
 Context-aware structured logging for Temporal workflows and activities.
 Enables request tracing across distributed activity executions.
 
-Seven personas applied:
-- PhD Developer: Context managers for automatic correlation ID propagation
-- PhD Analyst: Structured fields enable log aggregation and analysis
-- PhD QA Engineer: Correlation IDs enable end-to-end test tracing
-- ISO Documenter: Audit-friendly log format with timestamps and trace IDs
-- Security Auditor: PII filtering, no sensitive data in logs
-- Performance Engineer: Efficient context-local storage, minimal overhead
-- UX Consultant: Clear log messages for operators debugging issues
-
 Usage:
     from apps.core.lib.structured_logging import (
         get_logger,
