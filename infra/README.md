@@ -32,7 +32,7 @@ Set `VOYANT_DEPLOYMENT_MODE`:
 - `standalone`: Full infrastructure
 
 ```python
-# voyant/core/config.py
+# apps/core/config.py
 if settings.deployment_mode == "integrated":
     # Use Hub services (policy, memory, orchestrator)
 else:

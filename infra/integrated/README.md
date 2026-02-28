@@ -18,7 +18,7 @@ cd /path/to/somaAgentHub
 docker compose up -d
 
 # 2. Start Voyant integrated
-cd /path/to/voyant/infra/integrated
+cd /path/to/repo/infra/integrated
 docker compose --env-file .env.integrated up -d
 ```
 

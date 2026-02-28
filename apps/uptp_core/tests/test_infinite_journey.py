@@ -5,7 +5,6 @@ Simulates the complete path from Ingestion (URI) -> Sandbox (Math) -> Output (Mi
 ensuring the Universal Data Box is structurally sound end-to-end.
 """
 
-
 import pytest
 
 pytest.importorskip("weasyprint")

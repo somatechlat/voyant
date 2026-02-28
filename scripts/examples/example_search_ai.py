@@ -16,18 +16,16 @@ def _setup_django() -> None:
     settings = get_settings()
     settings.scraper_tls_verify = False
 
+
 async def search_year_keyword(year, keyword):
     from apps.scraper.activities import ScrapeActivities
 
     activity = ScrapeActivities()
     url = f"https://datosabiertos.compraspublicas.gob.ec/PLATAFORMA/api/search_ocds?year={year}&search={keyword}"
 
-    result = await activity.fetch_page({
-        "url": url,
-        "engine": "httpx",
-        "timeout": 30,
-        "capture_json": False
-    })
+    result = await activity.fetch_page(
+        {"url": url, "engine": "httpx", "timeout": 30, "capture_json": False}
+    )
 
     raw = result.get("html") or result.get("content", "{}")
     try:
@@ -36,6 +34,7 @@ async def search_year_keyword(year, keyword):
         return records
     except Exception:
         return []
+
 
 async def main():
     keywords = [
@@ -47,7 +46,7 @@ async def main():
         "algoritmo",
         "datos",
         "nube",
-        "analitica"
+        "analitica",
     ]
     years = [2026, 2025, 2024]
 
@@ -62,13 +61,15 @@ async def main():
                 sample = {
                     "buyer": records[0].get("buyer"),
                     "suppliers": records[0].get("suppliers"),
-                    "description": str(records[0].get("description") or "")[:150] + "...",
+                    "description": str(records[0].get("description") or "")[:150]
+                    + "...",
                     "amount": records[0].get("amount"),
-                    "title": records[0].get("title")
+                    "title": records[0].get("title"),
                 }
                 print(json.dumps(sample, indent=2, ensure_ascii=False))
             else:
                 print(f"No records for '{keyword}' in {year}")
+
 
 if __name__ == "__main__":
     _setup_django()
