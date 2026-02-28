@@ -9,6 +9,18 @@ Full self-contained deployment with all infrastructure services.
 docker compose up -d
 ```
 
+Resilient startup (recommended):
+
+```bash
+./scripts/start-stack-resilient.sh
+```
+
+This command:
+- bootstraps missing local secrets into `infra/standalone/.env`
+- recreates the cluster
+- waits for core services to be healthy/running
+- runs smoke checks on API, MinIO, Keycloak, and Trino
+
 ## Services Included (18 Total)
 
 | Service | Port | Purpose |
