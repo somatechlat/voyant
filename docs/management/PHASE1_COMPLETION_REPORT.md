@@ -82,28 +82,28 @@ Fix critical code quality issues (V-003) to establish a solid foundation for fur
 ### Files Modified (18 files)
 
 **Activity Files (5):**
-1. `voyant/activities/analysis_activities.py` - Added ApplicationError import
-2. `voyant/activities/discovery_activities.py` - Added ApplicationError import
-3. `voyant/activities/ingest_activities.py` - Added ApplicationError import, noqa for mode
-4. `voyant/activities/kpi_activities.py` - Added ApplicationError import
-5. `voyant/activities/ml_activities.py` - Added ApplicationError import
+1. `apps/worker/activities/analysis_activities.py` - Added ApplicationError import
+2. `apps/worker/activities/discovery_activities.py` - Added ApplicationError import
+3. `apps/worker/activities/ingest_activities.py` - Added ApplicationError import, noqa for mode
+4. `apps/worker/activities/kpi_activities.py` - Added ApplicationError import
+5. `apps/worker/activities/ml_activities.py` - Added ApplicationError import
 
 **Core Files (6):**
-6. `voyant/core/ml_primitives.py` - Removed unused sklearn imports
-7. `voyant/core/quality_rules.py` - Added unique count to validation result
-8. `voyant/core/coordination.py` - Fixed ambiguous variable name
-9. `voyant/core/connectors.py` - Moved asyncio import to top
-10. `voyant/core/r_bridge.py` - Added noqa for import check
+6. `apps/core/lib/ml_primitives.py` - Removed unused sklearn imports
+7. `apps/core/lib/quality_rules.py` - Added unique count to validation result
+8. `apps/core/lib/coordination.py` - Fixed ambiguous variable name
+9. `apps/core/lib/connectors.py` - Moved asyncio import to top
+10. `apps/core/lib/r_bridge.py` - Added noqa for import check
 
 **Scraper Files (4):**
-11. `voyant/scraper/browser/playwright_client.py` - Added logging import
-12. `voyant/scraper/browser/scrapy_client.py` - Added logging import
-13. `voyant/mcp/server.py` - Fixed dict syntax
-14. `voyant/ingestion/direct_utils.py` - Added noqa for DuckDB DataFrame reference
+11. `apps/scraper/browser/playwright_client.py` - Added logging import
+12. `apps/scraper/browser/scrapy_client.py` - Added logging import
+13. `apps/mcp/server.py` - Fixed dict syntax
+14. `apps/ingestion/lib/direct_utils.py` - Added noqa for DuckDB DataFrame reference
 
 **Other Files (3):**
-15. `voyant/services/__init__.py` - Removed unused imports
-16. `voyant/streaming/flink_client.py` - Removed unused variables
+15. `apps/services/__init__.py` - Removed unused imports
+16. `apps/streaming/flink_client.py` - Removed unused variables
 17. `VIOLATIONS.md` - Updated violation status
 
 ---

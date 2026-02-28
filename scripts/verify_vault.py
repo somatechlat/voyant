@@ -1,4 +1,3 @@
-
 import asyncio
 import logging
 import os
@@ -7,7 +6,7 @@ import sys
 # Add project root to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from apps.core.lib.secrets import get_secrets_backend, set_secret, get_secret
+from apps.core.lib.secrets import get_secret, get_secrets_backend, set_secret
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

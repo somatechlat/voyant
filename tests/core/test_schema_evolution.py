@@ -34,9 +34,9 @@ def mock_settings(monkeypatch):
         s.duckdb_path = db_path
         return s
 
-    monkeypatch.setattr("voyant.core.config.get_settings", mock_get)
+    monkeypatch.setattr("apps.core.config.get_settings", mock_get)
     monkeypatch.setattr(
-        "voyant.core.schema_evolution.get_settings", mock_get
+        "apps.core.lib.schema_evolution.get_settings", mock_get
     )  # In case it's used there directly
 
     yield

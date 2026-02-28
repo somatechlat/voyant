@@ -1,5 +1,5 @@
 # DataScraper Module - Software Requirements Specification
-## Voyant Scraper Module (voyant/scraper)
+## Voyant Scraper Module (apps/scraper)
 
 | Document ID | VOYANT-SCRAPER-SRS-1.0.0 |
 |-------------|--------------------------|
@@ -32,7 +32,7 @@ This document specifies the requirements for the **DataScraper** module, a web s
 ### 1.3 Module Location
 
 ```
-voyant/
+apps/
 ├── scraper/                    # THIS MODULE
 │   ├── __init__.py
 │   ├── models.py               # Django ORM models
@@ -81,8 +81,8 @@ voyant/
 
 | Apache Tool | Purpose | Integration |
 |-------------|---------|-------------|
-| **Apache Tika** | Document extraction (PDF, DOC, etc.) | `voyant/ingestion/tika.py` |
-| **Apache NiFi** | Dataflow routing, ETL pipelines | `voyant/ingestion/nifi.py` |
+| **Apache Tika** | Document extraction (PDF, DOC, etc.) | `apps/ingestion/lib/tika.py` |
+| **Apache NiFi** | Dataflow routing, ETL pipelines | `apps/ingestion/lib/nifi.py` |
 | **Apache Kafka** | Event streaming | Existing Voyant integration |
 | **Apache Iceberg** | Lakehouse storage | Existing Voyant integration |
 
@@ -126,7 +126,7 @@ voyant/
 
 **Implementation:**
 ```python
-# voyant/scraper/browser/playwright_client.py
+# apps/scraper/browser/playwright_client.py
 from playwright.async_api import async_playwright
 
 class PlaywrightClient:
@@ -182,7 +182,7 @@ selectors = {
 
 ### FR-SCR-005: Schema Normalization
 
-- Use `voyant/core/contracts.py` for schema validation
+- Use `apps/core/lib/contracts.py` for schema validation
 - All output validates against JSON schema
 - Fields: `url`, `title`, `content`, `extracted_data`, `metadata`
 
@@ -211,7 +211,7 @@ selectors = {
 
 ### FR-SCR-009: Audit Logging
 
-- Use Voyant's `voyant/core/audit_trail.py`
+- Use Voyant's `apps/core/lib/audit_trail.py`
 - Log: job_id, timestamp, event_type, actor, details
 - Immutable append-only
 
@@ -237,7 +237,7 @@ VOYANT must automatically detect the available hardware architecture (GPU/CPU) a
 
 **Detection Logic:**
 ```python
-# voyant/core/hardware_detection.py
+# apps/core/lib/hardware_detection.py
 import torch
 
 class HardwareDetector:
@@ -301,7 +301,7 @@ INFO: Whisper model: large-v3, Batch size: 32
 ## 3. Django ORM Models
 
 ```python
-# voyant/scraper/models.py
+# apps/scraper/models.py
 import uuid
 from django.db import models
 
@@ -372,7 +372,7 @@ class ScrapeArtifact(models.Model):
 ## 4. Django Ninja API
 
 ```python
-# voyant/scraper/api.py
+# apps/scraper/api.py
 from ninja import Router, Schema
 from typing import List, Dict, Any, Optional
 from .models import ScrapeJob, ScrapeArtifact

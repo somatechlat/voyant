@@ -17,7 +17,7 @@ import pytest
 
 # Mock NLTK to avoid data download requirement during testing.
 # This assumes the sentiment analyzer is only used in operational_activities.
-with patch("voyant.core.nlp_primitives.SentimentIntensityAnalyzer"):
+with patch("apps.core.lib.nlp_primitives.SentimentIntensityAnalyzer"):
     from apps.worker.activities.operational_activities import OperationalActivities
 
 
@@ -36,7 +36,7 @@ class TestFixDataQuality:
         Initializes an instance of `OperationalActivities` with a mocked
         `SentimentIntensityAnalyzer` to prevent external dependencies.
         """
-        with patch("voyant.core.nlp_primitives.SentimentIntensityAnalyzer"):
+        with patch("apps.core.lib.nlp_primitives.SentimentIntensityAnalyzer"):
             self.ops_activities = OperationalActivities()
 
     def test_empty_data(self):

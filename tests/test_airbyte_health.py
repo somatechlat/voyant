@@ -7,7 +7,7 @@ status of the Airbyte API integration.
 
 import pytest
 
-from apps.ingestion.airbyte_client import get_airbyte_client
+from apps.ingestion.lib.airbyte_client import get_airbyte_client
 
 
 @pytest.mark.asyncio

@@ -1,22 +1,26 @@
-import os
-import django
 import asyncio
-import json
+import os
 
-os.environ["VOYANT_SCRAPER_TLS_VERIFY"] = "False"
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "voyant_project.settings")
-django.setup()
 
-from apps.core.config import get_settings
-settings = get_settings()
-settings.scraper_tls_verify = False
+def _setup_django() -> None:
+    os.environ["VOYANT_SCRAPER_TLS_VERIFY"] = "False"
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "voyant_project.settings")
 
-from apps.mcp.tools import tool_scrape_deep_archive
+    import django
+
+    django.setup()
+
+    from apps.core.config import get_settings
+
+    settings = get_settings()
+    settings.scraper_tls_verify = False
 
 async def main():
+    from apps.mcp.tools import tool_scrape_deep_archive
+
     print("Testing Generic MCP Deep Archive Tool on SERCOP...")
 
-    # Simulate an AI Agent sending a generic payload
+    # Example payload for deep archive extraction.
     payload = {
         "url": "https://www.compraspublicas.gob.ec/ProcesoContratacion/compras/PC/informacionProcesoContratacion2.cpe?idSoliCompra=LGhcHDwhCJiQJmiNZFGNrZYC1R-kbyiuOfZWlUNHBo4",
         "interaction_selectors": [
@@ -37,7 +41,7 @@ async def main():
     # We call the tool exactly as the MCP SDK would wrap it
     result = await tool_scrape_deep_archive(**payload)
 
-    print("\n✅ MCP Tool Execution Finished!")
+    print("\nMCP tool execution finished.")
     print(f"Final DOM State captured: {len(result.get('interaction_states', {}))} states.")
     print(f"Files Downloaded via Generic Pattern Matching: {len(result.get('files_downloaded', []))}")
 
@@ -48,4 +52,5 @@ async def main():
         print(f"Manifest saved correctly. Size: {size} bytes")
 
 if __name__ == "__main__":
+    _setup_django()
     asyncio.run(main())

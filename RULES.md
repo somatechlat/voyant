@@ -109,7 +109,7 @@ If context is missing, ask before coding.
 
 Current repo-specific MCP rule:
 - MCP is mounted via Django ASGI at `/mcp`.
-- Tool registry source of truth: `voyant_app/mcp_tools.py`.
+- Tool registry source of truth: `apps/mcp/tools.py`.
 
 ---
 

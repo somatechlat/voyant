@@ -12,109 +12,109 @@ Includes: DataScraper Module (Section 19)
 
 ## 1. Core Agent Flow (Analyze One-Call)
 - [x] Add REST endpoint `/v1/analyze` to execute full pipeline and return summary + artifact manifest.  
-  Files: `voyant_app/api.py`, `voyant_project/urls.py`
+  Files: `apps/core/api.py`, `voyant_project/urls.py`
 - [x] Add MCP tool `voyant.analyze` and map to REST endpoint.  
-  Files: `voyant_app/mcp_tools.py`
+  Files: `apps/mcp/tools.py`
 - [x] Implement Analyze Workflow (Temporal) with steps: normalize → profile → quality → KPI → charts → narrative.  
-  Files: `voyant/workflows/analyze_workflow.py` (new), `voyant/activities/analysis_activities.py`, `voyant/activities/generation_activities.py`
+  Files: `apps/worker/workflows/analyze_workflow.py` (new), `apps/worker/activities/analysis_activities.py`, `apps/worker/activities/generation_activities.py`
 - [x] Create artifact manifest structure and return with job summary.  
-  Files: `voyant/core/artifact_store.py`, `voyant_app/api.py`
+  Files: `apps/core/lib/artifact_store.py`, `apps/core/api.py`
 
 Definition of Done: Agent can call `voyant.analyze` and get artifacts + summary in one call.
 
 ## 2. Persistence (Jobs, Sources, Presets, Artifacts)
 - [x] Add Django ORM models for Source, Job, Preset, Artifact.  
-  Files: `voyant_app/models.py` (new)
+  Files: `apps/workflows/models.py` (new)
 - [x] Add migrations (Django) and bootstrapping.  
-  Files: `voyant_app/migrations/`
+  Files: `apps/migrations/`
 - [x] Replace in-memory stores with DB-backed CRUD.  
-  Files: `voyant_app/api.py`
+  Files: `apps/core/api.py`
 
 Definition of Done: Jobs and sources persist across restarts.
 
 ## 3. Connector Provisioning (Airbyte)
 - [ ] Implement connect/provision flow: create source, destination, connection, trigger sync.  
-  Files: `voyant/ingestion/airbyte_client.py`, `voyant_app/api.py`
+  Files: `apps/ingestion/lib/airbyte_client.py`, `apps/core/api.py`
 - [ ] Store Airbyte IDs and sync state in DB.  
-  Files: `voyant_app/models.py`, `voyant_app/api.py`
+  Files: `apps/workflows/models.py`, `apps/core/api.py`
 
 Definition of Done: `voyant.connect` provisions real Airbyte connections.
 
 ## 4. Ingestion Workflow Completion
 - [ ] Update ingestion workflow to use Airbyte sync when source type is connector-based.  
-  Files: `voyant/workflows/ingest_workflow.py`, `voyant/activities/ingest_activities.py`
+  Files: `apps/worker/workflows/ingest_workflow.py`, `apps/worker/activities/ingest_activities.py`
 - [ ] Add ingestion metadata persistence (row counts, tables).  
-  Files: `voyant_app/models.py`, `voyant/activities/ingest_activities.py`
+  Files: `apps/workflows/models.py`, `apps/worker/activities/ingest_activities.py`
 
 Definition of Done: Ingest is real and tracked with job state + events.
 
 ## 5. Quality & Drift Pipeline
 - [ ] Implement quality workflow execution for `/v1/jobs/quality`.  
-  Files: `voyant/workflows/quality_workflow.py` (new), `voyant/activities/quality_activities.py` (new)
+  Files: `apps/worker/workflows/quality_workflow.py` (new), `apps/worker/activities/quality_activities.py` (new)
 - [ ] Add Evidently integration or rule-based checks for quality and drift.  
-  Files: `voyant/core/quality_rules.py`, `voyant/core/baseline_store.py`
+  Files: `apps/core/lib/quality_rules.py`, `apps/core/lib/baseline_store.py`
 - [ ] Persist quality artifacts and update manifest.  
-  Files: `voyant/core/artifact_store.py`, `voyant_app/api.py`
+  Files: `apps/core/lib/artifact_store.py`, `apps/core/api.py`
 
 Definition of Done: Quality jobs generate artifacts and status updates.
 
 ## 6. Predictive Analytics (Regression, Forecasting, Anomaly)
 - [ ] Expose regression and forecasting workflows via REST + MCP.  
-  Files: `voyant_app/api.py`, `voyant_app/mcp_tools.py`, `voyant/workflows/operational_workflows.py`
+  Files: `apps/core/api.py`, `apps/mcp/tools.py`, `apps/worker/workflows/operational_workflows.py`
 - [ ] Add preset: `benchmark.brand` with KPI + comparison logic.  
-  Files: `voyant_app/api.py`, `voyant/workflows/benchmark_workflow.py`
+  Files: `apps/core/api.py`, `apps/worker/workflows/benchmark_workflow.py`
 
 Definition of Done: Agent can trigger regression/forecast/anomaly from MCP.
 
 ## 7. Artifacts & Manifest Standardization
 - [ ] Standardize artifact types and names (profile, quality, drift, charts, narrative, kpi).  
-  Files: `voyant/core/artifact_store.py`, `voyant/core/plugin_registry.py`
+  Files: `apps/core/lib/artifact_store.py`, `apps/core/lib/plugin_registry.py`
 - [ ] Add manifest endpoint `/v1/artifacts/{job_id}/manifest`.  
-  Files: `voyant_app/api.py`
+  Files: `apps/core/api.py`
 
 Definition of Done: All analysis outputs traceable in manifest.
 
 ## 8. Governance, Contracts, Lineage
 - [ ] Enforce contract validation pre-ingest and pre-analyze.  
-  Files: `voyant/core/contracts.py`, `voyant/activities/ingest_activities.py`
+  Files: `apps/core/lib/contracts.py`, `apps/worker/activities/ingest_activities.py`
 - [ ] Persist lineage graph to storage or emit to DataHub.  
-  Files: `voyant/core/lineage.py`, `voyant_app/api.py`
+  Files: `apps/core/lib/lineage.py`, `apps/core/api.py`
 
 Definition of Done: Contracts enforced and lineage queryable.
 
 ## 9. Security & Auth Enforcement
 - [ ] Add Keycloak auth dependency to protected routes.  
-  Files: `voyant/security/auth.py`, `voyant_app/api.py`
+  Files: `apps/core/security/auth.py`, `apps/core/api.py`
 - [ ] Add tenant enforcement to SQL and artifact access.  
-  Files: `voyant_app/api.py`
+  Files: `apps/core/api.py`
 
 Definition of Done: All sensitive routes require JWT and tenant scoping.
 
 ## 10. Observability
 - [ ] Expose `/metrics` in API and unify metric names.  
-  Files: `voyant_app/api.py`, `voyant/core/metrics.py`, `voyant/core/monitoring.py`
+  Files: `apps/core/api.py`, `apps/core/lib/metrics.py`, `apps/core/lib/monitoring.py`
 - [ ] Add tracing spans across API → workflow → activity.  
-  Files: `voyant/core/structured_logging.py`, workflow/activity modules
+  Files: `apps/core/lib/structured_logging.py`, workflow/activity modules
 
 Definition of Done: Metrics and traces available in production stack.
 
 ## 11. Reliability & Resilience
 - [ ] Add circuit breakers around DataHub, MinIO, Trino.  
-  Files: `voyant/core/circuit_breaker.py`, respective clients
+  Files: `apps/core/lib/circuit_breaker.py`, respective clients
 - [ ] Add retry and timeout policies for all external calls.  
-  Files: `voyant/core/retry_config.py`
+  Files: `apps/core/lib/retry_config.py`
 
 Definition of Done: External failures are isolated and observable.
 
 ## 12. Rate Limiting and Quotas
 - [ ] Implement rate limiting middleware on high-cost endpoints.  
-  Files: `voyant/api/middleware.py`, `voyant/core/tenant_quotas.py`
+  Files: `apps/core/middleware.py`, `apps/core/lib/tenant_quotas.py`
 
 Definition of Done: Excessive requests receive 429 with error codes.
 
 ## 13. Error Contract Adoption
 - [ ] Make API responses return structured error codes (`VYNT-XXXX`).  
-  Files: `voyant/core/errors.py`, `voyant_app/api.py`
+  Files: `apps/core/lib/errors.py`, `apps/core/api.py`
 
 Definition of Done: All error responses contain error code and message.
 
@@ -144,42 +144,42 @@ Definition of Done: Stack starts cleanly and supports production defaults.
 
 ## 17. Apache Platform Integration
 - [ ] Integrate Apache Iceberg as the lakehouse storage layer.  
-  Files: `voyant/core/iceberg.py` (new), `config/iceberg/*` (new)
+  Files: `apps/core/lib/iceberg.py` (new), `config/iceberg/*` (new)
 - [~] Add Apache Flink streaming pipelines for continuous KPIs and anomalies.
-  Files: `voyant/streaming/*` (new), `config/flink/*` (new)
+  Files: `apps/streaming/*` (new), `config/flink/*` (new)
   - [x] Add Flink JobManager/TaskManager to `docker-compose.yml`.
   - [x] Implement `voyant_flink_worker` or client keys.
   - [ ] Deploy `StreamingJob` via Temporal.
 - [ ] Enforce Apache Ranger policies at query and artifact access.  
-  Files: `voyant/security/policy.py` (new), `voyant_app/api.py`
+  Files: `apps/core/security/policy.py` (new), `apps/core/api.py`
 - [ ] Publish metadata and lineage to Apache Atlas.  
-  Files: `voyant/governance/atlas.py` (new), `voyant/core/lineage.py`
+  Files: `apps/governance/lib/atlas.py` (new), `apps/core/lib/lineage.py`
 - [ ] Add Apache SkyWalking tracing export for API and workflows.  
-  Files: `voyant/observability/skywalking.py` (new), `voyant_project/urls.py`, workflow/activity modules
+  Files: `apps/observability/skywalking.py` (new), `voyant_project/urls.py`, workflow/activity modules
 - [ ] Add Apache NiFi ingestion adapters and flow registration.  
-  Files: `voyant/ingestion/nifi.py` (new), `voyant_app/api.py`
+  Files: `apps/ingestion/lib/nifi.py` (new), `apps/core/api.py`
 - [ ] Add Apache Superset integration for curated datasets and artifacts.  
-  Files: `voyant/bi/superset.py` (new)
+  Files: `apps/bi/superset.py` (new)
 - [ ] Add Apache Druid and Pinot export pipelines for OLAP workloads.  
-  Files: `voyant/olap/druid.py` (new), `voyant/olap/pinot.py` (new)
+  Files: `apps/olap/druid.py` (new), `apps/olap/pinot.py` (new)
 - [ ] Add Apache Tika document extraction path for unstructured ingestion.  
-  Files: `voyant/ingestion/tika.py` (new), `voyant/ingestion/unstructured_utils.py`
+  Files: `apps/ingestion/lib/tika.py` (new), `apps/ingestion/lib/unstructured_utils.py`
 
 Definition of Done: All Apache integrations are configured, testable, and wired into core agent workflows.
 
 ## 18. Soma Stack Integration (SomaAgentHub + SomaAgent01)
 - [ ] Add Soma context middleware to accept `X-Soma-Session-ID`, `X-User-ID`, and `traceparent`.  
-  Files: `voyant/api/middleware.py`
+  Files: `apps/core/middleware.py`
 - [ ] Persist `soma_session_id` on Job records and include in status callbacks.  
-  Files: `voyant_app/models.py`, `voyant_app/api.py`
+  Files: `apps/workflows/models.py`, `apps/core/api.py`
 - [ ] Add Soma policy client to call Policy Engine `/v1/evaluate` for sensitive actions (ingest, analyze, artifact download).  
-  Files: `voyant/integrations/soma.py` (new), `voyant_app/api.py`
+  Files: `apps/integrations/soma.py` (new), `apps/core/api.py`
 - [ ] Add Memory Gateway client to persist analysis summaries via `/v1/remember` and optional `/v1/rag/retrieve`.  
-  Files: `voyant/integrations/soma.py` (new), `voyant/workflows/analyze_workflow.py`
+  Files: `apps/integrations/soma.py` (new), `apps/worker/workflows/analyze_workflow.py`
 - [ ] Add Orchestrator callback publishing job status updates to `/v1/sessions/*` when `X-Soma-Session-ID` is present.  
-  Files: `voyant/integrations/soma.py` (new), `voyant_app/api.py`
+  Files: `apps/integrations/soma.py` (new), `apps/core/api.py`
 - [ ] Add tool metadata export for SomaAgent01 tool registry (MCP schema and health).  
-  Files: `voyant_app/mcp_tools.py`, `voyant_project/asgi.py`
+  Files: `apps/mcp/tools.py`, `voyant_project/asgi.py`
 - [ ] Add integration tests against SomaAgentHub local stack (gateway, policy, memory).  
   Files: `tests/integration/*`
 
@@ -188,58 +188,58 @@ Definition of Done: SomaAgentHub can orchestrate Voyant workflows with policy an
 ## 19. DataScraper Module (Pure Execution Tools)
 
 ### 19.1 Core Infrastructure (COMPLETED)
-- [x] Create `voyant/scraper/` module structure  
-  Files: `voyant/scraper/__init__.py`, `voyant/scraper/apps.py`
+- [x] Create `apps/scraper/` module structure  
+  Files: `apps/scraper/__init__.py`, `apps/scraper/apps.py`
 - [x] Implement SSRF protection and URL validation  
-  Files: `voyant/scraper/security.py`
+  Files: `apps/scraper/security.py`
 - [x] Create Django ORM models (ScrapeJob, ScrapeArtifact)  
-  Files: `voyant/scraper/models.py`
+  Files: `apps/scraper/models.py`
 - [x] Implement Django Ninja API router  
-  Files: `voyant/scraper/api.py`
+  Files: `apps/scraper/api.py`
 - [x] Create Temporal workflow (ScrapeWorkflow)  
-  Files: `voyant/scraper/workflow.py`
+  Files: `apps/scraper/workflow.py`
 - [x] Implement 7 pure execution activities  
-  Files: `voyant/scraper/activities.py`
+  Files: `apps/scraper/activities.py`
 
 ### 19.2 Parsing Stack (COMPLETED)
 - [x] Create HTML parser with CSS/XPath extraction  
-  Files: `voyant/scraper/parsing/html_parser.py`
+  Files: `apps/scraper/parsing/html_parser.py`
 - [x] Create PDF parser with Apache Tika integration  
-  Files: `voyant/scraper/parsing/pdf_parser.py`
+  Files: `apps/scraper/parsing/pdf_parser.py`
 - [x] Create OCR processor with Tesseract  
-  Files: `voyant/scraper/parsing/ocr_processor.py`
+  Files: `apps/scraper/parsing/ocr_processor.py`
 - [x] Create Whisper transcription processor  
-  Files: `voyant/scraper/media/transcription.py`
+  Files: `apps/scraper/media/transcription.py`
 
 ### 19.3 Browser Clients (COMPLETED)
 - [x] Implement Playwright client for JS rendering  
-  Files: `voyant/scraper/browser/playwright_client.py`
+  Files: `apps/scraper/browser/playwright_client.py`
 - [x] Implement BeautifulSoup client for static pages  
-  Files: `voyant/scraper/browser/beautifulsoup_client.py`
+  Files: `apps/scraper/browser/beautifulsoup_client.py`
 - [x] Implement Scrapy client for high volume  
-  Files: `voyant/scraper/browser/scrapy_client.py`
+  Files: `apps/scraper/browser/scrapy_client.py`
 - [x] Implement Selenium client for legacy browser automation  
-  Files: `voyant/scraper/browser/selenium_client.py`
+  Files: `apps/scraper/browser/selenium_client.py`
 
 ### 19.4 MCP Tool Registration (COMPLETED)
 - [x] Register `scrape.fetch` tool  
-  Files: `voyant_app/mcp_tools.py`
+  Files: `apps/mcp/tools.py`
 - [x] Register `scrape.extract` tool  
-  Files: `voyant_app/mcp_tools.py`
+  Files: `apps/mcp/tools.py`
 - [x] Register `scrape.ocr` tool  
-  Files: `voyant_app/mcp_tools.py`
+  Files: `apps/mcp/tools.py`
 - [x] Register `scrape.parse_pdf` tool  
-  Files: `voyant_app/mcp_tools.py`
+  Files: `apps/mcp/tools.py`
 - [x] Register `scrape.transcribe` tool  
-  Files: `voyant_app/mcp_tools.py`
+  Files: `apps/mcp/tools.py`
 
 ### 19.5 Integration & Testing (Planned)
 - [ ] Add `voyant.scraper` to INSTALLED_APPS  
   Files: `voyant_project/settings.py`
 - [ ] Run migrations for scraper models  
-  Files: `voyant/scraper/migrations/`
+  Files: `apps/scraper/migrations/`
 - [ ] Register workflow in worker_main.py  
-  Files: `voyant/worker/worker_main.py`
+  Files: `apps/worker/worker_main.py`
 - [ ] Create unit tests for security module  
   Files: `tests/scraper/test_security.py`
 - [ ] Create integration tests for workflow  
