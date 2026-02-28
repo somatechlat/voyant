@@ -401,16 +401,19 @@ services:
         limits:
           memory: 1G
     networks:
-      - voyant_cluster
+      voyant_cluster:
+        aliases:
+          - voyant-datahub-gms
 
   voyant_datahub_frontend:
     <<: *common
     image: linkedin/datahub-frontend-react:v0.12.1
     container_name: voyant_datahub_frontend
     environment:
-      DATAHUB_GMS_HOST: voyant_datahub_gms
+      DATAHUB_GMS_HOST: voyant-datahub-gms
       DATAHUB_GMS_PORT: 8080
       DATAHUB_SECRET: ${DATAHUB_SECRET}
+      KAFKA_BOOTSTRAP_SERVER: voyant_kafka:9092
     ports:
       - "45002:9002"
     depends_on:
