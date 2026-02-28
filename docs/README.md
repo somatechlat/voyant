@@ -7,24 +7,25 @@ This directory contains the comprehensive documentation system for Voyant v3.0.0
 ## Document Organization
 
 ### Core Specification Documents
-- **[SRS.md](SRS.md)** - Software Requirements Specification (Canonical)
-- **[DESIGN.md](DESIGN.md)** - Architecture and Design Specification
-- **[TASKS.md](TASKS.md)** - Production Readiness Task Plan
-- **[AGENT_CONTINUITY.md](AGENT_CONTINUITY.md)** - Agent Integration and Continuity
-- **[PHASE1_COMPLETION_REPORT.md](PHASE1_COMPLETION_REPORT.md)** - Foundation cleanup execution report
+- **[SRS.md](specifications/SRS.md)** - Software Requirements Specification (Canonical)
+- **[DESIGN.md](architecture/DESIGN.md)** - Architecture and Design Specification
+- **[TASKS.md](management/TASKS.md)** - Production Readiness Task Plan
+- **[AGENT_CONTINUITY.md](management/AGENT_CONTINUITY.md)** - Agent Integration and Continuity
+- **[PHASE1_COMPLETION_REPORT.md](management/PHASE1_COMPLETION_REPORT.md)** - Foundation cleanup execution report
 - **[../RULES.md](../RULES.md)** - Repository coding and execution rules
 
 ### Quality and Standards
-- **[adr/](adr/)** - Architecture Decision Records
+- **[ADR](architecture/adr/README.md)** - Architecture Decision Records
 - **[architecture/PROJECT_STRUCTURE.md](architecture/PROJECT_STRUCTURE.md)** - Canonical repository structure and Django layout conventions
+- **[compliance/](compliance/README.md)** - Compliance references and audit reports
 
 ### Configuration and Examples
-- **[OTEL_COLLECTOR_SAMPLE.yaml](OTEL_COLLECTOR_SAMPLE.yaml)** - OpenTelemetry collector configuration
-- **[openapi.json](openapi.json)** - OpenAPI specification for REST API
-- **[grafana_dashboard_example.json](grafana_dashboard_example.json)** - Grafana dashboard template
+- **[OTEL_COLLECTOR_SAMPLE.yaml](operations/OTEL_COLLECTOR_SAMPLE.yaml)** - OpenTelemetry collector configuration
+- **[openapi.json](api/openapi.json)** - OpenAPI specification for REST API
+- **[grafana_dashboard_example.json](operations/grafana_dashboard_example.json)** - Grafana dashboard template
 
 ### Sub-Specifications
-- **[srs/](srs/)** - Detailed sub-requirements specifications
+- **[specifications/srs/](specifications/srs/README.md)** - Detailed sub-requirements specifications
 
 ## Documentation Standards
 
@@ -56,28 +57,28 @@ All documentation is continuously updated to reflect:
 
 ### For New Developers
 1. **README.md** (Project root) - High-level overview
-2. **docs/SRS.md** - Requirements understanding
-3. **docs/DESIGN.md** - Architecture overview
-4. **docs/TASKS.md** - Current development status
-5. **docs/AGENT_CONTINUITY.md** - Integration context
+2. **docs/specifications/SRS.md** - Requirements understanding
+3. **docs/architecture/DESIGN.md** - Architecture overview
+4. **docs/management/TASKS.md** - Current development status
+5. **docs/management/AGENT_CONTINUITY.md** - Integration context
 
 ### For System Integrators
-1. **docs/SRS.md** (Section 4) - External interfaces
-2. **docs/DESIGN.md** (Section 4) - Data flows
-3. **docs/SRS.md** (Section 14) - Dependencies
-4. **docs/SRS.md** (Section 15) - Configuration
+1. **docs/specifications/SRS.md** (Section 4) - External interfaces
+2. **docs/architecture/DESIGN.md** (Section 4) - Data flows
+3. **docs/specifications/SRS.md** (Section 14) - Dependencies
+4. **docs/specifications/SRS.md** (Section 15) - Configuration
 
 ### For Operations Teams
-1. **docs/SRS.md** (Section 9) - Deployment requirements
-2. **docs/SRS.md** (Section 8) - Quality requirements
-3. **docs/SRS.md** (Section 7) - Observability
-4. **docs/SRS.md** (Section 6) - Security
+1. **docs/specifications/SRS.md** (Section 9) - Deployment requirements
+2. **docs/specifications/SRS.md** (Section 8) - Quality requirements
+3. **docs/specifications/SRS.md** (Section 7) - Observability
+4. **docs/specifications/SRS.md** (Section 6) - Security
 
 ### For Quality Assurance
-1. **docs/SRS.md** (Section 11) - Verification criteria
-2. **docs/SRS.md** (Section 12) - Requirements traceability
-3. **docs/TASKS.md** - Current issues and execution status
-4. **docs/SRS.md** (Section 13) - Error handling
+1. **docs/specifications/SRS.md** (Section 11) - Verification criteria
+2. **docs/specifications/SRS.md** (Section 12) - Requirements traceability
+3. **docs/management/TASKS.md** - Current issues and execution status
+4. **docs/specifications/SRS.md** (Section 13) - Error handling
 
 ## Maintenance Guidelines
 

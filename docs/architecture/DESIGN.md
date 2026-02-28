@@ -138,4 +138,4 @@ Date: 2025-12-17
 - Soma stack co-deploy: Gateway, Orchestrator, Policy Engine, Identity, Memory Gateway (service-to-service auth).
 
 ## 8. Open Implementation Steps
-- Align with `docs/TASKS.md` for execution order and milestones.
+- Align with `docs/management/TASKS.md` for execution order and milestones.

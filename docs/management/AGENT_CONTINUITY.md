@@ -2,7 +2,7 @@
 
 Document ID: VOYANT-AGENT-CONTINUITY
 Status: Active
-Date: 2026-01-12 (Updated)
+Date: 2026-02-27 (Updated)
 
 ---
 
@@ -14,8 +14,8 @@ Date: 2026-01-12 (Updated)
 | **SomaAgentHub** | ✅ ACTIVE | Work here (as needed for Voyant) |
 | **SomaAgent01** | 🔒 READ-ONLY | Reference only—DO NOT MODIFY |
 
-> **SomaAgent01 is the Layer 4 cognitive operating system.** 
-> It is a mature Django monolith with 62+ apps, 50+ API routers, Lit 3 UI.
+> **SomaAgent01 is the Layer 4 cognitive operating system.**
+> It is treated as external/read-only in this workspace. Size/capability counts are not verified from this repo.
 > We read it for architectural reference but **ALL WORK HAPPENS IN Voyant AND SomaAgentHub**.
 
 ---
@@ -71,8 +71,9 @@ Integrate Voyant as the agent-first data intelligence box within the Soma stack:
 
 ## 3) Voyant Current State (Reality from Code)
 ### 3.1 Architecture Summary
-- Django Ninja REST API: health, sources, jobs, SQL, artifacts, presets, discovery, governance, search.
-- MCP server: `voyant.*` tools proxy to REST.
+- Django app domains in this repo: **18** (under `apps/`).
+- Django Ninja router mounts in `apps/core/api.py`: **10** (`/sources`, `/jobs`, `/sql`, `/governance`, `/presets`, `/artifacts`, `/analyze`, `/discovery`, `/search`, `/scrape`).
+- MCP tools registered in `apps/mcp/tools.py`: **45** decorators (`@mcp_app.tool`).
 - One-call analyze flow: `/v1/analyze` + `voyant.analyze` backed by Temporal workflow.
 - Temporal workflows: ingest, profile, operational workflows (anomaly, sentiment, forecast, quality fix).
 - SQL: Trino-only guarded queries.
@@ -81,31 +82,31 @@ Integrate Voyant as the agent-first data intelligence box within the Soma stack:
 - Governance: DataHub GraphQL search and lineage.
 - Events: Kafka event emission with schema registry.
 - Secrets: env/k8s/vault/file/in-memory backends.
-- Auth: Keycloak JWT module exists but not enforced on routes.
+- Auth: Keycloak JWT module exists in `apps/core/security/auth.py`; route-level enforcement varies by endpoint.
 
 ### 3.2 Key Gaps (Core)
-- Quality job is queued only (no workflow execution).
-- Airbyte connect/provision flow is not implemented end-to-end.
-- Metrics are fragmented and not exposed via API.
-- Auth is present but not enforced on routes.
-- Soma stack integration is wired in API (policy, memory, orchestrator callbacks) but needs end-to-end validation.
-- 11 of 29 MCP tools still to be implemented per SRS specification.
+- Type-checking baseline is not clean: `pyright` currently reports **366** errors.
+- Quality gate status in this workspace:
+  - `python3 manage.py check` passes.
+  - `python3 -m black .` passes.
+  - `python3 -m ruff check .` passes.
+- End-to-end validation against external Soma stack services remains environment-dependent and must be verified in integrated runs.
 
 ### 3.2.1 DataScraper Module (COMPLETED)
 - Core infrastructure: models, API, workflow, activities ✓
 - Parsing stack: HTML, PDF, OCR, transcription ✓
 - Browser clients: Playwright, Selenium, Scrapy, BeautifulSoup ✓
 - MCP tools: scrape.fetch, scrape.extract, scrape.ocr, scrape.parse_pdf, scrape.transcribe ✓
-- Remaining: Django INSTALLED_APPS registration, migrations, integration tests
+- Remaining: broaden integration and E2E test coverage for production confidence
 
 ### 3.3 New Canonical Documentation
-- `docs/SRS.md` – single canonical SRS, expanded to include Apache platform and Soma stack integration.
-- `docs/TASKS.md` – full task plan with milestones, Apache integration, and Soma integration tasks.
-- `docs/DESIGN.md` – architecture/design aligned to agent-first execution with Soma stack flow.
+- `docs/specifications/SRS.md` – single canonical SRS, expanded to include Apache platform and Soma stack integration.
+- `docs/management/TASKS.md` – full task plan with milestones, Apache integration, and Soma integration tasks.
+- `docs/architecture/DESIGN.md` – architecture/design aligned to agent-first execution with Soma stack flow.
 
 ### 3.4 Repo Modifications in This Session
 - Canonical docs created/maintained:
-  - `docs/SRS.md`, `docs/TASKS.md`, `docs/DESIGN.md`, `AGENT_CONTINUITY.md`.
+  - `docs/specifications/SRS.md`, `docs/management/TASKS.md`, `docs/architecture/DESIGN.md`, `AGENT_CONTINUITY.md`.
 - One-call analyze flow and MCP tool:
   - API route: `/v1/analyze` (`apps/core/api.py`).
   - MCP tool: `voyant.analyze` in `apps/mcp/tools.py`.
@@ -121,10 +122,10 @@ Integrate Voyant as the agent-first data intelligence box within the Soma stack:
   - Added Django project/app: `manage.py`, `voyant_project/`, `apps/`.
   - Django Ninja API: `apps/core/api.py` mounted at `/v1/`.
   - Django ORM models + migrations: `apps/workflows/models.py`, `apps/workflows/models.py`.
-  - Removed legacy FastAPI routes/app and SQLAlchemy/Alembic artifacts.
+  - Removed retired FastAPI routes/app and SQLAlchemy/Alembic artifacts.
   - Updated Docker/compose/dev scripts to run `voyant_project.asgi:application`.
   - Keycloak auth rewritten for Django Ninja (`apps/core/security/auth.py`).
-  - Tests updated to use Django client; legacy FastAPI/UDB tests removed.
+  - Tests updated to use Django client; retired FastAPI/UDB tests removed.
 - DataScraper module implementation (2026-01-12):
   - Parser stack: `apps/scraper/parsing/html_parser.py`, `pdf_parser.py`, `ocr_processor.py`.
   - Media processing: `apps/scraper/media/ocr.py`, `transcription.py`.
@@ -163,7 +164,7 @@ Voyant should integrate as a downstream service (tool provider) called from Orch
 > All work happens in **Voyant** and **SomaAgentHub**.
 
 ### 5.1 Purpose
-Enterprise multi-agent cognitive OS built on Django 5; modular monolith with 62+ admin apps, 50+ API routers, Lit 3 UI.
+Enterprise multi-agent cognitive OS used as an external integration target (read-only from this workspace).
 
 ### 5.2 Architecture (Reference)
 - **Port Namespace**: 20xxx (API: 20020, Frontend: 20080)
@@ -189,12 +190,12 @@ Voyant exposes MCP tools that SomaAgent01 can consume—we don't modify SomaAgen
 - Tool registry integration path for SomaAgent01 (MCP server registration vs direct REST tool definitions).
 
 ## 8) Next Agent Execution Path
-- Use `docs/TASKS.md` as the authoritative execution plan.
+- Use `docs/management/TASKS.md` as the authoritative execution plan.
 - Start with M1/M2: analyze flow + persistence + real connectors.
 - After core stability, proceed with Apache integrations (Iceberg, Ranger, Atlas, SkyWalking, NiFi, Superset, Druid/Pinot, Tika, Flink).
-- Execute Soma stack integration tasks (Section 18 in `docs/TASKS.md`) alongside security/observability work.
+- Execute Soma stack integration tasks (Section 18 in `docs/management/TASKS.md`) alongside security/observability work.
 
 ## 9) Files to Read First (Next Agent)
-- Voyant: `docs/SRS.md`, `docs/TASKS.md`, `docs/DESIGN.md`.
+- Voyant: `docs/specifications/SRS.md`, `docs/management/TASKS.md`, `docs/architecture/DESIGN.md`.
 - SomaAgentHub: `README.md`, `docs/README.md`, `services/gateway-api/README.md`, `services/orchestrator/README.md`, `services/memory-gateway/README.md`, `services/policy-engine/README.md`.
 - SomaAgent01: `README.md`, `DEPLOYMENT.md`, `ONBOARDING_AGENT.md`.

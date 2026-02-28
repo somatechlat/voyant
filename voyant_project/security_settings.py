@@ -163,7 +163,7 @@ class SecuritySettings(BaseSettings):
         default="INFO", description="Audit log level (DEBUG, INFO, WARNING, ERROR)."
     )
     audit_log_file: Optional[str] = Field(
-        default="/var/log/voyant/audit.log", description="Path to audit log file."
+        default="/var/log/udb/audit.log", description="Path to audit log file."
     )
     audit_log_retention_days: int = Field(
         default=365, description="Audit log retention period in days."

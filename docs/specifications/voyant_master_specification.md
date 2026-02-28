@@ -5,7 +5,7 @@
 Voyant is NOT bound exclusively to `SomaAgentHub`.
 Voyant is a **Universal Model Context Protocol (MCP) Server** (`django-mcp` v0.3.1) designed to provide heavy-duty data engineering, scraping, and analytical capabilities to **ANY** AI Agent capable of speaking the MCP standard.
 
-The target architecture (`docs/DESIGN.md`) mentions Soma, but the *actual deployed code* in `apps/mcp/tools.py` proves Voyant operates as a standalone, stateless toolbox.
+The target architecture (`docs/architecture/DESIGN.md`) mentions Soma, but the *actual deployed code* in `apps/mcp/tools.py` proves Voyant operates as a standalone, stateless toolbox.
 
 ### The "Zero Intelligence" Rule
 * **No LLMs Inside:** Voyant has absolutely no Large Language Models built into it.
