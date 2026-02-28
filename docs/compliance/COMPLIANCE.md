@@ -41,10 +41,10 @@ This document provides comprehensive compliance tracking for Voyant v3.0.0 again
 - ❌ **Gap**: Complete Apache platform integration pending
 
 **Implementation Evidence**:
-- `voyant_app/api.py` - Comprehensive REST API implementation
-- `voyant_app/mcp_tools.py` - django-mcp tool registry with agent tools
-- `voyant/workflows/` - Temporal workflow implementations
-- `voyant/activities/` - Activity implementations
+- `apps/core/api.py` - Comprehensive REST API implementation
+- `apps/mcp/tools.py` - django-mcp tool registry with agent tools
+- `apps/worker/workflows/` - Temporal workflow implementations
+- `apps/worker/activities/` - Activity implementations
 
 #### 3.1.2 Functional Correctness
 **Status**: ⚠️ **Needs Attention**
@@ -82,9 +82,9 @@ This document provides comprehensive compliance tracking for Voyant v3.0.0 again
 - Circuit breakers for external service protection
 
 **Evidence**:
-- `voyant/core/trino.py` - Query execution with limits
-- `voyant/activities/profile_activities.py` - Adaptive sampling
-- `voyant/core/circuit_breaker.py` - External service protection
+- `apps/core/lib/trino.py` - Query execution with limits
+- `apps/worker/activities/profile_activities.py` - Adaptive sampling
+- `apps/core/lib/circuit_breaker.py` - External service protection
 
 #### 3.2.2 Resource Utilization
 **Status**: ✅ **Reasonable**
@@ -127,8 +127,8 @@ This document provides comprehensive compliance tracking for Voyant v3.0.0 again
 
 **Evidence**:
 - `voyant_project/asgi.py` - django-mcp endpoint mounted at `/mcp`
-- `voyant/core/events.py` - Schema validation
-- `voyant/core/plugin_registry.py` - Plugin isolation
+- `apps/core/lib/events.py` - Schema validation
+- `apps/core/lib/plugin_registry.py` - Plugin isolation
 
 #### 3.3.2 Interoperability
 **Status**: ✅ **Well Implemented**
@@ -140,8 +140,8 @@ This document provides comprehensive compliance tracking for Voyant v3.0.0 again
 - SomaAgentHub integration standards
 
 **Evidence**:
-- `voyant_app/api.py` - REST API implementation
-- `voyant_app/mcp_tools.py` - MCP tool definitions and routing
+- `apps/core/api.py` - REST API implementation
+- `apps/mcp/tools.py` - MCP tool definitions and routing
 - `openapi.json` - API specification
 
 ### 3.4 Usability
@@ -157,7 +157,7 @@ This document provides comprehensive compliance tracking for Voyant v3.0.0 again
 
 **Evidence**:
 - API endpoints follow RESTful patterns
-- Error codes in `voyant/core/errors.py`
+- Error codes in `apps/core/lib/errors.py`
 - Comprehensive documentation
 
 #### 3.4.2 Learnability
@@ -184,7 +184,7 @@ This document provides comprehensive compliance tracking for Voyant v3.0.0 again
 
 **Evidence**:
 - `/health`, `/ready` endpoints
-- `voyant/core/structured_logging.py`
+- `apps/core/lib/structured_logging.py`
 - Request ID middleware
 
 ### 3.5 Reliability
@@ -243,9 +243,9 @@ This document provides comprehensive compliance tracking for Voyant v3.0.0 again
 - Secure API key handling
 
 **Evidence**:
-- `voyant/security/auth.py` - JWT implementation
+- `apps/core/security/auth.py` - JWT implementation
 - Tenant-scoped database queries
-- Secrets management in `voyant/security/secrets.py`
+- Secrets management in `apps/core/security/secrets.py`
 
 #### 3.6.2 Integrity
 **Status**: ✅ **Implemented**
@@ -298,8 +298,8 @@ This document provides comprehensive compliance tracking for Voyant v3.0.0 again
 - Minimal coupling between components
 
 **Evidence**:
-- Directory structure in `voyant/`
-- Plugin system in `voyant/core/plugin_registry.py`
+- Directory structure in `apps/`
+- Plugin system in `apps/core/lib/plugin_registry.py`
 - Interface definitions in activities and workflows
 
 #### 3.7.2 Reusability
@@ -312,9 +312,9 @@ This document provides comprehensive compliance tracking for Voyant v3.0.0 again
 - Configurable components
 
 **Evidence**:
-- Utility functions in `voyant/core/`
-- Activity implementations in `voyant/activities/`
-- Workflow patterns in `voyant/workflows/`
+- Utility functions in `apps/core/lib/`
+- Activity implementations in `apps/worker/activities/`
+- Workflow patterns in `apps/worker/workflows/`
 
 #### 3.7.3 Analyzability
 **Status**: ⚠️ **Needs Improvement**
@@ -367,7 +367,7 @@ This document provides comprehensive compliance tracking for Voyant v3.0.0 again
 - Configurable external dependencies
 
 **Evidence**:
-- Environment variables in `voyant/core/config.py`
+- Environment variables in `apps/core/lib/config.py`
 - Docker Compose configuration
 - Configuration-driven service clients
 

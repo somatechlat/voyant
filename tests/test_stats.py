@@ -9,7 +9,7 @@ from apps.core.lib.stats import StatisticalEngine
 
 @pytest.fixture
 def mock_r_engine():
-    with patch("voyant.core.stats.REngine") as MockREngine:
+    with patch("apps.core.lib.stats.REngine") as MockREngine:
         engine = MockREngine.return_value
         yield engine
 

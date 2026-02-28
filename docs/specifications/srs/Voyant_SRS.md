@@ -132,7 +132,7 @@ Voyant is the **Data Platform pillar** of the SOMA ecosystem, providing the raw 
 
 ### 3.1 Core Modules
 
-#### 3.1.1 **voyant/core**
+#### 3.1.1 **apps/core**
 **Purpose**: Foundation layer providing shared utilities and base models.
 
 **Modules** (57 files):
@@ -172,7 +172,7 @@ Voyant is the **Data Platform pillar** of the SOMA ecosystem, providing the raw 
 
 ---
 
-#### 3.1.2 **voyant/scraper**
+#### 3.1.2 **apps/scraper**
 **Purpose**: Web scraping engine with Playwright/Selenium automation.
 
 **Modules** (21 files):
@@ -263,7 +263,7 @@ Voyant is the **Data Platform pillar** of the SOMA ecosystem, providing the raw 
 
 ---
 
-#### 3.1.3 **voyant/workflows**
+#### 3.1.3 **apps/workflows**
 **Purpose**: Temporal workflow definitions for durable data pipelines.
 
 **Modules** (9 files):
@@ -271,7 +271,7 @@ Voyant is the **Data Platform pillar** of the SOMA ecosystem, providing the raw 
   - `scrape_workflow.py`: End-to-end scraping workflow
   - `etl_workflow.py`: Spark ETL pipeline workflow
   - `export_workflow.py`: Data export workflow
-- `activities/`: Temporal activities (see voyant/activities)
+- `activities/`: Temporal activities (see apps/activities)
 - `signals.py`: Workflow signal handlers
 - `queries.py`: Workflow query implementations
 
@@ -381,7 +381,7 @@ class ETLWorkflow:
 
 ---
 
-#### 3.1.4 **voyant/activities**
+#### 3.1.4 **apps/activities**
 **Purpose**: Temporal activity implementations (atomic units of work).
 
 **Modules** (10 files):
@@ -514,7 +514,7 @@ async def store_to_data_lake(data: ScrapedData) -> str:
 
 ---
 
-#### 3.1.5 **voyant/mcp**
+#### 3.1.5 **apps/mcp**
 **Purpose**: Model Context Protocol server for AI agent integration.
 
 **Modules** (2 files):
@@ -617,7 +617,7 @@ async def start_scrape_job(
 
 ---
 
-#### 3.1.6 **voyant/api**
+#### 3.1.6 **apps/api**
 **Purpose**: REST API endpoints for external clients and dashboard.
 
 **Modules** (2 files):
@@ -651,7 +651,7 @@ async def start_scrape_job(
 
 ---
 
-#### 3.1.7 **voyant/worker**
+#### 3.1.7 **apps/worker**
 **Purpose**: Temporal worker process for executing workflows and activities.
 
 **Modules** (8 files):
@@ -708,7 +708,7 @@ if __name__ == "__main__":
 
 ---
 
-#### 3.1.8 **voyant/ingestion**
+#### 3.1.8 **apps/ingestion**
 **Purpose**: Multi-format data ingestion pipelines.
 
 **Modules** (4 files):
@@ -727,7 +727,7 @@ if __name__ == "__main__":
 
 ---
 
-#### 3.1.9 **voyant/governance**
+#### 3.1.9 **apps/governance**
 **Purpose**: Data governance and policy enforcement.
 
 **Modules** (2 files):
@@ -742,7 +742,7 @@ if __name__ == "__main__":
 
 ---
 
-#### 3.1.10 **voyant/security**
+#### 3.1.10 **apps/security**
 **Purpose**: Security controls and authentication.
 
 **Modules** (3 files):
@@ -758,7 +758,7 @@ if __name__ == "__main__":
 
 ---
 
-#### 3.1.11 **voyant/billing**
+#### 3.1.11 **apps/billing**
 **Purpose**: Usage tracking and billing integration.
 
 **Modules** (2 files):
@@ -774,7 +774,7 @@ if __name__ == "__main__":
 
 ---
 
-#### 3.1.12 **voyant/discovery**
+#### 3.1.12 **apps/discovery**
 **Purpose**: Automatic data source discovery and schema inference.
 
 **Modules** (4 files):
@@ -790,7 +790,7 @@ if __name__ == "__main__":
 
 ---
 
-#### 3.1.13 **voyant/generators**
+#### 3.1.13 **apps/generators**
 **Purpose**: Synthetic data generation and testing utilities.
 
 **Modules** (2 files):
@@ -804,7 +804,7 @@ if __name__ == "__main__":
 
 ---
 
-#### 3.1.14 **voyant/integrations**
+#### 3.1.14 **apps/integrations**
 **Purpose**: Third-party service integrations.
 
 **Modules** (2 files):
@@ -990,7 +990,7 @@ class Dataset:
 **Tiltfile** orchestrates:
 - Backend services via `docker-compose.yml`
 - Frontend via `docker-compose.frontend.yml`
-- Live code sync for `voyant/` and `dashboard/src/`
+- Live code sync for `apps/` and `dashboard/src/`
 - Automatic rebuild on changes
 
 ---
@@ -1038,7 +1038,7 @@ class Dataset:
 
 ### 10.2 Manual Verification
 
-1. Run `tilt up` in `voyant/`
+1. Run `tilt up` in `apps/`
 2. Verify all services healthy
 3. Navigate to `http://localhost:3000`
 4. Complete login flow

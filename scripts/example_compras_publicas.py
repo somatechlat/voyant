@@ -1,41 +1,36 @@
-"""
-Example: Scraping Ecuador's SERCOP (Compras Públicas) Open Data API
-
-This script demonstrates how an intelligent agent utilizes Voyant's
-Zero-Intelligence execution engine (DataScraper module) to fetch
-JSON data from an external Open Data API.
-
-Vibe Coding Rule Compliance:
-- REAL IMPLEMENTATIONS ONLY: Uses actual Voyant internal activities.
-- NO BULLSHIT: Hits the real endpoint.
-"""
+"""Fetch procurement records from the SERCOP public API using scraper activities."""
 
 import asyncio
-import logging
 import json
-
-# Setup minimal Django context for standalone script execution
+import logging
 import os
-import django
-os.environ["VOYANT_SCRAPER_TLS_VERIFY"] = "False"
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "voyant_project.settings")
-django.setup()
-
-from apps.core.config import get_settings
-settings = get_settings()
-settings.scraper_tls_verify = False
-
-from apps.scraper.activities import ScrapeActivities
+from typing import Any
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("sercop_example")
 
-async def fetch_recent_procurements():
+def _setup_django() -> None:
+    os.environ["VOYANT_SCRAPER_TLS_VERIFY"] = "False"
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "voyant_project.settings")
+
+    import django
+
+    django.setup()
+
+    from apps.core.config import get_settings
+
+    settings = get_settings()
+    settings.scraper_tls_verify = False
+
+
+async def fetch_recent_procurements() -> list[dict[str, Any]]:
     """
     Fetches the 100 most recent public procurements for 2026
     from the SERCOP Open Contracting Data Standard (OCDS) API.
     """
     logger.info("Initializing Voyant ScrapeActivities...")
+    from apps.scraper.activities import ScrapeActivities
+
     activity = ScrapeActivities()
 
     # Target the SERCOP Open Data API
@@ -50,7 +45,7 @@ async def fetch_recent_procurements():
         "url": target_url,
         "engine": "httpx",
         "timeout": 30,
-        "capture_json": False  # Not intercepting browser traffic, just a direct hit
+        "capture_json": False,  # Not intercepting browser traffic, just a direct hit
     }
 
     try:
@@ -67,7 +62,7 @@ async def fetch_recent_procurements():
             records = data if isinstance(data, list) else data.get("data", [])
 
             logger.info("==================================================")
-            logger.info(f"✅ Successfully retrieved data from SERCOP API.")
+            logger.info("Successfully retrieved data from SERCOP API.")
             logger.info(f"Total records found: {len(records)}")
 
             # Slice exactly to the last 100 for the requirement
@@ -83,6 +78,8 @@ async def fetch_recent_procurements():
 
     except Exception as e:
         logger.error(f"Voyant execution failed: {e}")
+    return []
 
 if __name__ == "__main__":
+    _setup_django()
     asyncio.run(fetch_recent_procurements())

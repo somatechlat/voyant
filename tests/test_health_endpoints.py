@@ -43,9 +43,9 @@ class TestHealthEndpoints:
         data = response.json()
         assert data["status"] == "healthy"
 
-    @patch("voyant.core.duckdb_pool.get_connection")
-    @patch("voyant.core.r_bridge.REngine")
-    @patch("voyant.core.temporal_client.get_temporal_client", new_callable=AsyncMock)
+    @patch("apps.core.lib.duckdb_pool.get_connection")
+    @patch("apps.core.lib.r_bridge.REngine")
+    @patch("apps.core.lib.temporal_client.get_temporal_client", new_callable=AsyncMock)
     def test_ready_endpoint_all_services_up(
         self,
         mock_temporal: AsyncMock,
@@ -77,9 +77,9 @@ class TestHealthEndpoints:
         assert data["checks"]["r_engine"]["status"] == "up"
         assert data["checks"]["temporal"]["status"] == "up"
 
-    @patch("voyant.core.duckdb_pool.get_connection")
-    @patch("voyant.core.r_bridge.REngine")
-    @patch("voyant.core.temporal_client.get_temporal_client", new_callable=AsyncMock)
+    @patch("apps.core.lib.duckdb_pool.get_connection")
+    @patch("apps.core.lib.r_bridge.REngine")
+    @patch("apps.core.lib.temporal_client.get_temporal_client", new_callable=AsyncMock)
     def test_ready_endpoint_r_engine_down(
         self,
         mock_temporal: AsyncMock,
@@ -108,9 +108,9 @@ class TestHealthEndpoints:
         assert data["status"] == "not_ready"
         assert data["checks"]["r_engine"]["status"] == "down"
 
-    @patch("voyant.core.duckdb_pool.get_connection")
-    @patch("voyant.core.r_bridge.REngine")
-    @patch("voyant.core.temporal_client.get_temporal_client", new_callable=AsyncMock)
+    @patch("apps.core.lib.duckdb_pool.get_connection")
+    @patch("apps.core.lib.r_bridge.REngine")
+    @patch("apps.core.lib.temporal_client.get_temporal_client", new_callable=AsyncMock)
     def test_ready_endpoint_duckdb_error(
         self,
         mock_temporal: AsyncMock,
@@ -140,9 +140,9 @@ class TestHealthEndpoints:
         assert data["checks"]["duckdb"]["status"] == "down"
         assert "error" in data["checks"]["duckdb"]
 
-    @patch("voyant.core.duckdb_pool.get_connection")
-    @patch("voyant.core.r_bridge.REngine")
-    @patch("voyant.core.temporal_client.get_temporal_client", new_callable=AsyncMock)
+    @patch("apps.core.lib.duckdb_pool.get_connection")
+    @patch("apps.core.lib.r_bridge.REngine")
+    @patch("apps.core.lib.temporal_client.get_temporal_client", new_callable=AsyncMock)
     def test_ready_endpoint_temporal_error(
         self,
         mock_temporal: AsyncMock,
@@ -182,7 +182,7 @@ class TestHealthEndpoints:
         assert "status" in response.json()
         assert "checks" in response.json()
 
-    @patch("voyant.core.r_bridge.REngine")
+    @patch("apps.core.lib.r_bridge.REngine")
     @patch("voyant_project.urls._circuit_breakers", {})
     def test_status_endpoint_structure(
         self,
@@ -210,7 +210,7 @@ class TestHealthEndpoints:
         assert "services" in data
         assert "circuit_breakers" in data
 
-    @patch("voyant.core.r_bridge.REngine")
+    @patch("apps.core.lib.r_bridge.REngine")
     @patch("voyant_project.urls._circuit_breakers")
     def test_status_endpoint_circuit_breaker_metrics(
         self,
@@ -246,9 +246,9 @@ class TestHealthEndpoints:
         assert "rserve" in data["circuit_breakers"]
         assert data["circuit_breakers"]["rserve"]["state"] == "closed"
 
-    @patch("voyant.core.duckdb_pool.get_connection")
-    @patch("voyant.core.r_bridge.REngine")
-    @patch("voyant.core.temporal_client.get_temporal_client", new_callable=AsyncMock)
+    @patch("apps.core.lib.duckdb_pool.get_connection")
+    @patch("apps.core.lib.r_bridge.REngine")
+    @patch("apps.core.lib.temporal_client.get_temporal_client", new_callable=AsyncMock)
     @patch("voyant_project.urls._circuit_breakers")
     def test_ready_circuit_breaker_open_critical_service(
         self,

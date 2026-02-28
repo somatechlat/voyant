@@ -11,8 +11,8 @@ import os
 os.environ["VOYANT_METRICS_MODE"] = "off"
 
 # Clear any cached settings
-import voyant.core.config as config_module
-import voyant.core.metrics as metrics_module
+import apps.core.config as config_module
+import apps.core.lib.metrics as metrics_module
 
 
 class TestMetricsModeOff:

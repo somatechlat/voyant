@@ -214,3 +214,47 @@ Implemented now to enforce single source of truth and remove legacy path drift.
 - `python3 -m pytest -q tests/test_mcp_agent_e2e.py -q`: pass.
 - `python3 -m pytest -q tests/test_mcp_scraper.py -q`: pass.
 - `python3 -m pytest -q tests/test_kpi_templates.py -q`: pass.
+
+## Remediation Log (Third Pass: VIBE Compliance Sweep)
+Date: 2026-02-27
+
+### Completed in this pass
+- Fixed stale import paths in tests:
+  - `tests/test_airbyte_health.py` -> `apps.ingestion.lib.airbyte_client`.
+  - `tests/test_fix_data_quality.py` patch targets -> `apps.core.lib.nlp_primitives`.
+  - `tests/test_metrics_mode.py` imports -> `apps.core.config`, `apps.core.lib.metrics`.
+- Fixed test bootstrap gap for strict settings validation:
+  - Added required test env defaults in `tests/conftest.py` for DataHub/Keycloak/Lago/MCP settings.
+- Fixed stale runtime import in ingestion client:
+  - `apps/ingestion/lib/airbyte_client.py` now imports circuit breaker/errors from `apps.core.lib.*`.
+- Removed test collection collision:
+  - Deleted `apps/uptp_core/tests.py` (conflicted with `apps/uptp_core/tests/` package).
+- Made optional dependency test-safe:
+  - `apps/uptp_core/tests/test_infinite_journey.py` now skips when `weasyprint` is unavailable.
+- Removed AI-slop style language/comments in touched scripts:
+  - `scripts/example_compras_publicas.py`
+  - `scripts/example_mcp_deep_archive.py`
+  - `scripts/example_search_ai.py`
+- Lint cleanup:
+  - Ruff now passes repository-wide (`python3 -m ruff check .`).
+
+### Current verification snapshot
+- `python3 manage.py check`: pass (warnings only).
+- `python3 -m ruff check .`: pass.
+- `python3 -m pytest -q --collect-only`: pass (253 collected).
+- Focused suite for touched paths: `25 passed, 1 skipped`.
+- `pyright`: failing with 367 errors (systemic type and import issues remain).
+
+### Remaining high-impact violations
+- Type-checking baseline is not production-ready:
+  - 367 pyright errors across workflows, models, and core libs.
+- Documentation drift is still large:
+  - 167 legacy `voyant/` and `voyant_app/` path references remain under `docs/`.
+  - Primary hotspots: `docs/compliance/COMPLIANCE.md`, `docs/management/TASKS.md`, `docs/specifications/SRS.md`, `docs/specifications/SRS_SCRAPER.md`.
+
+### Next required remediation wave
+1. Replace legacy doc path references with current `apps/*`/`voyant_project/*` paths.
+2. Fix high-value pyright buckets first:
+   - Temporal workflow typing usage.
+   - Optional/None handling in core libs.
+   - stale import targets in scripts/tests.

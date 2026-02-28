@@ -14,7 +14,7 @@ def test_sql_select_allowed(client):
         query_id="q1",
     )
 
-    with patch("voyant_app.api.get_trino_client") as mock_client:
+    with patch("apps.sql.api.get_trino_client") as mock_client:
         mock_client.return_value.execute.return_value = result
         response = client.post(
             "/v1/sql/query",
@@ -28,7 +28,7 @@ def test_sql_select_allowed(client):
 
 
 def test_sql_insert_blocked(client):
-    with patch("voyant_app.api.get_trino_client") as mock_client:
+    with patch("apps.sql.api.get_trino_client") as mock_client:
         mock_client.return_value.execute.side_effect = ValueError(
             "Only SELECT queries allowed"
         )

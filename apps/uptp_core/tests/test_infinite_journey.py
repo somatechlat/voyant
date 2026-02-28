@@ -8,6 +8,8 @@ ensuring the Universal Data Box is structurally sound end-to-end.
 
 import pytest
 
+pytest.importorskip("weasyprint")
+
 from apps.services.reporting.pdf_engine import PDFAssembler
 from apps.services.sandbox.python_node import PythonSandboxNode
 from apps.uptp_core.engine import UPTPExecutionEngine

@@ -85,8 +85,7 @@ services:
       VOYANT_MCP_API_URL: ${VOYANT_MCP_API_URL}
       VOYANT_MCP_API_TOKEN: ${VOYANT_MCP_API_TOKEN}
     volumes:
-      - ../../voyant:/app/voyant
-      - ../../voyant_app:/app/voyant_app
+      - ../../apps:/app/apps
       - ../../voyant_project:/app/voyant_project
       - ../../manage.py:/app/manage.py
       - voyant_artifacts:/app/artifacts

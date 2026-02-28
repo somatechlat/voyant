@@ -107,28 +107,28 @@ Integrate Voyant as the agent-first data intelligence box within the Soma stack:
 - Canonical docs created/maintained:
   - `docs/SRS.md`, `docs/TASKS.md`, `docs/DESIGN.md`, `AGENT_CONTINUITY.md`.
 - One-call analyze flow and MCP tool:
-  - API route: `/v1/analyze` (`voyant_app/api.py`).
-  - MCP tool: `voyant.analyze` in `voyant_app/mcp_tools.py`.
-  - Temporal workflow + activities: `voyant/workflows/analyze_workflow.py`,
-    `voyant/activities/analysis_activities.py`, `voyant/activities/kpi_activities.py`.
-- Job status endpoint for MCP `voyant.status`: `/v1/jobs/{job_id}` (`voyant_app/api.py`).
+  - API route: `/v1/analyze` (`apps/core/api.py`).
+  - MCP tool: `voyant.analyze` in `apps/mcp/tools.py`.
+  - Temporal workflow + activities: `apps/worker/workflows/analyze_workflow.py`,
+    `apps/worker/activities/analysis_activities.py`, `apps/worker/activities/kpi_activities.py`.
+- Job status endpoint for MCP `voyant.status`: `/v1/jobs/{job_id}` (`apps/core/api.py`).
 - Soma context + integration wiring:
-  - Middleware captures `X-Soma-Session-ID`, `X-User-ID`, `traceparent` (`voyant/api/middleware.py`).
-  - Policy/memory/orchestrator client (`voyant/integrations/soma.py`).
+  - Middleware captures `X-Soma-Session-ID`, `X-User-ID`, `traceparent` (`apps/core/middleware.py`).
+  - Policy/memory/orchestrator client (`apps/integrations/soma.py`).
   - Policy gates in analyze/jobs/artifact access + orchestrator task updates.
   - Memory write-back for analyze summaries (`remember_summary`).
 - Django migration (FastAPI/SQLAlchemy/Alembic removed):
-  - Added Django project/app: `manage.py`, `voyant_project/`, `voyant_app/`.
-  - Django Ninja API: `voyant_app/api.py` mounted at `/v1/`.
-  - Django ORM models + migrations: `voyant_app/models.py`, `voyant_app/migrations/0001_initial.py`.
+  - Added Django project/app: `manage.py`, `voyant_project/`, `apps/`.
+  - Django Ninja API: `apps/core/api.py` mounted at `/v1/`.
+  - Django ORM models + migrations: `apps/workflows/models.py`, `apps/workflows/models.py`.
   - Removed legacy FastAPI routes/app and SQLAlchemy/Alembic artifacts.
   - Updated Docker/compose/dev scripts to run `voyant_project.asgi:application`.
-  - Keycloak auth rewritten for Django Ninja (`voyant/security/auth.py`).
+  - Keycloak auth rewritten for Django Ninja (`apps/core/security/auth.py`).
   - Tests updated to use Django client; legacy FastAPI/UDB tests removed.
 - DataScraper module implementation (2026-01-12):
-  - Parser stack: `voyant/scraper/parsing/html_parser.py`, `pdf_parser.py`, `ocr_processor.py`.
-  - Media processing: `voyant/scraper/media/ocr.py`, `transcription.py`.
-  - Browser clients: `voyant/scraper/browser/playwright_client.py`, `beautifulsoup_client.py`, `scrapy_client.py`, `selenium_client.py`.
+  - Parser stack: `apps/scraper/parsing/html_parser.py`, `pdf_parser.py`, `ocr_processor.py`.
+  - Media processing: `apps/scraper/media/ocr.py`, `transcription.py`.
+  - Browser clients: `apps/scraper/browser/playwright_client.py`, `beautifulsoup_client.py`, `scrapy_client.py`, `selenium_client.py`.
   - MCP tools registered: `scrape.fetch`, `scrape.extract`, `scrape.ocr`, `scrape.parse_pdf`, `scrape.transcribe`.
 
 ## 4) SomaAgentHub Summary (from repo docs)

@@ -1,19 +1,24 @@
-import os
-import django
-import json
 import asyncio
+import json
+import os
 
-os.environ["VOYANT_SCRAPER_TLS_VERIFY"] = "False"
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "voyant_project.settings")
-django.setup()
 
-from apps.core.config import get_settings
-settings = get_settings()
-settings.scraper_tls_verify = False
+def _setup_django() -> None:
+    os.environ["VOYANT_SCRAPER_TLS_VERIFY"] = "False"
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "voyant_project.settings")
 
-from apps.scraper.activities import ScrapeActivities
+    import django
+
+    django.setup()
+
+    from apps.core.config import get_settings
+
+    settings = get_settings()
+    settings.scraper_tls_verify = False
 
 async def search_year_keyword(year, keyword):
+    from apps.scraper.activities import ScrapeActivities
+
     activity = ScrapeActivities()
     url = f"https://datosabiertos.compraspublicas.gob.ec/PLATAFORMA/api/search_ocds?year={year}&search={keyword}"
 
@@ -46,15 +51,13 @@ async def main():
     ]
     years = [2026, 2025, 2024]
 
-    found_any = False
-
     print("Searching SERCOP for AI/Tech related procurements...")
 
     for year in years:
         for keyword in keywords:
             records = await search_year_keyword(year, keyword)
             if records and len(records) > 0:
-                print(f"\n✅ Found {len(records)} records for '{keyword}' in {year}")
+                print(f"\nFound {len(records)} records for '{keyword}' in {year}")
                 print(f"Sample Record from {year}:")
                 sample = {
                     "buyer": records[0].get("buyer"),
@@ -65,6 +68,8 @@ async def main():
                 }
                 print(json.dumps(sample, indent=2, ensure_ascii=False))
             else:
-                print(f"❌ No records for '{keyword}' in {year}")
+                print(f"No records for '{keyword}' in {year}")
 
-asyncio.run(main())
+if __name__ == "__main__":
+    _setup_django()
+    asyncio.run(main())

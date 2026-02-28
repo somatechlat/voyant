@@ -342,48 +342,48 @@ Outbound to SomaAgent01:
 ## 12. Requirements Traceability (Code Modules)
 | Requirement | Primary Modules |
 | --- | --- |
-| FR-1 | `voyant_project/urls.py`, `voyant_app/api.py`, `voyant/api/middleware.py` |
+| FR-1 | `voyant_project/urls.py`, `apps/core/api.py`, `apps/core/middleware.py` |
 | FR-2 | `voyant_project/urls.py` |
-| FR-3 | `voyant_app/api.py` |
-| FR-4 | `voyant_app/api.py`, `voyant/workflows/ingest_workflow.py`, `voyant/workflows/profile_workflow.py` |
-| FR-5 | `voyant_app/api.py` |
-| FR-6 | `voyant_app/api.py`, `voyant/core/trino.py` |
-| FR-7 | `voyant_app/api.py` |
-| FR-8 | `voyant_app/api.py`, `voyant/discovery/spec_parser.py` |
-| FR-9 | `voyant_app/api.py` |
-| FR-10 | `voyant_app/api.py`, `voyant/core/vector_store.py`, `voyant/core/embeddings.py` |
-| FR-11 | `voyant_app/mcp_tools.py`, `voyant_project/asgi.py` |
-| FR-12 | `voyant/workflows/ingest_workflow.py`, `voyant/workflows/profile_workflow.py`, `voyant/workflows/operational_workflows.py` |
-| FR-13 | `voyant/activities/ingest_activities.py`, `voyant/activities/profile_activities.py`, `voyant/activities/analysis_activities.py` |
-| FR-14 | `voyant/core/plugin_registry.py` |
-| FR-15 | `voyant/ingestion/airbyte_client.py`, `voyant/ingestion/direct_utils.py`, `voyant/ingestion/unstructured_utils.py` |
-| FR-16 | `voyant/security/auth.py`, `voyant/api/middleware.py` |
-| FR-17 | `voyant/security/secrets.py`, `voyant/core/secrets.py` |
-| FR-18 | `voyant/core/events.py`, `voyant/core/event_schema.py` |
-| FR-19 | `voyant/billing/lago.py` |
-| FR-20 | `voyant/core/iceberg.py` (planned), `config/iceberg/*` (planned) |
-| FR-21 | `voyant/streaming/*` (planned), `config/flink/*` (planned) |
-| FR-22 | `voyant/security/policy.py` (planned), Ranger integration (planned) |
-| FR-23 | `voyant/governance/atlas.py` (planned) |
-| FR-24 | `voyant/observability/skywalking.py` (planned) |
-| FR-25 | `voyant/ingestion/nifi.py` (planned) |
-| FR-26 | `voyant/bi/superset.py` (planned) |
-| FR-27 | `voyant/olap/druid.py` (planned), `voyant/olap/pinot.py` (planned) |
-| FR-28 | `voyant/ingestion/tika.py` (planned) |
-| FR-29 | `voyant/api/middleware.py`, `voyant/security/auth.py`, `voyant/core/events.py`, `voyant/integrations/soma.py` (planned) |
+| FR-3 | `apps/core/api.py` |
+| FR-4 | `apps/core/api.py`, `apps/worker/workflows/ingest_workflow.py`, `apps/worker/workflows/profile_workflow.py` |
+| FR-5 | `apps/core/api.py` |
+| FR-6 | `apps/core/api.py`, `apps/core/lib/trino.py` |
+| FR-7 | `apps/core/api.py` |
+| FR-8 | `apps/core/api.py`, `apps/discovery/lib/spec_parser.py` |
+| FR-9 | `apps/core/api.py` |
+| FR-10 | `apps/core/api.py`, `apps/core/lib/vector_store.py`, `apps/core/lib/embeddings.py` |
+| FR-11 | `apps/mcp/tools.py`, `voyant_project/asgi.py` |
+| FR-12 | `apps/worker/workflows/ingest_workflow.py`, `apps/worker/workflows/profile_workflow.py`, `apps/worker/workflows/operational_workflows.py` |
+| FR-13 | `apps/worker/activities/ingest_activities.py`, `apps/worker/activities/profile_activities.py`, `apps/worker/activities/analysis_activities.py` |
+| FR-14 | `apps/core/lib/plugin_registry.py` |
+| FR-15 | `apps/ingestion/lib/airbyte_client.py`, `apps/ingestion/lib/direct_utils.py`, `apps/ingestion/lib/unstructured_utils.py` |
+| FR-16 | `apps/core/security/auth.py`, `apps/core/middleware.py` |
+| FR-17 | `apps/core/security/secrets.py`, `apps/core/lib/secrets.py` |
+| FR-18 | `apps/core/lib/events.py`, `apps/core/lib/event_schema.py` |
+| FR-19 | `apps/billing/lago.py` |
+| FR-20 | `apps/core/lib/iceberg.py` (planned), `config/iceberg/*` (planned) |
+| FR-21 | `apps/streaming/*` (planned), `config/flink/*` (planned) |
+| FR-22 | `apps/core/security/policy.py` (planned), Ranger integration (planned) |
+| FR-23 | `apps/governance/lib/atlas.py` (planned) |
+| FR-24 | `apps/observability/skywalking.py` (planned) |
+| FR-25 | `apps/ingestion/lib/nifi.py` (planned) |
+| FR-26 | `apps/bi/superset.py` (planned) |
+| FR-27 | `apps/olap/druid.py` (planned), `apps/olap/pinot.py` (planned) |
+| FR-28 | `apps/ingestion/lib/tika.py` (planned) |
+| FR-29 | `apps/core/middleware.py`, `apps/core/security/auth.py`, `apps/core/lib/events.py`, `apps/integrations/soma.py` (planned) |
 
 ## 13. Error Code Traceability
-Error codes follow the `VYNT-XXXX` format and are defined in `voyant/core/errors.py` with additional domain-specific errors in analysis and ingestion modules.
+Error codes follow the `VYNT-XXXX` format and are defined in `apps/core/lib/errors.py` with additional domain-specific errors in analysis and ingestion modules.
 
 | Code Range | Category | Example Usage | Primary Modules |
 | --- | --- | --- | --- |
-| VYNT-1000–1999 | Validation | Invalid request body, invalid columns | `voyant/core/errors.py`, `voyant/core/stats.py` |
-| VYNT-2000–2999 | Resource | Job/artifact/source not found | `voyant/core/errors.py`, API routes |
-| VYNT-3000–3999 | Auth/AuthZ | Authentication required, permission errors | `voyant/security/auth.py` |
-| VYNT-4000–4999 | Ingestion | File not found, unstructured errors | `voyant/ingestion/direct_utils.py`, `voyant/ingestion/unstructured_utils.py` |
-| VYNT-5000–5999 | System/Temporal | Temporal client errors | `voyant/core/temporal_client.py` |
-| VYNT-6000–6999 | Stats/R | R engine or stats errors | `voyant/core/r_bridge.py`, `voyant/core/stats_primitives.py` |
-| VYNT-7000–7999 | ML/Analytics | ML primitives and forecasting errors | `voyant/core/ml_primitives.py`, `voyant/core/forecast_primitives.py`, `voyant/services/analysis/*` |
+| VYNT-1000–1999 | Validation | Invalid request body, invalid columns | `apps/core/lib/errors.py`, `apps/core/lib/stats.py` |
+| VYNT-2000–2999 | Resource | Job/artifact/source not found | `apps/core/lib/errors.py`, API routes |
+| VYNT-3000–3999 | Auth/AuthZ | Authentication required, permission errors | `apps/core/security/auth.py` |
+| VYNT-4000–4999 | Ingestion | File not found, unstructured errors | `apps/ingestion/lib/direct_utils.py`, `apps/ingestion/lib/unstructured_utils.py` |
+| VYNT-5000–5999 | System/Temporal | Temporal client errors | `apps/core/lib/temporal_client.py` |
+| VYNT-6000–6999 | Stats/R | R engine or stats errors | `apps/core/lib/r_bridge.py`, `apps/core/lib/stats_primitives.py` |
+| VYNT-7000–7999 | ML/Analytics | ML primitives and forecasting errors | `apps/core/lib/ml_primitives.py`, `apps/core/lib/forecast_primitives.py`, `apps/services/analysis/*` |
 
 ## 14. External Dependency Matrix
 | Dependency | Purpose | Config Key(s) | Required for Full Functionality |

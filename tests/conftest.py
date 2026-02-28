@@ -10,7 +10,7 @@ of core network-related dependencies, ensuring higher fidelity for integration t
 import inspect
 import os
 import types
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 # Configure environment variables BEFORE any Django imports
 # This must happen at module level before pytest-django loads settings
@@ -30,6 +30,20 @@ os.environ.setdefault(
 os.environ.setdefault("VOYANT_DEBUG", "false")
 os.environ.setdefault("VOYANT_SECURITY_ENABLED", "false")
 os.environ.setdefault("VOYANT_ALLOWED_HOSTS", "localhost,127.0.0.1,testserver")
+os.environ.setdefault("VOYANT_DATAHUB_GMS_URL", "http://localhost:48080")
+os.environ.setdefault("VOYANT_KEYCLOAK_URL", "http://localhost:48081")
+os.environ.setdefault("VOYANT_KEYCLOAK_REALM", "voyant")
+os.environ.setdefault("VOYANT_KEYCLOAK_CLIENT_ID", "voyant-api")
+os.environ.setdefault("VOYANT_KEYCLOAK_CLIENT_SECRET", "test-keycloak-secret")
+os.environ.setdefault("VOYANT_LAGO_API_URL", "http://localhost:48082")
+os.environ.setdefault("VOYANT_MCP_API_URL", "http://localhost:8000/v1")
+os.environ.setdefault("DATAHUB_GMS_URL", "http://localhost:48080")
+os.environ.setdefault("KEYCLOAK_URL", "http://localhost:48081")
+os.environ.setdefault("KEYCLOAK_REALM", "voyant")
+os.environ.setdefault("KEYCLOAK_CLIENT_ID", "voyant-api")
+os.environ.setdefault("KEYCLOAK_CLIENT_SECRET", "test-keycloak-secret")
+os.environ.setdefault("LAGO_API_URL", "http://localhost:48082")
+os.environ.setdefault("MCP_API_URL", "http://localhost:8000/v1")
 
 # Load .env file for additional configuration (but don't override test settings)
 from dotenv import load_dotenv

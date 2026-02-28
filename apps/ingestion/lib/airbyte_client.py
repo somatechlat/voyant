@@ -23,13 +23,14 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 
 import httpx
-from apps.core.circuit_breaker import (
+
+from apps.core.lib.circuit_breaker import (
     CircuitBreaker,
     CircuitBreakerConfig,
     CircuitBreakerOpenError,
     get_circuit_breaker,
 )
-from apps.core.errors import ExternalServiceError
+from apps.core.lib.errors import ExternalServiceError
 
 logger = logging.getLogger(__name__)
 

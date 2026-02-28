@@ -79,7 +79,7 @@ This document serves as the master index for the exhaustive file-by-file documen
 
 ---
 ## Vibe Coding Rule Conformance Audit
-*   **NO BULLSHIT (Rule 1):** Verified. All documented features exist physically in code and run on Trino/Temporal/Postgres.
+*   **Rule 1 Verification:** All documented features exist in code and run on Trino/Temporal/Postgres.
 *   **REAL IMPLEMENTATIONS ONLY (Rule 4):** Verified. Documented true execution paths (`asyncio`, `temporalio`).
 *   **API FRAMEWORK POLICY (Rule 8):** Verified. Entire project operates on Django Ninja (`ninja.Router`). FastAPI is absent.
 *   **UI FRAMEWORK POLICY (Rule 9):** Verified. The Dashboard uses pure Lit 3.
