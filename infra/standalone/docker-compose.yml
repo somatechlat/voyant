@@ -410,6 +410,7 @@ services:
     environment:
       DATAHUB_GMS_HOST: voyant_datahub_gms
       DATAHUB_GMS_PORT: 8080
+      DATAHUB_SECRET: ${DATAHUB_SECRET}
     ports:
       - "45002:9002"
     depends_on:
