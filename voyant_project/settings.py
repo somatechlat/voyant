@@ -115,6 +115,7 @@ INSTALLED_APPS = [
     "apps.ingestion",  # Ingestion jobs bound to canonical discovery sources
     "apps.governance",  # Data governance, lineage, policies, quotas
     "apps.scraper",  # Data scraping module (Pure Execution)
+    "apps.uptp_core",  # Universal Parametric Template Pattern Core
 ]
 
 # --- Middleware Configuration ---
@@ -351,7 +352,10 @@ RATELIMIT_CACHE_PREFIX = "rl"
 MCP_LOG_LEVEL = "INFO"
 MCP_LOG_TOOL_REGISTRATION = True
 MCP_LOG_TOOL_DESCRIPTIONS = False
-MCP_SERVER_INSTRUCTIONS = "Voyant provides AI agents with data analysis, scraping, and governance tools. Execute data operations safely with proper permissions."
+MCP_SERVER_INSTRUCTIONS = (
+    "Voyant provides AI agents with data analysis, scraping, and governance tools. "
+    "Execute data operations safely with proper permissions."
+)
 MCP_SERVER_TITLE = "Voyant Data Intelligence"
 MCP_SERVER_VERSION = "3.0.0"
 MCP_DIRS = []  # Additional search paths for MCP modules

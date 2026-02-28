@@ -10,6 +10,7 @@ from ninja import Field, Router, Schema
 from ninja.errors import HttpError
 
 from apps.core.api_utils import auth_guard
+from apps.core.config import get_settings
 from apps.core.lib.tenant_quotas import (
     QuotaTier,
     ResourceType,
@@ -18,7 +19,6 @@ from apps.core.lib.tenant_quotas import (
     set_tenant_tier,
 )
 from apps.core.middleware import get_tenant_id
-from apps.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -237,9 +237,15 @@ def search_metadata(request, query: str, types: Optional[str] = None, limit: int
 @governance_router.get("/lineage/{urn}", response=LineageResponse, auth=auth_guard)
 def get_lineage(request, urn: str, direction: str = "both", depth: int = 3):
     try:
-        nodes = [LineageNode(urn=urn, name=urn.split(",")[1] if "," in urn else urn, type="dataset")]
+        nodes = [
+            LineageNode(
+                urn=urn, name=urn.split(",")[1] if "," in urn else urn, type="dataset"
+            )
+        ]
         edges: List[LineageEdge] = []
-        directions = ["UPSTREAM", "DOWNSTREAM"] if direction == "both" else [direction.upper()]
+        directions = (
+            ["UPSTREAM", "DOWNSTREAM"] if direction == "both" else [direction.upper()]
+        )
 
         for dir_enum in directions:
             data = _datahub_graphql(
@@ -258,9 +264,21 @@ def get_lineage(request, urn: str, direction: str = "both", depth: int = 3):
                     )
                 )
                 if dir_enum == "UPSTREAM":
-                    edges.append(LineageEdge(source=node_urn, target=urn, type=rel.get("type", "PRODUCES")))
+                    edges.append(
+                        LineageEdge(
+                            source=node_urn,
+                            target=urn,
+                            type=rel.get("type", "PRODUCES"),
+                        )
+                    )
                 else:
-                    edges.append(LineageEdge(source=urn, target=node_urn, type=rel.get("type", "PRODUCES")))
+                    edges.append(
+                        LineageEdge(
+                            source=urn,
+                            target=node_urn,
+                            type=rel.get("type", "PRODUCES"),
+                        )
+                    )
 
         unique_nodes: List[LineageNode] = []
         seen = set()
@@ -281,7 +299,9 @@ def get_lineage(request, urn: str, direction: str = "both", depth: int = 3):
 def get_schema(request, urn: str):
     try:
         with httpx.Client(timeout=30.0) as client:
-            response = client.get(f"{settings.datahub_gms_url}/aspects/{urn}?aspect=schemaMetadata")
+            response = client.get(
+                f"{settings.datahub_gms_url}/aspects/{urn}?aspect=schemaMetadata"
+            )
         if response.status_code == 404:
             raise HttpError(404, "Schema not found")
         response.raise_for_status()

@@ -13,7 +13,6 @@ from typing import Any, Dict
 
 import duckdb
 import pandas as pd
-
 from apps.core.errors import IngestionError
 
 logger = logging.getLogger(__name__)
@@ -78,19 +77,26 @@ class DirectFileIngester:
                 )
             elif ext in [".xlsx", ".xls"]:
                 # For Excel files, use pandas for robust parsing, then load into DuckDB.
-                df = pd.read_excel(file_path)  # noqa: F841 - DuckDB references this DataFrame directly
+                pd.read_excel(
+                    file_path
+                )  # noqa: F841 - DuckDB references this DataFrame directly
                 self.conn.execute(
                     f"CREATE TABLE IF NOT EXISTS {table_name} AS SELECT * FROM df"
                 )
             else:
-                raise IngestionError("VYNT-4007", f"Unsupported file extension: {ext}. Supported types: CSV, JSON, Parquet, XLSX, XLS.")
+                raise IngestionError(
+                    "VYNT-4007",
+                    f"Unsupported file extension: {ext}. Supported types: CSV, JSON, Parquet, XLSX, XLS.",
+                )
 
             # Verify and return the count of rows ingested.
             count = self.conn.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[
                 0
             ]
 
-            logger.info(f"Successfully ingested {count} rows from {file_path} into table {table_name}.")
+            logger.info(
+                f"Successfully ingested {count} rows from {file_path} into table {table_name}."
+            )
             return {
                 "status": "success",
                 "table": table_name,
@@ -99,5 +105,9 @@ class DirectFileIngester:
             }
 
         except Exception as e:
-            logger.error(f"Failed to ingest file '{file_path}' into table '{table_name}': {e}")
-            raise IngestionError("VYNT-4008", f"Direct ingestion failed for {file_path}: {e}") from e
+            logger.error(
+                f"Failed to ingest file '{file_path}' into table '{table_name}': {e}"
+            )
+            raise IngestionError(
+                "VYNT-4008", f"Direct ingestion failed for {file_path}: {e}"
+            ) from e

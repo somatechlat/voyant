@@ -23,7 +23,6 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 
 import httpx
-
 from apps.core.circuit_breaker import (
     CircuitBreaker,
     CircuitBreakerConfig,
@@ -211,7 +210,9 @@ class AirbyteClient:
         except httpx.HTTPStatusError as e:
             # Record a failure with the circuit breaker and raise a specific error.
             self._circuit_breaker.record_failure()
-            logger.error(f"Airbyte API returned HTTP error: {e.response.status_code} for {endpoint}.")
+            logger.error(
+                f"Airbyte API returned HTTP error: {e.response.status_code} for {endpoint}."
+            )
             raise ExternalServiceError(
                 service_name="Airbyte",
                 details=f"HTTP {e.response.status_code}: {e.response.text[:200]}...",
@@ -224,8 +225,12 @@ class AirbyteClient:
         except Exception as e:
             # Catch other unexpected errors and record as failure.
             self._circuit_breaker.record_failure()
-            logger.error(f"An unexpected error occurred during Airbyte API request to {endpoint}: {e}.")
-            raise ExternalServiceError(service_name="Airbyte", details=f"Unexpected error: {e}") from e
+            logger.error(
+                f"An unexpected error occurred during Airbyte API request to {endpoint}: {e}."
+            )
+            raise ExternalServiceError(
+                service_name="Airbyte", details=f"Unexpected error: {e}"
+            ) from e
 
     async def close(self):
         """
@@ -289,7 +294,9 @@ class AirbyteClient:
 
         job_id = response.get("job", {}).get("id", response.get("jobId"))
 
-        logger.info(f"Airbyte sync triggered: job_id={job_id} for connection {connection_id}.")
+        logger.info(
+            f"Airbyte sync triggered: job_id={job_id} for connection {connection_id}."
+        )
 
         return {
             "job_id": job_id,
@@ -345,7 +352,8 @@ class AirbyteClient:
         Args:
             job_id (str): The unique identifier of the Airbyte job.
             poll_interval (float, optional): The interval (in seconds) between status checks. Defaults to 5.0.
-            timeout (float, optional): The maximum time (in seconds) to wait for job completion. Defaults to 3600.0 (1 hour).
+            timeout (float, optional): The maximum time (in seconds) to wait for job completion.
+                                       Defaults to 3600.0 (1 hour).
 
         Returns:
             Dict[str, Any]: The final status details of the completed job.
@@ -359,16 +367,22 @@ class AirbyteClient:
         while True:
             elapsed = asyncio.get_event_loop().time() - start_time
             if elapsed > timeout:
-                raise TimeoutError(f"Airbyte job {job_id} did not complete within {timeout} seconds.")
+                raise TimeoutError(
+                    f"Airbyte job {job_id} did not complete within {timeout} seconds."
+                )
 
             status = await self.get_job_status(job_id)
             job_status = status.get("status", "unknown").lower()
 
             if job_status in ("succeeded", "failed", "cancelled"):
-                logger.info(f"Airbyte job {job_id} completed with status: {job_status}.")
+                logger.info(
+                    f"Airbyte job {job_id} completed with status: {job_status}."
+                )
                 return status
 
-            logger.debug(f"Airbyte job {job_id} status: {job_status}, waiting for completion...")
+            logger.debug(
+                f"Airbyte job {job_id} status: {job_status}, waiting for completion..."
+            )
             await asyncio.sleep(poll_interval)
 
     # =========================================================================

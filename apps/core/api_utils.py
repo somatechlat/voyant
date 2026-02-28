@@ -1,8 +1,9 @@
-
 import logging
 from typing import Any, Dict
+
 from asgiref.sync import async_to_sync
 from ninja.errors import HttpError
+
 from apps.core.config import get_settings
 from apps.core.security.auth import get_current_user, get_optional_user
 from apps.integrations.soma import (
@@ -15,9 +16,11 @@ from apps.integrations.soma import (
 settings = get_settings()
 logger = logging.getLogger(__name__)
 
+
 def run_async(func, *args, **kwargs):
     """Run an async function from a sync context."""
     return async_to_sync(func)(*args, **kwargs)
+
 
 def auth_guard(request):
     """
@@ -35,6 +38,7 @@ def auth_guard(request):
         # Django Ninja accepts True as "authenticated"
         return user if user is not None else True
     return get_current_user(request)
+
 
 def apply_policy(action: str, prompt: str, metadata: Dict[str, Any]) -> None:
     """

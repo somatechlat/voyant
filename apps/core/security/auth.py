@@ -371,7 +371,8 @@ def require_role(required_role: str):
         user = get_current_user(request)
         if not user.has_role(required_role):
             logger.warning(
-                f"User {user.username} (tenant: {user.tenant_id}) attempted to access resource requiring role '{required_role}' without permission."
+                f"User {user.username} (tenant: {user.tenant_id}) attempted to access "
+                f"resource requiring role '{required_role}' without permission."
             )
             raise HttpError(403, f"Access denied: Role '{required_role}' required.")
         return user
@@ -403,7 +404,8 @@ def require_permission(required_permission: str):
         user = get_current_user(request)
         if not user.has_permission(required_permission):
             logger.warning(
-                f"User {user.username} (tenant: {user.tenant_id}) attempted to access resource requiring permission '{required_permission}' without permission."
+                f"User {user.username} (tenant: {user.tenant_id}) attempted to access "
+                f"resource requiring permission '{required_permission}' without permission."
             )
             raise HttpError(
                 403, f"Access denied: Permission '{required_permission}' required."

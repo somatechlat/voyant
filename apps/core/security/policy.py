@@ -1,18 +1,19 @@
-
 import logging
-from typing import Optional
+
 from authzed.api.v1 import (
-    Client,
     CheckPermissionRequest,
     CheckPermissionResponse,
+    Client,
+    Consistency,
     ObjectReference,
     SubjectReference,
-    Consistency,
 )
 from grpc import insecure_channel
+
 from apps.core.config import get_settings
 
 logger = logging.getLogger(__name__)
+
 
 class SpiceDBClient:
     """
@@ -22,7 +23,7 @@ class SpiceDBClient:
     """
 
     def __init__(self):
-        settings = get_settings()
+        get_settings()
         # Defaults for local dev if not in settings yet
         self.endpoint = "voyant_spicedb:50051"
         self.token = "somerandomkey"
@@ -30,13 +31,13 @@ class SpiceDBClient:
 
     @property
     def client(self) -> Client:
-         if not self._client:
-             self._client = Client(
-                 self.endpoint,
-                 insecure_channel(self.endpoint), # Use secure_channel in prod
-                 self.token,
-             )
-         return self._client
+        if not self._client:
+            self._client = Client(
+                self.endpoint,
+                insecure_channel(self.endpoint),  # Use secure_channel in prod
+                self.token,
+            )
+        return self._client
 
     def check_permission(
         self,
@@ -73,10 +74,14 @@ class SpiceDBClient:
                     consistency=Consistency(fully_consistent=True),
                 )
             )
-            return resp.permissionship == CheckPermissionResponse.PERMISSIONSHIP_HAS_PERMISSION
+            return (
+                resp.permissionship
+                == CheckPermissionResponse.PERMISSIONSHIP_HAS_PERMISSION
+            )
         except Exception as e:
             logger.error(f"SpiceDB check failed: {e}")
             return False
+
 
 # Singleton
 spicedb = SpiceDBClient()

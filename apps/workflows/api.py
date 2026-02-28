@@ -14,11 +14,20 @@ from apps.core.api_utils import apply_policy, run_async
 from apps.core.config import get_settings
 from apps.core.lib.kpi_templates import (
     get_categories as get_kpi_categories,
+)
+from apps.core.lib.kpi_templates import (
     get_template as get_kpi_template,
+)
+from apps.core.lib.kpi_templates import (
     list_templates as list_kpi_templates,
+)
+from apps.core.lib.kpi_templates import (
     render_template as render_kpi_template,
 )
-from apps.core.lib.namespace_analyzer import NamespaceViolationError, validate_table_access
+from apps.core.lib.namespace_analyzer import (
+    NamespaceViolationError,
+    validate_table_access,
+)
 from apps.core.lib.temporal_client import get_temporal_client
 from apps.core.middleware import get_soma_session_id, get_tenant_id
 from apps.integrations.soma import create_task_for_job, update_task_status
@@ -283,7 +292,9 @@ def trigger_quality(request, payload: QualityRequest):
     except NamespaceViolationError as exc:
         raise HttpError(403, str(exc)) from exc
 
-    policy_prompt = f"voyant quality source_id={payload.source_id} table={payload.table}"
+    policy_prompt = (
+        f"voyant quality source_id={payload.source_id} table={payload.table}"
+    )
     apply_policy("quality", policy_prompt, {"source_id": payload.source_id})
 
     job = _create_job(
@@ -371,8 +382,12 @@ def cancel_job(request, job_id: str):
 @artifacts_router.get("/{job_id}", response=Dict[str, List[ArtifactInfo]])
 def list_artifacts(request, job_id: str):
     tenant_id = get_tenant_id(request)
-    apply_policy("artifact_list", f"voyant artifact list job_id={job_id}", {"job_id": job_id})
-    rows = Artifact.objects.filter(job_id=job_id, tenant_id=tenant_id).order_by("-created_at")
+    apply_policy(
+        "artifact_list", f"voyant artifact list job_id={job_id}", {"job_id": job_id}
+    )
+    rows = Artifact.objects.filter(job_id=job_id, tenant_id=tenant_id).order_by(
+        "-created_at"
+    )
     artifacts = [
         ArtifactInfo(
             artifact_id=row.artifact_id,
@@ -411,7 +426,9 @@ def download_artifact(request, job_id: str, artifact_type: str, format: str = "j
         return StreamingHttpResponse(
             io.BytesIO(data),
             content_type="application/octet-stream",
-            headers={"Content-Disposition": f"attachment; filename={artifact_type}.{format}"},
+            headers={
+                "Content-Disposition": f"attachment; filename={artifact_type}.{format}"
+            },
         )
     except Exception as exc:
         raise HttpError(404, f"Artifact download failed: {exc}") from exc
@@ -443,13 +460,17 @@ def list_presets(request, category: Optional[str] = None):
     for preset in PRESETS.values():
         if category and preset["category"] != category:
             continue
-        grouped.setdefault(preset["category"], []).append(PresetInfo(**{
-            "name": preset["name"],
-            "category": preset["category"],
-            "description": preset["description"],
-            "parameters": preset["parameters"],
-            "output_artifacts": preset["output_artifacts"],
-        }))
+        grouped.setdefault(preset["category"], []).append(
+            PresetInfo(
+                **{
+                    "name": preset["name"],
+                    "category": preset["category"],
+                    "description": preset["description"],
+                    "parameters": preset["parameters"],
+                    "output_artifacts": preset["output_artifacts"],
+                }
+            )
+        )
     return grouped
 
 
@@ -518,7 +539,9 @@ def get_kpi_template_endpoint(request, template_name: str):
 
 
 @presets_router.post("/kpi-templates/{template_name}/render", response=Dict[str, str])
-def render_kpi_template_endpoint(request, template_name: str, payload: RenderKPIRequest):
+def render_kpi_template_endpoint(
+    request, template_name: str, payload: RenderKPIRequest
+):
     try:
         return {"sql": render_kpi_template(template_name, payload.params)}
     except ValueError as exc:

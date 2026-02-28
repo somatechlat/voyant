@@ -1,13 +1,15 @@
-
 from __future__ import annotations
 
 from django.db import models
+
 from apps.core.models import TenantModel, UUIDModel
+
 
 class Job(TenantModel, UUIDModel):
     """
     Represents an asynchronous background job.
     """
+
     job_type = models.CharField(max_length=64, db_index=True)
     source_id = models.CharField(max_length=36, null=True, blank=True)
     soma_session_id = models.CharField(max_length=128, null=True, blank=True)
@@ -32,10 +34,12 @@ class Job(TenantModel, UUIDModel):
         """Compatibility alias used across API responses and integrations."""
         return str(self.id)
 
+
 class Artifact(TenantModel):
     """
     Represents a file or data artifact produced by a job.
     """
+
     artifact_id = models.CharField(max_length=512, primary_key=True)
     job_id = models.CharField(max_length=36, db_index=True)
 
@@ -47,10 +51,12 @@ class Artifact(TenantModel):
     class Meta:
         db_table = "voyant_artifact"
 
+
 class PresetJob(TenantModel, UUIDModel):
     """
     Template for a job configuration.
     """
+
     preset_name = models.CharField(max_length=255, db_index=True)
     source_id = models.CharField(max_length=36)
     parameters = models.JSONField(default=dict)

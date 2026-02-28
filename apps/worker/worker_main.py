@@ -19,10 +19,20 @@ from concurrent.futures import ThreadPoolExecutor
 
 from temporalio.worker import Worker
 
+from apps.core.config import get_settings
+from apps.core.lib.interceptors import MetricsInterceptor
+from apps.core.lib.monitoring import MetricsRegistry
+from apps.core.lib.temporal_client import get_temporal_client
 from apps.scraper.activities import ScrapeActivities
+from apps.scraper.deep_research_workflow import DeepResearchWorkflow
+from apps.scraper.search_activities import SearchActivities
 
 # DataScraper Module
 from apps.scraper.workflow import ScrapeWorkflow
+from apps.streaming.activities import StreamingActivities
+
+# Streaming Module (Apache Flink Integration - FR-21)
+from apps.streaming.workflow import StreamingJobWorkflow
 from apps.worker.activities.analysis_activities import AnalysisActivities
 from apps.worker.activities.discovery_activities import DiscoveryActivities
 from apps.worker.activities.generation_activities import GenerationActivities
@@ -32,15 +42,8 @@ from apps.worker.activities.ml_activities import MLActivities
 from apps.worker.activities.operational_activities import OperationalActivities
 from apps.worker.activities.profile_activities import ProfileActivities
 from apps.worker.activities.quality_activities import QualityActivities
+from apps.worker.activities.sandbox_activities import SandboxActivities
 from apps.worker.activities.stats_activities import StatsActivities
-from apps.core.config import get_settings
-from apps.core.lib.interceptors import MetricsInterceptor
-from apps.core.lib.monitoring import MetricsRegistry
-from apps.core.lib.temporal_client import get_temporal_client
-from apps.streaming.activities import StreamingActivities
-
-# Streaming Module (Apache Flink Integration - FR-21)
-from apps.streaming.workflow import StreamingJobWorkflow
 from apps.worker.workflows.analyze_workflow import AnalyzeWorkflow
 from apps.worker.workflows.benchmark_workflow import BenchmarkBrandWorkflow
 from apps.worker.workflows.ingest_workflow import IngestDataWorkflow
@@ -52,6 +55,7 @@ from apps.worker.workflows.operational_workflows import (
 from apps.worker.workflows.profile_workflow import ProfileWorkflow
 from apps.worker.workflows.quality_workflow import QualityWorkflow
 from apps.worker.workflows.regression_workflow import LinearRegressionWorkflow
+from apps.worker.workflows.sandbox_workflow import SandboxWorkflow
 from apps.worker.workflows.segmentation_workflow import SegmentCustomersWorkflow
 
 # Configure logging
@@ -139,7 +143,9 @@ async def run_worker():
             SegmentCustomersWorkflow,
             LinearRegressionWorkflow,
             ScrapeWorkflow,
+            DeepResearchWorkflow,
             StreamingJobWorkflow,  # Flink Integration (FR-21)
+            SandboxWorkflow,
         ]
         activities = [
             IngestActivities().run_ingestion,
@@ -174,10 +180,12 @@ async def run_worker():
             ScrapeActivities().parse_pdf,
             ScrapeActivities().store_artifact,
             ScrapeActivities().finalize_job,
+            SearchActivities().execute_searxng_query,
             # Streaming activities (Flink - FR-21)
             StreamingActivities().get_cluster_overview,
             StreamingActivities().list_running_jobs,
             StreamingActivities().submit_streaming_job,
+            SandboxActivities().run_python_sandbox,
         ]
 
     task_queue = settings.temporal_task_queue
