@@ -1,78 +1,19 @@
 # ============================================================================
-# Docker Build Context Hygiene (Django/Python)
+# Strict Docker Context (API/Worker image)
+# Keep build context minimal: only files required by infra/standalone/Dockerfile.
 # ============================================================================
 
-# VCS and metadata
-.git
-.github
-.gitignore
+# Ignore everything by default.
+**
 
-# Python cache/build/env
-__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-.Python
-.venv/
-venv/
-env/
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.nox/
-.tox/
-.coverage
-.coverage.*
-htmlcov/
-*.egg-info/
-build/
-dist/
+# Allow only runtime/build inputs.
+!requirements.txt
+!manage.py
+!apps/
+!apps/**
+!voyant_project/
+!voyant_project/**
 
-# Local env/secrets (allow templates only)
-.env
-.env.*
-!.env.example
-!**/.env.example
-!**/.env.production.example
-!infra/integrated/.env.integrated
-
-# Runtime/local data not needed in image
-tmp/
-temp/
-*.tmp
-*.log
-logs/
-data/
-artifacts/
-uploads/
-*.sqlite
-*.sqlite3
-*.db
-*.duckdb
-*.duckdb*
-
-# Frontend and optional docs/test/dev material
-node_modules/
-dashboard/node_modules/
-tests/
-docs/
-scripts/
-examples/
-.codex/
-.kiro/
-
-# Editor and OS artifacts
-.DS_Store
-Thumbs.db
-.idea/
-.vscode/
-*.swp
-*.swo
-
-# Archives and backups
-*.tar
-*.tar.gz
-*.zip
-*.7z
-*.rar
-*.bak
+# Optional metadata/docs useful inside image labels/debugging.
+!README.md
+!LICENSE

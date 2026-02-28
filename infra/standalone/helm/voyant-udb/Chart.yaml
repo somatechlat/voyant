@@ -9,10 +9,10 @@ keywords:
   - airbyte
   - kafka
   - duckdb
-home: ""
+home: "https://github.com/yourorg/voyant"
 sources:
-  - ""
+  - "https://github.com/yourorg/voyant"
 maintainers:
   - name: core-team
     email: team@example.com
-icon: ""
+icon: "https://raw.githubusercontent.com/yourorg/voyant/main/docs/assets/icon.png"

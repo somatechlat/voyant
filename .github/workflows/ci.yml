@@ -27,11 +27,11 @@ jobs:
       - name: Lint
         run: |
           pip install ruff
-          ruff check udb_api
+          ruff check apps voyant_project tests scripts
       - name: Run tests
         run: pytest -q --maxfail=1
       - name: Build docker image
-        run: docker build -t udb-api:ci .
+        run: docker build -f infra/standalone/Dockerfile -t voyant-api:ci .
       - name: Security scan (pip-audit)
         run: |
           pip install pip-audit
