@@ -9,6 +9,7 @@ from typing import Any
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("sercop_example")
 
+
 def _setup_django() -> None:
     os.environ["VOYANT_SCRAPER_TLS_VERIFY"] = "False"
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "voyant_project.settings")
@@ -79,6 +80,7 @@ async def fetch_recent_procurements() -> list[dict[str, Any]]:
     except Exception as e:
         logger.error(f"Voyant execution failed: {e}")
     return []
+
 
 if __name__ == "__main__":
     _setup_django()

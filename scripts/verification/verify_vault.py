@@ -12,6 +12,7 @@ from apps.core.lib.secrets import get_secret, get_secrets_backend, set_secret
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("verify_vault")
 
+
 async def verify_vault():
     logger.info("Starting Vault verification...")
 
@@ -42,11 +43,14 @@ async def verify_vault():
     if value == test_value:
         logger.info("✅ SUCCESS: Secret retrieved and matches original value.")
     else:
-        logger.error(f"❌ FAILURE: Retrieved value '{value}' does not match expected '{test_value}'")
+        logger.error(
+            f"❌ FAILURE: Retrieved value '{value}' does not match expected '{test_value}'"
+        )
         sys.exit(1)
 
     # 3. Clean up (Optional, maybe keep for audit?)
     # await backend.delete(test_key)
+
 
 if __name__ == "__main__":
     try:

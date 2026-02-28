@@ -248,9 +248,7 @@ Date: 2026-02-27
 ### Remaining high-impact violations
 - Type-checking baseline is not production-ready:
   - 367 pyright errors across workflows, models, and core libs.
-- Documentation drift is still large:
-  - 167 legacy `voyant/` and `voyant_app/` path references remain under `docs/`.
-  - Primary hotspots: `docs/compliance/COMPLIANCE.md`, `docs/management/TASKS.md`, `docs/specifications/SRS.md`, `docs/specifications/SRS_SCRAPER.md`.
+- Documentation legacy path drift under `docs/` has been remediated in later passes.
 
 ### Next required remediation wave
 1. Replace legacy doc path references with current `apps/*`/`voyant_project/*` paths.
@@ -258,3 +256,27 @@ Date: 2026-02-27
    - Temporal workflow typing usage.
    - Optional/None handling in core libs.
    - stale import targets in scripts/tests.
+
+## Remediation Log (Fourth Pass: Migration + Quality Gate Refresh)
+Date: 2026-02-27
+
+### Completed in this pass
+- Removed remaining hardcoded legacy path usage in code:
+  - `apps/core/lib/seven_personas_review.py` now references the current `apps/*` layout instead of retired package paths.
+- Final lint and formatting cleanup:
+  - `scripts/deploy_spicedb_schema.py` import order fixed.
+  - Removed obsolete `sys.path` path hack in that script.
+- Cleanup of generated garbage artifact:
+  - deleted `pyright_errors.txt`.
+
+### Current verification snapshot
+- `python3 manage.py check`: pass.
+- `python3 -m black .`: pass.
+- `python3 -m ruff check .`: pass.
+- `pyright`: failing with 366 errors (down from 367; broad pre-existing typing debt remains).
+
+### Open blockers
+- `pyright` remains the only failed gate. Errors are systemic across:
+  - Temporal workflow typing signatures.
+  - optional/None safety in core libs.
+  - strict typing mismatch in tests and analytics helpers.

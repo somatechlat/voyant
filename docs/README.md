@@ -16,6 +16,7 @@ This directory contains the comprehensive documentation system for Voyant v3.0.0
 
 ### Quality and Standards
 - **[adr/](adr/)** - Architecture Decision Records
+- **[architecture/PROJECT_STRUCTURE.md](architecture/PROJECT_STRUCTURE.md)** - Canonical repository structure and Django layout conventions
 
 ### Configuration and Examples
 - **[OTEL_COLLECTOR_SAMPLE.yaml](OTEL_COLLECTOR_SAMPLE.yaml)** - OpenTelemetry collector configuration

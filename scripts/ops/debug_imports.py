@@ -9,7 +9,7 @@ Purpose:
 
 Usage:
     Run this script directly from the command line from the project root:
-    $ python scripts/debug_imports.py
+    $ python scripts/ops/debug_imports.py
 
 Expected Output:
     - "Imports successful!" if all components are imported correctly.

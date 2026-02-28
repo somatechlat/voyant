@@ -170,9 +170,9 @@ def review_architecture(base_path: str) -> PersonaReview:
     passed = 0
     total = 0
 
-    core_path = Path(base_path) / "voyant" / "core"
-    activities_path = Path(base_path) / "voyant" / "activities"
-    workflows_path = Path(base_path) / "voyant" / "workflows"
+    core_path = Path(base_path) / "apps" / "core" / "lib"
+    activities_path = Path(base_path) / "apps" / "worker" / "activities"
+    workflows_path = Path(base_path) / "apps" / "worker" / "workflows"
 
     # Check 1: Core module structure
     total += 1
@@ -275,7 +275,7 @@ def review_data_flow(base_path: str) -> PersonaReview:
     passed = 0
     total = 0
 
-    base = Path(base_path) / "voyant"
+    base = Path(base_path) / "apps"
 
     # Check 1: Ingestion module
     total += 1
@@ -285,7 +285,7 @@ def review_data_flow(base_path: str) -> PersonaReview:
 
     # Check 2: Stats activities
     total += 1
-    stats_file = base / "activities" / "stats_activities.py"
+    stats_file = base / "worker" / "activities" / "stats_activities.py"
     if stats_file.exists():
         content = stats_file.read_text()
         if "correlation" in content.lower() and "distribution" in content.lower():
@@ -293,7 +293,7 @@ def review_data_flow(base_path: str) -> PersonaReview:
 
     # Check 3: ML activities
     total += 1
-    ml_file = base / "activities" / "ml_activities.py"
+    ml_file = base / "worker" / "activities" / "ml_activities.py"
     if ml_file.exists():
         content = ml_file.read_text()
         if "cluster" in content.lower() and "forecast" in content.lower():
@@ -301,7 +301,7 @@ def review_data_flow(base_path: str) -> PersonaReview:
 
     # Check 4: Data quality operations
     total += 1
-    ops_file = base / "activities" / "operational_activities.py"
+    ops_file = base / "worker" / "activities" / "operational_activities.py"
     if ops_file.exists():
         content = ops_file.read_text()
         if "quality" in content.lower() or "anomaly" in content.lower():
@@ -309,7 +309,7 @@ def review_data_flow(base_path: str) -> PersonaReview:
 
     # Check 5: Audit trail for data operations
     total += 1
-    audit_file = base / "core" / "audit_trail.py"
+    audit_file = base / "core" / "lib" / "audit_trail.py"
     if audit_file.exists():
         content = audit_file.read_text()
         if "DATA_INGESTED" in content:
@@ -437,7 +437,7 @@ def review_documentation(base_path: str) -> PersonaReview:
 
     # Check 4: Modules have docstrings
     total += 1
-    core_files = list((base / "voyant" / "core").glob("*.py"))
+    core_files = list((base / "apps" / "core" / "lib").glob("*.py"))
     with_docstrings = sum(
         1
         for f in core_files
@@ -448,11 +448,10 @@ def review_documentation(base_path: str) -> PersonaReview:
 
     # Check 5: API routes documented
     total += 1
-    api_routes = base / "voyant" / "api" / "routes"
-    if api_routes.exists():
-        route_files = list(api_routes.glob("*.py"))
-        documented = sum(1 for f in route_files if '"""' in f.read_text()[:200])
-        if documented >= len(route_files) * 0.7:
+    api_files = list((base / "apps").rglob("api.py"))
+    if api_files:
+        documented = sum(1 for f in api_files if '"""' in f.read_text()[:200])
+        if documented >= len(api_files) * 0.7:
             passed += 1
 
     review.findings = findings
@@ -483,7 +482,7 @@ def review_security(base_path: str) -> PersonaReview:
     passed = 0
     total = 0
 
-    base = Path(base_path) / "voyant"
+    base = Path(base_path) / "apps"
 
     # Check 1: No hardcoded passwords
     total += 1
@@ -507,13 +506,13 @@ def review_security(base_path: str) -> PersonaReview:
 
     # Check 2: Circuit breakers
     total += 1
-    cb_file = base / "core" / "circuit_breaker.py"
+    cb_file = base / "core" / "lib" / "circuit_breaker.py"
     if cb_file.exists():
         passed += 1
 
     # Check 3: PII filtering in logging
     total += 1
-    logging_file = base / "core" / "structured_logging.py"
+    logging_file = base / "core" / "lib" / "structured_logging.py"
     if logging_file.exists():
         content = logging_file.read_text()
         if "filter" in content.lower() and "sensitive" in content.lower():
@@ -521,13 +520,13 @@ def review_security(base_path: str) -> PersonaReview:
 
     # Check 4: Audit trail
     total += 1
-    audit_file = base / "core" / "audit_trail.py"
+    audit_file = base / "core" / "lib" / "audit_trail.py"
     if audit_file.exists():
         passed += 1
 
     # Check 5: Secrets management
     total += 1
-    secrets_file = base / "core" / "secrets.py"
+    secrets_file = base / "core" / "lib" / "secrets.py"
     if secrets_file.exists():
         passed += 1
 
@@ -559,29 +558,29 @@ def review_performance(base_path: str) -> PersonaReview:
     passed = 0
     total = 0
 
-    base = Path(base_path) / "voyant"
+    base = Path(base_path) / "apps"
 
     # Check 1: Connection pooling
     total += 1
-    pool_file = base / "core" / "duckdb_pool.py"
+    pool_file = base / "core" / "lib" / "duckdb_pool.py"
     if pool_file.exists():
         passed += 1
 
     # Check 2: Query caching
     total += 1
-    cache_file = base / "core" / "query_cache.py"
+    cache_file = base / "core" / "lib" / "query_cache.py"
     if cache_file.exists():
         passed += 1
 
     # Check 3: Performance profiling
     total += 1
-    profiling_file = base / "core" / "performance_profiling.py"
+    profiling_file = base / "core" / "lib" / "performance_profiling.py"
     if profiling_file.exists():
         passed += 1
 
     # Check 4: Metrics collection
     total += 1
-    metrics_file = base / "core" / "metrics.py"
+    metrics_file = base / "core" / "lib" / "metrics.py"
     if metrics_file.exists():
         content = metrics_file.read_text()
         if "Counter" in content or "Histogram" in content:
@@ -589,7 +588,7 @@ def review_performance(base_path: str) -> PersonaReview:
 
     # Check 5: Async patterns in activities
     total += 1
-    activities_path = base / "activities"
+    activities_path = base / "worker" / "activities"
     if activities_path.exists():
         activity_files = list(activities_path.glob("*.py"))
         has_async = any(
@@ -629,7 +628,7 @@ def review_api_usability(base_path: str) -> PersonaReview:
     total = 0
 
     base = Path(base_path)
-    api_path = base / "voyant_app"
+    api_path = base / "apps" / "core"
     project_path = base / "voyant_project"
 
     # Check 1: Health endpoints
@@ -642,7 +641,7 @@ def review_api_usability(base_path: str) -> PersonaReview:
 
     # Check 2: Error catalog
     total += 1
-    errors_file = base / "core" / "errors.py"
+    errors_file = base / "apps" / "core" / "lib" / "errors.py"
     if errors_file.exists():
         content = errors_file.read_text()
         if "VoyantError" in content or "resolution" in content:
