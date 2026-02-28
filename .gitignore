@@ -1,109 +1,120 @@
-# Python
+# ============================================================================
+# Django / Python Project Ignore Rules
+# ============================================================================
+
+# Bytecode and caches
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
 .Python
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.pytype/
+.cache/
+.hypothesis/
+
+# Coverage and test outputs
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment files (keep templates)
+.env
+.env.*
+!.env.example
+!**/.env.example
+!**/.env.production.example
+!infra/integrated/.env.integrated
+
+# Build and packaging artifacts
 build/
-develop-eggs/
 dist/
 downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
 wheels/
 pip-wheel-metadata/
 share/python-wheels/
 *.egg-info/
+voyant_udb.egg-info/
 .installed.cfg
 *.egg
-PIPFILE.lock
+*.whl
 
-# Virtual Environments
-.env
-.venv/
-venv/
-ENV/
-env/
-env.bak/
-venv.bak/
+# Native / extension artifacts
+*.so
+*.dylib
 
-# IDEs
+# Django/runtime local files
+*.log
+logs/
+*.pid
+*.sqlite
+*.sqlite3
+*.db
+*.duckdb
+*.duckdb*
+staticfiles/
+media/
+
+# Data and local generated artifacts
+data/
+artifacts/
+uploads/
+tmp/
+temp/
+*.tmp
+*.bak
+*.parquet
+*.csv.gz
+*.json.gz
+
+# Notebook and exploratory files
+.ipynb_checkpoints/
+*.ipynb
+
+# Tooling
+.tox/
+.nox/
+Pipfile.lock
+poetry.lock
+
+# Frontend
+node_modules/
+dashboard/node_modules/
+
+# IDE/editor and OS
 .idea/
 .vscode/
 *.swp
 *.swo
 *~
 .DS_Store
-
-# Databases
-*.db
-*.sqlite
-*.sqlite3
-.duckdb*
-*.duckdb
-
-# Data & Artifacts (heavy files)
-/data/
-/artifacts/
-*.parquet
-*.csv.gz
-*.json.gz
-
-# Docker
-*.tar
-*.tar.gz
-docker-compose.override.yml
-
-# Logs
-*.log
-logs/
-
-# Testing
-.pytest_cache/
-.coverage
-.tox/
-.nox/
-htmlcov/
-.hypothesis/
-
-# Jupyter
-.ipynb_checkpoints/
-*.ipynb
-
-# Temporary files
-*.tmp
-*.bak
-*.swp
-.cache/
-
-# OS
-.DS_Store
 Thumbs.db
 
-# Secrets
+# Infrastructure and secrets
 *.pem
 *.key
 *.crt
 secrets/
 .secrets/
-
-# Kubernetes
 *.kubeconfig
-
-# Terraform
 .terraform/
 *.tfstate
 *.tfstate.backup
 
-# Local overrides
+# Docker local override
+docker-compose.override.yml
+
+# Local override configs
 config_overrides.yaml
 .local/
-
-# Build artifacts
-*.whl
-*.egg

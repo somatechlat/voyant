@@ -1,0 +1,18 @@
+apiVersion: v2
+name: voyant-udb
+version: 0.1.0
+appVersion: "0.1.0"
+description: Universal Data Box (UDB) API and optional dependencies
+keywords:
+  - data-quality
+  - profiling
+  - airbyte
+  - kafka
+  - duckdb
+home: ""
+sources:
+  - ""
+maintainers:
+  - name: core-team
+    email: team@example.com
+icon: ""

@@ -1,0 +1,136 @@
+/**
+ * SOMA Universal CSS Variables
+ * Based on: SRS Style Guide (SA01-SRS-STYLE-2025-01 v2.0.0)
+ * Standard: Clean Light Theme
+ */
+
+:root {
+  /* ==========================================
+     CORE TOKENS (Section 1.1)
+     ========================================== */
+  
+  /* Backgrounds */
+  --saas-bg-page: #f5f5f5;
+  --saas-bg-card: #ffffff;
+  
+  /* Typography */
+  --saas-text-primary: #1a1a1a;
+  --saas-text-secondary: #666666;
+  
+  /* Accents */
+  --saas-accent: #1a1a1a;
+  --saas-border-light: #e0e0e0;
+  
+  /* Status Indicators (Section 1.2) */
+  --saas-status-success: #22c55e;
+  --saas-status-warning: #f59e0b;
+  --saas-status-danger: #ef4444;
+  --saas-status-info: #3b82f6;
+  
+  /* ==========================================
+     ANIMATIONS (Section 4.1)
+     ========================================== */
+  --anim-fast: 150ms;
+  --anim-modal: 200ms;
+  --anim-toast: 300ms;
+  --ease-out: cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* ==========================================
+     SPACING
+     ========================================== */
+  --sidebar-collapsed: 64px;
+  --sidebar-expanded: 240px;
+  
+  /* ==========================================
+     BORDER RADIUS
+     ========================================== */
+  --radius-saas: 8px;
+  --radius-saas-sm: 4px;
+  --radius-saas-lg: 12px;
+}
+
+/* ==========================================
+   GLOBAL STYLES
+   ========================================== */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--saas-bg-page);
+  color: var(--saas-text-primary);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ==========================================
+   UTILITY CLASSES (SaaS Kit Patterns)
+   ========================================== */
+
+.saas-card {
+  background: var(--saas-bg-card);
+  border: 1px solid var(--saas-border-light);
+  border-radius: var(--radius-saas);
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05);
+  transition: box-shadow var(--anim-fast) var(--ease-out);
+}
+
+.saas-card:hover {
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.08);
+}
+
+.saas-glass {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.saas-btn-primary {
+  background: var(--saas-accent);
+  color: white;
+  padding: 8px 16px;
+  border-radius: var(--radius-saas-sm);
+  border: none;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--anim-fast) var(--ease-out);
+}
+
+.saas-btn-primary:hover {
+  background: #000000;
+  transform: translateY(-1px);
+}
+
+.saas-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.saas-status-dot.success {
+  background: var(--saas-status-success);
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+}
+
+.saas-status-dot.warning {
+  background: var(--saas-status-warning);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+}
+
+.saas-status-dot.danger {
+  background: var(--saas-status-danger);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+}
+
+.saas-status-dot.info {
+  background: var(--saas-status-info);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}

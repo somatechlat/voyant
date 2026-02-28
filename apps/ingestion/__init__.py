@@ -1,0 +1,1 @@
+"""Data ingestion Django app."""

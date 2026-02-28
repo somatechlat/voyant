@@ -1,17 +1,16 @@
 """
 Tests for Metrics Mode Gating
 
-Verifies that UDB_METRICS_MODE controls which metrics are registered.
+Verifies that VOYANT_METRICS_MODE controls which metrics are registered.
 Reference: docs/CANONICAL_ARCHITECTURE.md Section 8
 """
+
 import os
-import pytest
 
 # Set metrics mode before importing metrics module
 os.environ["VOYANT_METRICS_MODE"] = "off"
 
 # Clear any cached settings
-import importlib
 import voyant.core.config as config_module
 import voyant.core.metrics as metrics_module
 
@@ -24,10 +23,8 @@ class TestMetricsModeOff:
         os.environ["VOYANT_METRICS_MODE"] = "off"
         # Reset cached settings
         config_module.get_settings.cache_clear()
-        # Reset metrics module
-        metrics_module._initialized = False
-        metrics_module.BASIC_METRICS.clear()
-        metrics_module.FULL_METRICS.clear()
+        # Reset metrics module using the proper reset function
+        metrics_module.reset_metrics()
 
     def test_metrics_mode_off_no_basic_metrics(self):
         """When mode is 'off', no basic metrics should be registered."""
@@ -55,9 +52,8 @@ class TestMetricsModeBasic:
         """Reset metrics module state."""
         os.environ["VOYANT_METRICS_MODE"] = "basic"
         config_module.get_settings.cache_clear()
-        metrics_module._initialized = False
-        metrics_module.BASIC_METRICS.clear()
-        metrics_module.FULL_METRICS.clear()
+        # Reset metrics module using the proper reset function
+        metrics_module.reset_metrics()
 
     def test_metrics_mode_basic_has_core_metrics(self):
         """When mode is 'basic', core metrics should be registered."""
@@ -87,9 +83,8 @@ class TestMetricsModeFull:
         """Reset metrics module state."""
         os.environ["VOYANT_METRICS_MODE"] = "full"
         config_module.get_settings.cache_clear()
-        metrics_module._initialized = False
-        metrics_module.BASIC_METRICS.clear()
-        metrics_module.FULL_METRICS.clear()
+        # Reset metrics module using the proper reset function
+        metrics_module.reset_metrics()
 
     def test_metrics_mode_full_has_basic_metrics(self):
         """When mode is 'full', basic metrics should be registered."""
@@ -130,7 +125,7 @@ class TestMetricsModeFromSettings:
         """init_metrics() without args should read from VOYANT_METRICS_MODE."""
         os.environ["VOYANT_METRICS_MODE"] = "basic"
         config_module.get_settings.cache_clear()
-        
+
         mode = metrics_module.get_mode()
         assert mode == "basic"
 

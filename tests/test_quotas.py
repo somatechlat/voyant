@@ -4,23 +4,24 @@ Tests for Tenant Quotas
 Verifies quota tiers, usage tracking, and limit enforcement.
 Reference: docs/CANONICAL_ROADMAP.md - P4 Scale & Multi-Tenant
 """
+
 import pytest
 
-from voyant.core.quotas import (
-    QUOTA_TIERS,
+from apps.core.lib.quotas import (
     DEFAULT_TIER,
-    set_tenant_tier,
-    get_tenant_tier,
-    get_quota_limits,
-    get_usage_status,
+    QUOTA_TIERS,
     check_quota,
-    record_job_start,
-    record_job_end,
+    get_quota_limits,
+    get_tenant_tier,
+    get_usage_status,
+    list_tiers,
     record_artifact_size,
+    record_job_end,
+    record_job_start,
     record_source_added,
     record_source_removed,
     reset_tenant_usage,
-    list_tiers,
+    set_tenant_tier,
 )
 
 
@@ -45,7 +46,7 @@ class TestQuotaTiers:
         starter = QUOTA_TIERS["starter"]
         professional = QUOTA_TIERS["professional"]
         enterprise = QUOTA_TIERS["enterprise"]
-        
+
         assert free.max_jobs_per_day < starter.max_jobs_per_day
         assert starter.max_jobs_per_day < professional.max_jobs_per_day
         assert professional.max_jobs_per_day < enterprise.max_jobs_per_day
@@ -86,7 +87,7 @@ class TestTenantTierAssignment:
         """Should return limits for tenant's tier."""
         set_tenant_tier("test_tenant", "starter")
         limits = get_quota_limits("test_tenant")
-        
+
         assert limits["tier"] == "starter"
         assert limits["max_jobs_per_day"] == 100
         assert limits["max_sources"] == 10
@@ -104,7 +105,7 @@ class TestUsageTracking:
         """New tenant should have zero usage."""
         reset_tenant_usage("test_tenant")
         status = get_usage_status("test_tenant")
-        
+
         assert status["jobs_today"] == 0
         assert status["artifacts_gb"] == 0
         assert status["sources_count"] == 0
@@ -114,7 +115,7 @@ class TestUsageTracking:
         """Starting a job should increment counters."""
         reset_tenant_usage("test_tenant")
         result = record_job_start("test_tenant")
-        
+
         assert result is True
         status = get_usage_status("test_tenant")
         assert status["jobs_today"] == 1
@@ -125,7 +126,7 @@ class TestUsageTracking:
         reset_tenant_usage("test_tenant")
         record_job_start("test_tenant")
         record_job_end("test_tenant")
-        
+
         status = get_usage_status("test_tenant")
         assert status["jobs_today"] == 1  # Still counted
         assert status["concurrent_jobs"] == 0  # Decremented
@@ -134,7 +135,7 @@ class TestUsageTracking:
         """Should track artifact storage."""
         reset_tenant_usage("test_tenant")
         record_artifact_size("test_tenant", 1024 * 1024 * 100)  # 100 MB
-        
+
         status = get_usage_status("test_tenant")
         assert status["artifacts_gb"] > 0
 
@@ -161,7 +162,7 @@ class TestQuotaEnforcement:
         for _ in range(10):
             record_job_start("test_tenant")
             record_job_end("test_tenant")
-        
+
         allowed, msg = check_quota("test_tenant", "jobs_per_day")
         assert allowed is False
         assert "exceeded" in msg.lower()
@@ -172,7 +173,7 @@ class TestQuotaEnforcement:
         # Start max concurrent (free tier = 1)
         result = record_job_start("test_tenant")
         assert result is True
-        
+
         # Try to start another - should fail
         result = record_job_start("test_tenant")
         assert result is False
@@ -184,7 +185,7 @@ class TestQuotaEnforcement:
         for i in range(3):
             result = record_source_added("test_tenant")
             assert result is True
-        
+
         # 4th source should fail
         result = record_source_added("test_tenant")
         assert result is False
@@ -194,9 +195,9 @@ class TestQuotaEnforcement:
         reset_tenant_usage("test_tenant")
         for i in range(3):
             record_source_added("test_tenant")
-        
+
         record_source_removed("test_tenant")
-        
+
         # Should now be able to add another
         result = record_source_added("test_tenant")
         assert result is True
@@ -213,27 +214,27 @@ class TestUpgradePath:
         """Upgrading tier should increase limits."""
         set_tenant_tier("test_tenant", "free")
         free_limits = get_quota_limits("test_tenant")
-        
+
         set_tenant_tier("test_tenant", "professional")
         pro_limits = get_quota_limits("test_tenant")
-        
+
         assert pro_limits["max_jobs_per_day"] > free_limits["max_jobs_per_day"]
 
     def test_upgrade_releases_blocked_operations(self):
         """Upgrading should allow previously blocked operations."""
         reset_tenant_usage("test_tenant")
         set_tenant_tier("test_tenant", "free")
-        
+
         # Exhaust free tier concurrent limit (1)
         record_job_start("test_tenant")
         result = record_job_start("test_tenant")
         assert result is False
-        
+
         record_job_end("test_tenant")
-        
+
         # Upgrade to starter (3 concurrent)
         set_tenant_tier("test_tenant", "starter")
-        
+
         # Should now be able to start more jobs
         result = record_job_start("test_tenant")
         assert result is True
