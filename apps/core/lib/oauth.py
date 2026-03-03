@@ -42,7 +42,6 @@ from __future__ import annotations
 import base64
 import hashlib
 import logging
-import os
 import secrets
 import time
 from dataclasses import dataclass, field
@@ -78,18 +77,30 @@ class OAuthConfig:
 
     @classmethod
     def from_env(cls, provider: OAuthProvider) -> "OAuthConfig":
-        """Load configuration from environment variables."""
-        prefix = f"VOYANT_OAUTH_{provider.value.upper()}_"
-        raw_scopes = os.getenv(f"{prefix}SCOPES", "")
+        """
+        Load configuration from VoyantSettings (Vault-enforced in non-local envs).
+
+        Provider config is stored as a JSON dict in the VOYANT_OAUTH_{PROVIDER}
+        environment variable. Keys: client_id, client_secret, auth_endpoint,
+        token_endpoint, userinfo_endpoint, scopes (comma-separated string).
+        """
+        from apps.core.config import get_settings
+
+        s = get_settings()
+        p = provider.value.lower()
+        cfg: dict = getattr(s, f"oauth_{p}", {}) or {}
+
+        raw_scopes = cfg.get("scopes", "")
+        scopes = [sc.strip() for sc in raw_scopes.split(",") if sc.strip()]
+
         return cls(
             provider=provider,
-            client_id=(os.getenv(f"{prefix}CLIENT_ID") or "").strip(),
-            client_secret=(os.getenv(f"{prefix}CLIENT_SECRET") or "").strip(),
-            authorization_endpoint=(os.getenv(f"{prefix}AUTH_ENDPOINT") or "").strip(),
-            token_endpoint=(os.getenv(f"{prefix}TOKEN_ENDPOINT") or "").strip(),
-            userinfo_endpoint=(os.getenv(f"{prefix}USERINFO_ENDPOINT") or "").strip()
-            or None,
-            scopes=[scope.strip() for scope in raw_scopes.split(",") if scope.strip()],
+            client_id=(cfg.get("client_id") or "").strip(),
+            client_secret=(cfg.get("client_secret") or "").strip(),
+            authorization_endpoint=(cfg.get("auth_endpoint") or "").strip(),
+            token_endpoint=(cfg.get("token_endpoint") or "").strip(),
+            userinfo_endpoint=(cfg.get("userinfo_endpoint") or "").strip() or None,
+            scopes=scopes,
         )
 
 

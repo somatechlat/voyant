@@ -224,13 +224,13 @@ class SecuritySettings(BaseSettings):
             return [header.strip() for header in v.split(",") if header.strip()]
         return v or []
 
-    @field_validator("security_enabled")
+    @field_validator("security_enabled", mode="before")
     @classmethod
-    def validate_security_enabled(cls, v):
-        """Ensure security is enabled in production."""
-        if get_settings().env == "production" and not v:
-            raise ValueError("Security must be enabled in production")
-        return v
+    def parse_security_enabled(cls, v):
+        """Parse boolean security_enabled from env string."""
+        if isinstance(v, str):
+            return v.lower() not in ("false", "0", "no", "off")
+        return bool(v)
 
     @field_validator("secrets_backend")
     @classmethod

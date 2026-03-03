@@ -57,7 +57,6 @@ class Settings(BaseSettings):
         "datahub_gms_url",
         "keycloak_url",
         "keycloak_realm",
-        "lago_api_url",
         "soma_policy_url",
         "soma_memory_url",
         "soma_orchestrator_url",
@@ -67,9 +66,20 @@ class Settings(BaseSettings):
         "minio_access_key",
         "minio_secret_key",
         "keycloak_client_secret",
-        "lago_api_key",
         "serper_api_key",
         "mcp_api_token",
+        # SpiceDB
+        "spicedb_grpc_preshared_key",
+        # MotherDuck
+        "motherduck_token",
+        # Unstructured.io API
+        "unstructured_api_key",
+        # OAuth per-provider secrets
+        "oauth_google_client_secret",
+        "oauth_github_client_secret",
+        "oauth_microsoft_client_secret",
+        "oauth_okta_client_secret",
+        "oauth_generic_client_secret",
     }
 
     # --------------------------------------------------------------------------
@@ -89,21 +99,14 @@ class Settings(BaseSettings):
     debug: bool = Field(default=False, description="Enable debug mode")
     secret_key: str = Field(
         default="",
-        alias="SECRET_KEY",
-        description="Django secret key. Critical for security.",
+        description="Django secret key. Critical for security. Set VOYANT_SECRET_KEY.",
     )
     allowed_hosts: list[str] = Field(
         default=["*"],
-        alias="ALLOWED_HOSTS",
-        description="List of strings representing the host/domain names that this Django site can serve.",
+        description="Comma-separated or JSON list of allowed host/domain names.",
     )
 
-    @field_validator("allowed_hosts", mode="before")
-    @classmethod
-    def parse_allowed_hosts(cls, v: str | list[str]) -> list[str]:
-        if isinstance(v, str):
-            return [host.strip() for host in v.split(",") if host.strip()]
-        return v
+
 
     csrf_trusted_origins: list[str] = Field(
         default=[],
@@ -256,16 +259,6 @@ class Settings(BaseSettings):
         alias="KEYCLOAK_CLIENT_SECRET",
         description="Keycloak client secret.",
     )
-    lago_api_url: str = Field(
-        default="",
-        alias="LAGO_API_URL",
-        description="URL for the Lago billing API.",
-    )
-    lago_api_key: str = Field(
-        default="",
-        alias="LAGO_API_KEY",
-        description="API key for Lago.",
-    )
     serper_api_key: str = Field(
         default="",
         alias="SERPER_API_KEY",
@@ -297,31 +290,152 @@ class Settings(BaseSettings):
         description="URL for the Apache Flink JobManager.",
     )
 
+    # --------------------------------------------------------------------------
+    # SpiceDB (Authzed) — Authorization Engine
+    # --------------------------------------------------------------------------
+    spicedb_endpoint: str = Field(
+        default="voyant_spicedb:50051",
+        alias="VOYANT_SPICEDB_ENDPOINT",
+        description="gRPC endpoint for the SpiceDB authorization service.",
+    )
+    spicedb_grpc_preshared_key: str = Field(
+        default="",
+        alias="VOYANT_SPICEDB_GRPC_PRESHARED_KEY",
+        description="Pre-shared key for SpiceDB gRPC authentication. SECRET.",
+    )
+
+    # --------------------------------------------------------------------------
+    # Unstructured.io — Document Processing
+    # --------------------------------------------------------------------------
+    unstructured_api_key: str = Field(
+        default="",
+        alias="UNSTRUCTURED_API_KEY",
+        description="API key for the Unstructured.io document-processing service. SECRET.",
+    )
+
+    # --------------------------------------------------------------------------
+    # DuckDB / MotherDuck — Analytics Database Backend
+    # --------------------------------------------------------------------------
+    db_backend: str = Field(
+        default="duckdb_local",
+        alias="VOYANT_DB_BACKEND",
+        description="Database backend: duckdb_local | duckdb_memory | motherduck.",
+    )
+    db_path: str = Field(
+        default="voyant.duckdb",
+        alias="VOYANT_DB_PATH",
+        description="Path to the local DuckDB database file.",
+    )
+    motherduck_token: str = Field(
+        default="",
+        alias="MOTHERDUCK_TOKEN",
+        description="Authentication token for MotherDuck cloud DuckDB. SECRET.",
+    )
+    db_max_connections: int = Field(
+        default=10,
+        alias="VOYANT_DB_MAX_CONNECTIONS",
+        description="Maximum number of DuckDB connections in the pool.",
+    )
+    db_connection_timeout: int = Field(
+        default=30,
+        alias="VOYANT_DB_CONNECTION_TIMEOUT",
+        description="Timeout in seconds for acquiring a DuckDB connection.",
+    )
+    db_query_timeout: int = Field(
+        default=300,
+        alias="VOYANT_DB_QUERY_TIMEOUT",
+        description="Maximum query execution time in seconds.",
+    )
+
+    # --------------------------------------------------------------------------
+    # OAuth 2.0 — Per-provider configuration (one dict per provider)
+    # Each provider dict keys: client_id, client_secret, auth_endpoint,
+    #   token_endpoint, userinfo_endpoint, scopes (comma-separated string).
+    # Secrets (client_secret) are enforced via Vault in non-local environments.
+    # --------------------------------------------------------------------------
+    oauth_google: dict = Field(
+        default_factory=dict,
+        alias="VOYANT_OAUTH_GOOGLE",
+        description="Google OAuth config dict. SECRET: client_secret.",
+    )
+    oauth_github: dict = Field(
+        default_factory=dict,
+        alias="VOYANT_OAUTH_GITHUB",
+        description="GitHub OAuth config dict. SECRET: client_secret.",
+    )
+    oauth_microsoft: dict = Field(
+        default_factory=dict,
+        alias="VOYANT_OAUTH_MICROSOFT",
+        description="Microsoft OAuth config dict. SECRET: client_secret.",
+    )
+    oauth_okta: dict = Field(
+        default_factory=dict,
+        alias="VOYANT_OAUTH_OKTA",
+        description="Okta OAuth config dict. SECRET: client_secret.",
+    )
+    oauth_generic: dict = Field(
+        default_factory=dict,
+        alias="VOYANT_OAUTH_GENERIC",
+        description="Generic OAuth config dict. SECRET: client_secret.",
+    )
+
+    # --------------------------------------------------------------------------
+    # Prune Scheduler — Retention Policy
+    # --------------------------------------------------------------------------
+    prune_enabled: bool = Field(
+        default=True,
+        alias="VOYANT_PRUNE_ENABLED",
+        description="Enable the background prune scheduler.",
+    )
+    prune_interval_seconds: int = Field(
+        default=3600,
+        alias="VOYANT_PRUNE_INTERVAL_SECONDS",
+        description="Interval in seconds between prune cycles.",
+    )
+    prune_max_job_age_days: int = Field(
+        default=30,
+        alias="VOYANT_PRUNE_MAX_JOB_AGE_DAYS",
+        description="Delete jobs older than this many days.",
+    )
+    prune_max_artifact_age_days: int = Field(
+        default=30,
+        alias="VOYANT_PRUNE_MAX_ARTIFACT_AGE_DAYS",
+        description="Delete artifacts older than this many days.",
+    )
+    prune_max_artifacts_per_tenant: int = Field(
+        default=1000,
+        alias="VOYANT_PRUNE_MAX_ARTIFACTS_PER_TENANT",
+        description="Maximum number of artifacts per tenant before quota pruning.",
+    )
+    prune_dry_run: bool = Field(
+        default=False,
+        alias="VOYANT_PRUNE_DRY_RUN",
+        description="If True, log pruning actions without deleting.",
+    )
+
+    # --------------------------------------------------------------------------
+    # File Secrets Backend — Encryption
+    # --------------------------------------------------------------------------
+    udb_secret_key: str = Field(
+        default="",
+        alias="UDB_SECRET_KEY",
+        description="Encryption key for the FileSecretsBackend. SECRET.",
+    )
+
     @model_validator(mode="after")
-    def check_security(self) -> "Settings":
+    def validate_secrets_backend(self) -> "Settings":
         """
-        Perform post-validation security checks.
-
-        This validator runs after all environment variables are parsed and warns
-        when required secret values are missing in non-local environments.
+        Vibe Rule Mandate: ALL secrets go through Vault in non-local environments.
+        'env' backend is ONLY permitted for local development.
+        Any other environment using 'env' backend raises a hard error at startup.
         """
-        if self.env != "local":
-            if self.secrets_backend != "vault":
-                import logging
-
-                logging.getLogger("voyant.security").warning(
-                    "Running non-local environment without Vault-backed secrets backend."
-                )
-            if (
-                not str(self.minio_secret_key).strip()
-                or not str(self.keycloak_client_secret).strip()
-            ):
-                import logging
-
-                # This is a critical security warning.
-                logging.getLogger("voyant.security").warning(
-                    f"⚠️ SECURITY WARNING: Running in {self.env} with missing secret values."
-                )
+        if self.env not in {"local", "test"} and self.secrets_backend == "env":
+            raise ValueError(
+                f"SECURITY VIOLATION: secrets_backend='env' is forbidden in env='{self.env}'. "
+                "All secrets MUST be loaded via Vault (secrets_backend='vault') or "
+                "Kubernetes Secrets (secrets_backend='k8s') in non-local environments. "
+                "Set VOYANT_SECRETS_BACKEND=vault and configure VOYANT_SECRETS_VAULT_URL."
+            )
         return self
 
     @model_validator(mode="after")
@@ -343,7 +457,6 @@ class Settings(BaseSettings):
             "keycloak_realm": self.keycloak_realm,
             "keycloak_client_id": self.keycloak_client_id,
             "keycloak_client_secret": self.keycloak_client_secret,
-            "lago_api_url": self.lago_api_url,
             "mcp_api_url": self.mcp_api_url,
         }
         missing = [name for name, value in required.items() if not str(value).strip()]
@@ -358,7 +471,12 @@ class Settings(BaseSettings):
     # Pluggable & Feature Toggles
     # --------------------------------------------------------------------------
     secrets_backend: str = Field(
-        default="env", description="Secrets backend provider: 'env', 'k8s', or 'vault'."
+        default="vault",
+        description=(
+            "Secrets backend provider: 'vault' (production), 'k8s' (Kubernetes), "
+            "or 'env' (local development ONLY). "
+            "Vibe Rule: 'env' is FORBIDDEN in staging/production."
+        ),
     )
     secrets_vault_url: str = Field(
         default="",
@@ -374,9 +492,6 @@ class Settings(BaseSettings):
     )
     enable_quality: bool = Field(
         default=True, description="Enable data quality checks and endpoints."
-    )
-    enable_billing: bool = Field(
-        default=True, description="Enable billing integration and usage tracking."
     )
     enable_datahub: bool = Field(
         default=True, description="Enable DataHub integration for governance."
@@ -444,7 +559,7 @@ class Settings(BaseSettings):
     scraper_default_timeout_seconds: int = Field(
         default=30,
         alias="SCRAPER_DEFAULT_TIMEOUT_SECONDS",
-        description="Default timeout for scraper network operations in seconds.",
+        description="Default timeout for scraper network operations (seconds).",
     )
     scraper_default_ocr_language: str = Field(
         default="spa+eng",
@@ -474,7 +589,7 @@ class Settings(BaseSettings):
     scraper_tls_trust_store: str = Field(
         default="system",
         alias="SCRAPER_TLS_TRUST_STORE",
-        description="TLS trust store selection for scraper HTTP clients: system|certifi.",
+        description="TLS trust store for scraper HTTP clients: system|certifi.",
     )
     scraper_playwright_user_agent: str = Field(
         default="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
@@ -489,10 +604,7 @@ class Settings(BaseSettings):
     scraper_playwright_wait_until: str = Field(
         default="domcontentloaded",
         alias="SCRAPER_PLAYWRIGHT_WAIT_UNTIL",
-        description=(
-            "Playwright page.goto wait_until strategy: load|domcontentloaded|networkidle|commit. "
-            "networkidle can hang on pages with long-lived connections; domcontentloaded is safer."
-        ),
+        description="Playwright wait_until strategy: load|domcontentloaded|networkidle|commit.",
     )
     scraper_playwright_capture_json_default: bool = Field(
         default=False,
@@ -517,7 +629,7 @@ class Settings(BaseSettings):
     scraper_playwright_settle_ms_default: int = Field(
         default=2500,
         alias="SCRAPER_PLAYWRIGHT_SETTLE_MS_DEFAULT",
-        description="Default time (ms) to wait after navigation to allow XHR/fetch requests to finish.",
+        description="Time (ms) to wait after navigation for XHR/fetch requests to finish.",
     )
     scraper_max_ocr_images: int = Field(
         default=10,
@@ -532,10 +644,7 @@ class Settings(BaseSettings):
     scraper_enable_transcribe: bool = Field(
         default=False,
         alias="SCRAPER_ENABLE_TRANSCRIBE",
-        description=(
-            "Enable media transcription. When disabled, transcribe endpoints/tools "
-            "return a structured error and workflows skip transcription."
-        ),
+        description="Enable media transcription. Disabled: endpoints return structured error.",
     )
     scraper_whisper_model_name: str = Field(
         default="base",

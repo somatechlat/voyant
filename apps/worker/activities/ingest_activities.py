@@ -16,8 +16,8 @@ from temporalio import activity
 from apps.core.config import get_settings
 from apps.core.lib.circuit_breaker import CircuitBreakerOpenError
 from apps.core.lib.contracts import get_contract, validate_schema
-from apps.core.lib.lineage import get_lineage_graph
 from apps.core.lib.retry_config import TIMEOUTS
+from apps.governance.lib.lineage import get_lineage_graph
 
 logger = logging.getLogger(__name__)
 _SAFE_IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")

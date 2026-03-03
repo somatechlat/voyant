@@ -12,8 +12,8 @@ import sys
 # Add project root to path
 sys.path.append(os.getcwd())
 
-from apps.core.lib.ml_primitives import MLPrimitives
-from apps.core.lib.nlp_primitives import NLPPrimitives
+from apps.analysis.lib.ml_primitives import MLPrimitives
+from apps.analysis.lib.nlp_primitives import NLPPrimitives
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("verify_ops")

@@ -115,7 +115,7 @@ class UPTPExecutionEngine:
             if "chart" in request.template_id:
                 import pandas as pd
 
-                from apps.services.visualize.plotly_engine import PlotlyRenderer
+                from apps.core.lib.plotly_engine import PlotlyRenderer
 
                 df = pd.DataFrame(request.params.get("data", []))
                 if "bar" in request.template_id:
@@ -144,7 +144,7 @@ class UPTPExecutionEngine:
                 }
 
             elif "document" in request.template_id:
-                from apps.services.reporting.pdf_engine import PDFAssembler
+                from apps.core.lib.pdf_engine import PDFAssembler
 
                 template_name = request.template_id.split(".")[
                     -1

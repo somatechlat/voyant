@@ -283,7 +283,7 @@ class FileSecretsBackend(SecretsBackend):
 
     def __init__(self, path: str = ".secrets.json", encrypt_key: Optional[str] = None):
         self._path = Path(path)
-        self._encrypt_key = encrypt_key or os.getenv("UDB_SECRET_KEY")
+        self._encrypt_key = encrypt_key or get_settings().udb_secret_key
         self._fernet = None
 
         if self._encrypt_key:

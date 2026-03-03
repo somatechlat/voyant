@@ -13,11 +13,6 @@ from apps.core.lib.namespace_analyzer import (
 )
 from apps.core.lib.temporal_client import get_temporal_client
 from apps.core.middleware import get_tenant_id
-from apps.integrations.soma import (
-    create_task_for_job,
-    remember_summary,
-    update_task_status,
-)
 from apps.worker.workflows.analyze_workflow import AnalyzeWorkflow
 from apps.workflows.models import Job
 
@@ -94,17 +89,9 @@ def analyze(request, payload: AnalyzeRequest):
     job = _create_job(request, "analyze", payload.source_id or table, {"table": table})
     job_id = str(job.job_id)
 
-    soma_task_id = run_async(
-        create_task_for_job, job_id, job.job_type, job.source_id, policy_prompt
-    )
-    if soma_task_id:
-        Job.objects.filter(job_id=job.job_id).update(soma_task_id=soma_task_id)
-
     job.status = "running"
     job.started_at = datetime.utcnow()
     job.save(update_fields=["status", "started_at"])
-    if soma_task_id:
-        run_async(update_task_status, soma_task_id, "running")
 
     artifacts: Dict[str, Any] = {}
     manifest: List[Dict[str, Any]] = []
@@ -134,9 +121,6 @@ def analyze(request, payload: AnalyzeRequest):
         job.completed_at = datetime.utcnow()
         job.result_summary = summary
         job.save()
-        if soma_task_id:
-            run_async(update_task_status, soma_task_id, "completed")
-        run_async(remember_summary, job_id, job.status, summary, manifest)
 
         return AnalyzeResponse(
             job_id=job_id,
@@ -150,6 +134,4 @@ def analyze(request, payload: AnalyzeRequest):
         job.status = "failed"
         job.error_message = str(exc)
         job.save()
-        if soma_task_id:
-            run_async(update_task_status, soma_task_id, "failed", reason=str(exc))
         raise HttpError(500, str(exc)) from exc

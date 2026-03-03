@@ -23,6 +23,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
+    # Django / API
     "Django>=5.0.0",
     "django-ninja>=1.1.0",
     "django-mcp>=0.3.1",
@@ -30,14 +31,55 @@ dependencies = [
     "uvicorn[standard]>=0.24.0",
     "pydantic>=2.5.0",
     "pydantic-settings>=2.1.0",
+    "python-dotenv>=1.0.0",
+    # Database
     "psycopg[binary]>=3.1.18",
+    # Cache
     "redis>=5.0.0",
+    # HTTP
     "httpx>=0.25.0",
+    "requests>=2.31.0",
+    # SQL Federation
     "trino>=0.327.0",
+    # Object Storage
     "minio>=7.2.0",
-    "pyRserve>=1.0.0",
+    # Messaging
+    "confluent-kafka>=2.3.0",
+    # Workflow Engine
     "temporalio>=1.4.0",
+    # Secrets / Auth
     "hvac>=2.1.0",
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.4",
+    # Data Processing
+    "pandas>=2.1.0",
+    "pyarrow>=14.0.0",
+    "scikit-learn>=1.3.0",
+    "duckdb>=0.10.0",
+    "lxml>=5.0.0",
+    "cssselect>=1.2.0",
+    "pyyaml>=6.0.0",
+    # DataScraper
+    "playwright>=1.40.0",
+    "scrapy>=2.11.0",
+    "beautifulsoup4>=4.12.0",
+    "pdfplumber>=0.10.0",
+    "pytesseract>=0.3.10",
+    "fake-useragent>=1.4.0",
+    "Pillow>=10.0.0",
+    # NLP
+    "nltk>=3.8.0",
+    # Profiling & Quality
+    "ydata-profiling>=4.6.0",
+    "great-expectations>=0.18.0",
+    # Observability
+    "prometheus-client>=0.19.0",
+    "opentelemetry-api>=1.21.0",
+    "opentelemetry-sdk>=1.21.0",
+    "opentelemetry-exporter-otlp>=1.21.0",
+    # Math / R bridge
+    "pyRserve>=1.0.0",
+    # Authorization
     "authzed>=1.0.0",
 ]
 
@@ -46,15 +88,13 @@ dev = [
     "pytest>=7.4.0",
     "pytest-asyncio>=0.21.0",
     "pytest-cov>=4.1.0",
-    "ruff>=0.1.0",
+    "pytest-django>=4.7.0",
+    "pytest-env>=1.1.0",
+    "ruff>=0.4.0",
+    "black>=24.0.0",
+    "pyright>=1.1.350",
     "mypy>=1.7.0",
     "django-types>=0.19.0",
-]
-processing = [
-    "pandas>=2.1.0",
-    "pyarrow>=14.0.0",
-    "ydata-profiling>=4.6.0",
-    "great-expectations>=0.18.0",
 ]
 
 [project.scripts]
@@ -77,12 +117,14 @@ markers = [
 ]
 # Set environment variables for tests
 env = [
-    "VOYANT_ENV=test",
+    "VOYANT_ENV=local",
     "DATABASE_URL=postgresql://voyant:voyant@localhost:45432/voyant_test",
     "REDIS_URL=redis://:voyant@localhost:45379/1",
     "VOYANT_SECRET_KEY=test-secret-key-for-testing-only-min-50-chars-long-django-security",
     "VOYANT_DEBUG=false",
     "VOYANT_SECURITY_ENABLED=false",
+    'VOYANT_ALLOWED_HOSTS=["*","localhost","127.0.0.1","testserver"]',
+    "VOYANT_SECRETS_BACKEND=env",
 ]
 
 [tool.ruff]

@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from apps.services.analysis.anomaly_detection import (
+from apps.analysis.lib.anomaly_detection import (
     SKLEARN_AVAILABLE,
     AnomalyDetector,
 )

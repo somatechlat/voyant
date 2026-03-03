@@ -14,7 +14,7 @@ import pandas as pd
 # Add project root to path
 sys.path.append(os.getcwd())
 
-from apps.core.lib.cleaning_primitives import DataCleaningPrimitives
+from apps.analysis.lib.cleaning_primitives import DataCleaningPrimitives
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("verify_clean")

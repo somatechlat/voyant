@@ -9,8 +9,8 @@ import pytest
 
 pytest.importorskip("weasyprint")
 
-from apps.services.reporting.pdf_engine import PDFAssembler
-from apps.services.sandbox.python_node import PythonSandboxNode
+from apps.core.lib.pdf_engine import PDFAssembler
+from apps.core.lib.python_sandbox import PythonSandboxNode
 from apps.uptp_core.engine import UPTPExecutionEngine
 from apps.uptp_core.schemas import TemplateExecutionRequest
 

@@ -12,7 +12,7 @@ import pandas as pd
 from temporalio import activity
 
 from apps.core.config import get_settings
-from apps.core.lib.quality_rules import (
+from apps.ingestion.lib.quality_rules import (
     NullCheck,
     QualityEngine,
     QualityRule,

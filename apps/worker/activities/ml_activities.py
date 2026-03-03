@@ -12,9 +12,9 @@ from typing import Any, Dict
 
 from temporalio import activity
 
+from apps.analysis.lib.forecast_primitives import ForecastPrimitives
+from apps.analysis.lib.ml_primitives import MLPrimitives
 from apps.core.lib.errors import AnalysisError
-from apps.core.lib.forecast_primitives import ForecastPrimitives
-from apps.core.lib.ml_primitives import MLPrimitives
 
 logger = logging.getLogger(__name__)
 

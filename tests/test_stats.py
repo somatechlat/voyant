@@ -4,12 +4,12 @@ import pandas as pd
 import pytest
 
 from apps.core.lib.errors import ValidationError
-from apps.core.lib.stats import StatisticalEngine
+from apps.analysis.lib.stats import StatisticalEngine
 
 
 @pytest.fixture
 def mock_r_engine():
-    with patch("apps.core.lib.stats.REngine") as MockREngine:
+    with patch("apps.analysis.lib.stats.REngine") as MockREngine:
         engine = MockREngine.return_value
         yield engine
 

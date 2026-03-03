@@ -8,9 +8,12 @@ ENV_FILE="$STANDALONE_DIR/.env"
 
 "$SCRIPT_DIR/bootstrap-env.sh" "$ENV_FILE"
 
-docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" down --remove-orphans
+PROJECT_NAME="${COMPOSE_PROJECT_NAME:-$(grep -E '^COMPOSE_PROJECT_NAME=' "$ENV_FILE" | head -n1 | cut -d'=' -f2-)}"
+PROJECT_NAME="${PROJECT_NAME:-voyant_cluster}"
 
-docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d
+docker compose -p "$PROJECT_NAME" -f "$COMPOSE_FILE" --env-file "$ENV_FILE" down --remove-orphans
+
+docker compose -p "$PROJECT_NAME" -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d
 
 services=(
   voyant_api
@@ -56,7 +59,7 @@ done
 
 if (( all_ok != 1 )); then
   echo "Cluster did not reach running state in time" >&2
-  docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps
+  docker compose -p "$PROJECT_NAME" -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps
   exit 1
 fi
 

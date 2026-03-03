@@ -6,7 +6,7 @@ Full self-contained deployment with all infrastructure services.
 
 ```bash
 # Standalone mode (full local stack)
-docker compose up -d
+docker compose -p voyant_cluster up -d
 ```
 
 Resilient startup (recommended):
@@ -63,7 +63,7 @@ Total: ~10GB allocated across all services.
 curl "${VOYANT_API_HEALTHCHECK_URL}"
 
 # Check all services
-docker compose ps
+docker compose -p voyant_cluster ps
 ```
 
 ## Files

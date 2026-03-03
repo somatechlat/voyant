@@ -9,7 +9,7 @@ Date: 2025-12-17
 This document defines the functional and non-functional requirements of Voyant v3.0.0 as implemented in the current codebase. It is the single canonical specification for system behavior, interfaces, and operational constraints.
 
 ### 1.2 Scope
-Voyant is an autonomous data intelligence service that exposes data discovery, ingestion, profiling, quality checks, analytics, and artifact access via REST APIs and MCP tools. The system integrates with external services (Temporal, Kafka, Trino, MinIO, DataHub, Keycloak, Lago) and runs as a containerized stack.
+Voyant is an autonomous data intelligence service that exposes data discovery, ingestion, profiling, quality checks, analytics, and artifact access via REST APIs and MCP tools. The system integrates with external services (Temporal, Kafka, Trino, MinIO, DataHub, Keycloak) and runs as a containerized stack.
 
 ### 1.3 Definitions and Abbreviations
 - API: Application Programming Interface
@@ -19,8 +19,6 @@ Voyant is an autonomous data intelligence service that exposes data discovery, i
 - Trino: SQL query engine
 - MinIO: S3-compatible object storage
 - DataHub: Metadata governance platform
-- SomaAgentHub: Orchestration and policy hub (gateway, orchestrator, identity, memory).
-- SomaAgent01: Agent operating system (Django) with tool registry and MCP clients.
 - Apache Iceberg: Lakehouse table format with versioned datasets
 - Apache Flink: Stream processing engine
 - Apache Ranger: Data access policy enforcement
@@ -41,7 +39,7 @@ Voyant is an autonomous data intelligence service that exposes data discovery, i
 
 ## 2. Overall Description
 ### 2.1 Product Perspective
-Voyant is a Django (Ninja) service with an optional MCP server. It orchestrates workflows via Temporal, executes SQL via Trino, stores artifacts in MinIO, and integrates with external systems for metadata and billing. Voyant can be registered as a tool provider for SomaAgentHub and SomaAgent01, receiving upstream context and publishing analysis outputs back into the Soma stack.
+Voyant is a Django (Ninja) service with an optional MCP server. It orchestrates workflows via Temporal, executes SQL via Trino, stores artifacts in MinIO, and integrates with external systems for metadata and billing. Voyant can be registered as a tool provider for external agents, receiving upstream context and publishing analysis outputs back into the Soma stack.
 
 ### 2.2 Product Functions
 - Provide REST API endpoints for health, source discovery, job execution, SQL query, artifacts, presets, discovery catalog, governance, and semantic search.
@@ -54,8 +52,6 @@ Voyant is a Django (Ninja) service with an optional MCP server. It orchestrates 
 - Integrate with Keycloak for optional authentication.
 - Support secrets backends (env, k8s, vault, file, in-memory).
 - Apply CORS middleware with configurable origins.
-- Integrate with SomaAgentHub (gateway, orchestrator, policy, memory) for agent session execution.
-- Expose MCP tool metadata for SomaAgent01 tool registry and tool invocation flows.
 - Provide lakehouse storage using Apache Iceberg.
 - Provide streaming analytics using Apache Flink.
 - Provide data access policy enforcement using Apache Ranger.
@@ -74,7 +70,7 @@ Voyant is a Django (Ninja) service with an optional MCP server. It orchestrates 
 ### 2.4 Operating Environment
 - Python 3.11+ runtime.
 - Docker Compose or Kubernetes deployment.
-- External services: PostgreSQL, Redis, Kafka, Temporal, Trino, MinIO, DataHub, Keycloak, Lago.
+- External services: PostgreSQL, Redis, Kafka, Temporal, Trino, MinIO, DataHub, Keycloak.
 
 ### 2.5 Constraints
 - SQL execution uses Trino only; non-SELECT statements are rejected.
@@ -85,7 +81,6 @@ Voyant is a Django (Ninja) service with an optional MCP server. It orchestrates 
 ### 2.6 Assumptions and Dependencies
 - External services are reachable and configured via environment variables.
 - Kafka and Temporal are optional but required for full event and workflow features.
-- SomaAgentHub services are reachable when Soma integration is enabled.
 
 ## 3. Functional Requirements
 ### FR-1: API Service
@@ -169,9 +164,6 @@ Voyant is a Django (Ninja) service with an optional MCP server. It orchestrates 
 - FR-18.1 The system shall emit Kafka events using a typed event schema registry.
 - FR-18.2 The system shall validate payloads before emission.
 
-### FR-19: Billing
-- FR-19.1 The system shall provide a Lago billing client for usage events and customer/subscription operations.
-
 ### FR-20: Lakehouse Storage (Apache Iceberg)
 - FR-20.1 The system shall store analytical tables in Apache Iceberg.
 - FR-20.2 The system shall maintain versioned table snapshots for reproducibility.
@@ -208,14 +200,6 @@ Voyant is a Django (Ninja) service with an optional MCP server. It orchestrates 
 - FR-28.1 The system shall parse documents with Apache Tika when configured.
 - FR-28.2 The system shall store extracted text with provenance metadata.
 
-### FR-29: Soma Stack Integration (SomaAgentHub + SomaAgent01)
-- FR-29.1 The system shall accept upstream context headers from SomaAgentHub (tenant, user, session, trace).
-- FR-29.2 The system shall validate or delegate identity tokens issued by SomaAgentHub identity services.
-- FR-29.3 The system shall request policy decisions from SomaAgentHub Policy Engine for sensitive actions.
-- FR-29.4 The system shall publish job status updates to SomaAgentHub Orchestrator when configured.
-- FR-29.5 The system shall persist analysis summaries and artifacts to SomaAgentHub Memory Gateway when configured.
-- FR-29.6 The system shall expose MCP tool metadata suitable for SomaAgent01 tool registry ingestion.
-
 ## 4. External Interfaces
 ### 4.1 REST API
 Base path: `/v1` for most endpoints.
@@ -250,38 +234,23 @@ Kafka topics (default):
 - Request header `X-Tenant-ID` scopes tenant context (default: `default`).
 - API version negotiation uses `Accept: application/vnd.voyant.vN+json` or `X-API-Version: vN`.
 
-### 4.6 Soma Stack Integration Interfaces
-Inbound from SomaAgentHub:
-- Context headers: `X-Tenant-ID`, `X-User-ID`, `X-Soma-Session-ID`, `X-Request-ID`, `traceparent`.
-- Auth header: `Authorization: Bearer <token>` (issued by identity service).
-Outbound to SomaAgentHub (configurable base URLs):
-- Policy Engine: `POST /v1/evaluate` with tenant/user/session metadata.
-- Memory Gateway: `POST /v1/remember`, `POST /v1/rag/retrieve` for summary storage and recall.
-- Orchestrator: `/v1/sessions/*` for session updates when required.
-Outbound to SomaAgent01:
-- MCP tool registration and tool invocation through SomaAgent01 tool registry and MCP client settings.
-
 ## 5. Data Requirements
 - Job and source records are stored in PostgreSQL via Django ORM.
-- Job records may include upstream `soma_session_id` when provided.
 - Artifacts are stored in MinIO and referenced by object keys.
 - Iceberg tables store curated datasets with snapshot metadata.
 - Stream outputs may be persisted to Iceberg, Druid, or Pinot.
-- Soma memory entries store analysis summaries keyed by tenant/session/job when configured.
 
 ## 6. Security Requirements
 - JWT validation via Keycloak with JWKS retrieval.
 - Tenant scoping via `X-Tenant-ID` header.
 - SQL validation to reject mutating statements.
 - Secrets must not be logged and should be retrieved via configured backend.
-- Service-to-service requests from SomaAgentHub shall use validated identity tokens or mTLS.
 
 ## 7. Observability Requirements
 - Structured logging with correlation and workflow context is provided in core utilities.
 - Prometheus metrics are exposed via a separate server in the worker (`voyant_*` metrics).
 - A metrics mode subsystem exists but is not wired to an HTTP endpoint in the API.
 - Distributed tracing shall be exported to Apache SkyWalking when configured.
-- Trace context from SomaAgentHub shall be propagated when present.
 
 ## 8. Quality Requirements (ISO/IEC 25010)
 ### 8.1 Performance Efficiency
@@ -316,10 +285,9 @@ Outbound to SomaAgent01:
 - Kafka event payloads shall validate against registered schemas.
 
 ## 9. Deployment Requirements
-- Docker Compose stack includes API, MCP server, Temporal, Kafka, Redis, Postgres, MinIO, Trino, DataHub, Keycloak, Lago, and worker.
+- Docker Compose stack includes API, MCP server, Temporal, Kafka, Redis, Postgres, MinIO, Trino, DataHub, Keycloak, and worker.
 - Environment variables configure all service endpoints and credentials.
 - Production deployment shall include Apache Iceberg, Ranger, Atlas, SkyWalking, NiFi, Superset, and optional Druid/Pinot clusters.
-- When deployed with the Soma stack, Voyant shall run behind SomaAgentHub Gateway/Orchestrator with service-to-service auth.
 
 ## 10. Limitations
 - No API-level metrics endpoint is implemented in the Django application.
@@ -336,8 +304,6 @@ Outbound to SomaAgent01:
 - V-7 Flink streaming pipeline produces continuous KPIs.
 - V-8 Ranger policies deny unauthorized queries.
 - V-9 SkyWalking traces show API → workflow → activity chains.
-- V-10 Soma policy engine receives evaluate requests for sensitive actions when enabled.
-- V-11 Soma memory gateway stores analysis summaries when enabled.
 
 ## 12. Requirements Traceability (Code Modules)
 | Requirement | Primary Modules |
@@ -360,7 +326,6 @@ Outbound to SomaAgent01:
 | FR-16 | `apps/core/security/auth.py`, `apps/core/middleware.py` |
 | FR-17 | `apps/core/security/secrets.py`, `apps/core/lib/secrets.py` |
 | FR-18 | `apps/core/lib/events.py`, `apps/core/lib/event_schema.py` |
-| FR-19 | `apps/billing/lago.py` |
 | FR-20 | `apps/core/lib/iceberg.py` (planned), `config/iceberg/*` (planned) |
 | FR-21 | `apps/streaming/*` (planned), `config/flink/*` (planned) |
 | FR-22 | `apps/core/security/policy.py` (planned), Ranger integration (planned) |
@@ -370,7 +335,6 @@ Outbound to SomaAgent01:
 | FR-26 | `apps/bi/superset.py` (planned) |
 | FR-27 | `apps/olap/druid.py` (planned), `apps/olap/pinot.py` (planned) |
 | FR-28 | `apps/ingestion/lib/tika.py` (planned) |
-| FR-29 | `apps/core/middleware.py`, `apps/core/security/auth.py`, `apps/core/lib/events.py`, `apps/integrations/soma.py` (planned) |
 
 ## 13. Error Code Traceability
 Error codes follow the `VYNT-XXXX` format and are defined in `apps/core/lib/errors.py` with additional domain-specific errors in analysis and ingestion modules.
@@ -396,7 +360,6 @@ Error codes follow the `VYNT-XXXX` format and are defined in `apps/core/lib/erro
 | MinIO | Artifact storage | `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY` | Yes (artifacts) |
 | DataHub | Governance queries | `DATAHUB_GMS_URL` | Optional |
 | Keycloak | Authentication | `KEYCLOAK_URL`, `KEYCLOAK_REALM`, `KEYCLOAK_CLIENT_ID`, `KEYCLOAK_CLIENT_SECRET` | Optional |
-| Lago | Billing | `LAGO_API_URL`, `LAGO_API_KEY` | Optional |
 | Apache Iceberg | Lakehouse tables | `ICEBERG_CATALOG`, `ICEBERG_WAREHOUSE` | Yes (lakehouse mode) |
 | Apache Flink | Streaming analytics | `FLINK_JOBMANAGER_URL` | Optional |
 | Apache Ranger | Policy enforcement | `RANGER_ADMIN_URL` | Optional |
@@ -407,11 +370,6 @@ Error codes follow the `VYNT-XXXX` format and are defined in `apps/core/lib/erro
 | Apache Druid | OLAP store | `DRUID_BROKER_URL` | Optional |
 | Apache Pinot | OLAP store | `PINOT_BROKER_URL` | Optional |
 | Apache Tika | Document parsing | `TIKA_URL` | Optional |
-| SomaAgentHub Gateway | Upstream entry point | `SOMA_GATEWAY_URL` | Optional |
-| SomaAgentHub Orchestrator | Workflow coordination | `SOMA_ORCHESTRATOR_URL` | Optional |
-| SomaAgentHub Identity | Token issuance/validation | `SOMA_IDENTITY_URL` | Optional |
-| SomaAgentHub Policy Engine | Policy decisions | `SOMA_POLICY_URL` | Optional |
-| SomaAgentHub Memory Gateway | Long-term memory | `SOMA_MEMORY_URL` | Optional |
 
 ## 15. Appendix: Configuration Summary
 Selected environment variables (non-exhaustive):
@@ -420,9 +378,7 @@ Selected environment variables (non-exhaustive):
 - `TRINO_HOST`, `TRINO_PORT`, `TRINO_CATALOG`, `TRINO_SCHEMA`
 - `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`
 - `KEYCLOAK_URL`, `KEYCLOAK_REALM`, `KEYCLOAK_CLIENT_ID`, `KEYCLOAK_CLIENT_SECRET`
-- `LAGO_API_URL`, `LAGO_API_KEY`
-- Feature flags: `VOYANT_ENABLE_QUALITY`, `VOYANT_ENABLE_BILLING`, `VOYANT_ENABLE_DATAHUB`, `VOYANT_ENABLE_CHARTS`, `VOYANT_ENABLE_NARRATIVE`, `VOYANT_METRICS_MODE`
+- Feature flags: `VOYANT_ENABLE_QUALITY`, `VOYANT_ENABLE_DATAHUB`, `VOYANT_ENABLE_CHARTS`, `VOYANT_ENABLE_NARRATIVE`, `VOYANT_METRICS_MODE`
 - `ICEBERG_CATALOG`, `ICEBERG_WAREHOUSE`
 - `FLINK_JOBMANAGER_URL`, `RANGER_ADMIN_URL`, `ATLAS_URL`, `SKYWALKING_OAP_URL`
 - `NIFI_URL`, `SUPERSET_URL`, `DRUID_BROKER_URL`, `PINOT_BROKER_URL`, `TIKA_URL`
-- `SOMA_GATEWAY_URL`, `SOMA_ORCHESTRATOR_URL`, `SOMA_IDENTITY_URL`, `SOMA_POLICY_URL`, `SOMA_MEMORY_URL`

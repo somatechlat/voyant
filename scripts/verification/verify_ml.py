@@ -14,8 +14,8 @@ from datetime import datetime, timedelta
 
 sys.path.append(os.getcwd())
 
-from apps.core.lib.forecast_primitives import ForecastPrimitives
-from apps.core.lib.ml_primitives import MLPrimitives
+from apps.analysis.lib.forecast_primitives import ForecastPrimitives
+from apps.analysis.lib.ml_primitives import MLPrimitives
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("verify_ml")

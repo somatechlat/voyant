@@ -1,4 +1,3 @@
-import os
 import logging
 
 from authzed.api.v1 import (
@@ -21,12 +20,14 @@ class SpiceDBClient:
     Client for Authzed SpiceDB.
 
     Handles permission checks against the SpiceDB service.
+    All credentials are loaded from get_settings(), which enforces
+    Vault in non-local environments.
     """
 
     def __init__(self):
-        get_settings()
-        self.endpoint = os.getenv("VOYANT_SPICEDB_ENDPOINT", "voyant_spicedb:50051")
-        self.token = os.getenv("VOYANT_SPICEDB_GRPC_PRESHARED_KEY", "")
+        settings = get_settings()
+        self.endpoint = settings.spicedb_endpoint
+        self.token = settings.spicedb_grpc_preshared_key
         if not self.token:
             logger.warning("VOYANT_SPICEDB_GRPC_PRESHARED_KEY is not set")
         self._client = None

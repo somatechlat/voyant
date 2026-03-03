@@ -9,16 +9,21 @@ logger = logging.getLogger(__name__)
 
 class TemplateCategory(str, Enum):
     """
-    ISO-compliant categorizations for the UPTP ecosystem.
-    Prevents arbitrary or unmapped template domains.
+    Implemented UPTP execution categories.
+
+    Architect Mandate: ONLY categories with a real physical execution route
+    in UPTPExecutionEngine.dispatch_execution() may be listed here.
+    Non-implemented categories are removed until routes exist.
+
+    Implemented:
+        INGESTION  → IngestDataWorkflow / ScrapeWorkflow / DeepResearchWorkflow
+        MATH       → SandboxWorkflow (Docker-isolated Python)
+        RENDER     → PlotlyRenderer (charts) / PDFAssembler (documents)
     """
 
     INGESTION = "ingestion"
-    TRANSFORMATION = "transformation"
     MATH = "math"
-    INFRASTRUCTURE = "infrastructure"
     RENDER = "render"
-    PIPELINE = "pipeline"
 
 
 class TemplateExecutionRequest(BaseModel):

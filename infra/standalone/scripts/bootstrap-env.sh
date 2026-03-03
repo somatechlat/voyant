@@ -57,6 +57,7 @@ ensure_secret() {
 
 ensure_secret "VOYANT_SECRET_KEY" rand_b64_urlsafe
 ensure_secret "SECRET_KEY" rand_b64_urlsafe
+set_kv "COMPOSE_PROJECT_NAME" "voyant_cluster"
 ensure_secret "POSTGRES_PASSWORD" rand_b64_urlsafe
 ensure_secret "REDIS_PASSWORD" rand_b64_urlsafe
 ensure_secret "MINIO_ACCESS_KEY" rand_hex

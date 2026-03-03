@@ -15,11 +15,11 @@ from typing import Any, Dict, List
 
 from temporalio import activity
 
-from apps.core.lib.cleaning_primitives import DataCleaningPrimitives
-from apps.core.lib.forecast_primitives import PROPHET_AVAILABLE, ForecastPrimitives
-from apps.core.lib.forecasting import forecast
-from apps.core.lib.ml_primitives import MLPrimitives
-from apps.core.lib.nlp_primitives import NLPPrimitives
+from apps.analysis.lib.cleaning_primitives import DataCleaningPrimitives
+from apps.analysis.lib.forecast_primitives import PROPHET_AVAILABLE, ForecastPrimitives
+from apps.analysis.lib.forecasting import forecast
+from apps.analysis.lib.ml_primitives import MLPrimitives
+from apps.analysis.lib.nlp_primitives import NLPPrimitives
 
 logger = logging.getLogger(__name__)
 

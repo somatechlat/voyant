@@ -6,12 +6,33 @@
 # Cluster: voyant_cluster
 # Port Range: 45xxx
 #
+# MEMORY BUDGET: 8GB HARD CAP (Rule: cluster cannot exceed 8GB total)
+#   voyant_api        768M
+#   voyant_worker     512M
+#   postgres          512M
+#   redis             256M
+#   kafka             768M
+#   minio             384M
+#   searxng           256M
+#   temporal          384M
+#   temporal_ui       128M
+#   trino             768M
+#   elasticsearch     512M
+#   vault             256M
+#   spicedb           192M
+#   keycloak          384M
+#   flink_jobmanager  512M
+#   flink_taskmanager 512M
+#   TOTAL             ~7.4GB (safe under 8GB)
+#
 # Usage:
 #   cd infra/standalone
 #   docker compose up -d
 #   docker compose --profile datahub up -d  # optional DataHub services
 #
 # =============================================================================
+
+name: voyant_cluster
 
 x-common: &common
   restart: always
@@ -100,10 +121,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.5'
+          cpus: '1.0'
           memory: 768M
         reservations:
-          cpus: '0.5'
+          cpus: '0.25'
           memory: 256M
     networks:
       - voyant_cluster
@@ -144,7 +165,11 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '1.0'
           memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
     networks:
       - voyant_cluster
 
@@ -170,7 +195,10 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '0.5'
           memory: 512M
+        reservations:
+          memory: 128M
     networks:
       voyant_cluster:
         aliases:
@@ -224,7 +252,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1G
+          cpus: '0.75'
+          memory: 768M
+        reservations:
+          memory: 256M
     networks:
       - voyant_cluster
 
@@ -247,7 +278,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          cpus: '0.5'
+          memory: 384M
+        reservations:
+          memory: 64M
     networks:
       - voyant_cluster
 
@@ -281,7 +315,10 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '0.25'
           memory: 256M
+        reservations:
+          memory: 64M
     networks:
       - voyant_cluster
 
@@ -306,7 +343,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          cpus: '0.5'
+          memory: 384M
+        reservations:
+          memory: 128M
     networks:
       - voyant_cluster
 
@@ -324,7 +364,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          memory: 32M
     networks:
       - voyant_cluster
 
@@ -342,7 +385,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1G
+          cpus: '1.0'
+          memory: 768M
+        reservations:
+          memory: 256M
     networks:
       - voyant_cluster
 
@@ -370,7 +416,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 768M
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          memory: 256M
     networks:
       - voyant_cluster
 
@@ -446,6 +495,13 @@ services:
       - IPC_LOCK
     volumes:
       - voyant_vault_data:/vault/file
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+        reservations:
+          memory: 64M
     networks:
       - voyant_cluster
 
@@ -460,6 +516,13 @@ services:
       - "8443:8443"
     environment:
       SPICEDB_GRPC_PRESHARED_KEY: ${SPICEDB_GRPC_PRESHARED_KEY}
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 192M
+        reservations:
+          memory: 48M
     networks:
       - voyant_cluster
 
@@ -490,59 +553,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
-    networks:
-      - voyant_cluster
-
-  # ===========================================================================
-  # BILLING (Lago)
-  # ===========================================================================
-  voyant_lago_api:
-    <<: *common
-    image: getlago/api:v1.18.0
-    container_name: voyant_lago_api
-    environment:
-      DATABASE_URL: ${LAGO_DATABASE_URL}
-      REDIS_URL: ${LAGO_REDIS_URL}
-      LAGO_API_URL: ${LAGO_API_URL}
-      SECRET_KEY_BASE: ${LAGO_SECRET_KEY}
-      ENCRYPTION_PRIMARY_KEY: ${LAGO_ENCRYPTION_KEY}
-      LAGO_RSA_PRIVATE_KEY: ${LAGO_RSA_PRIVATE_KEY}
-      LAGO_WEBHOOK_ATTEMPTS: 3
-      RAILS_ENV: production
-    ports:
-      - "45300:3000"
-    depends_on:
-      voyant_postgres:
-        condition: service_healthy
-      voyant_redis:
-        condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-    networks:
-      - voyant_cluster
-
-  voyant_lago_worker:
-    <<: *common
-    image: getlago/api:v1.18.0
-    container_name: voyant_lago_worker
-    command: bundle exec sidekiq
-    environment:
-      DATABASE_URL: ${LAGO_DATABASE_URL}
-      REDIS_URL: ${LAGO_REDIS_URL}
-      LAGO_API_URL: ${LAGO_API_URL}
-      SECRET_KEY_BASE: ${LAGO_SECRET_KEY}
-      ENCRYPTION_PRIMARY_KEY: ${LAGO_ENCRYPTION_KEY}
-      LAGO_RSA_PRIVATE_KEY: ${LAGO_RSA_PRIVATE_KEY}
-      RAILS_ENV: production
-    depends_on:
-      - voyant_lago_api
-    deploy:
-      resources:
-        limits:
-          memory: 256M
+          cpus: '0.5'
+          memory: 384M
+        reservations:
+          memory: 64M
     networks:
       - voyant_cluster
 
@@ -566,7 +580,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1G
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          memory: 128M
 
   voyant_flink_taskmanager:
     image: flink:1.18.1-java17
@@ -586,7 +603,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1G
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          memory: 128M
 
 # =============================================================================
 # NETWORK: voyant_cluster
