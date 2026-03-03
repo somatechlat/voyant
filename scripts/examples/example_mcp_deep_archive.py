@@ -17,7 +17,7 @@ def _setup_django() -> None:
 
 
 async def main():
-    from apps.mcp.tools import tool_scrape_deep_archive
+    from apps.mcp.tools_scrape import tool_scrape_deep_archive
 
     print("Testing Generic MCP Deep Archive Tool on SERCOP...")
 

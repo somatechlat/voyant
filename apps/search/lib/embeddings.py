@@ -12,7 +12,7 @@ Features:
 - Dimensionality reduction
 
 Usage:
-    from apps.core.lib.embeddings import (
+    from apps.search.lib.embeddings import (
         EmbeddingExtractor, embed_texts, embed_images,
         calculate_similarity, reduce_dimensions
     )

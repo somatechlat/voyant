@@ -21,7 +21,7 @@ Personas Applied:
 - UX: Quick, readable previews
 
 Usage:
-    from apps.core.lib.artifact_preview import (
+    from apps.workflows.lib.artifact_preview import (
         generate_preview, PreviewConfig,
         get_artifact_summary, extract_html_snippet
     )

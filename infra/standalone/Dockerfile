@@ -5,6 +5,9 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# Ensure apt never waits for interactive prompts during image builds.
+ENV DEBIAN_FRONTEND=noninteractive
+
 # Install system dependencies
 # Core + DataScraper (OCR, PDF, Media, Browser)
 RUN apt-get update && apt-get install -y --no-install-recommends \

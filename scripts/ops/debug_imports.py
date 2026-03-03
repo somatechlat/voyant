@@ -3,7 +3,7 @@ Diagnostic Script for Core Schema Evolution Imports.
 
 Purpose:
     This script is a standalone diagnostic tool designed to test the importability
-    of the `apps.core.lib.schema_evolution` module and its key components. It helps
+    of the `apps.governance.lib.schema_evolution` module and its key components. It helps
     in quickly identifying and isolating circular dependency issues or environment-
     related problems without running the full application.
 
@@ -21,7 +21,7 @@ Expected Output:
 # on success or failure, providing a quick check on the application's
 # foundational components.
 try:
-    import apps.core.lib.schema_evolution as schema_evolution
+    import apps.governance.lib.schema_evolution as schema_evolution
 
     _ = schema_evolution
 

@@ -1,7 +1,8 @@
 """
 Test Schema Evolution Persistence
 
-Verifies DuckDB-backed schema versioning.
+Verifies DuckDB-backed schema versioning using a temporary real DuckDB database.
+No mocking — all connections are real.
 """
 
 import os
@@ -10,8 +11,7 @@ import tempfile
 
 import pytest
 
-from apps.core.config import Settings
-from apps.core.lib.schema_evolution import (
+from apps.governance.lib.schema_evolution import (
     ColumnSchema,
     TableSchema,
     get_latest_schema,
@@ -23,31 +23,31 @@ from apps.core.lib.schema_evolution import (
 
 
 @pytest.fixture
-def mock_settings(monkeypatch):
-    """Override DuckDB path for testing."""
+def temp_duckdb(monkeypatch):
+    """Use a temporary real DuckDB file for schema evolution tests."""
     tmp_dir = tempfile.mkdtemp()
     db_path = os.path.join(tmp_dir, "test_voyant.duckdb")
 
-    # Mock get_settings to return a settings object with our test db path
-    def mock_get():
-        s = Settings()
-        s.duckdb_path = db_path
-        return s
+    # Point the real settings at our temp DuckDB path
+    monkeypatch.setenv("DUCKDB_PATH", db_path)
 
-    monkeypatch.setattr("apps.core.config.get_settings", mock_get)
-    monkeypatch.setattr(
-        "apps.core.lib.schema_evolution.get_settings", mock_get
-    )  # In case it's used there directly
+    # Clear cached settings and registry so they pick up new env
+    from apps.core.config import get_settings
 
-    yield
+    get_settings.cache_clear()
+    reset_registry()
 
-    shutil.rmtree(tmp_dir)
+    yield db_path
+
+    # Cleanup
+    get_settings.cache_clear()
+    reset_registry()
+    shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
 @pytest.fixture
-def clean_registry(mock_settings):
-    """Reset registry and clear DB."""
-    reset_registry()
+def clean_registry(temp_duckdb):
+    """Ensure registry and DB are clear before each test."""
     get_registry().clear()
     yield
 

@@ -18,6 +18,15 @@ def test_feature_flags_env(monkeypatch):
     and then asserts that `get_settings()` reflects these values after
     clearing the settings cache.
     """
+    # Required list fields must be valid JSON for pydantic-settings parsing.
+    monkeypatch.setenv("VOYANT_ALLOWED_HOSTS", '["*","localhost","testserver"]')
+    monkeypatch.setenv("VOYANT_ENV", "local")
+    monkeypatch.setenv("VOYANT_SECRETS_BACKEND", "env")
+    monkeypatch.setenv(
+        "VOYANT_SECRET_KEY",
+        "test-secret-key-for-feature-flag-tests-minimum-50-chars-long",
+    )
+
     # Set environment variables for feature flags.
     monkeypatch.setenv("VOYANT_ENABLE_QUALITY", "0")
     monkeypatch.setenv("VOYANT_ENABLE_CHARTS", "0")
@@ -33,3 +42,6 @@ def test_feature_flags_env(monkeypatch):
     assert s.enable_quality is False
     assert s.enable_charts is False
     assert s.enable_narrative is True
+
+    # Restore cache after test
+    gs.cache_clear()  # type: ignore

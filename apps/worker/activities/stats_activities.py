@@ -15,11 +15,11 @@ from typing import Any, Dict
 import pandas as pd
 from temporalio import activity
 
+from apps.analysis.lib.stats_primitives import RStatsPrimitives
 from apps.core.lib.circuit_breaker import CircuitBreakerOpenError
 from apps.core.lib.errors import ExternalServiceError
 from apps.core.lib.r_bridge import REngine
-from apps.core.lib.schema_evolution import ColumnSchema, TableSchema, track_schema
-from apps.core.lib.stats_primitives import RStatsPrimitives
+from apps.governance.lib.schema_evolution import ColumnSchema, TableSchema, track_schema
 
 logger = logging.getLogger(__name__)
 

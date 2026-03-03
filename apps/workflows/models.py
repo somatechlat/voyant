@@ -13,7 +13,6 @@ class Job(TenantModel, UUIDModel):
     job_type = models.CharField(max_length=64, db_index=True)
     source_id = models.CharField(max_length=36, null=True, blank=True)
     soma_session_id = models.CharField(max_length=128, null=True, blank=True)
-    soma_task_id = models.CharField(max_length=64, null=True, blank=True)
 
     status = models.CharField(max_length=64, default="queued")
     progress = models.IntegerField(default=0)

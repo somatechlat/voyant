@@ -35,7 +35,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
 import time
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -77,16 +76,17 @@ class ConnectionConfig:
 
     @classmethod
     def from_env(cls) -> "ConnectionConfig":
-        """Load configuration from environment."""
-        backend_str = os.getenv("VOYANT_DB_BACKEND", "duckdb_local")
+        """Load configuration from VoyantSettings (Vault-enforced in non-local envs)."""
+        from apps.core.config import get_settings
 
+        s = get_settings()
         return cls(
-            backend=BackendType(backend_str),
-            database_path=os.getenv("VOYANT_DB_PATH", "voyant.duckdb"),
-            motherduck_token=os.getenv("MOTHERDUCK_TOKEN"),
-            max_connections=int(os.getenv("VOYANT_DB_MAX_CONNECTIONS", "10")),
-            connection_timeout=int(os.getenv("VOYANT_DB_CONNECTION_TIMEOUT", "30")),
-            query_timeout=int(os.getenv("VOYANT_DB_QUERY_TIMEOUT", "300")),
+            backend=BackendType(s.db_backend),
+            database_path=s.db_path,
+            motherduck_token=s.motherduck_token or None,
+            max_connections=s.db_max_connections,
+            connection_timeout=s.db_connection_timeout,
+            query_timeout=s.db_query_timeout,
         )
 
 

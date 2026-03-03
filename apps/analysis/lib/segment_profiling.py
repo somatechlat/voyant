@@ -5,7 +5,7 @@ Generate group-level statistical profiles for data segments.
 Enables comparison of customer segments, time periods, or categorical groups.
 
 Usage:
-    from apps.core.lib.segment_profiling import (
+    from apps.analysis.lib.segment_profiling import (
         profile_segments,
         compare_segments,
         SegmentProfile

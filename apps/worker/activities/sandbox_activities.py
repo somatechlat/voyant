@@ -13,7 +13,7 @@ class SandboxActivities:
         """
         Physical bridge to the PythonDockerNode.
         """
-        from apps.services.sandbox.python_node import PythonSandboxNode
+        from apps.core.lib.python_sandbox import PythonSandboxNode
 
         script = params.get("script", "")
         tenant_id = params.get("tenant_id", "default")

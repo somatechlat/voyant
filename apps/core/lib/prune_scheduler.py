@@ -335,20 +335,17 @@ _scheduler: Optional[PruneScheduler] = None
 
 
 def get_prune_config() -> PruneConfig:
-    """Get prune configuration from environment."""
-    import os
+    """Get prune configuration from VoyantSettings (Vault-enforced in non-local envs)."""
+    from apps.core.config import get_settings
 
+    s = get_settings()
     return PruneConfig(
-        enabled=os.getenv("VOYANT_PRUNE_ENABLED", "true").lower() == "true",
-        interval_seconds=int(os.getenv("VOYANT_PRUNE_INTERVAL_SECONDS", "3600")),
-        max_job_age_days=int(os.getenv("VOYANT_PRUNE_MAX_JOB_AGE_DAYS", "30")),
-        max_artifact_age_days=int(
-            os.getenv("VOYANT_PRUNE_MAX_ARTIFACT_AGE_DAYS", "30")
-        ),
-        max_artifacts_per_tenant=int(
-            os.getenv("VOYANT_PRUNE_MAX_ARTIFACTS_PER_TENANT", "1000")
-        ),
-        dry_run=os.getenv("VOYANT_PRUNE_DRY_RUN", "false").lower() == "true",
+        enabled=s.prune_enabled,
+        interval_seconds=s.prune_interval_seconds,
+        max_job_age_days=s.prune_max_job_age_days,
+        max_artifact_age_days=s.prune_max_artifact_age_days,
+        max_artifacts_per_tenant=s.prune_max_artifacts_per_tenant,
+        dry_run=s.prune_dry_run,
     )
 
 

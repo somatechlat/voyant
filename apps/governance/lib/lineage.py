@@ -11,7 +11,7 @@ Features:
 - Lineage JSON export
 
 Usage:
-    from apps.core.lib.lineage import (
+    from apps.governance.lib.lineage import (
         LineageGraph, get_lineage_graph,
         add_lineage_edge, get_upstream, get_downstream
     )

@@ -21,7 +21,7 @@ Personas Applied:
 - UX: Simple connector discovery
 
 Usage:
-    from apps.core.lib.connectors import (
+    from apps.ingestion.lib.connectors import (
         register_connector, list_connectors,
         get_connector, test_connection
     )

@@ -11,7 +11,7 @@ import time
 import duckdb
 import pytest
 
-from apps.core.lib.kpi_templates import render_template
+from apps.analysis.lib.kpi_templates import render_template
 
 logger = logging.getLogger(__name__)
 

@@ -31,9 +31,9 @@ from ninja import Router, Schema
 from ninja.errors import HttpError
 from pydantic import Field
 
-from apps.core.lib.embeddings import get_embedding_extractor
-from apps.core.lib.vector_store import get_vector_store
 from apps.core.middleware import get_tenant_id
+from apps.search.lib.embeddings import get_embedding_extractor
+from apps.search.lib.vector_store import get_vector_store
 
 logger = logging.getLogger(__name__)
 

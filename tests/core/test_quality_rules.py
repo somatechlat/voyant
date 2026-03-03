@@ -5,7 +5,7 @@ Tests for Data Quality Rules Engine.
 import pandas as pd
 import pytest
 
-from apps.core.lib.quality_rules import (
+from apps.ingestion.lib.quality_rules import (
     NullCheck,
     QualityEngine,
     RangeCheck,

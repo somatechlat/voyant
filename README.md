@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-Voyant is an autonomous data intelligence service designed specifically for AI agents, providing end-to-end data discovery, ingestion, profiling, quality analysis, and predictive capabilities through REST APIs and Model Context Protocol (MCP) tools. The system operates as a Django-based microservice with Temporal workflow orchestration and integrates seamlessly with modern data stacks including Apache Iceberg, Trino, and the SomaAgentHub orchestration platform.
+Voyant is an autonomous data intelligence service designed specifically for AI agents, providing end-to-end data discovery, ingestion, profiling, quality analysis, and predictive capabilities through REST APIs and Model Context Protocol (MCP) tools. The system operates as a Django-based microservice with Temporal workflow orchestration and integrates seamlessly with modern data stacks including Apache Iceberg, Trino.
 
 ## System Architecture
 
@@ -26,7 +26,7 @@ Voyant is an autonomous data intelligence service designed specifically for AI a
 ### Service Integration Architecture
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ SomaAgentHub - Gateway/Orchestrator/Policy/Memory Services │
+│ API Gateway & External Agents - Integration Layer │
 └─────────────────────────────────────────────────────────────┘
                               │
 ┌─────────────────────────────▼─────────────────────────────────┐
@@ -72,7 +72,6 @@ Voyant is an autonomous data intelligence service designed specifically for AI a
 - **Audit Logging:** Comprehensive event tracking
 
 ### 5. Soma Stack Integration
-- **Agent Orchestration:** Native support for SomaAgentHub workflows
 - **Policy Integration:** Real-time decision making via Policy Engine
 - **Memory Integration:** Analysis summary persistence and recall
 - **Distributed Tracing:** SkyWalking integration for observability
@@ -204,7 +203,6 @@ docker-compose -f docker-compose.yml up -d
 - Lineage graphs
 
 ### Integration Patterns
-- **SomaAgentHub Native:** Full integration with orchestration workflows
 - **REST API:** Standard HTTP/JSON interface
 - **MCP Tools:** Agent-first tool integration
 - **Event-Driven:** Kafka-based event emission

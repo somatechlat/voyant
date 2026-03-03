@@ -13,6 +13,7 @@ from typing import Any, Dict
 
 import duckdb
 import pandas as pd
+
 from apps.core.errors import IngestionError
 
 logger = logging.getLogger(__name__)

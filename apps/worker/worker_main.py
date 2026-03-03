@@ -23,7 +23,6 @@ from apps.core.config import get_settings
 from apps.core.lib.interceptors import MetricsInterceptor
 from apps.core.lib.monitoring import MetricsRegistry
 from apps.core.lib.temporal_client import get_temporal_client
-from apps.scraper.activities import ScrapeActivities
 from apps.scraper.deep_research_workflow import DeepResearchWorkflow
 from apps.scraper.search_activities import SearchActivities
 
@@ -51,6 +50,7 @@ from apps.worker.workflows.operational_workflows import (
     AnalyzeSentimentWorkflow,
     DetectAnomaliesWorkflow,
     FixDataQualityWorkflow,
+    ForecastWorkflow,
 )
 from apps.worker.workflows.profile_workflow import ProfileWorkflow
 from apps.worker.workflows.quality_workflow import QualityWorkflow
@@ -120,15 +120,25 @@ async def run_worker():
     # non-scraper workflows can violate sandbox restrictions at import-time.
     # We support a dedicated "scraper" mode to run scraping workflows/tools reliably.
     if settings.worker_mode == "scraper":
+        from apps.scraper.activities import (
+            FetchActivities,
+            ParseActivities,
+            StorageActivities,
+        )
+
+        _fetch = FetchActivities()
+        _parse = ParseActivities()
+        _store = StorageActivities()
         workflows = [ScrapeWorkflow]
         activities = [
-            ScrapeActivities().fetch_page,
-            ScrapeActivities().extract_data,
-            ScrapeActivities().process_ocr,
-            ScrapeActivities().transcribe_media,
-            ScrapeActivities().parse_pdf,
-            ScrapeActivities().store_artifact,
-            ScrapeActivities().finalize_job,
+            _fetch.fetch_page,
+            _fetch.deep_archive,
+            _parse.extract_data,
+            _parse.process_ocr,
+            _parse.transcribe_media,
+            _parse.parse_pdf,
+            _store.store_artifact,
+            _store.finalize_job,
         ]
     else:
         workflows = [
@@ -140,6 +150,7 @@ async def run_worker():
             DetectAnomaliesWorkflow,
             AnalyzeSentimentWorkflow,
             FixDataQualityWorkflow,
+            ForecastWorkflow,
             SegmentCustomersWorkflow,
             LinearRegressionWorkflow,
             ScrapeWorkflow,
@@ -172,14 +183,15 @@ async def run_worker():
             OperationalActivities().analyze_sentiment_batch,
             OperationalActivities().fix_data_quality,
             OperationalActivities().clean_data,
-            # DataScraper activities (Pure Execution)
-            ScrapeActivities().fetch_page,
-            ScrapeActivities().extract_data,
-            ScrapeActivities().process_ocr,
-            ScrapeActivities().transcribe_media,
-            ScrapeActivities().parse_pdf,
-            ScrapeActivities().store_artifact,
-            ScrapeActivities().finalize_job,
+            # DataScraper activities — registered per domain class (Rule-245 split)
+            FetchActivities().fetch_page,
+            FetchActivities().deep_archive,
+            ParseActivities().extract_data,
+            ParseActivities().process_ocr,
+            ParseActivities().transcribe_media,
+            ParseActivities().parse_pdf,
+            StorageActivities().store_artifact,
+            StorageActivities().finalize_job,
             SearchActivities().execute_searxng_query,
             # Streaming activities (Flink - FR-21)
             StreamingActivities().get_cluster_overview,

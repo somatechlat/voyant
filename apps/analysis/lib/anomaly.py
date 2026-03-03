@@ -12,7 +12,7 @@ Features:
 - Time series seasonality-aware detection
 
 Usage:
-    from apps.core.lib.anomaly import (
+    from apps.analysis.lib.anomaly import (
         detect_anomalies, AnomalyDetector,
         ZScoreDetector, IQRDetector, MADDetector
     )

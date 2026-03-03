@@ -5,7 +5,7 @@ Persistent storage for embeddings.
 Reference: docs/CANONICAL_ROADMAP.md - Phase 6/Advanced Analytics
 
 Usage:
-    from apps.core.lib.vector_store import VectorStore
+    from apps.search.lib.vector_store import VectorStore
 
     store = VectorStore(dimensions=64)
     store.add(id="doc1", vector=[0.1, ...], metadata={"text": "hello"})

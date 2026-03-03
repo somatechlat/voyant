@@ -10,27 +10,26 @@ from django.http import StreamingHttpResponse
 from ninja import Field, Router, Schema
 from ninja.errors import HttpError
 
-from apps.core.api_utils import apply_policy, run_async
-from apps.core.config import get_settings
-from apps.core.lib.kpi_templates import (
+from apps.analysis.lib.kpi_templates import (
     get_categories as get_kpi_categories,
 )
-from apps.core.lib.kpi_templates import (
+from apps.analysis.lib.kpi_templates import (
     get_template as get_kpi_template,
 )
-from apps.core.lib.kpi_templates import (
+from apps.analysis.lib.kpi_templates import (
     list_templates as list_kpi_templates,
 )
-from apps.core.lib.kpi_templates import (
+from apps.analysis.lib.kpi_templates import (
     render_template as render_kpi_template,
 )
+from apps.core.api_utils import apply_policy, run_async
+from apps.core.config import get_settings
 from apps.core.lib.namespace_analyzer import (
     NamespaceViolationError,
     validate_table_access,
 )
 from apps.core.lib.temporal_client import get_temporal_client
 from apps.core.middleware import get_soma_session_id, get_tenant_id
-from apps.integrations.soma import create_task_for_job, update_task_status
 from apps.worker.workflows.ingest_workflow import IngestDataWorkflow
 from apps.worker.workflows.profile_workflow import ProfileWorkflow
 from apps.worker.workflows.quality_workflow import QualityWorkflow
@@ -184,16 +183,6 @@ def trigger_ingest(request, payload: IngestRequest):
         {"mode": payload.mode, "tables": payload.tables},
     )
 
-    soma_task_id = run_async(
-        create_task_for_job,
-        str(job.job_id),
-        job.job_type,
-        job.source_id,
-        policy_prompt,
-    )
-    if soma_task_id:
-        Job.objects.filter(id=job.id).update(soma_task_id=soma_task_id)
-
     try:
         client = run_async(get_temporal_client)
         run_async(
@@ -210,14 +199,10 @@ def trigger_ingest(request, payload: IngestRequest):
         )
         job.status = "running"
         job.save(update_fields=["status"])
-        if soma_task_id:
-            run_async(update_task_status, soma_task_id, "running")
     except Exception as exc:
         job.status = "failed"
         job.error_message = str(exc)
         job.save(update_fields=["status", "error_message"])
-        if soma_task_id:
-            run_async(update_task_status, soma_task_id, "failed", reason=str(exc))
 
     return _to_job_response(job)
 
@@ -244,16 +229,6 @@ def trigger_profile(request, payload: ProfileRequest):
         {"table": payload.table, "sample_size": payload.sample_size},
     )
 
-    soma_task_id = run_async(
-        create_task_for_job,
-        str(job.job_id),
-        job.job_type,
-        job.source_id,
-        policy_prompt,
-    )
-    if soma_task_id:
-        Job.objects.filter(id=job.id).update(soma_task_id=soma_task_id)
-
     try:
         client = run_async(get_temporal_client)
         run_async(
@@ -271,14 +246,10 @@ def trigger_profile(request, payload: ProfileRequest):
         )
         job.status = "running"
         job.save(update_fields=["status"])
-        if soma_task_id:
-            run_async(update_task_status, soma_task_id, "running")
     except Exception as exc:
         job.status = "failed"
         job.error_message = str(exc)
         job.save(update_fields=["status", "error_message"])
-        if soma_task_id:
-            run_async(update_task_status, soma_task_id, "failed", reason=str(exc))
 
     return _to_job_response(job)
 

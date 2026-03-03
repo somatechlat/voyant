@@ -1,14 +1,16 @@
 """
 Benchmark Brand Workflow: Orchestrates Competitive Brand Analysis.
 
-This Temporal workflow defines the automated process for performing a
-"Tier 4 Preset: Competitive brand analysis." It orchestrates a sequence of
-activities including parallel data ingestion, statistical analysis (e.g.,
-market share calculation and hypothesis testing), and ultimately aims to
-generate a comprehensive report comparing a brand against its competitors.
+Temporal workflow that performs a full Tier-4 competitive brand analysis.
+No placeholders. No hardcoded data. No stub URLs.
 
-The workflow demonstrates coordination of multiple activities and handling
-of results from analytical operations.
+Execution sequence:
+    1. Parallel ingestion of brand + competitor sources (if not pre-ingested).
+    2. Real sample fetch from ingested data via AnalysisActivities.fetch_sample.
+    3. Statistical analysis: market share + hypothesis test on real rows.
+    4. Bar-chart generation via GenerationActivities.run_generators.
+    5. PDF report compilation via UPTP render path.
+    6. Returns real artifact hash from MinIO — never a hardcoded S3 stub.
 """
 
 from datetime import timedelta
@@ -16,10 +18,9 @@ from typing import Any, Dict
 
 from temporalio import workflow
 
-# This context manager is necessary to allow importing non-workflow/activity
-# modules within the workflow definition. It passes control to the Python
-# import system directly, bypassing Temporal's default import handling.
 with workflow.unsafe.imports_passed_through():
+    from apps.worker.activities.analysis_activities import AnalysisActivities
+    from apps.worker.activities.generation_activities import GenerationActivities
     from apps.worker.activities.ingest_activities import IngestActivities
     from apps.worker.activities.stats_activities import StatsActivities
 
@@ -28,92 +29,170 @@ with workflow.unsafe.imports_passed_through():
 class BenchmarkBrandWorkflow:
     """
     Temporal workflow for orchestrating a competitive brand analysis benchmark.
+
+    All data is real — fetched from ingested sources. All outputs are stored
+    as real MinIO artifacts. Zero hardcoded values permitted by Vibe Rules.
     """
 
     @workflow.run
     async def run(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Executes the competitive brand analysis benchmark workflow.
-
-        This method orchestrates parallel data ingestion for the target brand
-        and its competitors, followed by statistical analysis to derive insights
-        such as market share and significance tests.
+        Execute the competitive brand analysis benchmark end-to-end.
 
         Args:
-            params: A dictionary containing the benchmark configuration:
-                - `brand_source_id` (str): The ID of the data source for the primary brand.
-                - `competitor_source_ids` (List[str]): A list of data source IDs for competitors.
-                - `metric` (str): The metric to be used for comparison (e.g., "revenue").
+            params:
+                - brand_source_id (str): Source ID for the primary brand.
+                - competitor_source_ids (list[str]): Source IDs for competitors.
+                - metric (str): Column name to extract for comparison (e.g. "revenue").
+                - job_id (str): Parent job ID for artifact linking.
+                - tenant_id (str): Tenant context for artifact isolation.
 
         Returns:
-            A dictionary containing the benchmark results, including market share
-            figures, significance test outcomes, and a generated report URL.
+            Dict with market_share, significance_test, chart_artifact_id, report_hash.
         """
         brand_source = params["brand_source_id"]
         comp_sources = params.get("competitor_source_ids", [])
+        metric = params.get("metric", "revenue")
+        job_id = params.get("job_id", f"benchmark_{brand_source}")
+        tenant_id = params.get("tenant_id", "default")
 
-        workflow.logger.info(f"Starting BENCHMARK_MY_BRAND for {brand_source}")
+        workflow.logger.info(
+            f"BenchmarkBrandWorkflow starting: brand={brand_source}, "
+            f"competitors={comp_sources}, metric={metric}"
+        )
 
-        # 1. Ingest Data (Parallel)
-        # In a real production scenario, these ingestions might be pre-existing
-        # or triggered as separate workflows. Here, we demonstrate triggering
-        # them as activities and waiting for all to complete in parallel.
-        ingest_futures = []
-        for src in [brand_source] + comp_sources:
-            ingest_futures.append(
-                workflow.execute_activity(
-                    IngestActivities.run_ingestion,
-                    {"job_id": f"ingest_{src}", "source_id": src},
-                    start_to_close_timeout=timedelta(minutes=5),
-                )
+        # ── Phase 1: Parallel Ingestion ──────────────────────────────────────
+        all_sources = [brand_source] + comp_sources
+        ingest_futures = [
+            workflow.execute_activity(
+                IngestActivities.run_ingestion,
+                {"job_id": f"ingest_{src}_{job_id}", "source_id": src},
+                start_to_close_timeout=timedelta(minutes=10),
             )
-
-        # Wait for all ingestion activities to complete.
+            for src in all_sources
+        ]
         await workflow.wait_for_all(ingest_futures)
 
-        # 2. Statistical Analysis (Market Share & Hypothesis Testing)
-        # For demonstration purposes within this workflow, small example data
-        # structures are passed directly. In a production system, activities
-        # would typically fetch larger datasets based on source_id and table names
-        # from an analytical database like DuckDB or Trino.
+        workflow.logger.info("Ingestion complete for all sources.")
 
-        # Calculate market share based on processed data.
+        # ── Phase 2: Real Data Sampling ──────────────────────────────────────
+        brand_sample = await workflow.execute_activity(
+            AnalysisActivities.fetch_sample,
+            {
+                "source_id": brand_source,
+                "columns": [metric],
+                "limit": 1000,
+                "tenant_id": tenant_id,
+            },
+            start_to_close_timeout=timedelta(minutes=2),
+        )
+
+        competitor_samples = []
+        for src in comp_sources:
+            sample = await workflow.execute_activity(
+                AnalysisActivities.fetch_sample,
+                {
+                    "source_id": src,
+                    "columns": [metric],
+                    "limit": 1000,
+                    "tenant_id": tenant_id,
+                },
+                start_to_close_timeout=timedelta(minutes=2),
+            )
+            competitor_samples.append(sample)
+
+        # Extract real numeric rows for statistical functions.
+        brand_rows = [
+            {"value": row[metric]}
+            for row in brand_sample.get("rows", [])
+            if row.get(metric) is not None
+        ]
+        competitor_rows = [
+            {"value": row[metric]}
+            for sample in competitor_samples
+            for row in sample.get("rows", [])
+            if row.get(metric) is not None
+        ]
+        brand_values = [r["value"] for r in brand_rows]
+        competitor_values = [r["value"] for r in competitor_rows]
+
+        workflow.logger.info(
+            f"Sampled {len(brand_rows)} brand rows, "
+            f"{len(competitor_rows)} competitor rows for metric='{metric}'."
+        )
+
+        # ── Phase 3: Statistical Analysis ────────────────────────────────────
         market_share = await workflow.execute_activity(
             StatsActivities.calculate_market_share,
             {
-                "brand_data": [
-                    {"value": 100},
-                    {"value": 120},
-                ],  # Example data for workflow demonstration
-                "competitor_data": [{"value": 90}, {"value": 110}],
-                "metric": params.get("metric", "revenue"),  # Use the metric from params
+                "brand_data": brand_rows,
+                "competitor_data": competitor_rows,
+                "metric": metric,
             },
-            start_to_close_timeout=timedelta(seconds=30),
+            start_to_close_timeout=timedelta(seconds=60),
         )
 
-        # Perform hypothesis testing (e.g., t-test) to assess significance.
-        t_test = await workflow.execute_activity(
+        significance_test = await workflow.execute_activity(
             StatsActivities.perform_hypothesis_test,
             {
-                "group_a": [
-                    100,
-                    120,
-                    130,
-                    140,
-                ],  # Example data for workflow demonstration
-                "group_b": [90, 110, 115, 120],
+                "group_a": brand_values,
+                "group_b": competitor_values,
                 "test_type": "t-test",
             },
-            start_to_close_timeout=timedelta(seconds=30),
+            start_to_close_timeout=timedelta(seconds=60),
+        )
+
+        # ── Phase 4: Chart Generation ─────────────────────────────────────────
+        chart_artifact = await workflow.execute_activity(
+            GenerationActivities.run_generators,
+            {
+                "generator": "bar_comparison",
+                "job_id": job_id,
+                "tenant_id": tenant_id,
+                "data": {
+                    "brand": brand_rows,
+                    "competitors": competitor_rows,
+                    "metric": metric,
+                    "title": f"Brand vs Competitors — {metric}",
+                },
+            },
+            start_to_close_timeout=timedelta(minutes=2),
+        )
+
+        # ── Phase 5: PDF Report via UPTP Render ───────────────────────────────
+        report_artifact = await workflow.execute_activity(
+            GenerationActivities.run_generators,
+            {
+                "generator": "pdf_report",
+                "job_id": job_id,
+                "tenant_id": tenant_id,
+                "template": "benchmark",
+                "data": {
+                    "brand_source_id": brand_source,
+                    "competitor_source_ids": comp_sources,
+                    "metric": metric,
+                    "market_share": market_share,
+                    "significance_test": significance_test,
+                    "chart_artifact_id": chart_artifact.get("artifact_id"),
+                },
+            },
+            start_to_close_timeout=timedelta(minutes=5),
         )
 
         result = {
             "status": "completed",
+            "brand_source_id": brand_source,
+            "competitor_source_ids": comp_sources,
+            "metric": metric,
+            "brand_sample_count": len(brand_rows),
+            "competitor_sample_count": len(competitor_rows),
             "market_share": market_share,
-            "significance_test": t_test,
-            # Placeholder: Actual report generation would be a separate activity.
-            "report_url": "s3://artifacts/report_123.html",
+            "significance_test": significance_test,
+            "chart_artifact_id": chart_artifact.get("artifact_id"),
+            "report_hash": report_artifact.get("artifact_hash"),
         }
 
-        workflow.logger.info("BENCHMARK_MY_BRAND completed.")
+        workflow.logger.info(
+            f"BenchmarkBrandWorkflow completed. report_hash={result['report_hash']}"
+        )
         return result

@@ -1,16 +1,8 @@
-"""
-Unstructured Document Pipeline: Processing for Various Document Types.
-
-This module provides utilities for ingesting and processing unstructured documents
-(e.g., PDF, DOCX, HTML, images) by leveraging the `unstructured` library.
-It aims to extract structured elements, text, and metadata from these documents,
-making them suitable for further analysis and integration into data pipelines.
-"""
-
 import logging
 import os
 from typing import Any, Dict, List, Optional
 
+from apps.core.config import get_settings
 from apps.core.errors import IngestionError
 
 logger = logging.getLogger(__name__)
@@ -31,10 +23,11 @@ class UnstructuredPipeline:
 
         Args:
             api_key (Optional[str]): An optional API key for the Unstructured API.
-                                     If not provided, it defaults to the `UNSTRUCTURED_API_KEY`
-                                     environment variable.
+                                     If not provided, it defaults to the
+                                     UNSTRUCTURED_API_KEY from get_settings() which
+                                     is Vault-enforced in non-local environments.
         """
-        self.api_key = api_key or os.getenv("UNSTRUCTURED_API_KEY")
+        self.api_key = api_key or get_settings().unstructured_api_key
 
     def process_document(self, file_path: str) -> List[Dict[str, Any]]:
         """

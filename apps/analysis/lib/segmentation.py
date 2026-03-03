@@ -12,7 +12,7 @@ Features:
 - Segment-level KPIs
 
 Usage:
-    from apps.core.lib.segmentation import (
+    from apps.analysis.lib.segmentation import (
         SegmentProfiler, profile_segments,
         compare_segments, get_segment_stats
     )

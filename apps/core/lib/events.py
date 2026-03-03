@@ -75,7 +75,6 @@ class KafkaProducer:
         "jobs": "voyant.jobs",
         "quality": "voyant.quality.alerts",
         "lineage": "voyant.lineage",
-        "billing": "voyant.billing.events",
         "audit": "voyant.audit",
     }
 
@@ -271,37 +270,3 @@ def emit_quality_alert(
         },
     )
     return get_kafka_producer().emit("quality", event)
-
-
-def emit_billing_event(
-    tenant_id: str,
-    event_type: str,
-    metric_name: str,
-    value: float,
-    **metadata,
-) -> bool:
-    """
-    A convenience function to emit a billing or metering event.
-
-    Args:
-        tenant_id: The tenant to bill for the usage.
-        event_type: The type of event (e.g., "usage_recorded").
-        metric_name: The name of the metric being recorded (e.g., "cpu_hours").
-        value: The numeric value of the usage.
-        **metadata: Additional key-value pairs for context.
-
-    Returns:
-        True if the event was successfully produced, False otherwise.
-    """
-    event = VoyantEvent(
-        event_type=f"billing.{event_type}",
-        event_id=str(uuid.uuid4()),
-        timestamp=datetime.utcnow().isoformat(),
-        tenant_id=tenant_id,
-        payload={
-            "metric_name": metric_name,
-            "value": value,
-            **metadata,
-        },
-    )
-    return get_kafka_producer().emit("billing", event)

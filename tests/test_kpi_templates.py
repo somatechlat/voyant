@@ -7,7 +7,7 @@ Reference: docs/CANONICAL_ROADMAP.md - P1 Extended Insights
 
 import pytest
 
-from apps.core.lib.kpi_templates import (
+from apps.analysis.lib.kpi_templates import (
     KPI_TEMPLATES,
     get_categories,
     get_template,

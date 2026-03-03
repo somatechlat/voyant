@@ -13,7 +13,7 @@ Supports:
 Note: Prophet implementation is in forecast_primitives.py
 
 Usage:
-    from apps.core.lib.forecasting import (
+    from apps.analysis.lib.forecasting import (
         forecast, Forecaster,
         MovingAverageForecaster, ExponentialSmoothingForecaster
     )

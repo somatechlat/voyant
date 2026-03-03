@@ -16,7 +16,7 @@ from apps.core.lib.plugin_registry import (
     PluginCategory,
     register_plugin,
 )
-from apps.core.lib.schema_evolution import (
+from apps.governance.lib.schema_evolution import (
     get_schema_history,
 )
 

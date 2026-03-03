@@ -17,15 +17,15 @@ from typing import Any, Dict, List
 import pytest
 
 # Anomaly Detection
-from apps.core.lib.anomaly import (
+from apps.analysis.lib.anomaly import (
     detect_anomalies,
 )
-from apps.core.lib.anomaly import (
+from apps.analysis.lib.anomaly import (
     get_available_methods as get_anomaly_methods,
 )
 
 # Embeddings
-from apps.core.lib.embeddings import (
+from apps.search.lib.embeddings import (
     cosine_similarity,
     embed_texts,
     find_similar,
@@ -34,13 +34,13 @@ from apps.core.lib.embeddings import (
 )
 
 # Forecasting
-from apps.core.lib.forecasting import (
+from apps.analysis.lib.forecasting import (
     detect_trend,
     forecast,
 )
 
 # Segmentation
-from apps.core.lib.segmentation import (
+from apps.analysis.lib.segmentation import (
     compare_segments,
     detect_segment_drift,
     profile_segments,

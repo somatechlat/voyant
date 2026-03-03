@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from apps.services.analysis.forecasting import SKLEARN_AVAILABLE, TimeForecaster
+from apps.analysis.lib.services_forecasting import SKLEARN_AVAILABLE, TimeForecaster
 
 
 @pytest.fixture

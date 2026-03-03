@@ -13,7 +13,7 @@ Each template includes:
 - Category for organization
 
 Usage:
-    from apps.core.lib.kpi_templates import get_template, render_template, list_templates
+    from apps.analysis.lib.kpi_templates import get_template, render_template, list_templates
 
     # Get a template
     template = get_template("revenue_growth")

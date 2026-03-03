@@ -5,13 +5,13 @@ from asgiref.sync import async_to_sync
 from ninja.errors import HttpError
 
 from apps.core.config import get_settings
-from apps.core.security.auth import get_current_user, get_optional_user
-from apps.integrations.soma import (
+from apps.core.lib.policy import (
     SomaContextError,
     SomaPolicyDenied,
     SomaPolicyUnavailable,
     enforce_policy,
 )
+from apps.core.security.auth import get_current_user, get_optional_user
 
 settings = get_settings()
 logger = logging.getLogger(__name__)

@@ -5,7 +5,7 @@ Intelligent sampling strategies for large table profiling.
 Reference: docs/CANONICAL_ROADMAP.md - Future Investigation Backlog
 
 Usage:
-    from apps.core.lib.adaptive_sampling import (
+    from apps.analysis.lib.adaptive_sampling import (
         sample_table,
         get_optimal_sample_size,
         SamplingStrategy
