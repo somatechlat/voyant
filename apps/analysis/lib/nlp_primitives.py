@@ -23,31 +23,34 @@ logger = logging.getLogger(__name__)
 class NLPPrimitives:
     """
     Core NLP operations.
+    SentimentIntensityAnalyzer is lazy-initialized: loaded only on first
+    call to analyze_sentiment(), not at class construction time.
     """
 
     def __init__(self):
-        if NLTK_AVAILABLE:
+        self._sia = None  # Lazy — initialized on first use
+
+    def _get_sia(self):
+        """Return a ready SentimentIntensityAnalyzer, downloading data if needed."""
+        if not NLTK_AVAILABLE:
+            raise ImportError("NLTK is not installed. Run: pip install nltk")
+        if self._sia is None:
             try:
-                # Ensure lexicon is present
                 nltk.data.find("sentiment/vader_lexicon.zip")
             except LookupError:
                 nltk.download("vader_lexicon", quiet=True)
-
-            self.sia = SentimentIntensityAnalyzer()
-        else:
-            logger.warning("NLTK not found. NLP primitives will fail.")
+            self._sia = SentimentIntensityAnalyzer()
+        return self._sia
 
     def analyze_sentiment(self, texts: List[str]) -> List[Dict[str, Any]]:
         """
         Analyze sentiment of a list of texts using VADER.
         Returns compound scores and classification.
         """
-        if not NLTK_AVAILABLE:
-            raise ImportError("NLTK is not installed.")
-
+        sia = self._get_sia()
         results = []
         for text in texts:
-            scores = self.sia.polarity_scores(text)
+            scores = sia.polarity_scores(text)
             compound = scores["compound"]
 
             sentiment = "neutral"

@@ -1,67 +1,37 @@
-from unittest.mock import patch
+"""
+Tests for StatisticalEngine.
+
+Tests pure Python logic (validation, error handling) against real data.
+R-dependent tests (normality, ANOVA) live in tests/integration/
+where a real Rserve connection is available.
+"""
 
 import pandas as pd
 import pytest
 
-from apps.core.lib.errors import ValidationError
 from apps.analysis.lib.stats import StatisticalEngine
+from apps.core.lib.errors import ValidationError
 
 
-@pytest.fixture
-def mock_r_engine():
-    with patch("apps.analysis.lib.stats.REngine") as MockREngine:
-        engine = MockREngine.return_value
-        yield engine
-
-
-def test_check_normality(mock_r_engine):
-    # Setup
+def test_t_test_validation_three_groups():
+    """t-test requires exactly 2 groups — 3 groups must raise ValidationError."""
     stats = StatisticalEngine()
-    df = pd.DataFrame({"val": [1, 2, 3, 4, 5]})
-
-    # Mock R responses
-    # eval() is called multiple times.
-    # 1. shapiro.test -> void
-    # 2. res$statistic -> 0.98
-    # 3. res$p.value -> 0.6
-    # 4. res$p.value -> 0.6
-    mock_r_engine.eval.side_effect = [None, 0.98, 0.6, 0.6]
-
-    result = stats.check_normality(df, "val")
-
-    # Verify basics
-    assert result["test"] == "Shapiro-Wilk"
-    assert result["is_normal"] is True
-    assert result["p_value"] == 0.6
-
-    # Verify R interaction
-    mock_r_engine.assign.assert_called_once()  # Should assign data
-    assert "shapiro.test" in mock_r_engine.eval.call_args_list[0][0][0]
-
-
-def test_anova(mock_r_engine):
-    stats = StatisticalEngine()
-    df = pd.DataFrame(
-        {"val": [1, 2, 3, 10, 11, 12], "group": ["A", "A", "A", "B", "B", "B"]}
-    )
-
-    # Mock responses
-    # 1. aov() -> void
-    # 2. summary() -> void
-    # 3. F value -> 50.0
-    # 4. Pr(>F) -> 0.001
-    mock_r_engine.eval.side_effect = [None, None, 50.0, 0.001]
-
-    result = stats.anova(df, "val", "group")
-
-    assert result["significant"] is True
-    assert result["f_statistic"] == 50.0
-
-
-def test_t_test_validation():
-    stats = StatisticalEngine()
-    # 3 groups - invalid for t-test
     df = pd.DataFrame({"val": [1, 2, 3], "group": ["A", "B", "C"]})
 
     with pytest.raises(ValidationError):
         stats.t_test(df, "group", "val")
+
+
+def test_t_test_validation_empty_dataframe():
+    """t-test on empty dataframe must raise ValidationError."""
+    stats = StatisticalEngine()
+    df = pd.DataFrame({"val": [], "group": []})
+
+    with pytest.raises((ValidationError, ValueError)):
+        stats.t_test(df, "group", "val")
+
+
+def test_statistical_engine_instantiates():
+    """StatisticalEngine must construct without R connection (R is optional)."""
+    engine = StatisticalEngine()
+    assert engine is not None

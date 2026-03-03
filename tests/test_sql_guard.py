@@ -1,41 +1,76 @@
-import json
-from unittest.mock import patch
+"""
+Tests for SQL Guard (TrinoClient read-only enforcement).
 
-from apps.core.lib.trino import QueryResult
+The guard is implemented in TrinoClient._validate_query() — a pure Python
+method that enforces read-only query policy before any network call.
+No mocking required: the validation logic runs entirely in-process.
+"""
 
+import pytest
 
-def test_sql_select_allowed(client):
-    result = QueryResult(
-        columns=["x"],
-        rows=[[1]],
-        row_count=1,
-        truncated=False,
-        execution_time_ms=1,
-        query_id="q1",
-    )
-
-    with patch("apps.sql.api.get_trino_client") as mock_client:
-        mock_client.return_value.execute.return_value = result
-        response = client.post(
-            "/v1/sql/query",
-            data=json.dumps({"sql": "select 1 as x"}),
-            content_type="application/json",
-        )
-
-    assert response.status_code == 200
-    data = response.json()
-    assert data["rows"][0][0] == 1
+from apps.core.lib.trino import TrinoClient
 
 
-def test_sql_insert_blocked(client):
-    with patch("apps.sql.api.get_trino_client") as mock_client:
-        mock_client.return_value.execute.side_effect = ValueError(
-            "Only SELECT queries allowed"
-        )
-        response = client.post(
-            "/v1/sql/query",
-            data=json.dumps({"sql": "insert into t values (1)"}),
-            content_type="application/json",
-        )
+@pytest.fixture
+def trino():
+    """
+    Instantiate a TrinoClient without connecting.
+    _validate_query() is pure Python — no Trino server required.
+    """
+    client = TrinoClient.__new__(TrinoClient)
+    return client
 
-    assert response.status_code == 400
+
+def test_select_query_allowed(trino):
+    """SELECT query must pass validation without raising."""
+    trino._validate_sql("SELECT 1 AS x")  # must not raise
+
+
+def test_with_query_allowed(trino):
+    """CTE (WITH) queries must pass validation."""
+    trino._validate_sql("WITH t AS (SELECT 1) SELECT * FROM t")
+
+
+def test_show_query_allowed(trino):
+    """SHOW queries must pass validation."""
+    trino._validate_sql("SHOW TABLES")
+
+
+def test_describe_query_allowed(trino):
+    """DESCRIBE queries must pass validation."""
+    trino._validate_sql("DESCRIBE orders")
+
+
+def test_insert_blocked(trino):
+    """INSERT must be rejected with ValueError."""
+    with pytest.raises(ValueError, match="Invalid query type"):
+        trino._validate_sql("INSERT INTO t VALUES (1)")
+
+
+def test_delete_blocked(trino):
+    """DELETE must be rejected with ValueError."""
+    with pytest.raises(ValueError, match="Invalid query type"):
+        trino._validate_sql("DELETE FROM t WHERE id = 1")
+
+
+def test_drop_blocked(trino):
+    """DROP must be rejected with ValueError."""
+    with pytest.raises(ValueError, match="Invalid query type"):
+        trino._validate_sql("DROP TABLE t")
+
+
+def test_update_blocked(trino):
+    """UPDATE must be rejected with ValueError."""
+    with pytest.raises(ValueError, match="Invalid query type"):
+        trino._validate_sql("UPDATE t SET a = 1")
+
+
+def test_empty_query_blocked(trino):
+    """Empty query string must be rejected."""
+    with pytest.raises(ValueError):
+        trino._validate_sql("")
+
+
+def test_case_insensitive_select_allowed(trino):
+    """select (lowercase) must also pass — guard must be case-insensitive."""
+    trino._validate_sql("select id from users")
