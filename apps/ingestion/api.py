@@ -11,6 +11,7 @@ from ninja import Router, Schema
 from ninja.errors import HttpError
 from pydantic import Field
 
+from admin.common.messages import get_message
 from apps.core.api_utils import run_async
 from apps.core.config import get_settings
 from apps.core.lib.temporal_client import get_temporal_client
@@ -54,7 +55,9 @@ def trigger_ingest(request: HttpRequest, payload: IngestRequest) -> JobResponse:
     try:
         source = Source.objects.get(id=payload.source_id, tenant_id=tenant_id)
     except Source.DoesNotExist as exc:
-        raise HttpError(404, f"Source {payload.source_id} not found") from exc
+        raise HttpError(
+            404, get_message("ERR_SOURCE_NOT_FOUND", source_id=payload.source_id)
+        ) from exc
 
     workflow_id = f"ingest-{uuid.uuid4()}"
     job = IngestionJob.objects.create(
@@ -90,7 +93,9 @@ def trigger_ingest(request: HttpRequest, payload: IngestRequest) -> JobResponse:
         job.status = IngestionJob.Status.FAILED
         job.error_message = str(exc)
         job.save(update_fields=["status", "error_message"])
-        raise HttpError(500, f"Failed to start ingestion: {exc}") from exc
+        raise HttpError(
+            500, get_message("ERR_INGESTION_START_FAILED", error=str(exc))
+        ) from exc
 
     return JobResponse(
         job_id=str(job.id),
@@ -141,7 +146,7 @@ def get_job(request: HttpRequest, job_id: str) -> JobResponse:
     try:
         job = IngestionJob.objects.get(id=job_id, tenant_id=tenant_id)
     except IngestionJob.DoesNotExist as exc:
-        raise HttpError(404, f"Job {job_id} not found") from exc
+        raise HttpError(404, get_message("ERR_JOB_NOT_FOUND", job_id=job_id)) from exc
 
     return JobResponse(
         job_id=str(job.id),
@@ -164,14 +169,16 @@ def cancel_job(request: HttpRequest, job_id: str) -> Dict[str, str]:
     try:
         job = IngestionJob.objects.get(id=job_id, tenant_id=tenant_id)
     except IngestionJob.DoesNotExist as exc:
-        raise HttpError(404, f"Job {job_id} not found") from exc
+        raise HttpError(404, get_message("ERR_JOB_NOT_FOUND", job_id=job_id)) from exc
 
     if job.status not in {
         IngestionJob.Status.PENDING,
         IngestionJob.Status.QUEUED,
         IngestionJob.Status.RUNNING,
     }:
-        raise HttpError(400, f"Job {job_id} cannot be cancelled (status: {job.status})")
+        raise HttpError(
+            400, get_message("ERR_JOB_STATE", job_id=job_id, status=job.status)
+        )
 
     try:
         client = run_async(get_temporal_client)
@@ -184,6 +191,8 @@ def cancel_job(request: HttpRequest, job_id: str) -> Dict[str, str]:
 
     except Exception as exc:
         logger.error("Failed to cancel workflow: %s", exc)
-        raise HttpError(500, f"Failed to cancel job: {exc}") from exc
+        raise HttpError(
+            500, get_message("ERR_JOB_CANCEL_FAILED", error=str(exc))
+        ) from exc
 
     return {"message": f"Job {job_id} cancelled successfully"}

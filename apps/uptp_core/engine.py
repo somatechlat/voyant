@@ -14,9 +14,11 @@ logger = logging.getLogger(__name__)
 
 class UPTPExecutionEngine:
     """
-    The Central Dispatcher for the Universal Parametric Template Pattern.
-    Performance Engineer Mandate: This class ONLY routes; it does not block.
-    Real Execution Mandate: This delegates solely to physical Temporal queues and Render pipelines.
+    Central dispatcher for the Universal Parametric Template Pattern.
+
+    Routes incoming execution requests to physical Temporal workflows or
+    synchronous DuckDB/Plotly render pipelines. This class does not block;
+    all execution is delegated to Temporal activities or the render engine.
     """
 
     @staticmethod

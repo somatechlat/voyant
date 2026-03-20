@@ -1,36 +1,9 @@
 """
-Automated Baseline Refresh Module
+Automated Baseline Refresh — Scheduled Re-Baselining for Drift and Quality.
 
-Scheduled periodic re-baselining for drift/quality.
-Reference: STATUS.md Gap #11 - Automated Baseline Refresh
-
-Features:
-- Configurable refresh schedules
-- Per-source baseline policies
-- Freshness tracking
-- Refresh history
-- Async background tasks
-
-Personas Applied:
-- PhD Developer: Scheduler patterns
-- Analyst: Baseline freshness metrics
-- QA: Edge case handling
-- ISO Documenter: Policy documentation
-- Security: No data in logs
-- Performance: Efficient scheduling
-- UX: Clear status APIs
-
-Usage:
-    from apps.core.lib.baseline_refresh import (
-        schedule_refresh, get_refresh_status,
-        RefreshPolicy, trigger_refresh
-    )
-
-    # Set policy
-    set_refresh_policy("orders", RefreshPolicy(interval_hours=24))
-
-    # Check status
-    status = get_refresh_status("orders")
+Manages per-source refresh policies, history, and a background asyncio scheduler.
+When no refresh handler is registered, the module falls back to recording a
+timestamped baseline version without fetching new data.
 """
 
 from __future__ import annotations
@@ -222,9 +195,8 @@ class BaselineRefreshManager:
                 event.rows_processed = result.get("rows_processed", 0)
                 event.baseline_version = result.get("version", "")
             else:
-                # Default refresh when no handler configured
-                # Note: Configure _refresh_handler for production use
-                logger.info(f"Default refresh for {source_id} (no handler configured)")
+                # No external handler is registered; record a timestamped baseline marker.
+                logger.info(f"Default refresh for {source_id}: no handler configured.")
                 event.baseline_version = f"baseline_{int(time.time())}"
 
             event.success = True

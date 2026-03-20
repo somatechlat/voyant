@@ -1,36 +1,12 @@
 """
-Segment Profiling Module
-
-Automatic segmentation and per-segment statistical profiling.
-Reference: docs/CANONICAL_ROADMAP.md - P6 Advanced Analytics
+Customer Segmentation Module — Automatic Segmentation and Per-Segment Statistical Profiling.
 
 Features:
-- Automatic segment detection (categorical columns)
-- Per-segment statistics (mean, median, std, distribution)
-- Segment comparison (A vs B testing)
-- Segment drift detection
-- Segment-level KPIs
-
-Usage:
-    from apps.analysis.lib.segmentation import (
-        SegmentProfiler, profile_segments,
-        compare_segments, get_segment_stats
-    )
-
-    # Profile data by segment
-    result = profile_segments(data, segment_column="region")
-
-    # Compare two segments
-    comparison = compare_segments(data, "region", "US", "EU")
-
-Personas Applied:
-- PhD Developer: Statistical correctness (Welch's t-test)
-- Analyst: Business-relevant metrics
-- QA Engineer: Edge case handling
-- ISO Documenter: Complete docstrings
-- Security Auditor: Input sanitization
-- Performance: Efficient aggregations
-- UX: Intuitive API
+- Automatic segment detection from categorical columns.
+- Per-segment statistics (mean, median, std, min, max, distribution).
+- Segment comparison via Welch's t-test for significance testing.
+- Segment drift detection between time windows.
+- Segment-level KPI measurement.
 """
 
 from __future__ import annotations
@@ -346,10 +322,9 @@ class SegmentProfiler:
 
     def _welch_t_test(self, a: List[float], b: List[float]) -> float:
         """
-        Approximate Welch's t-test p-value.
+        Compute Welch's t-test p-value for two unpaired samples with potentially unequal variances.
 
-        Returns p-value (lower = more significant difference).
-        PhD Developer: Using Welch's for unequal variances.
+        Returns a p-value approximation: lower values indicate greater statistical significance.
         """
         n1, n2 = len(a), len(b)
         if n1 < 2 or n2 < 2:

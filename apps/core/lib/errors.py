@@ -358,6 +358,54 @@ ERROR_CATALOG: Dict[str, ErrorDefinition] = {
         description="Data has drifted significantly from baseline",
         resolution="Review drift report and update baseline if appropriate",
     ),
+    # =========================================================================
+    # 8000-8999: Ingestion Errors
+    # =========================================================================
+    "VYNT-8001": ErrorDefinition(
+        code="VYNT-8001",
+        message="Ingestion file not found: {file_path}",
+        category=ErrorCategory.RESOURCE,
+        severity=ErrorSeverity.ERROR,
+        http_status=404,
+        description="The source file specified for ingestion could not be found",
+        resolution="Verify the file path or S3/MinIO bucket configuration",
+    ),
+    "VYNT-8002": ErrorDefinition(
+        code="VYNT-8002",
+        message="Unsupported ingestion format: {format}",
+        category=ErrorCategory.VALIDATION,
+        severity=ErrorSeverity.ERROR,
+        http_status=400,
+        description="The file format is not supported by the direct ingester",
+        resolution="Use CSV, JSON, Parquet, or Excel formats",
+    ),
+    "VYNT-8003": ErrorDefinition(
+        code="VYNT-8003",
+        message="Ingestion process failed: {reason}",
+        category=ErrorCategory.SYSTEM,
+        severity=ErrorSeverity.ERROR,
+        http_status=500,
+        description="An unexpected error occurred during the ingestion pipeline",
+        resolution="Check worker logs and DuckDB connectivity",
+    ),
+    "VYNT-8004": ErrorDefinition(
+        code="VYNT-8004",
+        message="Ingestion library missing: {library}",
+        category=ErrorCategory.SYSTEM,
+        severity=ErrorSeverity.ERROR,
+        http_status=500,
+        description="A required library for ingestion is not installed",
+        resolution="Install the missing library: pip install {library}",
+    ),
+    "VYNT-8005": ErrorDefinition(
+        code="VYNT-8005",
+        message="Data partitioning failed: {reason}",
+        category=ErrorCategory.DATA,
+        severity=ErrorSeverity.ERROR,
+        http_status=422,
+        description="Failed to extract structural elements from the document",
+        resolution="Verify document format and integrity",
+    ),
 }
 
 
@@ -521,6 +569,12 @@ class DataQualityError(VoyantError):
 
 class ArtifactGenerationError(VoyantError):
     """Represents a failure during the artifact generation process."""
+
+    pass
+
+
+class IngestionError(VoyantError):
+    """Represents errors occurring during data ingestion (8000 series)."""
 
     pass
 

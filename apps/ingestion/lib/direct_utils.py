@@ -14,7 +14,7 @@ from typing import Any, Dict
 import duckdb
 import pandas as pd
 
-from apps.core.errors import IngestionError
+from apps.core.lib.errors import IngestionError
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +58,9 @@ class DirectFileIngester:
                             or an error occurs during the ingestion process.
         """
         if not os.path.exists(file_path):
-            raise IngestionError("VYNT-4004", f"File not found: {file_path}")
+            raise IngestionError(
+                "VYNT-8001", f"File not found: {file_path}", file_path=file_path
+            )
 
         _, ext = os.path.splitext(file_path)
         ext = ext.lower()
@@ -86,8 +88,9 @@ class DirectFileIngester:
                 )
             else:
                 raise IngestionError(
-                    "VYNT-4007",
+                    "VYNT-8002",
                     f"Unsupported file extension: {ext}. Supported types: CSV, JSON, Parquet, XLSX, XLS.",
+                    format=ext,
                 )
 
             # Verify and return the count of rows ingested.
@@ -110,5 +113,5 @@ class DirectFileIngester:
                 f"Failed to ingest file '{file_path}' into table '{table_name}': {e}"
             )
             raise IngestionError(
-                "VYNT-4008", f"Direct ingestion failed for {file_path}: {e}"
+                "VYNT-8003", f"Direct ingestion failed for {file_path}: {e}"
             ) from e

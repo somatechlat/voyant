@@ -1,9 +1,9 @@
 """
 Sandbox Orchestrator Workflow
 
-Routes raw analytical scripts into the Python Sandbox Node,
-coordinating strict input data mapping and physical output generation.
-Security Auditor Mandate: Isolated environment with zero external inputs natively.
+Routes raw analytical scripts into the Python Sandbox Node, coordinating
+strict input data mapping and physical output generation. The sandbox runs
+in an isolated environment with zero external network access.
 """
 
 import logging

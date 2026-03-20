@@ -128,9 +128,7 @@ def record_activity_start(activity_name: str):
     Record activity execution start.
 
     Args:
-        activity_name: Name of the activity (e.g., "calculate_market_share")
-
-    Performance Engineer: Called at start of every activity, must be fast
+        activity_name: Name of the activity.
     """
     try:
         ACTIVITY_STARTED.labels(activity_name=activity_name).inc()
@@ -145,10 +143,8 @@ def record_activity_success(activity_name: str, duration_seconds: float):
     Record successful activity completion.
 
     Args:
-        activity_name: Name of the activity
-        duration_seconds: Execution duration in seconds
-
-    PhD Analyst: Duration histogram enables percentile analysis (p50, p95, p99)
+        activity_name: Name of the activity.
+        duration_seconds: Execution duration in seconds.
     """
     try:
         ACTIVITY_COMPLETED.labels(activity_name=activity_name).inc()
@@ -165,11 +161,9 @@ def record_activity_failure(
     Record failed activity execution.
 
     Args:
-        activity_name: Name of the activity
-        error_type: Type of error (e.g., "ExternalServiceError", "ValidationError")
-        duration_seconds: Execution duration before failure (optional)
-
-    QA Engineer: Error type labeling enables failure pattern analysis
+        activity_name: Name of the activity.
+        error_type: Exception class name for failure grouping in dashboards.
+        duration_seconds: Execution duration before failure, if available.
     """
     try:
         ACTIVITY_FAILED.labels(activity_name=activity_name, error_type=error_type).inc()
@@ -187,10 +181,8 @@ def record_activity_retry(activity_name: str, attempt: int):
     Record activity retry attempt.
 
     Args:
-        activity_name: Name of the activity
-        attempt: Retry attempt number (1, 2, 3, ...)
-
-    QA Engineer: Retry metrics help identify flaky operations
+        activity_name: Name of the activity.
+        attempt: Retry attempt number (1-based).
     """
     try:
         ACTIVITY_RETRIED.labels(activity_name=activity_name, attempt=str(attempt)).inc()
@@ -204,10 +196,8 @@ def record_circuit_breaker_triggered(activity_name: str, service_name: str):
     Record circuit breaker preventing activity execution.
 
     Args:
-        activity_name: Name of the activity that was blocked
-        service_name: Name of the service with open circuit breaker
-
-    Security Auditor: Tracks cascade failure prevention events
+        activity_name: Name of the activity that was blocked.
+        service_name: Name of the service whose circuit breaker is open.
     """
     try:
         CIRCUIT_BREAKER_TRIGGERED.labels(
@@ -225,9 +215,7 @@ def record_workflow_start(workflow_name: str):
     Record workflow execution start.
 
     Args:
-        workflow_name: Name of the workflow
-
-    UX Consultant: Workflow metrics provide system-level observability
+        workflow_name: Name of the workflow.
     """
     try:
         WORKFLOW_STARTED.labels(workflow_name=workflow_name).inc()
@@ -248,13 +236,11 @@ def record_workflow_completion(
     Record workflow execution completion.
 
     Args:
-        workflow_name: Name of the workflow
-        duration_seconds: Total execution duration
-        step_count: Number of steps (activities) executed
-        success: Whether workflow completed successfully
-        error_type: Type of error if failed
-
-    ISO Documenter: Comprehensive workflow metrics for audit trails
+        workflow_name: Name of the workflow.
+        duration_seconds: Total execution duration.
+        step_count: Number of activities executed.
+        success: True if the workflow completed without error.
+        error_type: Exception class name if the workflow failed.
     """
     try:
         ACTIVE_WORKFLOWS.labels(workflow_name=workflow_name).dec()
@@ -286,14 +272,10 @@ def record_workflow_completion(
 @contextmanager
 def track_activity_execution(activity_name: str):
     """
-    Context manager to automatically track activity execution metrics.
+    Context manager for automatic activity execution metric tracking.
 
-    Usage:
-        with track_activity_execution("my_activity"):
-            result = do_work()
-            return result
-
-    Performance Engineer: Minimal overhead, exception-safe
+    Increments started counter on entry; records success duration on clean exit
+    and failure duration + error type on exception.
     """
     start_time = time.time()
     record_activity_start(activity_name)
@@ -314,15 +296,9 @@ def track_activity_execution(activity_name: str):
 @contextmanager
 def track_workflow_execution(workflow_name: str):
     """
-    Context manager to automatically track workflow execution metrics.
+    Context manager for automatic workflow execution metric tracking.
 
-    Usage:
-        with track_workflow_execution("IngestDataWorkflow"):
-            # Execute workflow steps
-            step_count = 5
-            # Return step_count at the end
-
-    UX Consultant: Automatic metric collection reduces operator burden
+    Decrements the active workflow gauge on exit regardless of outcome.
     """
     start_time = time.time()
     record_workflow_start(workflow_name)
@@ -350,18 +326,12 @@ def track_workflow_execution(workflow_name: str):
 
 def get_activity_metrics_summary() -> dict:
     """
-    Get summary of activity metrics for dashboards.
+    Returns the names of all Prometheus metrics registered by this module.
 
-    Returns:
-        Dictionary with metric counts
-
-    ISO Documenter: Provides structured metrics for reporting
+    Metric values must be queried from Prometheus directly using these names.
     """
-    # Note: This is a simplified version. In production, you'd query Prometheus
-    # directly or use the REGISTRY to introspect current values.
     return {
-        "note": "Query Prometheus for actual values",
-        "metrics_available": [
+        "metrics": [
             "temporal_activity_started_total",
             "temporal_activity_completed_total",
             "temporal_activity_failed_total",

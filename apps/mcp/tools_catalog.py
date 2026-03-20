@@ -398,7 +398,7 @@ def tool_vector_search(query: str, limit: int = 5, tenant_id=None):
 
 @mcp_app.tool(name="voyant.vector.index")
 def tool_vector_index(text: str, metadata=None, item_id=None, tenant_id=None):
-    """Index a text snippet into the vector store for later semantic retrieval."""
+    """Index a text snippet into the vector store for subsequent semantic retrieval."""
     store = get_vector_store()
     extractor = get_embedding_extractor(model="tfidf", dimensions=128)
     embedding_result = extractor.embed([text])

@@ -1,17 +1,12 @@
 """
 Streaming Workflow for Voyant.
 
-This workflow orchestrates the submission and monitoring of Apache Flink
-streaming jobs. It is triggered by the Voyant API when a user requests
-continuous analytics (KPIs, anomaly detection, etc.) on a data stream.
+Orchestrates submission and monitoring of Apache Flink streaming jobs.
+Triggered by the Voyant API when continuous analytics are requested on a data stream.
+Follows the Temporal Orchestrator pattern: all side-effect operations are delegated
+to activities, with no inter-run state, ensuring idempotency and fault tolerance.
 
-Architecture (PhD Developer):
-    The workflow follows the "Orchestrator" pattern, delegating all
-    side-effect operations to activities. It maintains no state between
-    runs to ensure idempotency and fault tolerance.
-
-FR-21 Compliance (ISO Documenter):
-    Implements "Streaming Analytics (Apache Flink)" from SRS.md.
+Implements Functional Requirement FR-21 (Streaming Analytics — Apache Flink) from SRS.md.
 """
 
 from __future__ import annotations

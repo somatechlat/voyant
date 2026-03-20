@@ -99,7 +99,7 @@ def get_policy_context() -> PolicyContext:
     )
 
 
-# Backward-compatible alias used by existing code that called get_soma_context().
+# Alias for callers that used the prior get_soma_context() name before the policy module rename.
 def get_soma_context() -> PolicyContext:
     return get_policy_context()
 

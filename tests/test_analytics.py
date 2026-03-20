@@ -24,15 +24,6 @@ from apps.analysis.lib.anomaly import (
     get_available_methods as get_anomaly_methods,
 )
 
-# Embeddings
-from apps.search.lib.embeddings import (
-    cosine_similarity,
-    embed_texts,
-    find_similar,
-    get_available_models,
-    reduce_dimensions,
-)
-
 # Forecasting
 from apps.analysis.lib.forecasting import (
     detect_trend,
@@ -44,6 +35,15 @@ from apps.analysis.lib.segmentation import (
     compare_segments,
     detect_segment_drift,
     profile_segments,
+)
+
+# Embeddings
+from apps.search.lib.embeddings import (
+    cosine_similarity,
+    embed_texts,
+    find_similar,
+    get_available_models,
+    reduce_dimensions,
 )
 
 # =============================================================================

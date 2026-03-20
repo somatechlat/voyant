@@ -2,8 +2,6 @@
 
 import os
 
-import uvicorn
-
 from apps.core.config import get_settings
 
 
@@ -13,7 +11,14 @@ def main() -> None:
     settings = get_settings()
     host = settings.mcp_host
     port = settings.mcp_port
-    uvicorn.run("voyant_project.asgi:application", host=host, port=port)
+    from daphne.endpoints import build_endpoint_description_strings
+    from daphne.server import Server
+
+    endpoints = build_endpoint_description_strings(host=host, port=port)
+    Server(
+        application="voyant_project.asgi:application",
+        endpoints=endpoints,
+    ).run()
 
 
 if __name__ == "__main__":

@@ -69,7 +69,7 @@ class ForecastPrimitives:
                 "lower_bound": result_df["yhat_lower"].tolist(),
                 "upper_bound": result_df["yhat_upper"].tolist(),
                 "components": {
-                    # Prophet components if needed later
+                    # Prophet components if needed subsequently
                 },
             }
 

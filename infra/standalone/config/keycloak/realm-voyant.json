@@ -1,7 +1,7 @@
 {
     "realm": "${KEYCLOAK_REALM}",
     "enabled": true,
-    "sslRequired": "external",
+    "sslRequired": "none",
     "registrationAllowed": true,
     "loginWithEmailAllowed": true,
     "duplicateEmailsAllowed": false,
@@ -24,7 +24,7 @@
     "accessCodeLifespan": 60,
     "accessCodeLifespanLogin": 1800,
     "accessCodeLifespanUserAction": 300,
-    "passwordPolicy": "length(8) and upperCase(1) and lowerCase(1) and digits(1)",
+    "passwordPolicy": "",
     "roles": {
         "realm": [
             {

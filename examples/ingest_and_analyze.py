@@ -3,6 +3,7 @@
 
 Requires the local stack running (docker compose) and the API at http://localhost:8000.
 """
+
 from __future__ import annotations
 
 import json

@@ -513,7 +513,7 @@ services:
     <<: *common
     image: quay.io/keycloak/keycloak:23.0
     container_name: voyant_keycloak
-    command: start-dev
+    command: start-dev --import-realm
     environment:
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
@@ -523,6 +523,8 @@ services:
       KC_DB_PASSWORD: ${KC_DB_PASSWORD}
       KC_HEALTH_ENABLED: "true"
       KC_METRICS_ENABLED: "true"
+    env_file:
+      - ./.env
     ports:
       - "45180:8080"
     volumes:

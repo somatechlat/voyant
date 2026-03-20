@@ -19,6 +19,8 @@ import socket
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
+from apps.core.config import get_settings
+
 logger = logging.getLogger(__name__)
 
 
@@ -153,7 +155,7 @@ def resolve_hostname(hostname: str) -> Optional[str]:
         # Attempt to get the first IPv4 address.
         result = socket.getaddrinfo(hostname, None, socket.AF_INET, socket.SOCK_STREAM)
         if result:
-            return result[0][4][0]
+            return str(result[0][4][0])
     except socket.gaierror:
         pass  # Hostname not found or other DNS error.
 
@@ -161,7 +163,7 @@ def resolve_hostname(hostname: str) -> Optional[str]:
         # If no IPv4 found, attempt to get the first IPv6 address.
         result = socket.getaddrinfo(hostname, None, socket.AF_INET6, socket.SOCK_STREAM)
         if result:
-            return result[0][4][0]
+            return str(result[0][4][0])
     except socket.gaierror:
         pass  # Hostname not found or other DNS error.
 
@@ -213,23 +215,29 @@ def validate_url_ssrf(url: str, resolve_dns: bool = True) -> Tuple[bool, str]:
 
     # Check against explicit blocked hostnames list.
     if hostname.lower() in BLOCKED_HOSTS:
-        return False, f"Blocked host: '{hostname}'."
+        settings = get_settings()
+        if not settings.scraper_allow_local_hosts:
+            return False, f"Blocked host: '{hostname}'."
 
     # 3. Check IP Address (after resolving if it's a hostname).
     try:
         # Check if the hostname is directly an IP address.
         ip = ipaddress.ip_address(hostname)
         if is_ip_blocked(str(ip)):
-            return False, f"Blocked IP range detected: '{hostname}'."
+            settings = get_settings()
+            if not settings.scraper_allow_local_hosts:
+                return False, f"Blocked IP range detected: '{hostname}'."
     except ValueError:
         # If it's not a direct IP, try to resolve it to an IP.
         if resolve_dns:
             resolved_ip = resolve_hostname(hostname)
             if resolved_ip and is_ip_blocked(resolved_ip):
-                return (
-                    False,
-                    f"Hostname '{hostname}' resolves to a blocked IP address: '{resolved_ip}'.",
-                )
+                settings = get_settings()
+                if not settings.scraper_allow_local_hosts:
+                    return (
+                        False,
+                        f"Hostname '{hostname}' resolves to a blocked IP address: '{resolved_ip}'.",
+                    )
 
     # 4. Check for Blocked File Extensions.
     path = parsed.path.lower()
@@ -243,10 +251,12 @@ def validate_url_ssrf(url: str, resolve_dns: bool = True) -> Tuple[bool, str]:
         # If credentials are in the URL, verify the actual host being contacted.
         actual_host = parsed.hostname
         if actual_host and actual_host.lower() in BLOCKED_HOSTS:
-            return (
-                False,
-                f"Potential SSRF bypass attempt using URL credentials targeting '{actual_host}'.",
-            )
+            settings = get_settings()
+            if not settings.scraper_allow_local_hosts:
+                return (
+                    False,
+                    f"Potential SSRF bypass attempt using URL credentials targeting '{actual_host}'.",
+                )
 
     # 6. Check for Decimal/Octal/Hex IP bypass attempts.
     # Example: http://2130706433/ (which is 127.0.0.1 as decimal)

@@ -61,6 +61,7 @@ class Settings(BaseSettings):
         "soma_memory_url",
         "soma_orchestrator_url",
         "flink_jobmanager_url",
+        "scraper_allow_local_hosts",
     }
     SECRET_KEYS: ClassVar[set[str]] = {
         "minio_access_key",
@@ -106,7 +107,19 @@ class Settings(BaseSettings):
         description="Comma-separated or JSON list of allowed host/domain names.",
     )
 
+    @field_validator("allowed_hosts", mode="before")
+    @classmethod
+    def parse_allowed_hosts(cls, v: str | list[str]) -> list[str]:
+        if isinstance(v, str):
+            if v.startswith("[") and v.endswith("]"):
+                import json
 
+                try:
+                    return json.loads(v)
+                except json.JSONDecodeError:
+                    pass
+            return [host.strip() for host in v.split(",") if host.strip()]
+        return v
 
     csrf_trusted_origins: list[str] = Field(
         default=[],
@@ -560,6 +573,10 @@ class Settings(BaseSettings):
         default=30,
         alias="SCRAPER_DEFAULT_TIMEOUT_SECONDS",
         description="Default timeout for scraper network operations (seconds).",
+    )
+    scraper_allow_local_hosts: bool = Field(
+        default=False,
+        description="Whether to allow scraping of local/internal hostnames (e.g., localhost). Use with caution.",
     )
     scraper_default_ocr_language: str = Field(
         default="spa+eng",

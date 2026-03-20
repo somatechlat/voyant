@@ -6,8 +6,8 @@ Verifies real scikit-learn integration without mocking internal logic.
 import numpy as np
 import pytest
 
-from apps.core.lib.errors import AnalysisError
 from apps.analysis.lib.ml_primitives import SKLEARN_AVAILABLE, MLPrimitives
+from apps.core.lib.errors import AnalysisError
 
 
 @pytest.fixture
