@@ -4,20 +4,11 @@ This module provides semantic search capabilities using vector embeddings.
 It integrates with the Milvus vector store for persistent storage and retrieval
 of embeddings, enabling similarity-based search across indexed content.
 
-Architectural Notes:
-- Vector Store: Uses Milvus for production-grade vector storage and retrieval
-- Embeddings: Supports multiple embedding models (TF-IDF, simple character-based)
-- Multi-Tenancy: All indexed items are isolated by tenant_id
-- Security: Policy enforcement via OPA gates for search and indexing operations
-
-Seven Personas Applied:
-- PhD Developer: Correct embedding extraction and similarity search
-- PhD Analyst: Meaningful search results with relevance scoring
-- PhD QA Engineer: Input validation and error handling
-- ISO Documenter: Complete API documentation
-- Security Auditor: Tenant isolation and access control
-- Performance Engineer: Efficient vector operations
-- UX Consultant: Simple, intuitive API surface
+Architectural notes:
+- Vector store: Milvus for production-grade vector storage and retrieval.
+- Embeddings: Supports multiple embedding models (TF-IDF, character-based).
+- Multi-tenancy: All indexed items are isolated by tenant_id.
+- Security: Policy enforcement via OPA gates on search and indexing operations.
 """
 
 from __future__ import annotations
@@ -31,6 +22,7 @@ from ninja import Router, Schema
 from ninja.errors import HttpError
 from pydantic import Field
 
+from admin.common.messages import get_message
 from apps.core.middleware import get_tenant_id
 from apps.search.lib.embeddings import get_embedding_extractor
 from apps.search.lib.vector_store import get_vector_store
@@ -152,7 +144,7 @@ def search(request: HttpRequest, payload: SearchQuery) -> List[SemanticSearchRes
         # The embed() method returns EmbeddingResult with a list of embeddings
         embedding_result = extractor.embed([payload.query])
         if not embedding_result.embeddings or len(embedding_result.embeddings) == 0:
-            raise HttpError(400, "Failed to extract embedding from query")
+            raise HttpError(400, get_message("ERR_SEARCH_EMBEDDING"))
 
         query_vector = embedding_result.embeddings[0]
 
@@ -182,10 +174,10 @@ def search(request: HttpRequest, payload: SearchQuery) -> List[SemanticSearchRes
         raise
     except ValueError as exc:
         logger.error(f"Invalid search query: {exc}")
-        raise HttpError(400, f"Invalid query: {exc}") from exc
+        raise HttpError(400, get_message("ERR_SEARCH_INVALID", error=str(exc))) from exc
     except Exception as exc:
         logger.exception("Search operation failed")
-        raise HttpError(500, f"Search failed: {exc}") from exc
+        raise HttpError(500, get_message("ERR_SEARCH_FAILED", error=str(exc))) from exc
 
 
 @router.post("/index", response=IndexResponse, summary="Index New Item")
@@ -222,7 +214,7 @@ def index_item(request: HttpRequest, payload: IndexRequest) -> IndexResponse:
         # The embed() method returns EmbeddingResult with a list of embeddings
         embedding_result = extractor.embed([payload.text])
         if not embedding_result.embeddings or len(embedding_result.embeddings) == 0:
-            raise HttpError(400, "Failed to extract embedding from text")
+            raise HttpError(400, get_message("ERR_INDEX_EMBEDDING"))
 
         vector = embedding_result.embeddings[0]
 
@@ -258,10 +250,10 @@ def index_item(request: HttpRequest, payload: IndexRequest) -> IndexResponse:
         raise
     except ValueError as exc:
         logger.error(f"Invalid index request: {exc}")
-        raise HttpError(400, f"Invalid request: {exc}") from exc
+        raise HttpError(400, get_message("ERR_INDEX_INVALID", error=str(exc))) from exc
     except Exception as exc:
         logger.exception("Indexing operation failed")
-        raise HttpError(500, f"Indexing failed: {exc}") from exc
+        raise HttpError(500, get_message("ERR_INDEX_FAILED", error=str(exc))) from exc
 
 
 @router.delete(
@@ -293,11 +285,11 @@ def delete_item(request: HttpRequest, item_id: str) -> Dict[str, str]:
         # Verify item exists and belongs to tenant
         item = store.get(item_id)
         if not item:
-            raise HttpError(404, f"Item not found: {item_id}")
+            raise HttpError(404, get_message("ERR_ITEM_NOT_FOUND", item_id=item_id))
 
         item_tenant = item.metadata.get("tenant_id")
         if item_tenant != tenant_id:
-            raise HttpError(403, "Access denied: item belongs to different tenant")
+            raise HttpError(403, get_message("ERR_ITEM_DENIED"))
 
         # Delete item
         store.delete(item_id)
@@ -314,7 +306,7 @@ def delete_item(request: HttpRequest, item_id: str) -> Dict[str, str]:
         raise
     except Exception as exc:
         logger.exception(f"Failed to delete item {item_id}")
-        raise HttpError(500, f"Deletion failed: {exc}") from exc
+        raise HttpError(500, get_message("ERR_DELETE_FAILED", error=str(exc))) from exc
 
 
 @router.get("/{item_id}", response=SemanticSearchResult, summary="Get Indexed Item")
@@ -344,12 +336,12 @@ def get_item(request: HttpRequest, item_id: str) -> SemanticSearchResult:
         # Get item
         item = store.get(item_id)
         if not item:
-            raise HttpError(404, f"Item not found: {item_id}")
+            raise HttpError(404, get_message("ERR_ITEM_NOT_FOUND", item_id=item_id))
 
         # Verify tenant access
         item_tenant = item.metadata.get("tenant_id")
         if item_tenant != tenant_id:
-            raise HttpError(403, "Access denied: item belongs to different tenant")
+            raise HttpError(403, get_message("ERR_ITEM_DENIED"))
 
         return SemanticSearchResult(
             id=item.id,
@@ -361,4 +353,6 @@ def get_item(request: HttpRequest, item_id: str) -> SemanticSearchResult:
         raise
     except Exception as exc:
         logger.exception(f"Failed to retrieve item {item_id}")
-        raise HttpError(500, f"Retrieval failed: {exc}") from exc
+        raise HttpError(
+            500, get_message("ERR_RETRIEVAL_FAILED", error=str(exc))
+        ) from exc

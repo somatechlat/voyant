@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Django management utility for Voyant."""
+
 import os
 import sys
 

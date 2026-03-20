@@ -127,9 +127,7 @@ def get_optimal_sample_size(
         max_sample: Maximum sample size
 
     Returns:
-        Optimal sample size
-
-    PhD Analyst: Statistically sound sample size calculation
+        Optimal sample size.
     """
     # Z-scores for common confidence levels
     z_scores = {
@@ -190,11 +188,7 @@ T = TypeVar("T")
 def random_sample(
     data: List[T], sample_size: int, seed: Optional[int] = None
 ) -> List[T]:
-    """
-    Simple random sampling.
-
-    Performance Engineer: Efficient for any size
-    """
+    """Simple random sampling using the Fisher-Yates approach."""
     if sample_size >= len(data):
         return data.copy()
 
@@ -205,11 +199,7 @@ def random_sample(
 def systematic_sample(
     data: List[T], sample_size: int, seed: Optional[int] = None
 ) -> List[T]:
-    """
-    Systematic sampling (every nth element).
-
-    PhD Developer: Even distribution across data
-    """
+    """Systematic (every-nth) sampling starting at a random offset within the first interval."""
     if sample_size >= len(data):
         return data.copy()
 
@@ -230,11 +220,7 @@ def stratified_sample(
     strata_column: str,
     seed: Optional[int] = None,
 ) -> Tuple[List[Dict[str, Any]], Dict[str, int]]:
-    """
-    Stratified sampling preserving group proportions.
-
-    PhD Analyst: Maintains distribution of key variable
-    """
+    """Stratified sampling that preserves group proportions relative to the full dataset."""
     if sample_size >= len(data):
         return data.copy(), {}
 
@@ -266,11 +252,7 @@ def stratified_sample(
 def reservoir_sample(
     data: List[T], sample_size: int, seed: Optional[int] = None
 ) -> List[T]:
-    """
-    Reservoir sampling for streaming data.
-
-    Performance Engineer: Single-pass, O(n) time, O(k) space
-    """
+    """Reservoir sampling — single-pass algorithm, O(n) time, O(k) space."""
     rng = random.Random(seed)
     reservoir = []
 
@@ -288,11 +270,7 @@ def reservoir_sample(
 def deterministic_sample(
     data: List[Dict[str, Any]], sample_size: int, key_column: str
 ) -> List[Dict[str, Any]]:
-    """
-    Deterministic sampling based on content hash.
-
-    Security Auditor: Reproducible for audit purposes
-    """
+    """Deterministic sampling using content hash for reproducible audit samples."""
     if sample_size >= len(data):
         return data.copy()
 
@@ -321,11 +299,7 @@ def select_strategy(
     is_streaming: bool = False,
     need_reproducible: bool = False,
 ) -> SamplingStrategy:
-    """
-    Select optimal sampling strategy based on context.
-
-    PhD Developer: Intelligent strategy selection
-    """
+    """Select the appropriate sampling strategy based on data characteristics."""
     if need_reproducible:
         return SamplingStrategy.DETERMINISTIC
 
@@ -365,9 +339,7 @@ def sample_table(
         margin_of_error: Margin of error (for auto sample size)
 
     Returns:
-        SampleResult with sampled data and statistics
-
-    UX Consultant: Simple unified sampling API
+        SampleResult with sampled data and statistics.
     """
     import time
 

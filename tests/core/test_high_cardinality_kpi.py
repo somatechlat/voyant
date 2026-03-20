@@ -34,38 +34,32 @@ def large_db():
     # 1. High Cardinality Segments (10k segments, 1M rows)
     # segment_id: 0..9999
     # amount: random
-    conn.execute(
-        """
+    conn.execute("""
         CREATE TABLE sales_high_cardinality AS
         SELECT 
             (i % 10000)::VARCHAR as segment_id,
             (random() * 1000)::DOUBLE as amount,
             DATE '2024-01-01' + (i % 365) * INTERVAL '1' DAY as sale_date
         FROM range(1000000) t(i)
-    """
-    )
+    """)
 
     # 2. Large Time Series (1M rows, single continuous series)
-    conn.execute(
-        """
+    conn.execute("""
         CREATE TABLE time_series_large AS
         SELECT 
             DATE '2020-01-01' + (i % 3650) * INTERVAL '1' DAY as log_date, -- 10 years
             (random() * 100)::DOUBLE as value
         FROM range(1000000) t(i)
-    """
-    )
+    """)
 
     # 3. Many Customers (100k customers, 1M rows)
-    conn.execute(
-        """
+    conn.execute("""
         CREATE TABLE customer_transactions AS
         SELECT 
             (i % 100000)::VARCHAR as customer_id,
             (random() * 500)::DOUBLE as amount
         FROM range(1000000) t(i)
-    """
-    )
+    """)
 
     yield conn
     conn.close()

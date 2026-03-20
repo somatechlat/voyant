@@ -1,8 +1,8 @@
 # ADR 001: Technology Stack Selection
 
-**Status**: Accepted  
-**Date**: 2026-01-12  
-**Tags**: architecture, technology-stack  
+**Status**: Accepted
+**Date**: 2026-01-12
+**Tags**: architecture, technology-stack
 
 ## Context
 
@@ -122,7 +122,7 @@ We selected a modern Python-based stack with Django as the primary framework, co
 2. **Reliability**: 99.9% uptime for critical operations
 3. **Scalability**: Horizontal scaling capability for load increases
 4. **Extensibility**: Plugin system supports new analyzers and data sources
-5. **Integration**: Seamless integration with SomaAgentHub and other tools
+5. **Integration**: MCP-compliant tool endpoints callable by any MCP-capable agent
 
 ## Future Considerations
 
@@ -140,7 +140,7 @@ We selected a modern Python-based stack with Django as the primary framework, co
 
 ---
 
-**Related ADRs**:  
+**Related ADRs**:
 - Planned follow-up ADRs:
   - ADR 002: API Design Pattern
   - ADR 003: Workflow Orchestration

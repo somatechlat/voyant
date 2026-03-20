@@ -4,6 +4,7 @@ from typing import Any, Dict
 from asgiref.sync import async_to_sync
 from ninja.errors import HttpError
 
+from admin.common.messages import get_message
 from apps.core.config import get_settings
 from apps.core.lib.policy import (
     SomaContextError,
@@ -50,8 +51,12 @@ def apply_policy(action: str, prompt: str, metadata: Dict[str, Any]) -> None:
     try:
         run_async(enforce_policy, action, prompt, metadata)
     except SomaContextError as exc:
-        raise HttpError(400, f"Invalid policy context: {exc}") from exc
+        raise HttpError(400, get_message("ERR_POLICY_INVALID", error=str(exc))) from exc
     except SomaPolicyDenied as exc:
-        raise HttpError(403, exc.details or {"reason": str(exc)}) from exc
+        raise HttpError(
+            403, exc.details or {"reason": get_message("ERR_POLICY_DENIED")}
+        ) from exc
     except SomaPolicyUnavailable as exc:
-        raise HttpError(503, f"Policy engine unavailable: {exc}") from exc
+        raise HttpError(
+            503, get_message("ERR_POLICY_UNAVAILABLE", error=str(exc))
+        ) from exc

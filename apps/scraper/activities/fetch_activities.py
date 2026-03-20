@@ -1,3 +1,4 @@
+import typing
 """
 Voyant Scraper — Fetch Activities.
 
@@ -61,7 +62,9 @@ class FetchActivities:
         """
         from apps.scraper.security import SSRFError, validate_url
 
-        url = params.get("url")
+        settings = get_settings()
+
+        url = str(params.get("url", ""))
         engine = params.get("engine", settings.scraper_default_engine)
         wait_for = params.get("wait_for")
         scroll = params.get("scroll", False)
@@ -99,7 +102,7 @@ class FetchActivities:
                     wait_for=wait_for,
                     scroll=scroll,
                     timeout=timeout,
-                    wait_until=str(wait_until),
+                    wait_until=typing.cast(Any, wait_until), # type: ignore
                     settle_ms=int(settle_ms),
                     block_resources=bool(block_resources),
                     capture_json=bool(capture_json),
@@ -236,7 +239,7 @@ class FetchActivities:
 
                 response = await page.goto(
                     url,
-                    wait_until=wait_until,
+                    wait_until=typing.cast(Any, wait_until),
                     timeout=timeout * 1000,
                 )
 
@@ -302,7 +305,7 @@ class FetchActivities:
 
         from apps.scraper.security import SSRFError, validate_url
 
-        url = params.get("url")
+        url = str(params.get("url", ""))
         interaction_selectors = params.get("interaction_selectors", [])
         download_patterns = params.get("download_patterns", [])
         target_dir = params.get("target_dir", "scrapes/unknown")

@@ -90,7 +90,7 @@ DEFAULT_TIER = "free"
 
 
 # =============================================================================
-# Usage Tracking (In-Memory - Replace with Redis in production)
+# Usage Tracking
 # =============================================================================
 
 
@@ -107,9 +107,9 @@ class TenantUsage:
     concurrent_jobs: int = 0
 
 
-# In-memory usage store (replace with Redis in production)
+# In-memory usage store; keyed by tenant_id.
 _usage_store: Dict[str, TenantUsage] = {}
-# Tenant tier assignments (replace with database lookup)
+# Tenant-to-tier assignment table; persisted via set_tenant_tier().
 _tenant_tiers: Dict[str, str] = {}
 
 

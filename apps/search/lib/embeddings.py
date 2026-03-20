@@ -2,35 +2,13 @@
 Embedding Extraction Module
 
 Extract embeddings from unstructured text and images.
-Reference: docs/CANONICAL_ROADMAP.md - P6 Advanced Analytics
 
 Features:
-- Text embedding via sentence transformers (extensible)
-- Image embedding via CLIP (extensible)
-- Batch processing
-- Similarity search
-- Dimensionality reduction
-
-Usage:
-    from apps.search.lib.embeddings import (
-        EmbeddingExtractor, embed_texts, embed_images,
-        calculate_similarity, reduce_dimensions
-    )
-
-    # Embed texts
-    embeddings = embed_texts(["hello world", "goodbye world"])
-
-    # Calculate similarity
-    similarity = calculate_similarity(embedding_a, embedding_b)
-
-Personas Applied:
-- PhD Developer: Correct embedding math (cosine similarity, L2 norm)
-- Analyst: Business-useful similarity metrics
-- QA Engineer: Edge cases (empty text, long text)
-- ISO Documenter: Complete API docs
-- Security Auditor: Input length limits
-- Performance: Batch processing
-- UX: Simple API surface
+- Text embedding via TF-IDF (lightweight, no external models required).
+- Simple character-based embedder for pipeline testing.
+- Batch processing with L2 normalisation.
+- Cosine similarity and Euclidean distance for similarity search.
+- Variance-based dimensionality reduction.
 """
 
 from __future__ import annotations
@@ -264,11 +242,7 @@ class TFIDFEmbedder(EmbeddingExtractor):
 
 
 def cosine_similarity(a: List[float], b: List[float]) -> float:
-    """
-    Calculate cosine similarity between two vectors.
-
-    PhD Developer: Proper dot product / magnitude formula.
-    """
+    """Calculate cosine similarity between two equal-length vectors."""
     if len(a) != len(b):
         raise ValueError("Vectors must have same dimensions")
 

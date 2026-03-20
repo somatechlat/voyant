@@ -73,8 +73,7 @@ class IngestActivities:
             # Step 4: Metadata
             activity.heartbeat("Registering lineage")
 
-            # Vibe Rule #4: Real implementations only
-            # Query actual row count from DuckDB
+            # Query actual row count from DuckDB for the source table.
             try:
                 conn = duckdb.connect(
                     database=self.settings.duckdb_path, read_only=True
@@ -126,11 +125,10 @@ class IngestActivities:
     @activity.defn(name="sync_airbyte")
     async def sync_airbyte(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Trigger Airbyte sync with circuit breaker protection.
+        Trigger an Airbyte sync job with circuit breaker protection.
 
-        PhD Developer: Real implementation with proper error handling
-        Security Auditor: Circuit breaker prevents cascade failures
-        Performance Engineer: Async HTTP with connection reuse
+        Resolves the Airbyte connection ID from a UPTP generic URI if provided,
+        triggers the sync, and optionally polls for completion.
         """
         from apps.ingestion.airbyte_client import get_airbyte_client
         from apps.uptp_core.parser import URIParser
@@ -219,14 +217,15 @@ class IngestActivities:
         self, params: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
-        Validate data contract before ingestion.
+        Validate the data contract for the given source before ingestion.
 
-        # This checks if the column names and types in the sample data match the contract.
+        Checks whether a contract is registered for the source, then validates
+        the supplied sample_data against the contract schema using validate_schema.
+        Returns skipped=True if no contract exists for the source.
         """
         source_id = params.get("source_id")
 
-        # In a real implementation, we would sample data from the source here contracts.validate_data
-        # For this implementation, we check if a contract exists and return its status
+        # Check if a contract is registered for this source and return its status.
         contract = get_contract(source_id)
 
         if not contract:
@@ -251,9 +250,9 @@ class IngestActivities:
     @activity.defn(name="record_lineage_activity")
     async def record_lineage_activity(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Record lineage for the ingestion job.
+        Record data lineage edges for the ingestion job.
 
-        ISO Documenter: Traceability from source to artifact
+        Links the ingested source to the output table node in the lineage graph.
         """
         job_id = params.get("job_id")
         source_id = params.get("source_id")

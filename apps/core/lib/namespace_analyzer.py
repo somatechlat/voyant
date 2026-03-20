@@ -38,9 +38,10 @@ class IsolationMode(str, Enum):
 @dataclass
 class NamespaceConfig:
     """
-    Configuration for namespace enforcement.
+    Configuration for Voyant table namespace enforcement.
 
-    Security Auditor: Strict defaults
+    Defaults are chosen conservatively (PREFIX mode, strict=True)
+    to deny access unless an explicit match is established.
     """
 
     mode: IsolationMode = IsolationMode.PREFIX
@@ -65,9 +66,9 @@ class NamespaceViolationError(Exception):
 
 class NamespaceAnalyzer:
     """
-    Validates resource access against tenant namespace configurations.
+    Validates resource access against tenant namespace rules.
 
-    PhD Developer: Stateless validator
+    The analyzer is stateless; the NamespaceConfig holds all behavioural parameters.
     """
 
     def __init__(self, config: Optional[NamespaceConfig] = None):
@@ -86,12 +87,10 @@ class NamespaceAnalyzer:
             table_name: Resource being accessed
 
         Returns:
-            True if allowed
+            True if the access is permitted.
 
         Raises:
-            NamespaceViolationError if strict mode and violation
-
-        Security Auditor: Core IDOR prevention logic
+            NamespaceViolationError: If strict mode is enabled and access is denied.
         """
         if not tenant_id or not table_name:
             if self.config.strict:
@@ -128,12 +127,11 @@ class NamespaceAnalyzer:
             else:
                 allowed = False
 
-        # 4. Metadata Mode
-        # Placeholder for external lookup
+        # METADATA mode fails closed: without a catalog query implementation
+        # this cannot determine ownership, so access is denied and logged.
         elif self.config.mode == IsolationMode.METADATA:
-            # In a real impl, this would query a catalog
             logger.warning(
-                "Metadata isolation mode not fully implemented, failing closed"
+                "METADATA isolation mode requires a catalog integration — failing closed."
             )
             allowed = False
 

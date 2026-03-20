@@ -19,6 +19,7 @@ import httpx
 from ninja.errors import HttpError
 from ninja.security import HttpBearer
 
+from admin.common.messages import get_message
 from apps.core.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -87,15 +88,37 @@ class KeycloakAuth:
         """
         Initializes the KeycloakAuth client using settings from `voyant.core.config`.
         """
-        self.keycloak_url = settings.keycloak_url
-        self.realm = settings.keycloak_realm
+        self._server_url = settings.keycloak_url
+        self._realm = settings.keycloak_realm
         self.client_id = settings.keycloak_client_id
         self.client_secret = settings.keycloak_client_secret
         self._jwks: Optional[Dict[str, Any]] = None  # Cached JWKS.
+        self._update_urls()
+
+    @property
+    def server_url(self) -> str:
+        return self._server_url
+
+    @server_url.setter
+    def server_url(self, value: str):
+        self._server_url = value
+        self._update_urls()
+
+    @property
+    def realm(self) -> str:
+        return self._realm
+
+    @realm.setter
+    def realm(self, value: str):
+        self._realm = value
+        self._update_urls()
+
+    def _update_urls(self):
+        # Vibe Rule: No placeholders. Use real settings.
         self._jwks_url = (
-            f"{self.keycloak_url}/realms/{self.realm}/protocol/openid-connect/certs"
+            f"{self._server_url}/realms/{self._realm}/protocol/openid-connect/certs"
         )
-        self._issuer = f"{self.keycloak_url}/realms/{self.realm}"
+        self._issuer = f"{self._server_url}/realms/{self._realm}"
 
     def _get_jwks(self) -> Dict[str, Any]:
         """
@@ -117,7 +140,7 @@ class KeycloakAuth:
             except httpx.HTTPError as exc:
                 logger.error("Failed to fetch JWKS from Keycloak: %s", exc)
                 raise HttpError(
-                    503, "Authentication service (Keycloak) unavailable."
+                    503, get_message("ERR_AUTH_KEYCLOAK_UNAVAILABLE")
                 ) from exc
         return self._jwks
 
@@ -156,9 +179,7 @@ class KeycloakAuth:
 
             if not key:
                 logger.warning("JWT validation failed: Key ID (kid) not found in JWKS.")
-                raise HttpError(
-                    401, "Invalid authentication token: signing key not found."
-                )
+                raise HttpError(401, get_message("ERR_AUTH_SIGNING_KEY"))
 
             # Decode and verify the token.
             payload = jwt.decode(
@@ -194,17 +215,17 @@ class KeycloakAuth:
 
         except ExpiredSignatureError as exc:
             logger.warning("JWT token is expired.")
-            raise HttpError(401, "Authentication token has expired.") from exc
+            raise HttpError(401, get_message("ERR_AUTH_EXPIRED")) from exc
         except JWTError as exc:
             logger.error("JWT validation error: %s", exc)
-            raise HttpError(401, f"Invalid authentication token: {exc}.") from exc
+            raise HttpError(
+                401, get_message("ERR_AUTH_INVALID", error=str(exc))
+            ) from exc
         except HttpError:  # Re-raise HttpErrors from _get_jwks
             raise
         except Exception as exc:
             logger.exception("An unexpected error occurred during token validation.")
-            raise HttpError(
-                500, "Authentication failed due to internal error."
-            ) from exc
+            raise HttpError(500, get_message("ERR_AUTH_INTERNAL")) from exc
 
     def _derive_permissions(self, roles: List[str]) -> List[str]:
         """
@@ -319,7 +340,7 @@ def get_current_user(request) -> User:
     """
     token = _get_bearer_token(request)
     if not token:
-        raise HttpError(401, "Authentication required: No Bearer token provided.")
+        raise HttpError(401, get_message("ERR_AUTH_MISSING"))
     return get_auth().validate_token(token)
 
 
@@ -374,7 +395,9 @@ def require_role(required_role: str):
                 f"User {user.username} (tenant: {user.tenant_id}) attempted to access "
                 f"resource requiring role '{required_role}' without permission."
             )
-            raise HttpError(403, f"Access denied: Role '{required_role}' required.")
+            raise HttpError(
+                403, get_message("ERR_AUTH_DENIED_ROLE", role=required_role)
+            )
         return user
 
     return role_checker
@@ -408,7 +431,10 @@ def require_permission(required_permission: str):
                 f"resource requiring permission '{required_permission}' without permission."
             )
             raise HttpError(
-                403, f"Access denied: Permission '{required_permission}' required."
+                403,
+                get_message(
+                    "ERR_AUTH_DENIED_PERMISSION", permission=required_permission
+                ),
             )
         return user
 

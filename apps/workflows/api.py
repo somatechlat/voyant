@@ -10,6 +10,7 @@ from django.http import StreamingHttpResponse
 from ninja import Field, Router, Schema
 from ninja.errors import HttpError
 
+from admin.common.messages import get_message
 from apps.analysis.lib.kpi_templates import (
     get_categories as get_kpi_categories,
 )
@@ -168,7 +169,7 @@ def trigger_ingest(request, payload: IngestRequest):
     try:
         _validate_table_scope(tenant_id, payload.tables)
     except NamespaceViolationError as exc:
-        raise HttpError(403, str(exc)) from exc
+        raise HttpError(403, get_message("ERR_VALIDATION", error=str(exc))) from exc
 
     policy_prompt = (
         f"voyant ingest source_id={payload.source_id} mode={payload.mode} "
@@ -214,7 +215,7 @@ def trigger_profile(request, payload: ProfileRequest):
         if payload.table:
             validate_table_access(tenant_id, payload.table)
     except NamespaceViolationError as exc:
-        raise HttpError(403, str(exc)) from exc
+        raise HttpError(403, get_message("ERR_VALIDATION", error=str(exc))) from exc
 
     policy_prompt = (
         f"voyant profile source_id={payload.source_id} table={payload.table} "
@@ -261,7 +262,7 @@ def trigger_quality(request, payload: QualityRequest):
         if payload.table:
             validate_table_access(tenant_id, payload.table)
     except NamespaceViolationError as exc:
-        raise HttpError(403, str(exc)) from exc
+        raise HttpError(403, get_message("ERR_VALIDATION", error=str(exc))) from exc
 
     policy_prompt = (
         f"voyant quality source_id={payload.source_id} table={payload.table}"
@@ -322,7 +323,7 @@ def get_job(request, job_id: str):
     tenant_id = get_tenant_id(request)
     job = Job.objects.filter(id=job_id, tenant_id=tenant_id).first()
     if not job:
-        raise HttpError(404, "Job not found")
+        raise HttpError(404, get_message("ERR_JOB_NOT_FOUND", job_id=job_id))
     return _to_job_response(job)
 
 
@@ -331,7 +332,7 @@ def cancel_job(request, job_id: str):
     tenant_id = get_tenant_id(request)
     job = Job.objects.filter(id=job_id, tenant_id=tenant_id).first()
     if not job:
-        raise HttpError(404, "Job not found")
+        raise HttpError(404, get_message("ERR_JOB_NOT_FOUND", job_id=job_id))
 
     try:
         client = run_async(get_temporal_client)
@@ -384,11 +385,11 @@ def download_artifact(request, job_id: str, artifact_type: str, format: str = "j
         format=format,
     ).first()
     if not row:
-        raise HttpError(404, "Artifact not found")
+        raise HttpError(404, get_message("ERR_ARTIFACT_NOT_FOUND"))
 
     client = get_minio_client()
     if not client:
-        raise HttpError(503, "Storage unavailable")
+        raise HttpError(503, get_message("ERR_STORAGE_UNAVAILABLE"))
 
     object_name = row.storage_path
     try:
@@ -402,7 +403,9 @@ def download_artifact(request, job_id: str, artifact_type: str, format: str = "j
             },
         )
     except Exception as exc:
-        raise HttpError(404, f"Artifact download failed: {exc}") from exc
+        raise HttpError(
+            404, get_message("ERR_ARTIFACT_DOWNLOAD", error=str(exc))
+        ) from exc
 
 
 PRESETS: Dict[str, Dict[str, Any]] = {
@@ -449,7 +452,7 @@ def list_presets(request, category: Optional[str] = None):
 def get_preset(request, preset_name: str):
     preset = PRESETS.get(preset_name)
     if not preset:
-        raise HttpError(404, "Preset not found")
+        raise HttpError(404, get_message("ERR_PRESET_NOT_FOUND"))
     return PresetInfo(
         name=preset["name"],
         category=preset["category"],
@@ -463,7 +466,7 @@ def get_preset(request, preset_name: str):
 def execute_preset(request, preset_name: str, payload: Dict[str, Any]):
     preset = PRESETS.get(preset_name)
     if not preset:
-        raise HttpError(404, "Preset not found")
+        raise HttpError(404, get_message("ERR_PRESET_NOT_FOUND"))
 
     job = PresetJob.objects.create(
         tenant_id=get_tenant_id(request),
@@ -497,7 +500,7 @@ def list_kpi_template_categories(request):
 def get_kpi_template_endpoint(request, template_name: str):
     template = get_kpi_template(template_name)
     if not template:
-        raise HttpError(404, "KPI template not found")
+        raise HttpError(404, get_message("ERR_KPI_TEMPLATE_NOT_FOUND"))
     return {
         "name": template.name,
         "category": template.category,
@@ -516,4 +519,4 @@ def render_kpi_template_endpoint(
     try:
         return {"sql": render_kpi_template(template_name, payload.params)}
     except ValueError as exc:
-        raise HttpError(400, str(exc)) from exc
+        raise HttpError(400, get_message("ERR_VALIDATION", error=str(exc))) from exc

@@ -1,9 +1,8 @@
 """
 Machine Learning Primitives
 
-Wraps Scikit-Learn for standard ML operations.
-Implements Roadmap Tier 3 & Phase 3 Items.
-Adheres to Vibe Coding Rules: Real implementations using sklearn.
+Wraps Scikit-Learn for standard ML operations: anomaly detection,
+K-Means clustering, Random Forest classification, and linear regression.
 """
 
 import logging
@@ -52,11 +51,14 @@ class MLPrimitives:
         self, data: List[Dict[str, float]], contamination: float = 0.1
     ) -> Dict[str, Any]:
         """
-        Detect anomalies using Isolation Forest.
+        Detect anomalies in the supplied numerical data using Isolation Forest.
 
-        Personas:
-        - PhD Developer: Uses Isolation Forest algorithm for robust outlier detection in high-dimensional space.
-        - Performance Engineer: Efficient implementation using numpy/pandas vectorization.
+        Args:
+            data: List of row dicts containing numeric feature values.
+            contamination: Expected proportion of anomalies (0.0–0.5 or 'auto').
+
+        Returns:
+            Dict with total_records, anomaly_count, anomaly_indices, and anomaly records.
         """
         self._check_deps()
 
@@ -177,7 +179,9 @@ class MLPrimitives:
 
             return {
                 "model_type": "RandomForestClassifier",
-                "accuracy": float(clf.score(X_imputed, y)),  # Training score for now
+                "accuracy": float(
+                    clf.score(X_imputed, y)
+                ),  # In-sample accuracy (training set).
                 "feature_importance": importances,
                 "classes": le.classes_.tolist() if le else "numeric",
             }

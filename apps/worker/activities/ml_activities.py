@@ -50,9 +50,6 @@ class MLActivities:
 
         Raises:
             activity.ApplicationError: If no data is provided or if clustering fails.
-
-        Performance Engineer: Activity is allocated a 10-minute timeout for large datasets.
-        PhD Analyst: Clustering complexity is O(n*k*i) where n=samples, k=clusters, i=iterations.
         """
         try:
             data = params.get("data", [])
@@ -98,8 +95,6 @@ class MLActivities:
 
         Raises:
             activity.ApplicationError: If no data is provided or model training fails.
-
-        QA Engineer: Heartbeats are essential to prevent Temporal timeouts during long training sessions.
         """
         try:
             data = params.get("data", [])
@@ -151,8 +146,6 @@ class MLActivities:
 
         Raises:
             activity.ApplicationError: If dates/values are missing or forecasting fails.
-
-        Performance Engineer: Prophet models can be computationally intensive; activity has a 15-minute timeout.
         """
         try:
             dates = params.get("dates", [])
@@ -169,9 +162,7 @@ class MLActivities:
             activity.logger.info(
                 f"Forecasting {periods} periods with method: {params.get('method', 'default')}."
             )
-            return self.forecast.forecast_prophet(
-                dates, values, periods
-            )  # Assuming Prophet for now, but method can be dynamic.
+            return self.forecast.forecast_prophet(dates, values, periods)
 
         except AnalysisError as e:
             activity.logger.error(f"Time series forecasting failed: {e}")
@@ -203,8 +194,6 @@ class MLActivities:
 
         Raises:
             activity.ApplicationError: If no data is provided or regression training fails.
-
-        It ensures proper error handling for invalid inputs and robust model training.
         """
         try:
             data = params.get("data", [])

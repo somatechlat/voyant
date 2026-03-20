@@ -11,16 +11,14 @@ Date: 2025-12-17
 - Observability: unified metrics, logs, traces across API and workflows.
 - Governance: contracts, lineage, and policy enforcement built-in.
 - Extensibility: plugin registry for analyzers and generators.
-- Soma stack integration: accept upstream context and publish results into Soma memory and orchestration.
+- MCP integration: expose all workflows as agent-callable tools via the Model Context Protocol.
 
 ## 2. Target Architecture Overview
 
-+-----------------------------------------------------------+
-| SomaAgent01 (Django) - Tool Registry / MCP Clients         |
-+-----------------------------------------------------------+
-| SomaAgentHub - Gateway / Orchestrator / Policy / Memory    |
-+-----------------------------------------------------------+
-| Voyant Interfaces: MCP tools (JSON-RPC) + REST API         |
++---------------------------------------------------------------+
+| External Agents (MCP clients, REST consumers)                |
++---------------------------------------------------------------+
+| Voyant Interfaces: MCP tools (JSON-RPC) + REST API            |
 +------------------------+----------------------------------+
 |      Control Plane     |   AuthN/AuthZ   |  API Gateway    |
 |  Tenant, Versioning    |   Keycloak      |  Rate Limits    |
@@ -36,12 +34,12 @@ Date: 2025-12-17
 | Observability: Metrics, Logs, Traces (SkyWalking, Kafka)   |
 +-----------------------------------------------------------+
 
-### 2.1 Soma Stack Integration
-- SomaAgentHub Gateway routes sessions to Orchestrator, which selects Voyant as a tool provider.
-- Voyant receives session/tenant/user context and trace headers from Gateway/Orchestrator.
-- Policy checks are evaluated via SomaAgentHub Policy Engine before ingest/analyze.
-- Analysis summaries and key artifacts are written to SomaAgentHub Memory Gateway for recall.
-- Job status updates are pushed back to Orchestrator for session state alignment.
+### 2.1 Agent Integration Layer
+- MCP-compliant server exposes all Voyant workflows (discover, ingest, analyze, govern, scrape) as callable tools.
+- Voyant receives tenant and trace headers from calling agents via X-Tenant-ID and traceparent middleware.
+- Policy enforcement is evaluated via the internal OPA policy engine before sensitive operations.
+- Analysis summaries and artifact pointers are returned directly in the MCP tool response for agent recall.
+- Job status updates are returned via REST polling or callback for asynchronous workflows.
 
 ## 3. Component Responsibilities
 
@@ -86,10 +84,10 @@ Date: 2025-12-17
 - Distributed tracing via SkyWalking.
 - Kafka events with schema validation.
 
-### 3.8 Soma Integration Layer
-- Policy Engine client for sensitive action gating.
-- Memory Gateway client for summary and artifact pointers.
-- Orchestrator callback publisher for job/session updates.
+### 3.8 Agent Integration Layer
+- OPA policy engine client for gating sensitive operations (ingest, analyze, artifact download).
+- Structured payload responses that include artifact pointers and summaries for agent consumption.
+- Tenant-scoped headers (`X-Tenant-ID`, `traceparent`) propagated through middleware to all layers.
 
 ## 4. Primary Data Flows
 
@@ -111,12 +109,12 @@ Date: 2025-12-17
 2) Lineage recorded for source -> table -> job -> artifact.
 3) Metadata published to Atlas/DataHub.
 
-### 4.4 Soma Stack Orchestration Flow
-1) SomaAgentHub Gateway starts a session and routes to Orchestrator.
-2) Orchestrator selects Voyant and calls `/v1/analyze` with session headers.
-3) Voyant requests a policy decision before high-risk actions.
-4) Workflow runs and stores artifacts; summary is pushed to Memory Gateway.
-5) Voyant publishes status updates back to Orchestrator for session continuity.
+### 4.4 MCP Agent Orchestration Flow
+1) Agent calls MCP tool (e.g. `voyant.analyze`) with tenant and trace headers.
+2) Voyant API validates the JWT, enforces tenant scoping, and creates a job record.
+3) Voyant requests an OPA policy decision before high-risk operations.
+4) Temporal workflow runs and stores artifacts in MinIO; manifest is returned in the tool response.
+5) Agent polls `/v1/jobs/{id}` or receives the final result in the synchronous MCP response.
 
 ## 5. Data Model (Target)
 - Source: id, tenant_id, type, config, status, external_ids
@@ -133,9 +131,9 @@ Date: 2025-12-17
 
 ## 7. Deployment Topology
 - Core services: API, MCP, Temporal, Kafka, Redis, Postgres, Trino, MinIO.
-- Apache extensions: Iceberg catalog, Ranger, Atlas, SkyWalking, NiFi, Superset, Druid/Pinot, Tika.
+- Apache extensions: Iceberg catalog, Ranger, Atlas, SkyWalking, NiFi, Superset, Druid/Pinot, Tika, Flink.
 - Each component deploys as its own container/service.
-- Soma stack co-deploy: Gateway, Orchestrator, Policy Engine, Identity, Memory Gateway (service-to-service auth).
+- External agents connect via MCP (JSON-RPC over HTTP) or the REST API using JWT authentication.
 
 ## 8. Open Implementation Steps
 - Align with `docs/management/TASKS.md` for execution order and milestones.

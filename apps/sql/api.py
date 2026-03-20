@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional
 from ninja import Field, Router, Schema
 from ninja.errors import HttpError
 
+from admin.common.messages import get_message
 from apps.core.api_utils import auth_guard
 from apps.core.lib.trino import get_trino_client
 
@@ -76,12 +77,12 @@ def execute_sql(request, payload: SqlRequest):
             query_id=result.query_id,
         )
     except ValueError as exc:
-        raise HttpError(400, str(exc)) from exc
+        raise HttpError(400, get_message("ERR_VALIDATION", error=str(exc))) from exc
     except RuntimeError as exc:
-        raise HttpError(503, str(exc)) from exc
+        raise HttpError(503, get_message("ERR_SYSTEM", error=str(exc))) from exc
     except Exception as exc:
         logger.exception("SQL execution failed")
-        raise HttpError(500, f"Query failed due to internal error: {exc}") from exc
+        raise HttpError(500, get_message("ERR_SQL_INVALID", error=str(exc))) from exc
 
 
 @sql_router.get(
@@ -100,7 +101,7 @@ def list_tables(request, schema: Optional[str] = None):
         return {"tables": tables, "schema": schema or client.schema}
     except Exception as exc:
         logger.exception("Failed to list tables")
-        raise HttpError(500, f"Failed to list tables: {exc}") from exc
+        raise HttpError(500, get_message("ERR_SQL_TABLES", error=str(exc))) from exc
 
 
 @sql_router.get(
@@ -120,5 +121,5 @@ def get_columns(request, table: str, schema: Optional[str] = None):
     except Exception as exc:
         logger.exception("Failed to get columns for table '%s'", table)
         raise HttpError(
-            500, f"Failed to get columns for table '{table}': {exc}"
+            500, get_message("ERR_SQL_COLUMNS", table=table, error=str(exc))
         ) from exc

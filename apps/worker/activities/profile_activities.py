@@ -107,9 +107,7 @@ class ProfileActivities:
                 f"Obtained final sample of {len(sampled_data)} records using {sampling_stats.strategy} strategy."
             )
 
-            # 4. Generate Profile Summary (Lightweight, manual profiling).
-            # Note: While full-featured libraries like `ydata-profiling` exist,
-            # this implementation provides a lighter, custom profile summary.
+            # 4. Compute per-column descriptive statistics from the final sample.
             profile_summary = {
                 "columns": {},
                 "rows_analyzed": len(sampled_data),

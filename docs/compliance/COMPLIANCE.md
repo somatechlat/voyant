@@ -66,7 +66,7 @@ This document provides comprehensive compliance tracking for Voyant v3.0.0 again
 **Evidence**:
 - Agent-first design with one-call analyze endpoint
 - Multi-tenant architecture for enterprise deployment
-- Soma stack integration for agent orchestration
+- MCP-native tool integration for AI agent orchestration
 - Plugin registry for extensibility
 - ISO-compliant documentation standards
 
@@ -137,7 +137,7 @@ This document provides comprehensive compliance tracking for Voyant v3.0.0 again
 - Standard REST API patterns
 - django-mcp implementation mounted over Django ASGI
 - OpenAPI specification generation
-- SomaAgentHub integration standards
+- MCP (Model Context Protocol) standard for AI agent interoperability
 
 **Evidence**:
 - `apps/core/api.py` - REST API implementation
@@ -471,6 +471,6 @@ The development team has a clear action plan to address critical gaps, with spec
 
 ---
 
-**Compliance Status**: 65% Complete  
-**Next Review**: 2026-02-12  
+**Compliance Status**: 65% Complete
+**Next Review**: 2026-02-12
 **Responsible**: Quality Assurance Team

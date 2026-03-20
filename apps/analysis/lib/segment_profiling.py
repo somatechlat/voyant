@@ -196,8 +196,6 @@ def calculate_percentile(values: List[float], percentile: float) -> float:
 def calculate_skewness(values: List[float]) -> Optional[float]:
     """
     Calculate Fisher-Pearson skewness coefficient.
-
-    PhD Analyst: Measures distribution asymmetry
     """
     if len(values) < 3:
         return None
@@ -220,9 +218,7 @@ def calculate_cohens_d(
     mean1: float, std1: float, n1: int, mean2: float, std2: float, n2: int
 ) -> float:
     """
-    Calculate Cohen's d effect size.
-
-    PhD Analyst: Standardized measure of difference between groups
+    Calculate Cohen's d effect size between two groups.
     """
     # Pooled standard deviation
     pooled_std = math.sqrt(((n1 - 1) * std1**2 + (n2 - 1) * std2**2) / (n1 + n2 - 2))
@@ -237,9 +233,9 @@ def calculate_distribution_overlap(
     mean1: float, std1: float, mean2: float, std2: float
 ) -> float:
     """
-    Estimate distribution overlap using Bhattacharyya coefficient.
+    Estimate distribution overlap using the Bhattacharyya coefficient.
 
-    PhD Analyst: Measures similarity between distributions
+    Assumes normal distributions for both inputs.
     """
     if std1 == 0 or std2 == 0:
         return 1.0 if mean1 == mean2 else 0.0
@@ -266,9 +262,7 @@ def calculate_distribution_overlap(
 
 def profile_numeric_column(values: List[Any], column_name: str) -> ColumnProfile:
     """
-    Profile a numeric column.
-
-    Performance Engineer: Efficient single-pass statistics where possible
+    Compute a full statistical profile for a numeric column.
     """
     # Filter to valid numeric values
     numeric_values = []
@@ -313,9 +307,7 @@ def profile_categorical_column(
     values: List[Any], column_name: str, top_n: int = 10
 ) -> ColumnProfile:
     """
-    Profile a categorical column.
-
-    PhD Analyst: Value distribution analysis
+    Compute value distribution statistics for a categorical column.
     """
     # Filter missing
     valid_values = [v for v in values if v is not None]
@@ -378,9 +370,7 @@ def profile_segments(
         top_categorical: Number of top values for categorical columns
 
     Returns:
-        Dictionary mapping segment values to their profiles
-
-    UX Consultant: Simple API for segment analysis
+        Dictionary mapping segment values to their profiles.
     """
     if not data:
         return {}
@@ -446,9 +436,7 @@ def compare_segments(
         columns: Columns to compare (None = all numeric)
 
     Returns:
-        List of column comparisons
-
-    PhD Analyst: Statistical comparison between groups
+        List of per-column comparisons between the two profiles.
     """
     comparisons = []
 
@@ -527,9 +515,7 @@ def generate_segment_report(
         compare_all: Whether to include pairwise comparisons
 
     Returns:
-        Report dictionary
-
-    ISO Documenter: Comprehensive reporting format
+        Report dictionary.
     """
     report = {
         "generated_at": datetime.utcnow().isoformat() + "Z",

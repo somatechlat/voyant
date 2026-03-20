@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional
 from ninja import Field, Router, Schema
 from ninja.errors import HttpError
 
+from admin.common.messages import get_message
 from apps.core.config import get_settings
 from apps.core.middleware import get_tenant_id
 from apps.discovery.lib.catalog import DiscoveryRepo, ServiceDef
@@ -112,10 +113,10 @@ def list_sources(request):
 def get_source(request, source_id: str):
     source = Source.objects.filter(source_id=source_id).first()
     if not source:
-        raise HttpError(404, "Source not found")
+        raise HttpError(404, get_message("ERR_SOURCE_NOT_FOUND", source_id=source_id))
     tenant_id = get_tenant_id(request)
     if source.tenant_id != tenant_id:
-        raise HttpError(403, "Access to this resource is denied.")
+        raise HttpError(403, get_message("ERR_ACCESS_DENIED"))
     return SourceResponse(
         source_id=str(source.source_id),
         tenant_id=source.tenant_id,
@@ -131,10 +132,10 @@ def get_source(request, source_id: str):
 def delete_source(request, source_id: str):
     source = Source.objects.filter(source_id=source_id).first()
     if not source:
-        raise HttpError(404, "Source not found")
+        raise HttpError(404, get_message("ERR_SOURCE_NOT_FOUND", source_id=source_id))
     tenant_id = get_tenant_id(request)
     if source.tenant_id != tenant_id:
-        raise HttpError(403, "Access to this resource is denied.")
+        raise HttpError(403, get_message("ERR_ACCESS_DENIED"))
     source.delete()
     return {"status": "deleted", "source_id": str(source_id)}
 
@@ -180,7 +181,9 @@ def register_service(request, payload: ServiceRegisterRequest):
         return service
     except Exception as exc:
         logger.exception("Failed to register service")
-        raise HttpError(500, f"Failed to register service: {exc}") from exc
+        raise HttpError(
+            500, get_message("ERR_SERVICE_REGISTER_FAILED", error=str(exc))
+        ) from exc
 
 
 @discovery_router.get("/services", response=List[ServiceDef])
@@ -190,7 +193,9 @@ def list_services(request, tag: Optional[str] = None):
             return _discovery_repo.search(tag)
         return _discovery_repo.list_services()
     except Exception as exc:
-        raise HttpError(500, f"Failed to list services: {exc}") from exc
+        raise HttpError(
+            500, get_message("ERR_SERVICE_LIST_FAILED", error=str(exc))
+        ) from exc
 
 
 @discovery_router.get("/services/{name}", response=ServiceDef)
@@ -198,12 +203,14 @@ def get_service(request, name: str):
     try:
         service = _discovery_repo.get(name)
         if not service:
-            raise HttpError(404, "Service not found")
+            raise HttpError(404, get_message("ERR_SERVICE_NOT_FOUND"))
         return service
     except HttpError:
         raise
     except Exception as exc:
-        raise HttpError(500, f"Failed to retrieve service: {exc}") from exc
+        raise HttpError(
+            500, get_message("ERR_SERVICE_RETR_FAILED", error=str(exc))
+        ) from exc
 
 
 @discovery_router.post("/scan", response=Dict[str, Any])
@@ -217,4 +224,4 @@ def scan_spec(request, payload: SpecScanRequest):
             "endpoints": [endpoint.path for endpoint in spec.endpoints[:10]],
         }
     except Exception as exc:
-        raise HttpError(400, f"Scan failed: {exc}") from exc
+        raise HttpError(400, get_message("ERR_SCAN_FAILED", error=str(exc))) from exc

@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional
 from ninja import Field, Router, Schema
 from ninja.errors import HttpError
 
+from admin.common.messages import get_message
 from apps.core.api_utils import apply_policy, run_async
 from apps.core.config import get_settings
 from apps.core.lib.namespace_analyzer import (
@@ -75,13 +76,15 @@ def _create_job(request, job_type: str, source_id: str, params: Dict[str, Any]) 
 def analyze(request, payload: AnalyzeRequest):
     table = _resolve_table(payload)
     if not table:
-        raise HttpError(400, "table or source_id is required")
+        raise HttpError(
+            400, get_message("ERR_VALIDATION", error="table or source_id is required")
+        )
 
     tenant_id = get_tenant_id(request)
     try:
         validate_table_access(tenant_id, table)
     except NamespaceViolationError as exc:
-        raise HttpError(403, str(exc)) from exc
+        raise HttpError(403, get_message("ERR_VALIDATION", error=str(exc))) from exc
 
     policy_prompt = f"voyant analyze table={table}"
     apply_policy("analyze", policy_prompt, {"source_id": payload.source_id})
@@ -134,4 +137,4 @@ def analyze(request, payload: AnalyzeRequest):
         job.status = "failed"
         job.error_message = str(exc)
         job.save()
-        raise HttpError(500, str(exc)) from exc
+        raise HttpError(500, get_message("ERR_SYSTEM", error=str(exc))) from exc

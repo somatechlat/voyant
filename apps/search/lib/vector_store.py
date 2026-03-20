@@ -56,7 +56,7 @@ class VectorStore:
     For large scale, upgrade to FAISS or dedicated vector DB.
     """
 
-    def __init__(self, dimensions: int = 64, storage_path: Optional[str] = None):
+    def __init__(self, dimensions: int = 128, storage_path: Optional[str] = None):
         self.dimensions = dimensions
         self.storage_path = storage_path
         self._items: Dict[str, VectorItem] = {}
@@ -196,9 +196,9 @@ _store: Optional[VectorStore] = None
 
 
 def get_vector_store(storage_path: Optional[str] = None) -> VectorStore:
-    """Get global vector store."""
+    """Get global vector store. If storage_path is provided, it may re-initialize."""
     global _store
-    if _store is None:
+    if _store is None or (storage_path and _store.storage_path != storage_path):
         # Default persistence path
         default_path = os.path.join(os.getcwd(), "data", "vectors.json")
         _store = VectorStore(storage_path=storage_path or default_path)

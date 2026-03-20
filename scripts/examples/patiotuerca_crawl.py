@@ -387,16 +387,14 @@ def _connect(db_path: str) -> sqlite3.Connection:
 
 def _ensure_tables(con: sqlite3.Connection) -> None:
     # listings + listing_urls already exist in this repo DB; keep schema compatible.
-    con.execute(
-        """
+    con.execute("""
         create table if not exists fetch_errors(
           vehicle_id integer,
           url text,
           error text,
           at text
         )
-        """
-    )
+        """)
     con.commit()
 
 

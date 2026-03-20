@@ -3,12 +3,10 @@ import logging
 from authzed.api.v1 import (
     CheckPermissionRequest,
     CheckPermissionResponse,
-    Client,
     Consistency,
     ObjectReference,
     SubjectReference,
 )
-from grpc import insecure_channel
 
 from apps.core.config import get_settings
 
@@ -30,17 +28,33 @@ class SpiceDBClient:
         self.token = settings.spicedb_grpc_preshared_key
         if not self.token:
             logger.warning("VOYANT_SPICEDB_GRPC_PRESHARED_KEY is not set")
-        self._client = None
+        self._channel = None
+        self._permissions_service = None
+        self._schema_service = None
 
     @property
-    def client(self) -> Client:
-        if not self._client:
-            self._client = Client(
-                self.endpoint,
-                insecure_channel(self.endpoint),  # Use secure_channel in prod
-                self.token,
-            )
-        return self._client
+    def channel(self):
+        if not self._channel:
+            import grpc
+
+            self._channel = grpc.insecure_channel(self.endpoint)
+        return self._channel
+
+    @property
+    def permissions_service(self):
+        if not self._permissions_service:
+            from authzed.api.v1 import PermissionsServiceStub
+
+            self._permissions_service = PermissionsServiceStub(self.channel)
+        return self._permissions_service
+
+    @property
+    def schema_service(self):
+        if not self._schema_service:
+            from authzed.api.v1 import SchemaServiceStub
+
+            self._schema_service = SchemaServiceStub(self.channel)
+        return self._schema_service
 
     def check_permission(
         self,
@@ -52,16 +66,11 @@ class SpiceDBClient:
     ) -> bool:
         """
         Check if subject has permission on resource.
-
-        Args:
-            resource_type: e.g., "resource"
-            resource_id: e.g., "doc:123"
-            permission: e.g., "view"
-            subject_type: e.g., "user"
-            subject_id: e.g., "user:456"
         """
+        # Preshared key is sent via gRPC metadata
+        metadata = [("authorization", f"Bearer {self.token}")] if self.token else []
         try:
-            resp = self.client.permissions_service.CheckPermission(
+            resp = self.permissions_service.CheckPermission(
                 CheckPermissionRequest(
                     resource=ObjectReference(
                         object_type=resource_type,
@@ -75,7 +84,8 @@ class SpiceDBClient:
                         )
                     ),
                     consistency=Consistency(fully_consistent=True),
-                )
+                ),
+                metadata=metadata,
             )
             return (
                 resp.permissionship

@@ -75,7 +75,13 @@ class TestFixDataQuality:
 
     def test_missing_value_imputation_mean(self, ops):
         """Mean imputation fills None values with column mean."""
-        data = [{"value": 100}, {"value": None}, {"value": 200}, {"value": None}, {"value": 300}]
+        data = [
+            {"value": 100},
+            {"value": None},
+            {"value": 200},
+            {"value": None},
+            {"value": 300},
+        ]
         params = {
             "data": data,
             "numeric_columns": ["value"],
@@ -112,9 +118,12 @@ class TestFixDataQuality:
     def test_outlier_detection_and_capping(self, ops):
         """Outlier capping contains extreme values within statistical bounds."""
         data = [
-            {"value": 100}, {"value": 110}, {"value": 105},
-            {"value": 1000},   # outlier
-            {"value": 95}, {"value": -500},  # outlier
+            {"value": 100},
+            {"value": 110},
+            {"value": 105},
+            {"value": 1000},  # outlier
+            {"value": 95},
+            {"value": -500},  # outlier
             {"value": 108},
         ]
         params = {
@@ -134,9 +143,12 @@ class TestFixDataQuality:
     def test_outlier_removal_strategy(self, ops):
         """Outlier rows are removed, reducing total row count."""
         data = [
-            {"value": 100}, {"value": 110}, {"value": 105},
+            {"value": 100},
+            {"value": 110},
+            {"value": 105},
             {"value": 1000},  # outlier
-            {"value": 95}, {"value": -500},  # outlier
+            {"value": 95},
+            {"value": -500},  # outlier
             {"value": 108},
         ]
         params = {
@@ -241,9 +253,13 @@ class TestFixDataQuality:
         np.random.seed(42)
         data = [
             {
-                "revenue": np.random.normal(1000, 200) if np.random.random() > 0.1 else None,
+                "revenue": (
+                    np.random.normal(1000, 200) if np.random.random() > 0.1 else None
+                ),
                 "category": (
-                    np.random.choice(["A", "B", "C"]) if np.random.random() > 0.05 else None
+                    np.random.choice(["A", "B", "C"])
+                    if np.random.random() > 0.05
+                    else None
                 ),
             }
             for _ in range(10000)

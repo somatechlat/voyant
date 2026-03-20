@@ -38,7 +38,7 @@ def test_metrics_server():
     # Give it a second to bind
     time.sleep(2)
 
-    # Record some dummy metrics
+    # Record some sample metrics
     logger.info("Recording metrics...")
     registry.activity_executions.labels(
         activity_type="test_activity", status="success"

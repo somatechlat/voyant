@@ -3,11 +3,6 @@ Anomaly Detection Service
 
 Implements statistical outlier detection using Isolation Forest.
 Registered as an AnalyzerPlugin in the Voyant platform.
-
-Personas:
-- PhD Developer: Unsupervised learning (Isolation Forest)
-- Analyst: Outlier scoring and visualization
-- Performance: Sampled execution for large datasets
 """
 
 import logging
@@ -42,9 +37,7 @@ logger = logging.getLogger(__name__)
     is_core=False,
 )
 class AnomalyDetector(AnalyzerPlugin):
-    """
-    detects anomalies in numerical data using Isolation Forest.
-    """
+    """Detects anomalies in numerical data using Isolation Forest."""
 
     def analyze(self, data: Any, context: Dict[str, Any]) -> Dict[str, Any]:
         """
