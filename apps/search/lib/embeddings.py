@@ -13,9 +13,12 @@ Features:
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import math
+import random
 from abc import ABC, abstractmethod
+from collections import Counter
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, Tuple
@@ -28,6 +31,8 @@ class EmbeddingModel(str, Enum):
 
     SIMPLE = "simple"  # Character-based (for testing)
     TFIDF = "tfidf"  # TF-IDF (lightweight)
+    DENSE = "dense"  # Deterministic 1536-dim dense embeddings
+    SPARSE = "sparse"  # Sparse BM25 vectors
     SENTENCE_TRANSFORMER = "st"  # Sentence transformers (not implemented)
     CLIP = "clip"  # Vision+text (not implemented)
 
@@ -236,6 +241,139 @@ class TFIDFEmbedder(EmbeddingExtractor):
         return vector
 
 
+class DenseEmbedder(EmbeddingExtractor):
+    """
+    Deterministic 1536-dim dense embedder using hash-based random projection.
+
+    Generates stable embeddings suitable for Milvus dense vector fields
+    without requiring external model APIs. Uses SHA-256 hashing for
+    reproducibility across process restarts.
+    """
+
+    def __init__(self, dimensions: int = 1536):
+        super().__init__(dimensions)
+
+    @property
+    def model_name(self) -> str:
+        return "dense"
+
+    def embed(self, texts: List[str]) -> EmbeddingResult:
+        embeddings = []
+        for text in texts:
+            vector = self._embed_text(text)
+            embeddings.append(vector)
+
+        return EmbeddingResult(
+            embeddings=embeddings,
+            model=self.model_name,
+            dimensions=self.dimensions,
+            count=len(texts),
+        )
+
+    def _embed_text(self, text: str) -> List[float]:
+        """Embed a single text into a dense vector."""
+        tokens = self._tokenize(text)
+        vec = [0.0] * self.dimensions
+        if not tokens:
+            return vec
+
+        for token in tokens:
+            h = hashlib.sha256(token.encode("utf-8")).digest()
+            # Use chunks of the hash to drive a deterministic pseudo-random
+            # update across all dimensions.
+            rng = random.Random(int.from_bytes(h[:8], "big"))
+            for i in range(self.dimensions):
+                vec[i] += rng.gauss(0.0, 1.0)
+
+        # Mean pooling + L2 normalisation
+        n = len(tokens)
+        vec = [x / n for x in vec]
+        magnitude = math.sqrt(sum(x**2 for x in vec))
+        if magnitude > 0:
+            vec = [x / magnitude for x in vec]
+        return vec
+
+    def _tokenize(self, text: str) -> List[str]:
+        """Simple word tokenization."""
+        text = text.lower()[:10000]
+        words = []
+        current = []
+        for char in text:
+            if char.isalnum():
+                current.append(char)
+            elif current:
+                words.append("".join(current))
+                current = []
+        if current:
+            words.append("".join(current))
+        return words
+
+
+class SparseEmbedder:
+    """
+    Sparse BM25-like embedder for Milvus sparse vector fields.
+
+    Produces dictionary-formatted sparse vectors where keys are
+    uint32 term hashes and values are BM25-normalised weights.
+    """
+
+    def __init__(self, k1: float = 1.5, b: float = 0.75):
+        self.k1 = k1
+        self.b = b
+
+    @property
+    def model_name(self) -> str:
+        return "sparse"
+
+    def embed(self, texts: List[str]) -> List[Dict[int, float]]:
+        """Embed a list of texts into sparse vectors."""
+        return [self._embed_text(t) for t in texts]
+
+    def _embed_text(self, text: str) -> Dict[int, float]:
+        """Embed a single text into a sparse BM25 vector."""
+        tokens = self._tokenize(text)
+        if not tokens:
+            return {}
+
+        term_counts = Counter(tokens)
+        doc_len = len(tokens)
+        avg_len = doc_len  # Single-doc average for simplicity
+
+        sparse: Dict[int, float] = {}
+        for term, freq in term_counts.items():
+            idx = self._term_to_index(term)
+            # Simplified BM25 without corpus IDF (using constant IDF=1)
+            denom = freq + self.k1 * (1 - self.b + self.b * (doc_len / avg_len))
+            weight = ((self.k1 + 1) * freq) / max(denom, 1e-6)
+            sparse[idx] = sparse.get(idx, 0.0) + weight
+
+        # L2 normalise sparse values
+        magnitude = math.sqrt(sum(v**2 for v in sparse.values()))
+        if magnitude > 0:
+            sparse = {k: v / magnitude for k, v in sparse.items()}
+        return sparse
+
+    def _tokenize(self, text: str) -> List[str]:
+        """Simple word tokenization."""
+        text = text.lower()[:10000]
+        words = []
+        current = []
+        for char in text:
+            if char.isalnum():
+                current.append(char)
+            elif current:
+                words.append("".join(current))
+                current = []
+        if current:
+            words.append("".join(current))
+        return words
+
+    def _term_to_index(self, term: str) -> int:
+        """Map a term to a deterministic uint32 index."""
+        h = hashlib.sha256(term.encode("utf-8")).hexdigest()
+        return int(h, 16) % (2**32 - 1)
+
+
 # =============================================================================
 # Similarity Functions
 # =============================================================================
@@ -324,6 +462,7 @@ def reduce_dimensions(
 _EMBEDDERS = {
     "simple": SimpleEmbedder,
     "tfidf": TFIDFEmbedder,
+    "dense": DenseEmbedder,
 }
 
 
@@ -364,8 +503,8 @@ def get_embedding_extractor(
     Get an embedding extractor instance.
 
     Args:
-        model: Model name ("simple", "tfidf")
-        dimensions: Output dimensions
+        model: Model name ("simple", "tfidf", "dense")
+        dimensions: Output dimensions (ignored for "dense" which is fixed at 1536)
 
     Returns:
         EmbeddingExtractor instance
@@ -375,7 +514,14 @@ def get_embedding_extractor(
             f"Unknown model: {model}. Available: {list(_EMBEDDERS.keys())}"
         )
 
+    if model == "dense":
+        return _EMBEDDERS[model](dimensions=1536)
     return _EMBEDDERS[model](dimensions=dimensions)
+
+
+def get_sparse_embedder() -> SparseEmbedder:
+    """Get a sparse BM25 embedder instance."""
+    return SparseEmbedder()
 
 
 def find_similar(

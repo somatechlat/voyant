@@ -243,6 +243,44 @@ class Settings(BaseSettings):
         default="iceberg", description="Default Trino catalog to query."
     )
     trino_schema: str = Field(default="", description="Default Trino schema to query.")
+
+    # --------------------------------------------------------------------------
+    # Milvus — Vector Database
+    # --------------------------------------------------------------------------
+    milvus_host: str = Field(
+        default="localhost",
+        alias="MILVUS_HOST",
+        description="Hostname for the Milvus vector database server.",
+    )
+    milvus_port: int = Field(
+        default=19530,
+        alias="MILVUS_PORT",
+        description="Port for the Milvus vector database server.",
+    )
+    milvus_uri: str = Field(
+        default="",
+        alias="MILVUS_URI",
+        description=(
+            "Full connection URI for Milvus (e.g. http://localhost:19530). "
+            "If provided, overrides host/port."
+        ),
+    )
+    milvus_db_name: str = Field(
+        default="voyant",
+        alias="MILVUS_DB_NAME",
+        description="Milvus database name to use.",
+    )
+    milvus_token: str = Field(
+        default="",
+        alias="MILVUS_TOKEN",
+        description="Authentication token for Milvus (user:password or API key).",
+    )
+    milvus_auto_create: bool = Field(
+        default=True,
+        alias="MILVUS_AUTO_CREATE",
+        description="Automatically create Milvus collections on first use.",
+    )
+
     r_engine_host: str = Field(
         default="", description="Hostname for the R-Engine (pyRserve)."
     )

@@ -45,6 +45,7 @@ class User:
     email: str
     username: str
     tenant_id: str
+    realm: str
     roles: List[str]
     permissions: List[str]
     token: str
@@ -198,6 +199,18 @@ class KeycloakAuth:
             realm_access = payload.get("realm_access", {})
             roles = realm_access.get("roles", [])
 
+            # Extract and validate realm from the issuer claim.
+            issuer = payload.get("iss", "")
+            token_realm = self._extract_realm_from_iss(issuer)
+            if token_realm and token_realm != self._realm:
+                logger.warning(
+                    "Cross-realm token rejected: token realm '%s' does not match "
+                    "expected realm '%s'",
+                    token_realm,
+                    self._realm,
+                )
+                raise HttpError(401, get_message("ERR_AUTH_CROSS_REALM"))
+
             tenant_id = payload.get(
                 "tenant_id", "default"
             )  # Custom claim for multi-tenancy.
@@ -208,6 +221,7 @@ class KeycloakAuth:
                 email=email,
                 username=username,
                 tenant_id=tenant_id,
+                realm=token_realm or self._realm or "default",
                 roles=roles,
                 permissions=permissions,
                 token=token,
@@ -226,6 +240,26 @@ class KeycloakAuth:
         except Exception as exc:
             logger.exception("An unexpected error occurred during token validation.")
             raise HttpError(500, get_message("ERR_AUTH_INTERNAL")) from exc
+
+    @staticmethod
+    def _extract_realm_from_iss(issuer: str) -> str:
+        """
+        Extract the realm name from a Keycloak issuer URL.
+
+        Args:
+            issuer: The 'iss' claim from a JWT (e.g.,
+                'http://keycloak:8080/realms/voyant').
+
+        Returns:
+            str: The realm name, or an empty string if parsing fails.
+        """
+        if not issuer:
+            return ""
+        # Expected format: .../realms/{realm}
+        parts = issuer.rstrip("/").split("/")
+        if len(parts) >= 2 and parts[-2].lower() == "realms":
+            return parts[-1]
+        return ""
 
     def _derive_permissions(self, roles: List[str]) -> List[str]:
         """
@@ -439,3 +473,41 @@ def require_permission(required_permission: str):
         return user
 
     return permission_checker
+
+
+def require_realm(required_realm: str):
+    """
+    A decorator factory that creates a Django Ninja dependency to enforce
+    realm-based access control on API endpoints.
+
+    Usage:
+        @api.get("/realm_only", auth=require_realm("voyant"))
+        def realm_endpoint(request): ...
+
+    Args:
+        required_realm (str): The realm name required to access the endpoint.
+
+    Returns:
+        Callable: A dependency function that authenticates the user and checks their realm.
+
+    Raises:
+        HttpError 401: If the user is not authenticated.
+        HttpError 403: If the authenticated user does not belong to the required realm.
+    """
+
+    def realm_checker(request) -> User:
+        user = get_current_user(request)
+        if user.realm != required_realm:
+            logger.warning(
+                f"User {user.username} (realm: {user.realm}) attempted to access "
+                f"resource requiring realm '{required_realm}'."
+            )
+            raise HttpError(
+                403,
+                get_message(
+                    "ERR_AUTH_DENIED_REALM", realm=required_realm
+                ),
+            )
+        return user
+
+    return realm_checker

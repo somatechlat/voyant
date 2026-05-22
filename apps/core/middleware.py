@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 import uuid
 from contextvars import ContextVar
-from typing import Optional
+from typing import Any, Optional
 
 from django.http import JsonResponse
 
@@ -21,6 +21,7 @@ soma_session_id_var: ContextVar[str] = ContextVar("soma_session_id", default="")
 soma_user_id_var: ContextVar[str] = ContextVar("soma_user_id", default="")
 traceparent_var: ContextVar[str] = ContextVar("traceparent", default="")
 authorization_var: ContextVar[str] = ContextVar("authorization", default="")
+current_user_var: ContextVar[Optional[Any]] = ContextVar("current_user", default=None)
 
 SUPPORTED_VERSIONS = ["v1"]
 DEFAULT_VERSION = "v1"
@@ -136,6 +137,52 @@ def get_traceparent() -> str:
 
 def get_authorization() -> str:
     return authorization_var.get()
+
+
+class RBACMiddleware:
+    """
+    Injects the authenticated user into a thread-local context variable.
+
+    This allows the ORM layer (via RBACManager) to auto-filter querysets
+    based on the current user's realm and tenant_id. The middleware
+    attempts to validate the Bearer token if present, but does NOT raise
+    errors for missing or invalid tokens — it simply leaves the user as None
+    so that optional authentication patterns and public endpoints continue
+    to work.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        user = self._resolve_user(request)
+        current_user_var.set(user)
+        response = self.get_response(request)
+        # Reset to None after the request to prevent leakage across contexts.
+        current_user_var.set(None)
+        return response
+
+    @staticmethod
+    def _resolve_user(request) -> Optional[Any]:
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
+            return None
+        token = auth_header.split(" ", 1)[1].strip()
+        if not token:
+            return None
+        try:
+            from apps.core.security.auth import get_auth
+
+            return get_auth().validate_token(token)
+        except Exception:
+            # Do not break the request cycle for invalid tokens here;
+            # endpoint-level auth decorators will enforce strict validation.
+            return None
+
+
+def get_current_user() -> Optional[Any]:
+    """Retrieve the authenticated user for the current request context."""
+    return current_user_var.get()
 
 
 def get_version_info() -> dict:

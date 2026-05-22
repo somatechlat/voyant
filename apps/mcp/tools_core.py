@@ -18,7 +18,7 @@ from apps.core.lib.workflow_utils import dispatch_workflow
 from apps.discovery.models import Source
 from apps.discovery.source_detection import detect_source_type
 from apps.search.lib.embeddings import get_embedding_extractor
-from apps.search.lib.vector_store import get_vector_store
+from apps.search.lib.milvus_store import get_vector_store
 from apps.worker.workflows.analyze_workflow import AnalyzeWorkflow
 from apps.worker.workflows.ingest_workflow import IngestDataWorkflow
 from apps.worker.workflows.profile_workflow import ProfileWorkflow

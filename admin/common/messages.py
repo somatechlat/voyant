@@ -15,6 +15,8 @@ MESSAGES: Dict[str, str] = {
     "ERR_AUTH_DENIED_PERMISSION": "Access denied: Permission '{permission}' required.",
     "ERR_AUTH_KEYCLOAK_UNAVAILABLE": "Authentication service unavailable.",
     "ERR_AUTH_INTERNAL": "Authentication failed due to an internal error.",
+    "ERR_AUTH_CROSS_REALM": "Authentication failed: cross-realm token rejected.",
+    "ERR_AUTH_DENIED_REALM": "Access denied: Realm '{realm}' required.",
     "ERR_POLICY_INVALID": "Invalid policy context: {error}",
     "ERR_POLICY_DENIED": "Access denied by policy.",
     "ERR_POLICY_UNAVAILABLE": "Policy engine unavailable: {error}",

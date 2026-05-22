@@ -6,7 +6,7 @@
 # Cluster: voyant_cluster
 # Port Range: 45xxx
 #
-# MEMORY BUDGET: 8GB HARD CAP (Rule: cluster cannot exceed 8GB total)
+# MEMORY BUDGET: 10GB HARD CAP (v3.1.0 upgraded from 8GB)
 #   voyant_api        768M
 #   voyant_worker     512M
 #   postgres          512M
@@ -23,7 +23,11 @@
 #   keycloak          384M
 #   flink_jobmanager  512M
 #   flink_taskmanager 512M
-#   TOTAL             ~7.4GB (safe under 8GB)
+#   milvus            1G
+#   etcd              256M
+#   flaresolverr      256M
+#   browserless       512M
+#   TOTAL             ~9.8GB (safe under 10GB)
 #
 # Usage:
 #   cd infra/standalone
@@ -593,6 +597,117 @@ services:
         reservations:
           memory: 128M
 
+  # ===========================================================================
+  # VECTOR DATABASE (Milvus 2.4+)
+  # ===========================================================================
+  voyant_etcd:
+    <<: *common
+    container_name: voyant_etcd
+    image: quay.io/coreos/etcd:v3.5.14
+    environment:
+      - ETCD_AUTO_COMPACTION_MODE=revision
+      - ETCD_AUTO_COMPACTION_RETENTION=1000
+      - ETCD_QUOTA_BACKEND_BYTES=4294967296
+      - ETCD_SNAPSHOT_COUNT=50000
+    volumes:
+      - voyant_etcd_data:/etcd
+    command: >
+      etcd -advertise-client-urls http://127.0.0.1:2379
+      -listen-client-urls http://0.0.0.0:2379
+      --data-dir /etcd
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          memory: 64M
+    networks:
+      - voyant_cluster
+
+  voyant_milvus:
+    <<: *common
+    container_name: voyant_milvus
+    image: milvusdb/milvus:v2.4.17
+    command: ["milvus", "run", "standalone"]
+    security_opt:
+      - seccomp:unconfined
+    environment:
+      ETCD_ENDPOINTS: voyant_etcd:2379
+      MINIO_ADDRESS: voyant_minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+    volumes:
+      - voyant_milvus_data:/var/lib/milvus
+    ports:
+      - "19530:19530"
+      - "9091:9091"
+    depends_on:
+      voyant_etcd:
+        condition: service_healthy
+      voyant_minio:
+        condition: service_healthy
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          memory: 256M
+    networks:
+      - voyant_cluster
+
+  # ===========================================================================
+  # ANTI-BOT BYPASS (FlareSolverr)
+  # ===========================================================================
+  voyant_flaresolverr:
+    <<: *common
+    container_name: voyant_flaresolverr
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - CAPTCHA_SOLVER=${CAPTCHA_SOLVER:-none}
+    ports:
+      - "8191:8191"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          memory: 64M
+    networks:
+      - voyant_cluster
+
+  # ===========================================================================
+  # MANAGED BROWSER POOL (Browserless)
+  # ===========================================================================
+  voyant_browserless:
+    <<: *common
+    container_name: voyant_browserless
+    image: ghcr.io/browserless/chromium:latest
+    environment:
+      - MAX_CONCURRENT_SESSIONS=10
+      - CONNECTION_TIMEOUT=60000
+      - PREBOOT_CHROME=true
+    ports:
+      - "3000:3000"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          memory: 128M
+    networks:
+      - voyant_cluster
+
 # =============================================================================
 # NETWORK: voyant_cluster
 # =============================================================================
@@ -625,3 +740,7 @@ volumes:
     name: voyant_logs
   voyant_vault_data:
     name: voyant_vault_data
+  voyant_etcd_data:
+    name: voyant_etcd_data
+  voyant_milvus_data:
+    name: voyant_milvus_data

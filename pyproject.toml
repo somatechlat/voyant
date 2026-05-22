@@ -59,7 +59,7 @@ dependencies = [
     "lxml>=5.0.0",
     "cssselect>=1.2.0",
     "pyyaml>=6.0.0",
-    # DataScraper
+    # DataScraper — Core
     "playwright>=1.40.0",
     "scrapy>=2.11.0",
     "beautifulsoup4>=4.12.0",
@@ -67,6 +67,19 @@ dependencies = [
     "pytesseract>=0.3.10",
     "fake-useragent>=1.4.0",
     "Pillow>=10.0.0",
+    # DataScraper — OCTOPUS ARM extensions
+    "parsel>=1.9.0",           # ARM-1: CSS/XPath selectors (Scrapy's standalone lib)
+    "curl-cffi>=0.7.0",        # ARM-3a: TLS fingerprint impersonation (JA3/JA4 bypass)
+    "camoufox>=0.4.0",         # ARM-3b: Anti-detection Firefox browser
+    "selenium>=4.18.0",        # ARM compat: retained for legacy compatibility
+    "unstructured>=0.13.0",    # ARM-6: Multi-format document parsing (20+ formats)
+    "python-docx>=1.1.0",      # ARM-6: DOCX native parsing
+    "openpyxl>=3.1.0",         # ARM-6: XLSX native parsing
+    "openai-whisper>=20231117", # ARM-7b: Open-source ASR transcription
+    "ffmpeg-python>=0.2.0",    # ARM-7b: Audio/video format conversion
+    "trafilatura>=1.8.0",      # Deep Research: main text extraction from web pages
+    "newspaper3k>=0.2.8",      # Deep Research: article parsing and NLP
+    "readability-lxml>=0.8.1", # Deep Research: boilerplate removal
     # NLP
     "nltk>=3.8.0",
     # Profiling & Quality
@@ -79,6 +92,20 @@ dependencies = [
     "opentelemetry-exporter-otlp>=1.21.0",
     # Math / R bridge
     "pyRserve>=1.0.0",
+    # Vector Database
+    "pymilvus>=2.4.0",
+    "django-milvus>=0.1.0",
+    # Scraping — Evasion & Stealth
+    "playwright-stealth>=1.0.0",
+    # Scraping — AI-native crawler
+    "crawl4ai>=0.4.0",
+    # Data Export & Processing
+    "markdownify>=0.11.0",
+    "polars>=1.0.0",
+    "fsspec>=2024.0.0",
+    "s3fs>=2024.0.0",
+    "gcsfs>=2024.0.0",
+    "xlsxwriter>=3.1.0",
     # Authorization
     "authzed>=1.0.0",
 ]

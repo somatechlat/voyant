@@ -32,8 +32,8 @@ from apps.discovery.lib.spec_parser import SpecParser
 from apps.discovery.models import Source
 from apps.governance.api import _quota_usage_for_tenant
 from apps.mcp.tools_core import _tenant
-from apps.search.lib.embeddings import get_embedding_extractor
-from apps.search.lib.vector_store import get_vector_store
+from apps.search.lib.embeddings import get_embedding_extractor, get_sparse_embedder
+from apps.search.lib.milvus_store import get_vector_store
 from apps.workflows.models import Artifact, Job, PresetJob
 
 settings = get_settings()
@@ -385,10 +385,17 @@ def tool_discovery_scan(url: str):
 def tool_vector_search(query: str, limit: int = 5, tenant_id=None):
     """Semantic vector search over tenant data. Alias for voyant.search."""
     store = get_vector_store()
-    extractor = get_embedding_extractor(model="tfidf", dimensions=128)
-    vec = extractor.embed([query]).embeddings[0]
+    dense_extractor = get_embedding_extractor(model="dense", dimensions=1536)
+    sparse_extractor = get_sparse_embedder()
+
+    dense_vec = dense_extractor.embed([query]).embeddings[0]
+    sparse_vec = sparse_extractor.embed([query])[0]
+
     results = store.search(
-        query_vector=vec, k=limit, filter_metadata={"tenant_id": _tenant(tenant_id)}
+        query_vector=dense_vec,
+        k=limit,
+        filter_metadata={"tenant_id": _tenant(tenant_id)},
+        query_sparse_vector=sparse_vec,
     )
     return [
         {"id": item.id, "score": score, "metadata": item.metadata}
@@ -400,17 +407,25 @@ def tool_vector_search(query: str, limit: int = 5, tenant_id=None):
 def tool_vector_index(text: str, metadata=None, item_id=None, tenant_id=None):
     """Index a text snippet into the vector store for subsequent semantic retrieval."""
     store = get_vector_store()
-    extractor = get_embedding_extractor(model="tfidf", dimensions=128)
-    embedding_result = extractor.embed([text])
-    vector = embedding_result.embeddings[0]
+    dense_extractor = get_embedding_extractor(model="dense", dimensions=1536)
+    sparse_extractor = get_sparse_embedder()
+
+    dense_result = dense_extractor.embed([text])
+    dense_vector = dense_result.embeddings[0]
+    sparse_vector = sparse_extractor.embed([text])[0]
+
     final_id = item_id or f"vec-{abs(hash((text, _tenant(tenant_id))))}"
     m = metadata or {}
     m["tenant_id"] = _tenant(tenant_id)
     m["text_preview"] = text[:200]
-    store.add(id=final_id, vector=vector, metadata=m)
-    store.save()
+    store.add(
+        id=final_id,
+        vector=dense_vector,
+        metadata=m,
+        sparse_vector=sparse_vector,
+    )
     return {
         "id": final_id,
         "status": "indexed",
-        "dimensions": embedding_result.dimensions,
+        "dimensions": dense_result.dimensions,
     }
