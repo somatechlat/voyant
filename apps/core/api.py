@@ -11,6 +11,9 @@ from apps.search.api import router as search_router
 from apps.sql.api import sql_router
 from apps.workflows.api import artifacts_router, jobs_router, presets_router
 
+# Capsules router — imported lazily to avoid startup coupling
+from apps.capsules.api import capsules_router
+
 # Use a unique namespace during testing to avoid NinjaAPI registry collisions
 urls_namespace = "v1"
 if "pytest" in sys.modules:
@@ -38,3 +41,4 @@ api.add_router("/analyze", analyze_router, tags=["analyze"])
 api.add_router("/discovery", discovery_router, tags=["discovery"])
 api.add_router("/search", search_router, tags=["search"])
 api.add_router("/scrape", scrape_router, tags=["scrape"])
+api.add_router("/capsules", capsules_router, tags=["capsules"])
