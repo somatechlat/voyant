@@ -7,6 +7,7 @@ All endpoints enforce RBAC via require_permission / require_role.
 
 from __future__ import annotations
 
+import uuid
 from typing import Any, Dict, List, Optional
 
 from ninja import Router
@@ -179,10 +180,14 @@ def run_capsule(request, payload: CapsuleRunRequest):
 
     # Dispatch
     graph = capsule.execution_graph or []
+    if not graph:
+        raise HttpError(400, "Capsule has no execution graph")
+
+    session_id = f"api-{uuid.uuid4().hex[:12]}"
     if len(graph) == 1:
-        result = execute_capsule_sync(capsule, merged, tenant_id)
+        result = execute_capsule_sync(capsule, merged, tenant_id, session_id=session_id)
     else:
-        result = dispatch_capsule_workflow(capsule, merged, tenant_id)
+        result = dispatch_capsule_workflow(capsule, merged, tenant_id, session_id=session_id)
 
     return result
 
