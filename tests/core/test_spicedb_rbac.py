@@ -25,7 +25,7 @@ class TestSpiceRBAC:
         assert meta[0][0] == "authorization"
         assert meta[0][1].startswith("Bearer ")
 
-    def test_metadata_returns_empty_list_when_token_missing(self, monkeypatch):
+    def test_metadata_returns_empty_list_when_token_missing(self):
         # Temporarily blank the token so we can test the empty-metadata path.
         rbac = SpiceRBAC()
         original_token = rbac.token

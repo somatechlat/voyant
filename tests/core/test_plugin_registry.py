@@ -18,7 +18,7 @@ from apps.core.lib.plugin_registry import (
 )
 
 
-# Mock Plugin
+# Test Plugin
 @register_plugin(
     name="test_viz",
     category=PluginCategory.VISUALIZATION,
@@ -46,7 +46,7 @@ class TestReportGenerator(GeneratorPlugin):
 def clean_registry():
     """Reset registry before each test."""
     PluginRegistry.get_instance().clear()
-    # Re-register mocks
+    # Re-register test plugins
     PluginRegistry.get_instance().register(
         TestVizGenerator,
         "test_viz",

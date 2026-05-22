@@ -21,7 +21,7 @@ logger = logging.getLogger("verify_discovery")
 
 def test_search():
     logger.info("Testing Web Search...")
-    # Mocking environment for test if key not present
+    # Skip if API key not configured
     if not os.getenv("SERPER_API_KEY"):
         logger.warning("SERPER_API_KEY missing. Skipping real network search.")
         return

@@ -11,6 +11,7 @@ import tempfile
 
 import pytest
 
+from apps.core.config import get_settings
 from apps.governance.lib.schema_evolution import (
     ColumnSchema,
     TableSchema,
@@ -22,18 +23,28 @@ from apps.governance.lib.schema_evolution import (
 )
 
 
+def _backup_voyant_env():
+    return {k: v for k, v in os.environ.items() if k.startswith("VOYANT_") or k == "DUCKDB_PATH"}
+
+
+def _restore_env(backup):
+    for k in list(os.environ.keys()):
+        if k.startswith("VOYANT_") or k == "DUCKDB_PATH":
+            del os.environ[k]
+    os.environ.update(backup)
+
+
 @pytest.fixture
-def temp_duckdb(monkeypatch):
+def temp_duckdb():
     """Use a temporary real DuckDB file for schema evolution tests."""
+    backup = _backup_voyant_env()
     tmp_dir = tempfile.mkdtemp()
     db_path = os.path.join(tmp_dir, "test_voyant.duckdb")
 
     # Point the real settings at our temp DuckDB path
-    monkeypatch.setenv("DUCKDB_PATH", db_path)
+    os.environ["DUCKDB_PATH"] = db_path
 
     # Clear cached settings and registry so they pick up new env
-    from apps.core.config import get_settings
-
     get_settings.cache_clear()
     reset_registry()
 
@@ -43,6 +54,7 @@ def temp_duckdb(monkeypatch):
     get_settings.cache_clear()
     reset_registry()
     shutil.rmtree(tmp_dir, ignore_errors=True)
+    _restore_env(backup)
 
 
 @pytest.fixture
