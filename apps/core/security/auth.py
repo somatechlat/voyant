@@ -21,9 +21,15 @@ from ninja.security import HttpBearer
 
 from admin.common.messages import get_message
 from apps.core.config import get_settings
+from voyant_project.security_settings import security_settings
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
+
+
+def _auth_disabled() -> bool:
+    """Return True if auth enforcement is disabled (local dev / tests)."""
+    return not security_settings.security_enabled or settings.env == "local"
 
 
 @dataclass
@@ -423,6 +429,17 @@ def require_role(required_role: str):
     """
 
     def role_checker(request) -> User:
+        if _auth_disabled():
+            return User(
+                user_id="local-dev",
+                email="dev@voyant.local",
+                username="local-dev",
+                tenant_id="default",
+                realm="default",
+                roles=["voyant-admin"],
+                permissions=["*"],
+                token="",
+            )
         user = get_current_user(request)
         if not user.has_role(required_role):
             logger.warning(
@@ -458,6 +475,17 @@ def require_permission(required_permission: str):
     """
 
     def permission_checker(request) -> User:
+        if _auth_disabled():
+            return User(
+                user_id="local-dev",
+                email="dev@voyant.local",
+                username="local-dev",
+                tenant_id="default",
+                realm="default",
+                roles=["voyant-admin"],
+                permissions=["*"],
+                token="",
+            )
         user = get_current_user(request)
         if not user.has_permission(required_permission):
             logger.warning(
@@ -496,6 +524,17 @@ def require_realm(required_realm: str):
     """
 
     def realm_checker(request) -> User:
+        if _auth_disabled():
+            return User(
+                user_id="local-dev",
+                email="dev@voyant.local",
+                username="local-dev",
+                tenant_id="default",
+                realm=required_realm,
+                roles=["voyant-admin"],
+                permissions=["*"],
+                token="",
+            )
         user = get_current_user(request)
         if user.realm != required_realm:
             logger.warning(

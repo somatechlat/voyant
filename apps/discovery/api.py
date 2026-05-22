@@ -7,6 +7,7 @@ from ninja.errors import HttpError
 from admin.common.messages import get_message
 from apps.core.config import get_settings
 from apps.core.middleware import get_tenant_id
+from apps.core.security.auth import require_permission
 from apps.discovery.lib.catalog import DiscoveryRepo, ServiceDef
 from apps.discovery.lib.spec_parser import SpecParser
 from apps.discovery.models import Source
@@ -15,8 +16,8 @@ from apps.discovery.source_detection import detect_source_type
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-sources_router = Router(tags=["sources"])
-discovery_router = Router(tags=["discovery"])
+sources_router = Router(tags=["sources"], auth=require_permission("read:*"))
+discovery_router = Router(tags=["discovery"], auth=require_permission("read:*"))
 
 _discovery_repo = DiscoveryRepo()
 _spec_parser = SpecParser()
@@ -68,7 +69,7 @@ def discover_source(request, payload: DiscoverRequest):
     )
 
 
-@sources_router.post("", response={201: SourceResponse})
+@sources_router.post("", response={201: SourceResponse}, auth=require_permission("write:sources"))
 def create_source(request, payload: CreateSourceRequest):
     tenant_id = get_tenant_id(request)
     source = Source.objects.create(
@@ -128,7 +129,7 @@ def get_source(request, source_id: str):
     )
 
 
-@sources_router.delete("/{source_id}", response={200: Dict[str, str]})
+@sources_router.delete("/{source_id}", response={200: Dict[str, str]}, auth=require_permission("write:sources"))
 def delete_source(request, source_id: str):
     source = Source.objects.filter(source_id=source_id).first()
     if not source:
@@ -158,7 +159,7 @@ class SpecScanRequest(Schema):
     url: str
 
 
-@discovery_router.post("/services", response=ServiceDef)
+@discovery_router.post("/services", response=ServiceDef, auth=require_permission("write:sources"))
 def register_service(request, payload: ServiceRegisterRequest):
     try:
         service = ServiceDef(
@@ -213,7 +214,7 @@ def get_service(request, name: str):
         ) from exc
 
 
-@discovery_router.post("/scan", response=Dict[str, Any])
+@discovery_router.post("/scan", response=Dict[str, Any], auth=require_permission("write:sources"))
 def scan_spec(request, payload: SpecScanRequest):
     try:
         spec = _spec_parser.parse_from_url(payload.url)

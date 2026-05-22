@@ -24,12 +24,13 @@ from pydantic import Field
 
 from admin.common.messages import get_message
 from apps.core.middleware import get_tenant_id
+from apps.core.security.auth import require_permission
 from apps.search.lib.embeddings import get_embedding_extractor, get_sparse_embedder
 from apps.search.lib.milvus_store import get_vector_store
 
 logger = logging.getLogger(__name__)
 
-router = Router(tags=["Search"])
+router = Router(tags=["Search"], auth=require_permission("read:*"))
 
 
 # =============================================================================
@@ -181,7 +182,7 @@ def search(request: HttpRequest, payload: SearchQuery) -> List[SemanticSearchRes
         raise HttpError(500, get_message("ERR_SEARCH_FAILED", error=str(exc))) from exc
 
 
-@router.post("/index", response=IndexResponse, summary="Index New Item")
+@router.post("/index", response=IndexResponse, summary="Index New Item", auth=require_permission("write:documents"))
 def index_item(request: HttpRequest, payload: IndexRequest) -> IndexResponse:
     """
     Index a new text item for semantic search.
@@ -258,7 +259,8 @@ def index_item(request: HttpRequest, payload: IndexRequest) -> IndexResponse:
 
 
 @router.delete(
-    "/{item_id}", response={200: Dict[str, str]}, summary="Delete Indexed Item"
+    "/{item_id}", response={200: Dict[str, str]}, summary="Delete Indexed Item",
+    auth=require_permission("write:documents"),
 )
 def delete_item(request: HttpRequest, item_id: str) -> Dict[str, str]:
     """

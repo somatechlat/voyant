@@ -11,6 +11,7 @@ from ninja.errors import HttpError
 
 from admin.common.messages import get_message
 from apps.core.api_utils import auth_guard
+from apps.core.security.auth import require_permission
 from apps.core.config import get_settings
 from apps.core.lib.tenant_quotas import (
     QuotaTier,
@@ -23,7 +24,7 @@ from apps.core.middleware import get_tenant_id
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
-governance_router = Router(tags=["governance"])
+governance_router = Router(tags=["governance"], auth=require_permission("read:*"))
 
 
 class GovernanceSearchResult(Schema):
