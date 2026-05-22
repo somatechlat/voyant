@@ -15,7 +15,7 @@ class TestScrapeWorkflow:
         """
         Verify the workflow orchestration logic.
         Note: True Temporal testing requires a test server.
-        This test mocks the activities to verify the workflow logic itself (loops, calls).
+        This test verifies the workflow class structure and import correctness.
         """
         # Since we can't easily run the Temporal Sandbox in this env,
         # we will rely on unit testing the logic if possible, or skip
