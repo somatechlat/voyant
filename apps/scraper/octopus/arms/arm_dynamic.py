@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 try:
-    from playwright_stealth import stealth_async
+    from playwright_stealth import stealth_async  # type: ignore[import-not-found]
 except Exception:
     stealth_async = None  # type: ignore[misc]
     logger.warning("playwright-stealth not installed")
@@ -113,7 +113,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
 
             response = await page.goto(
                 request.url,
-                wait_until=request.wait_until,
+                wait_until=request.wait_until,  # type: ignore[arg-type]
                 timeout=request.timeout_seconds * 1000,
             )
             status = response.status if response else 0

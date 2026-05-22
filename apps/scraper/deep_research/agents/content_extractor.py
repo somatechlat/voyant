@@ -18,28 +18,35 @@ _READABILITY_AVAILABLE = False
 _NEWSPAPER_AVAILABLE = False
 _CRAWL4AI_AVAILABLE = False
 
+trafilatura: Any = None  # type: ignore[no-redef]
 try:
-    import trafilatura
+    import trafilatura as _trafilatura_mod  # type: ignore[import-not-found]
 
+    trafilatura = _trafilatura_mod
     _TRAFILATURA_AVAILABLE = True
 except Exception:
     pass
 
+Document: Any = None  # type: ignore[no-redef]
 try:
-    from readability import Document
+    from readability import Document as _Document_cls  # type: ignore[import-not-found]
 
+    Document = _Document_cls
     _READABILITY_AVAILABLE = True
 except Exception:
     pass
 
+newspaper: Any = None  # type: ignore[no-redef]
 try:
-    import newspaper
+    import newspaper as _newspaper_mod  # type: ignore[import-not-found]
 
+    newspaper = _newspaper_mod
     _NEWSPAPER_AVAILABLE = True
 except Exception:
     pass
 
 try:
+    import crawl4ai  # type: ignore[import-not-found]
 
     _CRAWL4AI_AVAILABLE = True
 except Exception:
@@ -124,7 +131,7 @@ class ContentExtractor:
         try:
             # crawl4ai typically operates on a URL; for HTML input we use
             # the low-level content scraper if available.
-            from crawl4ai import WebCrawler
+            from crawl4ai import WebCrawler  # type: ignore[import-not-found]
 
             crawler = WebCrawler()
             result = crawler.run(url=url)

@@ -98,7 +98,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
 
             response = await page.goto(
                 request.url,
-                wait_until=request.wait_until,
+                wait_until=request.wait_until,  # type: ignore[arg-type]
                 timeout=request.timeout_seconds * 1000,
             )
             status = response.status if response else 0

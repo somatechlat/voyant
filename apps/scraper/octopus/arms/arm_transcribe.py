@@ -60,7 +60,7 @@ def _format_transcription(result: Dict[str, Any], fmt: str) -> str:
 
         return json.dumps(result, ensure_ascii=False)
     if fmt == "srt":
-        segments = result.get("segments", [])
+        segments: List[Dict[str, Any]] = result.get("segments", [])
         lines: List[str] = []
         for i, seg in enumerate(segments, start=1):
             start_sec = seg.get("start", 0)
@@ -150,7 +150,10 @@ async def execute(request: OctopusRequest) -> OctopusResult:
     transcription_text = _format_transcription(
         result, request.transcription_format
     )
-    segments = result.get("segments", [])
+    segments: List[Dict[str, Any]] = []
+    raw_segments = result.get("segments", [])
+    if isinstance(raw_segments, list):
+        segments = raw_segments
 
     duration_ms = int(
         (datetime.now(timezone.utc) - start).total_seconds() * 1000
