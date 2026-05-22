@@ -211,7 +211,11 @@ class SpiceRBAC:
                         optional_subject_filter=SubjectFilter(
                             subject_type=subject_type,
                             optional_subject_id=subject_id,
-                            optional_relation=subject_relation or "",
+                            optional_relation=SubjectFilter.RelationFilter(
+                                relation=subject_relation
+                            )
+                            if subject_relation
+                            else None,
                         ),
                     )
                 ),

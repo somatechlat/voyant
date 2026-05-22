@@ -94,7 +94,6 @@ dependencies = [
     "pyRserve>=1.0.0",
     # Vector Database
     "pymilvus>=2.4.0",
-    "django-milvus>=0.1.0",
     # Scraping — Evasion & Stealth
     "playwright-stealth>=1.0.0",
     # Scraping — AI-native crawler

@@ -46,7 +46,6 @@ except Exception:
     pass
 
 try:
-    import crawl4ai  # type: ignore[import-not-found]
 
     _CRAWL4AI_AVAILABLE = True
 except Exception:

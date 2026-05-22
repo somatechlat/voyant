@@ -10,7 +10,6 @@ import logging
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List
 
 import httpx
 
@@ -88,7 +87,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
 
         # Unstructured extraction for additional structure
         try:
-            from unstructured.partition.auto import partition
+            from unstructured.partition.auto import partition  # type: ignore[reportMissingImports]
 
             elements = partition(filename=file_path)
             unstructured_text = "\n\n".join(str(el) for el in elements)

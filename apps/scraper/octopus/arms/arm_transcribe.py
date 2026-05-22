@@ -119,7 +119,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
         )
 
     try:
-        import whisper
+        import whisper  # type: ignore[reportMissingImports]
 
         model = whisper.load_model(request.whisper_model)
         result = model.transcribe(
