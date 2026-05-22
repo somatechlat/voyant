@@ -99,7 +99,7 @@ class _MilvusConnection:
         """Return a live MilvusClient, reconnecting if necessary."""
         if self._client is not None:
             try:
-                self._client.list_collections()
+                _ = self._client.list_collections()
                 self._backoff = 1.0
                 return self._client
             except Exception:
@@ -119,7 +119,7 @@ class _MilvusConnection:
                 db_name=cfg["db_name"],
             )
             # Heartbeat
-            self._client.list_collections()
+            _ = self._client.list_collections()
             self._backoff = 1.0
             logger.info("Milvus connected: %s", cfg["uri"])
             return self._client
