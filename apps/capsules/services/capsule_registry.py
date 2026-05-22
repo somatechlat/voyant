@@ -139,6 +139,12 @@ def install_capsule(
     except Capsule.DoesNotExist:
         raise ValueError(f"Capsule {capsule_id} not found or not active")
 
+    # Realm isolation: tenant can only install capsules from matching realm
+    if capsule.tenant_id != "public" and capsule.realm != realm:
+        raise PermissionError(
+            f"Capsule realm '{capsule.realm}' does not match tenant realm '{realm}'"
+        )
+
     # Check if already installed
     existing = CapsuleInstallation.objects.filter(
         capsule=capsule, tenant_id=tenant_id, realm=realm
@@ -156,16 +162,17 @@ def install_capsule(
     capsule.install_count += 1
     capsule.save(update_fields=["install_count"])
     logger.info(
-        "Installed capsule %s:%s for tenant %s",
+        "Installed capsule %s:%s for tenant %s realm %s",
         capsule.name,
         capsule.version,
         tenant_id,
+        realm,
     )
     return installation
 
 
-def load_capsule_by_id(capsule_id: str, tenant_id: str) -> Capsule:
-    """Load a capsule by ID, checking tenant access."""
+def load_capsule_by_id(capsule_id: str, tenant_id: str, realm: str = "default") -> Capsule:
+    """Load a capsule by ID, checking tenant + realm access."""
     try:
         capsule = Capsule.objects.get(id=capsule_id)
     except Capsule.DoesNotExist:
@@ -174,6 +181,13 @@ def load_capsule_by_id(capsule_id: str, tenant_id: str) -> Capsule:
     # Tenant isolation: own tenant or public
     if capsule.tenant_id not in (tenant_id, "public"):
         raise ValueError(f"Access denied to capsule {capsule_id}")
+
+    # Realm isolation: public capsules must still match realm
+    if capsule.tenant_id == "public" and capsule.realm != realm:
+        raise ValueError(
+            f"Capsule {capsule_id} is public but in realm '{capsule.realm}'; "
+            f"requested realm '{realm}'"
+        )
 
     return capsule
 

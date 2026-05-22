@@ -1,5 +1,9 @@
 """
 Capsule Workflow — Temporal orchestration for multi-step capsule execution.
+
+Workflow state carries only lightweight metadata (step completion tracking).
+Actual step results are persisted to the CapsuleInstance DB record to avoid
+Temporal's 2MB event history limit.
 """
 
 from datetime import timedelta
@@ -15,7 +19,7 @@ with workflow.unsafe.imports_passed_through():
 class CapsuleWorkflow:
     """
     Temporal workflow that executes a Capsule's execution_graph step by step.
-    Supports parallel steps, conditions, retries, and artifact generation.
+    Supports conditions, retries, and artifact generation.
     """
 
     @workflow.run
@@ -35,15 +39,17 @@ class CapsuleWorkflow:
         )
 
         graph = capsule.get("execution_graph", [])
-        step_results: Dict[str, Any] = {}
+        capabilities_whitelist = capsule.get("capabilities_whitelist", [])
+        step_metadata: Dict[str, Any] = {}
 
-        # Identify parallel groups (steps with no interdependencies)
         for step in graph:
+            step_id = step["step_id"]
+
             # Check condition
             if step.get("condition"):
                 condition_met = await workflow.execute_activity(
                     CapsuleActivities.eval_condition,
-                    {"condition": step["condition"], "steps": step_results},
+                    {"condition": step["condition"], "steps": step_metadata},
                     start_to_close_timeout=timedelta(seconds=10),
                 )
                 if not condition_met:
@@ -55,21 +61,23 @@ class CapsuleWorkflow:
                 {
                     "params": step.get("params", {}),
                     "parameter_values": parameter_values,
-                    "step_results": step_results,
+                    "step_results": step_metadata,
                 },
                 start_to_close_timeout=timedelta(seconds=10),
             )
 
-            # Execute step
+            # Execute step (result is persisted to DB; only metadata returned)
             timeout = step.get("timeout_seconds", 60)
-            retry = step.get("retry_policy", {"max_attempts": 3})
+            retry = step.get("retry_policy", {"max_attempts": 3, "backoff_seconds": 5})
 
-            result = await workflow.execute_activity(
+            meta = await workflow.execute_activity(
                 CapsuleActivities.execute_step,
                 {
                     "action": step["action"],
                     "params": resolved_params,
                     "tenant_id": tenant_id,
+                    "instance_id": instance_id,
+                    "capabilities_whitelist": capabilities_whitelist,
                 },
                 start_to_close_timeout=timedelta(seconds=timeout),
                 retry_policy=workflow.RetryPolicy(
@@ -78,25 +86,24 @@ class CapsuleWorkflow:
                 ),
             )
 
-            step_results[step["step_id"]] = result
+            step_metadata[step_id] = meta
 
         # Cross-validate if configured
         if capsule.get("body", {}).get("cross_validate"):
             validated = await workflow.execute_activity(
                 CapsuleActivities.cross_validate,
-                {"findings": step_results, "tenant_id": tenant_id},
+                {"instance_id": instance_id, "tenant_id": tenant_id},
                 start_to_close_timeout=timedelta(seconds=60),
             )
-            step_results["_validated"] = validated
+            step_metadata["_validated"] = validated
 
         # Generate artifacts
         artifacts = await workflow.execute_activity(
             CapsuleActivities.generate_artifacts,
             {
                 "capsule_id": capsule_id,
-                "results": step_results,
-                "tenant_id": tenant_id,
                 "instance_id": instance_id,
+                "tenant_id": tenant_id,
             },
             start_to_close_timeout=timedelta(seconds=120),
         )
@@ -106,10 +113,9 @@ class CapsuleWorkflow:
             CapsuleActivities.store_report,
             {
                 "capsule_id": capsule_id,
-                "results": step_results,
+                "instance_id": instance_id,
                 "artifacts": artifacts,
                 "tenant_id": tenant_id,
-                "instance_id": instance_id,
             },
             start_to_close_timeout=timedelta(seconds=60),
         )
