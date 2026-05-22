@@ -12,13 +12,14 @@ from django.shortcuts import get_object_or_404
 from ninja import Router, Schema
 
 from apps.core.config import get_settings
+from apps.core.security.auth import require_permission
 
 # Lazy imports - avoid importing Django models at module level
 # This prevents AppRegistryNotReady errors when module is loaded
 # Models are imported inside functions that use them
 
 settings = get_settings()
-scrape_router = Router(tags=["scrape"])
+scrape_router = Router(tags=["scrape"], auth=require_permission("read:*"))
 
 
 # ============================================================================
@@ -181,7 +182,7 @@ def _start_scrape_workflow(
 # ============================================================================
 
 
-@scrape_router.post("/start", response={202: ScrapeJobSchema})
+@scrape_router.post("/start", response={202: ScrapeJobSchema}, auth=require_permission("write:jobs"))
 def start_scrape(request, payload: ScrapeStartSchema):
     """
     Start a new web scraping job.
@@ -241,7 +242,7 @@ def start_scrape(request, payload: ScrapeStartSchema):
     }
 
 
-@scrape_router.post("/extract")
+@scrape_router.post("/extract", auth=require_permission("write:jobs"))
 def extract_data(request, payload: ScrapeExtractSchema):
     """
     Extract data from HTML using agent-provided selectors.
@@ -274,7 +275,7 @@ def extract_data(request, payload: ScrapeExtractSchema):
     return result
 
 
-@scrape_router.post("/fetch")
+@scrape_router.post("/fetch", auth=require_permission("write:jobs"))
 def fetch_page(request, payload: ScrapeFetchSchema):
     """Fetch a page using a selected engine with SSRF validation."""
     from .activities import ScrapeActivities
@@ -299,7 +300,7 @@ def fetch_page(request, payload: ScrapeFetchSchema):
     )
 
 
-@scrape_router.post("/deep_archive")
+@scrape_router.post("/deep_archive", auth=require_permission("write:jobs"))
 def deep_archive(request, payload: ScrapeDeepArchiveSchema):
     """Run a deep archive scrape combining interactions and file downloads."""
     from .activities import ScrapeActivities
@@ -318,7 +319,7 @@ def deep_archive(request, payload: ScrapeDeepArchiveSchema):
     )
 
 
-@scrape_router.post("/ocr")
+@scrape_router.post("/ocr", auth=require_permission("write:jobs"))
 def process_ocr(request, payload: ScrapeOcrSchema):
     """Run OCR for a single image URL or path."""
     from .activities import ScrapeActivities
@@ -330,7 +331,7 @@ def process_ocr(request, payload: ScrapeOcrSchema):
     )
 
 
-@scrape_router.post("/parse_pdf")
+@scrape_router.post("/parse_pdf", auth=require_permission("write:jobs"))
 def parse_pdf(request, payload: ScrapePdfSchema):
     """Extract text and optional tables from a PDF."""
     from .activities import ScrapeActivities
@@ -342,7 +343,7 @@ def parse_pdf(request, payload: ScrapePdfSchema):
     )
 
 
-@scrape_router.post("/transcribe")
+@scrape_router.post("/transcribe", auth=require_permission("write:jobs"))
 def transcribe_media(request, payload: ScrapeTranscribeSchema):
     """Transcribe one media URL and return text segments."""
     from .activities import ScrapeActivities
@@ -377,7 +378,7 @@ def get_scrape_status(request, job_id: str):
     }
 
 
-@scrape_router.post("/cancel")
+@scrape_router.post("/cancel", auth=require_permission("write:jobs"))
 def cancel_scrape(request, job_id: str):
     """Cancel a running scrape job."""
     ScrapeJob, _ = _get_models()

@@ -13,6 +13,7 @@ from pydantic import Field
 
 from admin.common.messages import get_message
 from apps.core.api_utils import run_async
+from apps.core.security.auth import require_permission
 from apps.core.config import get_settings
 from apps.core.lib.temporal_client import get_temporal_client
 from apps.core.middleware import get_tenant_id
@@ -23,7 +24,7 @@ from apps.worker.workflows.ingest_workflow import IngestDataWorkflow
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-router = Router(tags=["Data Ingestion"])
+router = Router(tags=["Data Ingestion"], auth=require_permission("read:*"))
 
 
 class IngestRequest(Schema):
@@ -47,7 +48,7 @@ class JobResponse(Schema):
     created_at: str = Field(..., description="Creation timestamp")
 
 
-@router.post("/ingest", response=JobResponse, summary="Trigger a Data Ingestion Job")
+@router.post("/ingest", response=JobResponse, summary="Trigger a Data Ingestion Job", auth=require_permission("write:jobs"))
 def trigger_ingest(request: HttpRequest, payload: IngestRequest) -> JobResponse:
     """Start a data ingestion job for an existing Source."""
     tenant_id = get_tenant_id(request)

@@ -11,6 +11,7 @@ from ninja import Field, Router, Schema
 from ninja.errors import HttpError
 
 from admin.common.messages import get_message
+from apps.core.security.auth import require_permission
 from apps.analysis.lib.kpi_templates import (
     get_categories as get_kpi_categories,
 )
@@ -40,9 +41,9 @@ from apps.workflows.models import Artifact, Job, PresetJob
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-jobs_router = Router(tags=["jobs"])
-presets_router = Router(tags=["presets"])
-artifacts_router = Router(tags=["artifacts"])
+jobs_router = Router(tags=["jobs"], auth=require_permission("read:*"))
+presets_router = Router(tags=["presets"], auth=require_permission("read:*"))
+artifacts_router = Router(tags=["artifacts"], auth=require_permission("read:*"))
 
 _minio_client = None
 
@@ -163,7 +164,7 @@ def _validate_table_scope(tenant_id: str, tables: Optional[List[str]]) -> None:
         validate_table_access(tenant_id, table)
 
 
-@jobs_router.post("/ingest", response=JobResponse)
+@jobs_router.post("/ingest", response=JobResponse, auth=require_permission("write:jobs"))
 def trigger_ingest(request, payload: IngestRequest):
     tenant_id = get_tenant_id(request)
     try:
@@ -208,7 +209,7 @@ def trigger_ingest(request, payload: IngestRequest):
     return _to_job_response(job)
 
 
-@jobs_router.post("/profile", response=JobResponse)
+@jobs_router.post("/profile", response=JobResponse, auth=require_permission("write:jobs"))
 def trigger_profile(request, payload: ProfileRequest):
     tenant_id = get_tenant_id(request)
     try:
@@ -255,7 +256,7 @@ def trigger_profile(request, payload: ProfileRequest):
     return _to_job_response(job)
 
 
-@jobs_router.post("/quality", response=JobResponse)
+@jobs_router.post("/quality", response=JobResponse, auth=require_permission("write:jobs"))
 def trigger_quality(request, payload: QualityRequest):
     tenant_id = get_tenant_id(request)
     try:
@@ -327,7 +328,7 @@ def get_job(request, job_id: str):
     return _to_job_response(job)
 
 
-@jobs_router.post("/{job_id}/cancel", response=Dict[str, str])
+@jobs_router.post("/{job_id}/cancel", response=Dict[str, str], auth=require_permission("write:jobs"))
 def cancel_job(request, job_id: str):
     tenant_id = get_tenant_id(request)
     job = Job.objects.filter(id=job_id, tenant_id=tenant_id).first()
@@ -462,7 +463,7 @@ def get_preset(request, preset_name: str):
     )
 
 
-@presets_router.post("/{preset_name}/execute", response=Dict[str, str])
+@presets_router.post("/{preset_name}/execute", response=Dict[str, str], auth=require_permission("execute:presets"))
 def execute_preset(request, preset_name: str, payload: Dict[str, Any]):
     preset = PRESETS.get(preset_name)
     if not preset:
@@ -512,7 +513,7 @@ def get_kpi_template_endpoint(request, template_name: str):
     }
 
 
-@presets_router.post("/kpi-templates/{template_name}/render", response=Dict[str, str])
+@presets_router.post("/kpi-templates/{template_name}/render", response=Dict[str, str], auth=require_permission("execute:presets"))
 def render_kpi_template_endpoint(
     request, template_name: str, payload: RenderKPIRequest
 ):

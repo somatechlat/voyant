@@ -7,9 +7,10 @@ from ninja.errors import HttpError
 from admin.common.messages import get_message
 from apps.core.api_utils import auth_guard
 from apps.core.lib.trino import get_trino_client
+from apps.core.security.auth import require_permission
 
 logger = logging.getLogger(__name__)
-sql_router = Router(tags=["sql"])
+sql_router = Router(tags=["sql"], auth=require_permission("execute:sql"))
 
 
 class SqlRequest(Schema):

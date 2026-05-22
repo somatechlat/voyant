@@ -7,6 +7,7 @@ from ninja.errors import HttpError
 
 from admin.common.messages import get_message
 from apps.core.api_utils import apply_policy, run_async
+from apps.core.security.auth import require_permission
 from apps.core.config import get_settings
 from apps.core.lib.namespace_analyzer import (
     NamespaceViolationError,
@@ -19,7 +20,7 @@ from apps.workflows.models import Job
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
-analyze_router = Router(tags=["analyze"])
+analyze_router = Router(tags=["analyze"], auth=require_permission("read:*"))
 
 
 class KPIQuery(Schema):
