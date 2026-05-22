@@ -23,7 +23,7 @@ async def _execute_curl_cffi(request: OctopusRequest) -> OctopusResult:
     """Execute evasion scrape using curl-cffi."""
     start = datetime.now(timezone.utc)
     try:
-        from curl_cffi.requests import AsyncSession
+        from curl_cffi.requests import AsyncSession  # type: ignore[import-not-found]
 
         proxies = None
         if request.proxy_url:
@@ -109,7 +109,7 @@ async def _execute_camoufox(request: OctopusRequest) -> OctopusResult:
     status = 0
 
     try:
-        from camoufox.async_api import AsyncCamoufox
+        from camoufox.async_api import AsyncCamoufox  # type: ignore[import-not-found]
 
         kwargs: Dict[str, Any] = {"headless": True}
         if request.proxy_url:

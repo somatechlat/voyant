@@ -42,7 +42,7 @@ def _run_scrapy_crawl(request: OctopusRequest) -> List[Dict[str, Any]]:
     )
 
     # Patch missing timeout attribute used by crawl_sitemap
-    client.timeout = request.timeout_seconds
+    setattr(client, "timeout", request.timeout_seconds)  # type: ignore[attr-defined]
 
     if request.sitemap_url:
         try:

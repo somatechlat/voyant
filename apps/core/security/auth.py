@@ -149,7 +149,7 @@ class KeycloakAuth:
                 raise HttpError(
                     503, get_message("ERR_AUTH_KEYCLOAK_UNAVAILABLE")
                 ) from exc
-        return self._jwks
+        return self._jwks  # type: ignore[return-type]
 
     def validate_token(self, token: str) -> User:
         """
@@ -169,8 +169,8 @@ class KeycloakAuth:
             HttpError 401: If the token is invalid, expired, or authentication service is unavailable.
         """
         try:
-            from jose import JWTError, jwt
-            from jose.exceptions import ExpiredSignatureError
+            from jose import JWTError, jwt  # type: ignore[import-not-found]
+            from jose.exceptions import ExpiredSignatureError  # type: ignore[import-not-found]
 
             # Get unverified header to find the Key ID (kid) for JWKS lookup.
             unverified = jwt.get_unverified_header(token)
@@ -233,10 +233,10 @@ class KeycloakAuth:
                 token=token,
             )
 
-        except ExpiredSignatureError as exc:
+        except ExpiredSignatureError as exc:  # type: ignore[possiblyUnbound]
             logger.warning("JWT token is expired.")
             raise HttpError(401, get_message("ERR_AUTH_EXPIRED")) from exc
-        except JWTError as exc:
+        except JWTError as exc:  # type: ignore[possiblyUnbound]
             logger.error("JWT validation error: %s", exc)
             raise HttpError(
                 401, get_message("ERR_AUTH_INVALID", error=str(exc))
