@@ -112,6 +112,43 @@ class UPTPExecutionEngine:
             )
             dispatch_status = "temporal_sandbox_workflow_started"
 
+        elif request.category == "capsule":
+            from apps.capsules.services.capsule_execution import CapsuleExecutionService
+            from apps.worker.workflows.capsule_workflow import CapsuleWorkflow
+
+            capsule_id = request.params.get("capsule_id")
+            parameter_values = request.params.get("parameter_values", {})
+            installation_id = request.params.get("installation_id")
+            session_id = request.params.get("session_id", "")
+
+            service = CapsuleExecutionService()
+            if installation_id:
+                run_result = service.run_capsule(
+                    installation_id=installation_id,
+                    parameter_values=parameter_values,
+                    tenant_id=request.tenant_id,
+                    session_id=session_id,
+                )
+            else:
+                run_result = service.run_capsule_by_id(
+                    capsule_id=capsule_id,
+                    parameter_values=parameter_values,
+                    tenant_id=request.tenant_id,
+                    session_id=session_id,
+                )
+
+            if run_result.get("workflow_id"):
+                dispatch_status = "temporal_capsule_workflow_started"
+            else:
+                dispatch_status = "sync_capsule_executed"
+            return {
+                "status": "accepted",
+                "dispatch_type": dispatch_status,
+                "job_urn": run_result.get("job_urn", execution_urn),
+                "instance_id": run_result.get("instance_id"),
+                "message": "Capsule execution dispatched.",
+            }
+
         elif request.category == "render":
             # Route natively to synchronous engines
             if "chart" in request.template_id:

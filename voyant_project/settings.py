@@ -118,6 +118,7 @@ INSTALLED_APPS = [
     "apps.governance",  # Data governance, lineage, policies, quotas
     "apps.scraper",  # Data scraping module (Pure Execution)
     "apps.uptp_core",  # Universal Parametric Template Pattern Core
+    "apps.capsules",  # Installable intelligence capsules (cross-compatible with somaAgent01)
 ]
 
 # --- Middleware Configuration ---

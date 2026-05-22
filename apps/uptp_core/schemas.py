@@ -24,6 +24,7 @@ class TemplateCategory(str, Enum):
     INGESTION = "ingestion"
     MATH = "math"
     RENDER = "render"
+    CAPSULE = "capsule"
 
 
 class TemplateExecutionRequest(BaseModel):
