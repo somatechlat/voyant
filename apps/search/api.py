@@ -24,8 +24,8 @@ from pydantic import Field
 
 from admin.common.messages import get_message
 from apps.core.middleware import get_tenant_id
-from apps.search.lib.embeddings import get_embedding_extractor
-from apps.search.lib.vector_store import get_vector_store
+from apps.search.lib.embeddings import get_embedding_extractor, get_sparse_embedder
+from apps.search.lib.milvus_store import get_vector_store
 
 logger = logging.getLogger(__name__)
 
@@ -136,28 +136,29 @@ def search(request: HttpRequest, payload: SearchQuery) -> List[SemanticSearchRes
     try:
         tenant_id = get_tenant_id(request)
 
-        # Get vector store and embedding extractor
+        # Get vector store and embedding extractors
         store = get_vector_store()
-        extractor = get_embedding_extractor(model="tfidf", dimensions=128)
+        dense_extractor = get_embedding_extractor(model="dense", dimensions=1536)
+        sparse_extractor = get_sparse_embedder()
 
-        # Extract embedding from query text
-        # The embed() method returns EmbeddingResult with a list of embeddings
-        embedding_result = extractor.embed([payload.query])
-        if not embedding_result.embeddings or len(embedding_result.embeddings) == 0:
+        # Extract dense and sparse embeddings from query text
+        dense_result = dense_extractor.embed([payload.query])
+        if not dense_result.embeddings or len(dense_result.embeddings) == 0:
             raise HttpError(400, get_message("ERR_SEARCH_EMBEDDING"))
 
-        query_vector = embedding_result.embeddings[0]
+        query_vector = dense_result.embeddings[0]
+        query_sparse = sparse_extractor.embed([payload.query])[0]
 
         # Add tenant_id to filters for isolation
         filters = payload.filters or {}
         filters["tenant_id"] = tenant_id
 
-        # Search vector store
-        # Returns list of (VectorItem, similarity_score) tuples
+        # Hybrid search (dense + sparse) with tenant/realm filtering
         results = store.search(
             query_vector=query_vector,
             k=payload.limit,
             filter_metadata=filters,
+            query_sparse_vector=query_sparse,
         )
 
         # Convert to response schema
@@ -206,17 +207,18 @@ def index_item(request: HttpRequest, payload: IndexRequest) -> IndexResponse:
     try:
         tenant_id = get_tenant_id(request)
 
-        # Get vector store and embedding extractor
+        # Get vector store and embedding extractors
         store = get_vector_store()
-        extractor = get_embedding_extractor(model="tfidf", dimensions=128)
+        dense_extractor = get_embedding_extractor(model="dense", dimensions=1536)
+        sparse_extractor = get_sparse_embedder()
 
-        # Extract embedding from text
-        # The embed() method returns EmbeddingResult with a list of embeddings
-        embedding_result = extractor.embed([payload.text])
-        if not embedding_result.embeddings or len(embedding_result.embeddings) == 0:
+        # Extract dense and sparse embeddings from text
+        dense_result = dense_extractor.embed([payload.text])
+        if not dense_result.embeddings or len(dense_result.embeddings) == 0:
             raise HttpError(400, get_message("ERR_INDEX_EMBEDDING"))
 
-        vector = embedding_result.embeddings[0]
+        dense_vector = dense_result.embeddings[0]
+        sparse_vector = sparse_extractor.embed([payload.text])[0]
 
         # Generate or use provided item ID
         item_id = payload.item_id or str(uuid.uuid4())
@@ -224,26 +226,25 @@ def index_item(request: HttpRequest, payload: IndexRequest) -> IndexResponse:
         # Prepare metadata with tenant isolation
         metadata = payload.metadata or {}
         metadata["tenant_id"] = tenant_id
-        metadata["text_preview"] = payload.text[:200]  # Store preview for debugging
+        metadata["text_preview"] = payload.text[:200]
 
-        # Add item to vector store
+        # Add item to vector store (Milvus only)
         store.add(
             id=item_id,
-            vector=vector,
+            vector=dense_vector,
             metadata=metadata,
+            sparse_vector=sparse_vector,
         )
 
-        # Persist to disk
-        store.save()
-
         logger.info(
-            f"Indexed item {item_id} for tenant {tenant_id} (dimensions={embedding_result.dimensions})"
+            f"Indexed item {item_id} for tenant {tenant_id} "
+            f"(dimensions={dense_result.dimensions})"
         )
 
         return IndexResponse(
             id=item_id,
             status="indexed",
-            dimensions=embedding_result.dimensions,
+            dimensions=dense_result.dimensions,
         )
 
     except HttpError:
@@ -293,7 +294,6 @@ def delete_item(request: HttpRequest, item_id: str) -> Dict[str, str]:
 
         # Delete item
         store.delete(item_id)
-        store.save()
 
         logger.info(f"Deleted item {item_id} for tenant {tenant_id}")
 

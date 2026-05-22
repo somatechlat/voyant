@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+import logging
 import uuid
-from typing import Any
+from typing import Any, Optional
 
 from django.db import models
+
+from apps.core.middleware import get_current_user
+
+logger = logging.getLogger(__name__)
 
 
 class TimeStampedModel(models.Model):
@@ -31,23 +36,54 @@ class TimeStampedModel(models.Model):
         ordering = ["-created_at"]
 
 
+class RBACManager(models.Manager):
+    """
+    Custom manager that auto-filters querysets by realm and tenant_id.
+
+    If a current user is present in the request context and is NOT an admin,
+    the queryset is filtered to the user's realm and tenant_id. Admins and
+    unauthenticated contexts receive unfiltered querysets for backward
+    compatibility with management commands and background tasks.
+    """
+
+    def get_queryset(self) -> models.QuerySet:
+        qs = super().get_queryset()
+        user: Optional[Any] = get_current_user()
+        if user is None:
+            return qs
+        if "voyant-admin" in getattr(user, "roles", []):
+            return qs
+        realm = getattr(user, "realm", None) or "default"
+        tenant_id = getattr(user, "tenant_id", None) or "default"
+        return qs.filter(realm=realm, tenant_id=tenant_id)
+
+
 class TenantModel(TimeStampedModel):
     """
-    Abstract base model that provides multi-tenancy support.
+    Abstract base model that provides multi-tenancy support with realm isolation.
 
     All tenant-scoped models should inherit from this to ensure proper isolation.
     """
 
+    realm = models.CharField(
+        max_length=64,
+        db_index=True,
+        default="default",
+        help_text="Realm identifier for RBAC realm isolation",
+    )
     tenant_id = models.CharField(
         max_length=128,
         db_index=True,
         help_text="Tenant identifier for multi-tenancy isolation",
     )
 
+    objects = RBACManager()
+
     class Meta:
         abstract = True
         indexes = [
             models.Index(fields=["tenant_id", "-created_at"]),
+            models.Index(fields=["realm", "tenant_id", "created_at"]),
         ]
 
 

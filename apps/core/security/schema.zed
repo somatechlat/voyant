@@ -1,14 +1,86 @@
 definition user {}
 
-definition tenant {
+definition realm {
     relation admin: user
     relation member: user
 
-    permission view = member + admin
     permission manage = admin
+    permission access = member + admin
+}
+
+definition tenant {
+    relation realm: realm
+    relation admin: user
+    relation member: user
+    relation engineer: user
+    relation analyst: user
+    relation viewer: user
+
+    permission view = viewer + analyst + engineer + member + admin + realm->access
+    permission manage = admin + realm->manage
+    permission execute_sql = analyst + engineer + admin + realm->manage
+    permission execute_presets = analyst + engineer + admin + realm->manage
+    permission write_sources = engineer + admin + realm->manage
+    permission write_jobs = engineer + admin + realm->manage
 }
 
 definition resource {
+    relation tenant: tenant
+    relation owner: user
+    relation viewer: user
+    relation editor: user
+
+    permission view = viewer + editor + owner + tenant->view
+    permission edit = editor + owner + tenant->manage
+    permission delete = owner + tenant->manage
+}
+
+definition source {
+    relation tenant: tenant
+    relation owner: user
+    relation viewer: user
+    relation editor: user
+
+    permission view = viewer + editor + owner + tenant->view
+    permission edit = editor + owner + tenant->manage
+    permission delete = owner + tenant->manage
+}
+
+definition scrape_job {
+    relation tenant: tenant
+    relation owner: user
+    relation viewer: user
+    relation editor: user
+
+    permission view = viewer + editor + owner + tenant->view
+    permission edit = editor + owner + tenant->manage
+    permission delete = owner + tenant->manage
+    permission execute = editor + owner + tenant->write_jobs
+}
+
+definition research_report {
+    relation tenant: tenant
+    relation owner: user
+    relation viewer: user
+    relation editor: user
+
+    permission view = viewer + editor + owner + tenant->view
+    permission edit = editor + owner + tenant->manage
+    permission delete = owner + tenant->manage
+}
+
+definition vector_document {
+    relation tenant: tenant
+    relation owner: user
+    relation viewer: user
+    relation editor: user
+
+    permission view = viewer + editor + owner + tenant->view
+    permission edit = editor + owner + tenant->manage
+    permission delete = owner + tenant->manage
+}
+
+definition artifact {
     relation tenant: tenant
     relation owner: user
     relation viewer: user

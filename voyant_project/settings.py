@@ -124,6 +124,8 @@ INSTALLED_APPS = [
 # The order of middleware is critical.
 # See: https://docs.djangoproject.com/en/stable/topics/http/middleware/
 
+RBAC_ENABLED = True
+
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",  # Must be high in the list
     "django.middleware.security.SecurityMiddleware",
@@ -136,6 +138,7 @@ MIDDLEWARE = [
     # Custom Voyant middleware. Order is important for request processing.
     "apps.core.middleware.RequestIdMiddleware",  # Adds a unique ID to each request.
     "apps.core.middleware.TenantMiddleware",  # Identifies the tenant for the request.
+    "apps.core.middleware.RBACMiddleware",  # Injects user for realm+tenant ORM filtering.
     "apps.core.middleware.SomaContextMiddleware",  # Injects agent context if available.
     "apps.core.middleware.APIVersionMiddleware",  # Handles API versioning.
 ]
@@ -175,6 +178,19 @@ if not DATABASE_URL:
     else:
         raise RuntimeError("DATABASE_URL must be configured")
 DATABASES = {"default": _parse_database_url(DATABASE_URL)}
+
+# --- Milus Vector Database Configuration ---
+_milvus_uri = app_settings.milvus_uri
+if not _milvus_uri:
+    _milvus_uri = f"http://{app_settings.milvus_host}:{app_settings.milvus_port}"
+
+MILVUS = {
+    "default": {
+        "URI": _milvus_uri,
+        "TOKEN": app_settings.milvus_token,
+        "DB_NAME": app_settings.milvus_db_name,
+    }
+}
 
 
 # --- Internationalization ---
