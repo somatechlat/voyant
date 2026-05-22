@@ -31,7 +31,7 @@ class CapsuleBodyExport:
     capsule_type: str
     capabilities_whitelist: list
     resource_limits: dict
-    schema: dict
+    json_schema: dict
     config: dict
     execution_graph: list
     parameters: dict
@@ -163,7 +163,7 @@ def _export_capsule_core(capsule: Capsule) -> CapsuleExport:
             capsule_type=capsule.capsule_type,
             capabilities_whitelist=capsule.capabilities_whitelist,
             resource_limits=capsule.resource_limits,
-            schema={},
+            json_schema={},
             config={},
             execution_graph=capsule.execution_graph,
             parameters=capsule.parameters_schema,

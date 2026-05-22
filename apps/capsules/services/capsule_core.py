@@ -223,12 +223,17 @@ def create_capsule_instance(
     )
     capsule.execution_count += 1
     capsule.save(update_fields=["execution_count"])
+
+    # Structured audit log — never log actual parameter values (may contain PII)
     logger.info(
-        "Created instance %s for capsule %s:%s (session=%s)",
+        "AUDIT capsule_executed tenant=%s realm=%s capsule=%s instance=%s "
+        "triggered_by=%s param_keys=%s",
+        capsule.tenant_id,
+        capsule.realm,
+        f"{capsule.name}:{capsule.version}",
         instance.id,
-        capsule.name,
-        capsule.version,
-        session_id,
+        triggered_by,
+        list(parameter_values.keys()),
     )
     return instance
 

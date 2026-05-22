@@ -88,7 +88,7 @@ class CapsuleBody(BaseModel):
     capsule_type: str = Field(default="voyant.intelligence_recipe")
     capabilities_whitelist: List[str] = Field(default_factory=list)
     resource_limits: Dict[str, Any] = Field(default_factory=dict)
-    schema: Dict[str, Any] = Field(default_factory=dict)  # pyright: ignore[reportIncompatibleMethodOverride]
+    json_schema: Dict[str, Any] = Field(default_factory=dict)
     config: Dict[str, Any] = Field(default_factory=dict)
     execution_graph: List[ExecutionStep] = Field(default_factory=list)
     parameters: Dict[str, ParameterSchema] = Field(default_factory=dict)

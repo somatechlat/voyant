@@ -88,6 +88,13 @@ def import_capsule(
             soul = capsule_data.get("soul", {})
             body = capsule_data.get("body", {})
 
+            # Validate imported realm matches target realm for non-public capsules
+            import_realm = capsule_data.get("realm", target_realm)
+            if import_realm != target_realm:
+                warnings.append(
+                    f"Imported capsule realm '{import_realm}' migrated to target realm '{target_realm}'"
+                )
+
             new_capsule = Capsule.objects.create(
                 name=capsule_data.get("name"),
                 version=new_version,

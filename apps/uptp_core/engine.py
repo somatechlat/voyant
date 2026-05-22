@@ -1,5 +1,6 @@
 import logging
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Dict
 
 from django.conf import settings
@@ -11,14 +12,38 @@ from apps.uptp_core.schemas import TemplateExecutionRequest
 
 logger = logging.getLogger(__name__)
 
+# Non-blocking thread pool for Temporal workflow dispatch.
+# Prevents Gunicorn sync workers from blocking on async Temporal client setup.
+_temporal_dispatch_pool = ThreadPoolExecutor(max_workers=10, thread_name_prefix="uptp_dispatch")
+
+
+def _dispatch_workflow(workflow_cls, args: dict, execution_urn: str) -> None:
+    """Fire-and-forget Temporal workflow dispatch (runs in background thread)."""
+    def _run():
+        try:
+            client = run_async(get_temporal_client)
+            run_async(
+                client.start_workflow,
+                workflow_cls.run,
+                args,
+                id=execution_urn,
+                task_queue=settings.temporal_task_queue,
+            )
+            logger.info("Dispatched workflow %s", execution_urn)
+        except Exception as exc:
+            logger.error("Workflow dispatch failed for %s: %s", execution_urn, exc)
+
+    _temporal_dispatch_pool.submit(_run)
+
 
 class UPTPExecutionEngine:
     """
     Central dispatcher for the Universal Parametric Template Pattern.
 
     Routes incoming execution requests to physical Temporal workflows or
-    synchronous DuckDB/Plotly render pipelines. This class does not block;
-    all execution is delegated to Temporal activities or the render engine.
+    synchronous DuckDB/Plotly render pipelines. Temporal dispatches are
+    fire-and-forget via a background thread pool to avoid blocking sync
+    Django workers.
     """
 
     @staticmethod
@@ -28,7 +53,9 @@ class UPTPExecutionEngine:
         or synchronous DuckDB/Plotly execution natively mapped.
         """
         logger.info(
-            f"[UPTP/DISPATCH] Triggering {request.template_id} for {request.tenant_id}"
+            "[UPTP/DISPATCH] Triggering %s for %s",
+            request.template_id,
+            request.tenant_id,
         )
 
         if not request.template_id:
@@ -41,82 +68,67 @@ class UPTPExecutionEngine:
             f"urn:voyant:job:{request.tenant_id}:{request.template_id}:{job_uuid}"
         )
 
-        client = run_async(get_temporal_client)
-
         if request.category == "ingestion":
             if request.template_id == "ingest.web.deep_research":
-                # Route natively to Autonomous Deep Research Loop
                 from apps.scraper.deep_research_workflow import DeepResearchWorkflow
 
-                run_async(
-                    client.start_workflow,
-                    DeepResearchWorkflow.run,
+                _dispatch_workflow(
+                    DeepResearchWorkflow,
                     {
                         "topic": request.params.get("topic"),
                         "max_urls": request.params.get("max_urls", 10),
                         "tenant_id": request.tenant_id,
                         "job_id": execution_urn,
                     },
-                    id=execution_urn,
-                    task_queue=settings.temporal_task_queue,
+                    execution_urn,
                 )
                 dispatch_status = "temporal_deep_research_started"
             elif request.template_id == "ingest.web.archive":
-                # Route natively to Playwright Scraper Engine
                 from apps.scraper.workflow import ScrapeWorkflow
 
-                run_async(
-                    client.start_workflow,
-                    ScrapeWorkflow.run,
+                _dispatch_workflow(
+                    ScrapeWorkflow,
                     {
                         "url": request.params.get("url"),
                         "tenant_id": request.tenant_id,
                         "job_id": execution_urn,
                     },
-                    id=execution_urn,
-                    task_queue=settings.temporal_task_queue,
+                    execution_urn,
                 )
                 dispatch_status = "temporal_scrape_workflow_started"
             else:
-                # Default generic database routing
                 from apps.worker.workflows.ingest_workflow import IngestDataWorkflow
 
-                run_async(
-                    client.start_workflow,
-                    IngestDataWorkflow.run,
+                _dispatch_workflow(
+                    IngestDataWorkflow,
                     {
                         "generic_uri": request.params.get("generic_uri"),
                         "tenant_id": request.tenant_id,
                         "job_id": execution_urn,
                     },
-                    id=execution_urn,
-                    task_queue=settings.temporal_task_queue,
+                    execution_urn,
                 )
                 dispatch_status = "temporal_ingest_workflow_started"
 
         elif request.category == "math":
-            # Map natively to mathematical sandbox orchestrator
             from apps.worker.workflows.sandbox_workflow import SandboxWorkflow
 
-            run_async(
-                client.start_workflow,
-                SandboxWorkflow.run,
+            _dispatch_workflow(
+                SandboxWorkflow,
                 {
                     "script": request.params.get("script"),
                     "dependencies": request.params.get("dependencies", []),
                     "tenant_id": request.tenant_id,
                     "job_id": execution_urn,
                 },
-                id=execution_urn,
-                task_queue=settings.temporal_task_queue,
+                execution_urn,
             )
             dispatch_status = "temporal_sandbox_workflow_started"
 
         elif request.category == "capsule":
             from apps.capsules.services.capsule_execution import CapsuleExecutionService
-            from apps.worker.workflows.capsule_workflow import CapsuleWorkflow
 
-            capsule_id = request.params.get("capsule_id")
+            capsule_id = request.params.get("capsule_id") or ""
             parameter_values = request.params.get("parameter_values", {})
             installation_id = request.params.get("installation_id")
             session_id = request.params.get("session_id", "")
@@ -160,15 +172,15 @@ class UPTPExecutionEngine:
                 if "bar" in request.template_id:
                     result_uri = PlotlyRenderer.render_bar_comparison(
                         df,
-                        x_col=request.params.get("x_col"),
-                        y_col=request.params.get("y_col"),
+                        x_col=request.params.get("x_col") or "",
+                        y_col=request.params.get("y_col") or "",
                         tenant_id=request.tenant_id,
                     )
                 elif "time_series" in request.template_id:
                     result_uri = PlotlyRenderer.render_time_series(
                         df,
-                        date_col=request.params.get("date_col"),
-                        value_col=request.params.get("value_col"),
+                        date_col=request.params.get("date_col") or "",
+                        value_col=request.params.get("value_col") or "",
                         tenant_id=request.tenant_id,
                     )
                 else:
