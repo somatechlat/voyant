@@ -34,4 +34,4 @@ def test_t_test_validation_empty_dataframe():
 def test_statistical_engine_instantiates():
     """StatisticalEngine must construct without R connection (R is optional)."""
     engine = StatisticalEngine()
-    assert engine is not None
+    assert hasattr(engine, "t_test"), "StatisticalEngine must expose t_test method"

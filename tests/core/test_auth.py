@@ -11,10 +11,14 @@ class TestKeycloakAuthIntegration:
     """
 
     def test_keycloak_jwks_fetch(self):
+        import os
         auth = KeycloakAuth()
-        # Override for host execution
-        auth.server_url = "http://localhost:45180"
-        auth.realm = "voyant"  # Explicit override for test
+        # Use Docker-internal URL when inside a container, host URL otherwise
+        if os.path.exists("/.dockerenv"):
+            auth.server_url = "http://voyant_keycloak:8080"
+        else:
+            auth.server_url = "http://localhost:45180"
+        auth.realm = "voyant"
 
         # This will trigger jwks fetch
         jwks = auth._get_jwks()

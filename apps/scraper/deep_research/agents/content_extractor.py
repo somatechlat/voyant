@@ -24,7 +24,7 @@ try:
 
     trafilatura = _trafilatura_mod
     _TRAFILATURA_AVAILABLE = True
-except Exception:
+except ImportError:
     pass
 
 Document: Any = None  # type: ignore[no-redef]
@@ -33,7 +33,7 @@ try:
 
     Document = _Document_cls
     _READABILITY_AVAILABLE = True
-except Exception:
+except ImportError:
     pass
 
 newspaper: Any = None  # type: ignore[no-redef]
@@ -42,13 +42,14 @@ try:
 
     newspaper = _newspaper_mod
     _NEWSPAPER_AVAILABLE = True
-except Exception:
+except ImportError:
     pass
 
 try:
+    import crawl4ai  # type: ignore[import-not-found]
 
     _CRAWL4AI_AVAILABLE = True
-except Exception:
+except ImportError:
     pass
 
 
@@ -79,7 +80,7 @@ class ContentExtractor:
             if text and len(text.strip()) > 100:
                 return {"text": text.strip(), "title": "", "method": "trafilatura"}
         except Exception:
-            pass
+            logger.debug("trafilatura extraction failed for %s", url, exc_info=True)
         return None
 
     @staticmethod
@@ -89,7 +90,6 @@ class ContentExtractor:
         try:
             doc = Document(html)
             text = doc.summary()
-            # Strip HTML tags crudely.
             import re
 
             text = re.sub(r"<[^>]+>", "", text)
@@ -101,7 +101,7 @@ class ContentExtractor:
                     "method": "readability",
                 }
         except Exception:
-            pass
+            logger.debug("readability extraction failed for %s", url, exc_info=True)
         return None
 
     @staticmethod
@@ -120,7 +120,7 @@ class ContentExtractor:
                     "method": "newspaper",
                 }
         except Exception:
-            pass
+            logger.debug("newspaper extraction failed for %s", url, exc_info=True)
         return None
 
     @staticmethod
@@ -128,8 +128,6 @@ class ContentExtractor:
         if not _CRAWL4AI_AVAILABLE:
             return None
         try:
-            # crawl4ai typically operates on a URL; for HTML input we use
-            # the low-level content scraper if available.
             from crawl4ai import WebCrawler  # type: ignore[import-not-found]
 
             crawler = WebCrawler()
@@ -142,7 +140,7 @@ class ContentExtractor:
                     "method": "crawl4ai",
                 }
         except Exception:
-            pass
+            logger.debug("crawl4ai extraction failed for %s", url, exc_info=True)
         return None
 
     # ------------------------------------------------------------------

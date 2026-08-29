@@ -17,14 +17,13 @@ from apps.scraper.deep_research.schemas import SearchResultItem
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_BASE_URL = "http://voyant_searxng:8080"
-
 
 class SearXNGClient:
     """Client for the sovereign SearXNG search engine node."""
 
-    def __init__(self, base_url: str = DEFAULT_BASE_URL) -> None:
-        self.base_url = base_url.rstrip("/")
+    def __init__(self, base_url: str = "") -> None:
+        from apps.core.config import get_settings
+        self.base_url = (base_url or get_settings().searxng_url).rstrip("/")
 
     async def search(
         self,

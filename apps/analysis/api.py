@@ -20,7 +20,7 @@ from apps.workflows.models import Job
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
-analyze_router = Router(tags=["analyze"], auth=require_permission("read:*"))
+analyze_router = Router(tags=["analyze"], auth=require_permission("write:*"))
 
 
 class KPIQuery(Schema):

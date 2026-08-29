@@ -565,6 +565,11 @@ def get_secrets_backend() -> SecretsBackend:
                 mount_point=settings.secrets_vault_mount_point,
             )
         elif provider == "memory":
+            if settings.env != "test":
+                raise RuntimeError(
+                    "InMemorySecretsBackend is only allowed in test mode "
+                    "(VOYANT_ENV=test). Use 'vault', 'k8s', or 'file' in production."
+                )
             _backend = InMemorySecretsBackend()
         else:
             logger.warning(

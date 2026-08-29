@@ -65,7 +65,7 @@ class TestPublicWebsiteScraping:
         result = parser.extract(html, selectors)
 
         # 3. Verify extraction worked
-        assert result is not None
+        assert isinstance(result, dict), f"Expected dict, got {type(result)}"
         assert "title" in result or "paragraphs" in result
         print(f"✅ Extracted from real website: {result.get('title', 'N/A')}")
 

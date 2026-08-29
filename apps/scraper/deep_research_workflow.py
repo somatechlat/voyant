@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from datetime import timedelta
 
@@ -6,6 +7,7 @@ from temporalio import workflow
 with workflow.unsafe.imports_passed_through():
     from apps.scraper.activities import ScrapeActivities
     from apps.scraper.search_activities import SearchActivities
+    from apps.scraper.deep_research.agents.content_extractor import ContentExtractor
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +18,7 @@ class DeepResearchWorkflow:
     The Google AI-style Deep Research Loop.
     1. Searches the sovereign SearXNG node.
     2. Broadcasts parallel Temporal workflows to scrape every URL via Playwright.
-    3. Aggregates all text into the central system for the Agent to access.
+    3. Extracts and aggregates all text into the central system for the Agent to access.
     """
 
     @workflow.run
@@ -57,17 +59,15 @@ class DeepResearchWorkflow:
         )
 
         # STEP 2: Agentic Autonomous Sub-Scraping (Playwright Loop)
-        # We spawn native parallel Playwright workflows for every URL.
         scrape_timeouts = timedelta(minutes=10)
 
         scrape_futures = []
         for index, item in enumerate(url_collection):
             url = item.get("url")
             if url:
-                # Triggering existing ScrapeActivities (Playwright mapping)
                 scrape_params = {
                     "url": url,
-                    "target_selector": "body",  # Deep Research wants all text
+                    "target_selector": "body",
                     "tenant_id": tenant_id,
                     "job_id": f"{job_id}_node_{index}",
                 }
@@ -80,16 +80,41 @@ class DeepResearchWorkflow:
                 )
                 scrape_futures.append(future)
 
-        # Await all chunks in parallel completely autonomously
-        all_chunked_html = await workflow.wait_all(scrape_futures)
+        # Await all chunks in parallel
+        all_results = await asyncio.gather(*scrape_futures)
+
+        # STEP 3: Extract text content from each scraped result
+        extractor = ContentExtractor()
+        extracted_contents = []
+        for result in all_results:
+            html = result.get("text", "") if isinstance(result, dict) else ""
+            url = result.get("url", "") if isinstance(result, dict) else ""
+            if html and url:
+                extraction = extractor.extract(html, url)
+                if extraction.get("success"):
+                    extracted_contents.append({
+                        "url": url,
+                        "text": extraction.get("text", ""),
+                        "title": extraction.get("title", ""),
+                        "method": extraction.get("method", ""),
+                    })
+
+        # Build a combined text corpus for downstream consumption
+        combined_text = "\n\n".join(
+            f"[{item['title'] or item['url']}]\n{item['text']}"
+            for item in extracted_contents
+        )
 
         workflow.logger.info(
-            f"[DEEP_RESEARCH] Extracted {len(all_chunked_html)} autonomous dumps for {tenant_id}."
+            f"[DEEP_RESEARCH] Extracted {len(extracted_contents)} content dumps for {tenant_id}."
         )
 
         return {
             "status": "success",
             "job_id": job_id,
             "urls_processed": len(url_collection),
+            "contents_extracted": len(extracted_contents),
             "topic": topic,
+            "contents": extracted_contents,
+            "combined_text": combined_text[:100000],  # Cap at 100KB
         }

@@ -1,0 +1,7 @@
+FROM alpine:3.20
+RUN apk add --no-cache libstdc++ libgcc
+# Copy SpiceDB binary from official image
+COPY --from=authzed/spicedb:v1.29.0 /usr/local/bin/spicedb /usr/local/bin/spicedb
+COPY infra/standalone/scripts/spicedb-entrypoint.sh /spicedb-entrypoint.sh
+RUN chmod +x /spicedb-entrypoint.sh
+ENTRYPOINT ["/spicedb-entrypoint.sh"]

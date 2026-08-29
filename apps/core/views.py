@@ -12,6 +12,7 @@ circuit breaker states). No mocks or stubs.
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
@@ -22,6 +23,8 @@ from django.http import JsonResponse
 from apps.core.config import get_settings
 from apps.core.lib.circuit_breaker import _circuit_breakers
 from apps.core.middleware import get_version_info
+
+logger = logging.getLogger(__name__)
 
 
 def _run_with_timeout(func, timeout_seconds: float):
@@ -148,8 +151,8 @@ def ready(_request) -> JsonResponse:
             if cb_state.value == "open" and name in ["rserve", "temporal"]:
                 overall_ready = False
         checks["circuit_breakers"] = {"status": "monitored", "states": cb_states}
-    except Exception:
-        checks["circuit_breakers"] = {"status": "unknown"}
+    except Exception as exc:
+        checks["circuit_breakers"] = {"status": "unknown", "error": str(exc)}
 
     http_status = 200 if overall_ready else 503
     return JsonResponse(
@@ -196,8 +199,8 @@ def status_view(_request) -> JsonResponse:
     try:
         for name, cb in _circuit_breakers.items():
             status_info["circuit_breakers"][name] = cb.get_metrics()
-    except Exception:
-        pass  # Avoid crashing the status view if metrics retrieval fails.
+    except Exception as exc:
+        logger.warning("Failed to retrieve circuit breaker metrics: %s", exc)
 
     return JsonResponse(status_info)
 

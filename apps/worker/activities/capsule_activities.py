@@ -154,8 +154,7 @@ class CapsuleActivities:
             raise
 
     async def _run_deep_research(self, params: Dict[str, Any], tenant_id: str) -> Dict[str, Any]:
-        from django.conf import settings
-
+        from apps.core.config import get_settings
         from apps.core.lib.temporal_client import get_temporal_client
         from apps.scraper.deep_research_workflow import DeepResearchWorkflow
 
@@ -170,13 +169,12 @@ class CapsuleActivities:
                 "job_id": job_id,
             },
             id=job_id,
-            task_queue=settings.temporal_task_queue,
+            task_queue=get_settings().temporal_task_queue,
         )
         return {"status": "started", "workflow_id": handle.id, "action": "deep_research"}
 
     async def _run_scrape(self, params: Dict[str, Any], tenant_id: str) -> Dict[str, Any]:
-        from django.conf import settings
-
+        from apps.core.config import get_settings
         from apps.core.lib.temporal_client import get_temporal_client
         from apps.scraper.workflow import ScrapeWorkflow
 
@@ -191,13 +189,12 @@ class CapsuleActivities:
                 "job_id": job_id,
             },
             id=job_id,
-            task_queue=settings.temporal_task_queue,
+            task_queue=get_settings().temporal_task_queue,
         )
         return {"status": "started", "workflow_id": handle.id, "action": "scrape", "url": url}
 
     async def _run_ingest(self, params: Dict[str, Any], tenant_id: str) -> Dict[str, Any]:
-        from django.conf import settings
-
+        from apps.core.config import get_settings
         from apps.core.lib.temporal_client import get_temporal_client
         from apps.worker.workflows.ingest_workflow import IngestDataWorkflow
 
@@ -212,7 +209,7 @@ class CapsuleActivities:
                 "job_id": job_id,
             },
             id=job_id,
-            task_queue=settings.temporal_task_queue,
+            task_queue=get_settings().temporal_task_queue,
         )
         return {"status": "started", "workflow_id": handle.id, "action": "ingest"}
 
@@ -394,7 +391,8 @@ def _resolve_template(template: str, context: Dict[str, Any]) -> str:
     try:
         t = env.from_string(template)
         return t.render(context)
-    except Exception:
+    except Exception as exc:
+        logger.debug("Template render failed, returning raw: %s", exc)
         return template
 
 

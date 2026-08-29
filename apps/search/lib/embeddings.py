@@ -33,8 +33,6 @@ class EmbeddingModel(str, Enum):
     TFIDF = "tfidf"  # TF-IDF (lightweight)
     DENSE = "dense"  # Deterministic 1536-dim dense embeddings
     SPARSE = "sparse"  # Sparse BM25 vectors
-    SENTENCE_TRANSFORMER = "st"  # Sentence transformers (not implemented)
-    CLIP = "clip"  # Vision+text (not implemented)
 
 
 @dataclass
@@ -93,15 +91,20 @@ class EmbeddingExtractor(ABC):
 
 class SimpleEmbedder(EmbeddingExtractor):
     """
-    Simple character-based embedder for testing.
+    Character-frequency embedder for test pipelines only.
 
-    Uses character frequency as embedding dimensions.
-    Not for production - use for testing embedding pipelines.
+    Raises RuntimeError if instantiated outside of test mode.
     """
 
     def __init__(self, dimensions: int = 64):
+        from apps.core.config import get_settings
+        env = get_settings().env
+        if env != "test":
+            raise RuntimeError(
+                "SimpleEmbedder is a test-only implementation. "
+                "Use 'tfidf' or 'dense' for production embeddings."
+            )
         super().__init__(dimensions)
-        # Character set for embedding
         self.chars = "abcdefghijklmnopqrstuvwxyz0123456789 .,!?-"
 
     @property

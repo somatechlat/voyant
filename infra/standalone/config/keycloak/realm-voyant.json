@@ -1,5 +1,5 @@
 {
-    "realm": "${KEYCLOAK_REALM}",
+    "realm": "voyant",
     "enabled": true,
     "sslRequired": "none",
     "registrationAllowed": true,
@@ -72,7 +72,7 @@
             "enabled": true,
             "protocol": "openid-connect",
             "publicClient": false,
-            "secret": "${KEYCLOAK_CLIENT_SECRET_API}",
+            "secret": "voyant-api-secret-dev",
             "standardFlowEnabled": false,
             "directAccessGrantsEnabled": true,
             "serviceAccountsEnabled": true,
@@ -84,7 +84,7 @@
             "enabled": true,
             "protocol": "openid-connect",
             "publicClient": false,
-            "secret": "${KEYCLOAK_CLIENT_SECRET_MCP}",
+            "secret": "voyant-mcp-secret-dev",
             "directAccessGrantsEnabled": true,
             "serviceAccountsEnabled": true
         },
@@ -98,12 +98,12 @@
             "implicitFlowEnabled": false,
             "directAccessGrantsEnabled": false,
             "redirectUris": [
-                "${KEYCLOAK_WEB_REDIRECT_URI_1}",
-                "${KEYCLOAK_WEB_REDIRECT_URI_2}"
+                "http://localhost:3000/*",
+                "http://localhost:5173/*"
             ],
             "webOrigins": [
-                "${KEYCLOAK_WEB_ORIGIN_1}",
-                "${KEYCLOAK_WEB_ORIGIN_2}"
+                "http://localhost:3000",
+                "http://localhost:5173"
             ]
         },
         {
@@ -112,10 +112,10 @@
             "enabled": true,
             "protocol": "openid-connect",
             "publicClient": false,
-            "secret": "${KEYCLOAK_CLIENT_SECRET_DATAHUB}",
+            "secret": "voyant-datahub-secret-dev",
             "standardFlowEnabled": true,
             "redirectUris": [
-                "${KEYCLOAK_DATAHUB_REDIRECT_URI_1}"
+                "http://voyant_datahub_frontend:9002/*"
             ]
         }
     ],
@@ -123,14 +123,14 @@
         {
             "username": "admin",
             "enabled": true,
-            "email": "${KEYCLOAK_ADMIN_EMAIL}",
+            "email": "admin@voyant.io",
             "emailVerified": true,
             "firstName": "Admin",
             "lastName": "User",
             "credentials": [
                 {
                     "type": "password",
-                    "value": "${KEYCLOAK_ADMIN_PASSWORD}",
+                    "value": "admin",
                     "temporary": false
                 }
             ],
@@ -141,14 +141,14 @@
         {
             "username": "engineer",
             "enabled": true,
-            "email": "${KEYCLOAK_ENGINEER_EMAIL}",
+            "email": "engineer@voyant.io",
             "emailVerified": true,
             "firstName": "Data",
             "lastName": "Engineer",
             "credentials": [
                 {
                     "type": "password",
-                    "value": "${KEYCLOAK_ENGINEER_PASSWORD}",
+                    "value": "engineer",
                     "temporary": false
                 }
             ],
@@ -159,14 +159,14 @@
         {
             "username": "analyst",
             "enabled": true,
-            "email": "${KEYCLOAK_ANALYST_EMAIL}",
+            "email": "analyst@voyant.io",
             "emailVerified": true,
             "firstName": "Data",
             "lastName": "Analyst",
             "credentials": [
                 {
                     "type": "password",
-                    "value": "${KEYCLOAK_ANALYST_PASSWORD}",
+                    "value": "analyst",
                     "temporary": false
                 }
             ],

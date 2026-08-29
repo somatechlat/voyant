@@ -1,41 +1,25 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# =============================================================================
+# Bootstrap Secrets for Voyant Standalone Stack
+# =============================================================================
+# Generates secrets in ./secrets/ directory ONLY.
+# Secrets NEVER go in .env files. They are:
+#   1. Mounted as Docker secrets at /run/secrets/ for infrastructure containers
+#   2. Seeded into Vault for application containers at runtime
+# =============================================================================
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 STANDALONE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-ENV_FILE="${1:-$STANDALONE_DIR/.env}"
-TEMPLATE_FILE="$STANDALONE_DIR/.env.example"
+SECRETS_DIR="$STANDALONE_DIR/secrets"
 
 if ! command -v openssl >/dev/null 2>&1; then
   echo "openssl is required" >&2
   exit 1
 fi
 
-if [[ ! -f "$ENV_FILE" ]]; then
-  cp "$TEMPLATE_FILE" "$ENV_FILE"
-fi
-
-set_kv() {
-  local key="$1"
-  local value="$2"
-  local escaped
-  escaped="$(printf '%s' "$value" | sed 's/[&|]/\\&/g')"
-  if grep -q "^${key}=" "$ENV_FILE"; then
-    sed -i.bak "s|^${key}=.*|${key}=${escaped}|" "$ENV_FILE"
-  else
-    printf '%s=%s\n' "$key" "$value" >> "$ENV_FILE"
-  fi
-}
-
-get_kv() {
-  local key="$1"
-  grep -E "^${key}=" "$ENV_FILE" | head -n1 | cut -d'=' -f2- || true
-}
-
-is_placeholder() {
-  local value="$1"
-  [[ -z "$value" || "$value" == replace-* ]]
-}
+mkdir -p "$SECRETS_DIR"
 
 rand_hex() {
   openssl rand -hex 24
@@ -45,59 +29,60 @@ rand_b64_urlsafe() {
   openssl rand -base64 48 | tr -d '\n=' | tr '/+' 'ab' | cut -c1-64
 }
 
-ensure_secret() {
-  local key="$1"
-  local generator="$2"
-  local current
-  current="$(get_kv "$key")"
-  if is_placeholder "$current"; then
-    set_kv "$key" "$($generator)"
+write_secret() {
+  local name="$1"
+  local value="$2"
+  local file="$SECRETS_DIR/$name"
+  # Only write if file doesn't exist or is empty
+  if [ ! -s "$file" ]; then
+    printf '%s' "$value" > "$file"
+    chmod 600 "$file"
+    echo "Generated: $name"
+  else
+    echo "Exists:    $name"
   fi
 }
 
-ensure_secret "VOYANT_SECRET_KEY" rand_b64_urlsafe
-ensure_secret "SECRET_KEY" rand_b64_urlsafe
-set_kv "COMPOSE_PROJECT_NAME" "voyant_cluster"
-ensure_secret "POSTGRES_PASSWORD" rand_b64_urlsafe
-ensure_secret "REDIS_PASSWORD" rand_b64_urlsafe
-ensure_secret "MINIO_ACCESS_KEY" rand_hex
-ensure_secret "MINIO_SECRET_KEY" rand_b64_urlsafe
-ensure_secret "MINIO_ROOT_USER" rand_hex
-ensure_secret "MINIO_ROOT_PASSWORD" rand_b64_urlsafe
-ensure_secret "KEYCLOAK_CLIENT_SECRET" rand_b64_urlsafe
-ensure_secret "KEYCLOAK_ADMIN" rand_hex
-ensure_secret "KEYCLOAK_ADMIN_PASSWORD" rand_b64_urlsafe
-ensure_secret "DATAHUB_SECRET" rand_b64_urlsafe
-ensure_secret "LAGO_API_KEY" rand_b64_urlsafe
-ensure_secret "LAGO_SECRET_KEY" rand_b64_urlsafe
-ensure_secret "LAGO_ENCRYPTION_KEY" rand_b64_urlsafe
-ensure_secret "SPICEDB_GRPC_PRESHARED_KEY" rand_b64_urlsafe
+# --- Generate secrets ---
+SECRET_KEY="$(rand_b64_urlsafe)"
+POSTGRES_PASSWORD="$(rand_b64_urlsafe)"
+REDIS_PASSWORD="$(rand_b64_urlsafe)"
+MINIO_ACCESS_KEY="$(rand_hex)"
+MINIO_SECRET_KEY="$(rand_b64_urlsafe)"
+MINIO_ROOT_USER="$(rand_hex)"
+MINIO_ROOT_PASSWORD="$(rand_b64_urlsafe)"
+KEYCLOAK_CLIENT_SECRET="$(rand_b64_urlsafe)"
+KEYCLOAK_ADMIN_PASSWORD="$(rand_b64_urlsafe)"
+SPICEDB_GRPC_PRESHARED_KEY="$(rand_b64_urlsafe)"
+DATAHUB_SECRET="$(rand_b64_urlsafe)"
 
-LAGO_RSA_PRIVATE_KEY_CURRENT="$(get_kv "LAGO_RSA_PRIVATE_KEY")"
-if is_placeholder "$LAGO_RSA_PRIVATE_KEY_CURRENT"; then
-  LAGO_RSA_PRIVATE_KEY_NEW="$(openssl genrsa 2048 2>/dev/null | base64 | tr -d '\n')"
-  set_kv "LAGO_RSA_PRIVATE_KEY" "$LAGO_RSA_PRIVATE_KEY_NEW"
-fi
+# Vault root token (matches VAULT_DEV_ROOT_TOKEN_ID in docker-compose.yml)
+# Dev-mode only — production uses auto-unseal + AppRole/Kubernetes auth.
+VAULT_TOKEN="voyant-root-token"
 
-POSTGRES_PASSWORD="$(get_kv "POSTGRES_PASSWORD")"
-REDIS_PASSWORD="$(get_kv "REDIS_PASSWORD")"
-VOYANT_SECRET_KEY="$(get_kv "VOYANT_SECRET_KEY")"
-SECRET_KEY="$(get_kv "SECRET_KEY")"
+# --- Write secret files ---
+write_secret "secret_key" "$SECRET_KEY"
+write_secret "postgres_password" "$POSTGRES_PASSWORD"
+write_secret "redis_password" "$REDIS_PASSWORD"
+write_secret "minio_access_key" "$MINIO_ACCESS_KEY"
+write_secret "minio_secret_key" "$MINIO_SECRET_KEY"
+write_secret "minio_root_user" "$MINIO_ROOT_USER"
+write_secret "minio_root_password" "$MINIO_ROOT_PASSWORD"
+write_secret "keycloak_client_secret" "$KEYCLOAK_CLIENT_SECRET"
+write_secret "keycloak_admin_password" "$KEYCLOAK_ADMIN_PASSWORD"
+write_secret "spicedb_grpc_preshared_key" "$SPICEDB_GRPC_PRESHARED_KEY"
+write_secret "datahub_secret" "$DATAHUB_SECRET"
+write_secret "vault_token" "$VAULT_TOKEN"
+write_secret "mcp_api_token" ""
 
-if is_placeholder "$SECRET_KEY" && ! is_placeholder "$VOYANT_SECRET_KEY"; then
-  set_kv "SECRET_KEY" "$VOYANT_SECRET_KEY"
-elif is_placeholder "$VOYANT_SECRET_KEY" && ! is_placeholder "$SECRET_KEY"; then
-  set_kv "VOYANT_SECRET_KEY" "$SECRET_KEY"
-else
-  set_kv "SECRET_KEY" "$VOYANT_SECRET_KEY"
-fi
+# --- Write composite connection URLs ---
+write_secret "database_url" "postgresql://voyant:${POSTGRES_PASSWORD}@voyant_postgres:5432/voyant"
+write_secret "redis_url" "redis://:${REDIS_PASSWORD}@voyant_redis:6379/0"
 
-set_kv "DATABASE_URL" "postgresql://voyant:${POSTGRES_PASSWORD}@voyant_postgres:5432/voyant"
-set_kv "REDIS_URL" "redis://:${REDIS_PASSWORD}@voyant_redis:6379/0"
-set_kv "KC_DB_PASSWORD" "$POSTGRES_PASSWORD"
-set_kv "DATAHUB_DATABASE_PASSWORD" "$POSTGRES_PASSWORD"
-set_kv "LAGO_DATABASE_URL" "postgresql://voyant:${POSTGRES_PASSWORD}@voyant-postgres:5432/lago"
-set_kv "LAGO_REDIS_URL" "redis://:${REDIS_PASSWORD}@voyant_redis:6379/2"
-
-rm -f "${ENV_FILE}.bak"
-echo "Bootstrapped secrets in $ENV_FILE"
+echo ""
+echo "Secrets generated in $SECRETS_DIR"
+echo "NO secrets written to .env files."
+echo ""
+echo "Next steps:"
+echo "  docker compose up -d"
+echo "  docker compose exec voyant_vault /scripts/seed-vault.sh  # seed Vault with secrets"
