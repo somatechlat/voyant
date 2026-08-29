@@ -10,6 +10,7 @@ from datetime import timedelta
 from typing import Any, Dict
 
 from temporalio import workflow
+from temporalio.common import RetryPolicy
 
 with workflow.unsafe.imports_passed_through():
     from apps.worker.activities.capsule_activities import CapsuleActivities
@@ -35,7 +36,7 @@ class CapsuleWorkflow:
             CapsuleActivities.load_capsule,
             {"capsule_id": capsule_id, "tenant_id": tenant_id},
             start_to_close_timeout=timedelta(seconds=30),
-            retry_policy=workflow.RetryPolicy(maximum_attempts=3),
+            retry_policy=RetryPolicy(maximum_attempts=3),
         )
 
         graph = capsule.get("execution_graph", [])
@@ -80,7 +81,7 @@ class CapsuleWorkflow:
                     "capabilities_whitelist": capabilities_whitelist,
                 },
                 start_to_close_timeout=timedelta(seconds=timeout),
-                retry_policy=workflow.RetryPolicy(
+                retry_policy=RetryPolicy(
                     maximum_attempts=retry.get("max_attempts", 3),
                     initial_interval=timedelta(seconds=retry.get("backoff_seconds", 5)),
                 ),

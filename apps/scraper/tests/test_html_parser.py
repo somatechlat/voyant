@@ -157,8 +157,7 @@ class TestEdgeCases:
     def test_empty_html(self, parser):
         """Handle empty HTML gracefully."""
         result = parser.extract("", {"title": "title::text"})
-        # Should not crash, may return empty or error
-        assert result is not None
+        assert isinstance(result, dict), f"Expected dict, got {type(result)}"
 
     def test_invalid_selector(self, parser):
         """Handle invalid selectors gracefully."""

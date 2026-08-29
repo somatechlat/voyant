@@ -157,6 +157,6 @@ class TestTemplateSQLValidity:
                 sql = render_template(name, mock_params)
                 # Should not have remaining placeholders
                 assert "{" not in sql, f"Template {name} has unresolved placeholders"
-            except ValueError:
-                # Some templates may need special params, skip those
-                pass
+            except ValueError as e:
+                # Some templates may need special params — log but continue
+                pytest.fail(f"Template {name} raised ValueError: {e}")

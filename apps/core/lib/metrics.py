@@ -55,14 +55,14 @@ def reset_metrics():
         try:
             REGISTRY.unregister(metric)
         except Exception:
-            pass  # Metric might not be registered
+            logger.debug("Metric %s not registered", metric_name)
 
     # Unregister all full metrics
     for metric_name, metric in list(FULL_METRICS.items()):
         try:
             REGISTRY.unregister(metric)
         except Exception:
-            pass  # Metric might not be registered
+            logger.debug("Metric %s not registered", metric_name)
 
     # Clear the dictionaries
     BASIC_METRICS.clear()

@@ -11,6 +11,7 @@ from datetime import timedelta
 from typing import Any, Dict
 
 from temporalio import workflow
+from temporalio.common import RetryPolicy
 
 # This context manager is necessary to allow importing non-workflow/activity
 # modules within the workflow definition. It passes control to the Python
@@ -50,7 +51,7 @@ class IngestDataWorkflow:
         # Define a standard retry policy for activities within this workflow.
         # This policy balances resilience against transient failures with
         # preventing indefinite retries on permanent issues.
-        retry_policy = workflow.RetryPolicy(
+        retry_policy = RetryPolicy(
             initial_interval=timedelta(seconds=1),
             backoff_coefficient=2.0,
             maximum_interval=timedelta(seconds=60),

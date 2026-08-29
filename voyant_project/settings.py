@@ -72,6 +72,7 @@ app_settings = get_settings()
 # SECURITY WARNING: Keep the secret key used in production secret!
 SECRET_KEY = app_settings.secret_key
 if not SECRET_KEY and app_settings.env in {"test", "local"}:
+    # In test/local mode, read from env var — never hardcode secrets
     SECRET_KEY = os.environ.get("VOYANT_LOCAL_FALLBACK_SECRET_KEY", "")
 if not SECRET_KEY:
     raise RuntimeError("SECRET_KEY must be configured")
@@ -171,12 +172,12 @@ ASGI_APPLICATION = "voyant_project.asgi.application"
 # Database connection is configured via a single DATABASE_URL environment variable.
 DATABASE_URL = app_settings.database_url
 if not DATABASE_URL:
-    # For testing, use a default test database URL
+    # For testing, read from env var — never hardcode credentials
     if "pytest" in os.environ.get("_", "") or "test" in os.environ.get(
         "VOYANT_ENV", ""
     ):
-        DATABASE_URL = "postgresql://voyant:voyant@localhost:45432/voyant_test"
-    else:
+        DATABASE_URL = os.environ.get("VOYANT_TEST_DATABASE_URL", "")
+    if not DATABASE_URL:
         raise RuntimeError("DATABASE_URL must be configured")
 DATABASES = {"default": _parse_database_url(DATABASE_URL)}
 

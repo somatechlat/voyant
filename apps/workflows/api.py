@@ -344,8 +344,8 @@ def cancel_job(request, job_id: str):
                 break
             except Exception:
                 continue
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("Failed to cancel Temporal workflows for %s: %s", job_id, exc)
 
     job.status = "cancelled"
     job.save(update_fields=["status"])
@@ -469,13 +469,48 @@ def execute_preset(request, preset_name: str, payload: Dict[str, Any]):
     if not preset:
         raise HttpError(404, get_message("ERR_PRESET_NOT_FOUND"))
 
+    tenant_id = get_tenant_id(request)
+    job_type = preset.get("job_type", preset_name.split(".")[0])
+
     job = PresetJob.objects.create(
-        tenant_id=get_tenant_id(request),
+        tenant_id=tenant_id,
         preset_name=preset_name,
         source_id=payload.get("source_id", ""),
         parameters=payload,
-        status="queued",
+        status="running",
     )
+
+    job_type_to_workflow = {
+        "profile": ProfileWorkflow,
+        "quality": QualityWorkflow,
+    }
+    workflow_cls = job_type_to_workflow.get(job_type)
+    if not workflow_cls:
+        job.status = "failed"
+        job.save(update_fields=["status"])
+        raise HttpError(400, get_message("ERR_VALIDATION", error=f"No workflow for job_type={job_type}"))
+
+    try:
+        client = run_async(get_temporal_client)
+        run_async(
+            client.start_workflow,
+            workflow_cls.run,
+            {
+                "source_id": payload.get("source_id", ""),
+                "table": payload.get("table"),
+                "sample_size": payload.get("sample_size", 10000),
+                "checks": payload.get("checks"),
+                "job_id": str(job.job_id),
+                "tenant_id": tenant_id,
+            },
+            id=f"preset-{job.job_id}",
+            task_queue=settings.temporal_task_queue,
+        )
+    except Exception as exc:
+        job.status = "failed"
+        job.save(update_fields=["status"])
+        raise HttpError(500, get_message("ERR_SYSTEM", error=str(exc))) from exc
+
     return {"job_id": str(job.job_id), "status": job.status}
 
 

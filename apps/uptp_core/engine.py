@@ -3,10 +3,10 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Dict
 
-from django.conf import settings
 from django.core.exceptions import ValidationError
 
 from apps.core.api_utils import run_async
+from apps.core.config import get_settings
 from apps.core.lib.temporal_client import get_temporal_client
 from apps.uptp_core.schemas import TemplateExecutionRequest
 
@@ -27,7 +27,7 @@ def _dispatch_workflow(workflow_cls, args: dict, execution_urn: str) -> None:
                 workflow_cls.run,
                 args,
                 id=execution_urn,
-                task_queue=settings.temporal_task_queue,
+                task_queue=get_settings().temporal_task_queue,
             )
             logger.info("Dispatched workflow %s", execution_urn)
         except Exception as exc:

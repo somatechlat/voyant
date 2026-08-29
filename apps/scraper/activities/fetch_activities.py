@@ -270,7 +270,7 @@ class FetchActivities:
                         if obj is not None:
                             await obj.close()
                     except Exception:
-                        pass
+                        logger.debug("Browser cleanup failed for %s", obj)
 
             result = {
                 "html": html,
@@ -456,5 +456,8 @@ class FetchActivities:
             }
 
     async def _fetch_scrapy(self, url: str, timeout: int = 30) -> Dict[str, Any]:
-        """Fetch a URL using Scrapy patterns. Falls back to httpx pending full integration."""
-        return await self._fetch_httpx(url, timeout)
+        """Scrapy engine is not yet integrated. Raises to prevent silent httpx fallback."""
+        raise ApplicationError(
+            "Scrapy engine is not yet integrated. Use 'playwright', 'httpx', or 'browserless'.",
+            non_retryable=True,
+        )

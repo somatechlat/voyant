@@ -2,7 +2,7 @@
 Capsule Core Service.
 
 The 4 core operations:
-1. verify_capsule  — Check integrity (placeholder for cryptographic validation)
+1. verify_capsule  — Check integrity (SHA-256 content hash verification)
 2. certify_capsule — Sign and activate
 3. inject_capsule  — Load verified capsule for runtime
 4. edit_capsule    — Clone-on-edit for active capsules
@@ -29,7 +29,7 @@ def verify_capsule(capsule: Capsule) -> bool:
     Verify capsule integrity.
 
     Returns True if the capsule passes structural and signature validation.
-    Cryptographic verification is a placeholder for Ed25519 registry checks.
+    Verification checks SHA-256 content hash against the registry_signature.
     """
     if not capsule.name or not capsule.version:
         logger.warning("Capsule %s missing name or version", capsule.id)
@@ -45,11 +45,18 @@ def verify_capsule(capsule: Capsule) -> bool:
         logger.warning("Capsule %s has invalid parameters_schema", capsule.id)
         return False
 
-    # Placeholder: signature verification
-    # In production, this verifies registry_signature against a public key
+    # Verify registry signature against SHA-256 content hash
     if capsule.registry_signature:
-        # TODO: Real Ed25519 verification when registry keys are configured
-        pass
+        content = json.dumps(capsule.body, sort_keys=True, default=str)
+        expected = f"sha256:{hashlib.sha256(content.encode()).hexdigest()}"
+        if capsule.registry_signature != expected:
+            logger.warning(
+                "Capsule %s signature mismatch: expected %s, got %s",
+                capsule.id,
+                expected,
+                capsule.registry_signature,
+            )
+            return False
 
     logger.info("Capsule %s:%s verified", capsule.name, capsule.version)
     return True
@@ -82,8 +89,7 @@ def certify_capsule(capsule: Capsule, constitution: Optional[Constitution] = Non
             logger.warning("No active constitution found for capsule %s", capsule.id)
             capsule.constitution_ref = {}
 
-        # Placeholder: real Ed25519 signing would happen here
-        # For now, compute a content hash as the "signature"
+        # Compute SHA-256 content hash as the signature
         content = json.dumps(capsule.body, sort_keys=True, default=str)
         capsule.registry_signature = f"sha256:{hashlib.sha256(content.encode()).hexdigest()}"
         capsule.certified_at = timezone.now()
@@ -265,6 +271,6 @@ def _increment_version(version: str) -> str:
         if len(parts) == 3:
             major, minor, patch = parts
             return f"{major}.{minor}.{int(patch) + 1}"
-    except Exception:
-        pass
+    except (ValueError, TypeError) as exc:
+        logger.warning("Failed to parse version '%s': %s", version, exc)
     return f"{version}.1"

@@ -1,19 +1,27 @@
 # ============================================================================
-# Strict Docker Context (API/Worker image)
-# Keep build context minimal: only files required by infra/standalone/Dockerfile.
+# Strict Docker Context (API/Worker + SpiceDB images)
+# Keep build context minimal: only files required by the Dockerfiles.
 # ============================================================================
 
 # Ignore everything by default.
 **
 
-# Allow only runtime/build inputs.
+# ---------- API/Worker image inputs ----------
 !requirements.txt
 !manage.py
 !apps/
 !apps/**
+!admin/
+!admin/**
 !voyant_project/
 !voyant_project/**
 
-# Optional metadata/docs useful inside image labels/debugging.
-!README.md
-!LICENSE
+# ---------- SpiceDB wrapper image input ----------
+!infra/standalone/scripts/spicedb-entrypoint.sh
+
+# ---------- Re-ignore things that leak into allowed dirs ----------
+# Python bytecode — 46 dirs inside apps/, never needed in image
+**/__pycache__/
+
+# Test suites — not needed in production image
+**/tests/

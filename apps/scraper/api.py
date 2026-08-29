@@ -5,9 +5,12 @@ built using Django Ninja. The API exposes "pure execution" tools that
 are controlled by an external intelligent agent, following an Agent-Tool Architecture.
 """
 
+import logging
 from typing import Any, Dict, List, Optional
 
 from asgiref.sync import async_to_sync
+
+logger = logging.getLogger(__name__)
 from django.shortcuts import get_object_or_404
 from ninja import Router, Schema
 
@@ -362,7 +365,8 @@ def transcribe_media(request, payload: ScrapeTranscribeSchema):
 def get_scrape_status(request, job_id: str):
     """Get status of a scraping job."""
     ScrapeJob, _ = _get_models()
-    job = get_object_or_404(ScrapeJob, job_id=job_id)
+    tenant_id = request.headers.get("X-Tenant-ID", settings.default_tenant_id)
+    job = get_object_or_404(ScrapeJob, job_id=job_id, tenant_id=tenant_id)
 
     return {
         "job_id": str(job.job_id),
@@ -382,7 +386,8 @@ def get_scrape_status(request, job_id: str):
 def cancel_scrape(request, job_id: str):
     """Cancel a running scrape job."""
     ScrapeJob, _ = _get_models()
-    job = get_object_or_404(ScrapeJob, job_id=job_id)
+    tenant_id = request.headers.get("X-Tenant-ID", settings.default_tenant_id)
+    job = get_object_or_404(ScrapeJob, job_id=job_id, tenant_id=tenant_id)
 
     # Cancel workflow execution when a running scrape is stopped.
     try:
@@ -391,9 +396,8 @@ def cancel_scrape(request, job_id: str):
         client = _run_async(get_temporal_client)
         handle = client.get_workflow_handle(f"scrape-{job_id}")
         _run_async(handle.cancel)
-    except Exception:
-        # Keep cancellation idempotent even if workflow handle is already closed/missing.
-        pass
+    except Exception as exc:
+        logger.warning("Failed to cancel Temporal workflow for scrape-%s: %s", job_id, exc)
 
     job.status = ScrapeJob.Status.CANCELLED
     job.save()
@@ -405,7 +409,8 @@ def cancel_scrape(request, job_id: str):
 def get_scrape_result(request, job_id: str):
     """Get results of a completed scrape job."""
     ScrapeJob, ScrapeArtifact = _get_models()
-    job = get_object_or_404(ScrapeJob, job_id=job_id)
+    tenant_id = request.headers.get("X-Tenant-ID", settings.default_tenant_id)
+    job = get_object_or_404(ScrapeJob, job_id=job_id, tenant_id=tenant_id)
     artifacts = ScrapeArtifact.objects.filter(job=job)
 
     return {
@@ -429,7 +434,8 @@ def get_scrape_result(request, job_id: str):
 def get_scrape_metrics(request, job_id: str):
     """Get metrics for a scrape job."""
     ScrapeJob, _ = _get_models()
-    job = get_object_or_404(ScrapeJob, job_id=job_id)
+    tenant_id = request.headers.get("X-Tenant-ID", settings.default_tenant_id)
+    job = get_object_or_404(ScrapeJob, job_id=job_id, tenant_id=tenant_id)
 
     return {
         "job_id": str(job.job_id),

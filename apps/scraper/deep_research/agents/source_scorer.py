@@ -106,8 +106,8 @@ class SourceScorer:
         if fetched_at:
             try:
                 anchor = datetime.fromisoformat(fetched_at.replace("Z", "+00:00"))
-            except Exception:
-                pass
+            except (ValueError, TypeError) as exc:
+                logger.debug("Date parse failed for '%s': %s", fetched_at, exc)
 
         years = self._extract_years(text)
         if not years:

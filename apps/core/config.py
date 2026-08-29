@@ -12,11 +12,50 @@ throughout the application.
 
 from __future__ import annotations
 
+import logging
+import os
 from functools import lru_cache
+from pathlib import Path
 from typing import ClassVar
 
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = logging.getLogger(__name__)
+
+
+def _resolve_docker_secrets() -> None:
+    """
+    Resolve Docker secrets _FILE env vars.
+
+    For every env var ending with _FILE whose value is a readable file path,
+    reads the file content and sets the corresponding env var (without _FILE)
+    to that content. This enables Docker secrets to work transparently with
+    pydantic-settings.
+
+    Example:
+        VOYANT_SECRET_KEY_FILE=/run/secrets/secret_key
+        -> reads file, sets VOYANT_SECRET_KEY=<file_content>
+    """
+    for key, value in list(os.environ.items()):
+        if not key.endswith("_FILE"):
+            continue
+        base_key = key[: -len("_FILE")]
+        # Skip if the base key is already set (explicit env var takes precedence)
+        if base_key in os.environ:
+            continue
+        file_path = Path(value.strip())
+        if file_path.is_file():
+            try:
+                content = file_path.read_text().strip()
+                if content:
+                    os.environ[base_key] = content
+            except OSError:
+                pass  # File not readable — let pydantic-settings handle the missing value
+
+
+# Run Docker secrets resolution at import time, before pydantic-settings reads env
+_resolve_docker_secrets()
 
 
 class Settings(BaseSettings):
@@ -208,6 +247,16 @@ class Settings(BaseSettings):
         alias="TEMPORAL_TASK_QUEUE",
         description="The task queue Voyant workers will listen on.",
     )
+    searxng_url: str = Field(
+        default="http://voyant_searxng:8080",
+        alias="VOYANT_SEARXNG_URL",
+        description="Internal URL for the SearXNG sovereign search engine.",
+    )
+    worker_metrics_port: int = Field(
+        default=9090,
+        alias="VOYANT_WORKER_METRICS_PORT",
+        description="Port for the worker Prometheus metrics server.",
+    )
     temporal_activity_max_workers: int = Field(
         default=0,
         alias="TEMPORAL_ACTIVITY_MAX_WORKERS",
@@ -348,6 +397,11 @@ class Settings(BaseSettings):
         default="voyant_spicedb:50051",
         alias="VOYANT_SPICEDB_ENDPOINT",
         description="gRPC endpoint for the SpiceDB authorization service.",
+    )
+    spicedb_tls: bool = Field(
+        default=False,
+        alias="VOYANT_SPICEDB_TLS",
+        description="Enable TLS for SpiceDB gRPC connection. Set True in production.",
     )
     spicedb_grpc_preshared_key: str = Field(
         default="",
@@ -732,8 +786,8 @@ def get_settings() -> Settings:
         # In a real scenario, you'd filter by keys
         # This part requires DB access which might not be ready during import
         # So we usually Wrap this or catch OperationalError
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("Could not load ORM settings overrides (DB may not be ready): %s", exc)
     if overrides:
         settings = settings.model_copy(update=overrides)
 

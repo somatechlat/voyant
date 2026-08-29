@@ -6,6 +6,7 @@ from datetime import timedelta
 from typing import Any, Dict
 
 from temporalio import workflow
+from temporalio.common import RetryPolicy
 
 with workflow.unsafe.imports_passed_through():
     from apps.worker.activities.quality_activities import QualityActivities
@@ -28,7 +29,7 @@ class QualityWorkflow:
                 "table or source_id is required for quality workflow"
             )
 
-        retry_policy = workflow.RetryPolicy(
+        retry_policy = RetryPolicy(
             initial_interval=timedelta(seconds=1),
             backoff_coefficient=2.0,
             maximum_interval=timedelta(seconds=30),

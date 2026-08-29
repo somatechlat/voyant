@@ -23,6 +23,9 @@ from apps.core.config import get_settings
 from apps.core.lib.interceptors import MetricsInterceptor
 from apps.core.lib.monitoring import MetricsRegistry
 from apps.core.lib.temporal_client import get_temporal_client
+from apps.scraper.activities.fetch_activities import FetchActivities
+from apps.scraper.activities.parse_activities import ParseActivities
+from apps.scraper.activities.storage_activities import StorageActivities
 from apps.scraper.deep_research_workflow import DeepResearchWorkflow
 from apps.scraper.search_activities import SearchActivities
 
@@ -104,9 +107,16 @@ async def run_worker():
 
     _setup_django()
 
+    # Lazy imports — CapsuleActivities and DeepResearchActivities import Django
+    # models at module level, so they must be imported after django.setup().
+    from apps.worker.activities.capsule_activities import CapsuleActivities
+    from apps.worker.workflows.capsule_workflow import CapsuleWorkflow
+    from apps.scraper.deep_research.workflow import DeepResearchWorkflowV2
+    from apps.scraper.deep_research.activities import DeepResearchActivities
+
     # 0. Start Metrics Server for Prometheus exposition.
     metrics = MetricsRegistry()
-    metrics.start_server(port=9090)
+    metrics.start_server(port=settings.worker_metrics_port)
 
     # 1. Connect to the Temporal Cluster.
     try:
@@ -120,12 +130,6 @@ async def run_worker():
     # non-scraper workflows can violate sandbox restrictions at import-time.
     # We support a dedicated "scraper" mode to run scraping workflows/tools reliably.
     if settings.worker_mode == "scraper":
-        from apps.scraper.activities import (
-            FetchActivities,
-            ParseActivities,
-            StorageActivities,
-        )
-
         _fetch = FetchActivities()
         _parse = ParseActivities()
         _store = StorageActivities()
@@ -157,10 +161,14 @@ async def run_worker():
             DeepResearchWorkflow,
             StreamingJobWorkflow,  # Flink Integration (FR-21)
             SandboxWorkflow,
+            CapsuleWorkflow,
+            DeepResearchWorkflowV2,
         ]
         activities = [
             IngestActivities().run_ingestion,
             IngestActivities().sync_airbyte,
+            IngestActivities().validate_contract_activity,
+            IngestActivities().record_lineage_activity,
             ProfileActivities().profile_data,
             AnalysisActivities().fetch_sample,
             AnalysisActivities().run_analyzers,
@@ -198,6 +206,25 @@ async def run_worker():
             StreamingActivities().list_running_jobs,
             StreamingActivities().submit_streaming_job,
             SandboxActivities().run_python_sandbox,
+            # Capsule activities
+            CapsuleActivities().load_capsule,
+            CapsuleActivities().eval_condition,
+            CapsuleActivities().substitute_params,
+            CapsuleActivities().execute_step,
+            CapsuleActivities().cross_validate,
+            CapsuleActivities().generate_artifacts,
+            CapsuleActivities().store_report,
+            # Deep Research V2 activities
+            DeepResearchActivities().generate_queries,
+            DeepResearchActivities().search_all_engines,
+            DeepResearchActivities().fetch_octopus,
+            DeepResearchActivities().extract_content,
+            DeepResearchActivities().score_sources,
+            DeepResearchActivities().deduplicate,
+            DeepResearchActivities().synthesize,
+            DeepResearchActivities().cross_validate,
+            DeepResearchActivities().generate_report,
+            DeepResearchActivities().store_artifact,
         ]
 
     task_queue = settings.temporal_task_queue

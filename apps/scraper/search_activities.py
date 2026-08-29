@@ -15,8 +15,9 @@ class SearchActivities:
     to execute bulk generic queries without API costs or tracking.
     """
 
-    def __init__(self, base_url: str = "http://voyant_searxng:8080"):
-        self.base_url = base_url
+    def __init__(self, base_url: str = ""):
+        from apps.core.config import get_settings
+        self.base_url = base_url or get_settings().searxng_url
 
     @activity.defn(name="execute_searxng_query")
     async def execute_searxng_query(

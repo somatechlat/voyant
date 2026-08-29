@@ -8,7 +8,10 @@ Extracted from mcp/tools.py (Rule 245 compliance — 723-line split).
 """
 
 import httpx
+import logging
 from django_mcp import mcp_app
+
+logger = logging.getLogger(__name__)
 
 from apps.analysis.lib.kpi_templates import (
     get_categories as kpi_categories,
@@ -170,10 +173,11 @@ def tool_jobs_cancel(job_id: str, tenant_id=None):
                 handle = client.get_workflow_handle(f"{prefix}-{job_id}")
                 run_async(handle.cancel)
                 break
-            except Exception:
+            except Exception as inner_exc:
+                logger.debug("Workflow prefix %s not found for %s: %s", prefix, job_id, inner_exc)
                 continue
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("Failed to cancel Temporal workflows for %s: %s", job_id, exc)
     job.status = "cancelled"
     job.save(update_fields=["status"])
     return {"job_id": str(job.job_id), "status": "cancelled"}
@@ -254,7 +258,15 @@ def tool_quotas_usage(tenant_id=None):
 @mcp_app.tool(name="voyant.quotas.limits")
 def tool_quotas_limits(tenant_id=None):
     """Get quota limits for a tenant."""
-    return _quota_usage_for_tenant(_tenant(tenant_id)).model_dump()
+    usage = _quota_usage_for_tenant(_tenant(tenant_id))
+    return {
+        "tenant_id": usage.tenant_id,
+        "tier": usage.tier,
+        "jobs_limit": usage.jobs_limit,
+        "artifacts_limit_gb": usage.artifacts_limit_gb,
+        "sources_limit": usage.sources_limit,
+        "concurrent_limit": usage.concurrent_limit,
+    }
 
 
 @mcp_app.tool(name="voyant.quotas.set_tier")

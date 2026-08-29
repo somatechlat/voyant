@@ -44,7 +44,6 @@ class ForecastMethod(str, Enum):
     SMA = "sma"  # Simple Moving Average
     EMA = "ema"  # Exponential Moving Average
     LINEAR = "linear"  # Linear regression trend
-    HOLT = "holt"  # Holt's linear trend (not implemented yet)
 
 
 @dataclass

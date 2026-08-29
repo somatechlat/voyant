@@ -13,6 +13,7 @@ Execution sequence:
     6. Returns real artifact hash from MinIO — never a hardcoded S3 stub.
 """
 
+import asyncio
 from datetime import timedelta
 from typing import Any, Dict
 
@@ -71,7 +72,7 @@ class BenchmarkBrandWorkflow:
             )
             for src in all_sources
         ]
-        await workflow.wait_for_all(ingest_futures)
+        await asyncio.gather(*ingest_futures)
 
         workflow.logger.info("Ingestion complete for all sources.")
 

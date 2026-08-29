@@ -26,6 +26,7 @@ class SpiceDBClient:
         settings = get_settings()
         self.endpoint = settings.spicedb_endpoint
         self.token = settings.spicedb_grpc_preshared_key
+        self._tls_enabled = settings.spicedb_tls
         if not self.token:
             logger.warning("VOYANT_SPICEDB_GRPC_PRESHARED_KEY is not set")
         self._channel = None
@@ -37,7 +38,14 @@ class SpiceDBClient:
         if not self._channel:
             import grpc
 
-            self._channel = grpc.insecure_channel(self.endpoint)
+            if self._tls_enabled:
+                from grpc import ssl_channel_credentials
+
+                self._channel = grpc.secure_channel(
+                    self.endpoint, ssl_channel_credentials()
+                )
+            else:
+                self._channel = grpc.insecure_channel(self.endpoint)
         return self._channel
 
     @property
