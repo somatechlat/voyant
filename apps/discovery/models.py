@@ -13,6 +13,12 @@ class ServiceDefinition(TenantModel, UUIDModel):
 
     Stores service metadata, endpoints, and OpenAPI specification details
     for the internal discovery catalog.
+
+    .. deprecated:: 3.0.0
+        This model is **not used** by the current API implementation.
+        The discovery API uses an in-memory `DiscoveryRepo` instead.
+        Scheduled for removal in v4.0.0.
+        See: docs/PHASE_A_STATUS.md (Orphaned Models section)
     """
 
     name = models.CharField(
@@ -70,7 +76,7 @@ class ServiceDefinition(TenantModel, UUIDModel):
         help_text="Timestamp when service was last seen or updated",
     )
 
-    class Meta:
+    class Meta:  # type: ignore[reportIncompatibleVariableOverride]
         db_table = "voyant_service_definition"
         verbose_name = "Service Definition"
         verbose_name_plural = "Service Definitions"
@@ -103,6 +109,6 @@ class Source(TenantModel, UUIDModel):
     sync_schedule = models.CharField(max_length=128, null=True, blank=True)
     datahub_urn = models.CharField(max_length=512, null=True, blank=True)
 
-    class Meta:
+    class Meta:  # type: ignore[reportIncompatibleVariableOverride]
         db_table = "voyant_source"
         ordering = ["-created_at"]

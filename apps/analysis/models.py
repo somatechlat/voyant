@@ -8,7 +8,15 @@ from apps.core.models import TenantModel, UUIDModel
 
 
 class AnalysisJob(TenantModel, UUIDModel):
-    """Analysis job execution tracking."""
+    """
+    Analysis job execution tracking.
+
+    .. deprecated:: 3.0.0
+        This model is **not used** by the current API implementation.
+        The analysis API uses `Job` from `apps.workflows.models` instead.
+        Scheduled for removal in v4.0.0.
+        See: docs/PHASE_A_STATUS.md (Orphaned Models section)
+    """
 
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
@@ -39,7 +47,7 @@ class AnalysisJob(TenantModel, UUIDModel):
     started_at = models.DateTimeField(null=True, blank=True)
     finished_at = models.DateTimeField(null=True, blank=True)
 
-    class Meta:
+    class Meta:  # type: ignore[reportIncompatibleVariableOverride]
         db_table = "voyant_analysis_job"
         verbose_name = "Analysis Job"
         verbose_name_plural = "Analysis Jobs"

@@ -65,7 +65,7 @@ class DataContract(TenantModel, UUIDModel):
         help_text="Additional metadata about the contract",
     )
 
-    class Meta:
+    class Meta:  # type: ignore[reportIncompatibleVariableOverride]
         db_table = "voyant_data_contract"
         verbose_name = "Data Contract"
         verbose_name_plural = "Data Contracts"
@@ -141,7 +141,7 @@ class LineageNode(TenantModel, UUIDModel):
         help_text="Additional metadata about the node",
     )
 
-    class Meta:
+    class Meta:  # type: ignore[reportIncompatibleVariableOverride]
         db_table = "voyant_lineage_node"
         verbose_name = "Lineage Node"
         verbose_name_plural = "Lineage Nodes"
@@ -225,7 +225,7 @@ class Policy(TenantModel, UUIDModel):
         help_text="Additional metadata about the policy",
     )
 
-    class Meta:
+    class Meta:  # type: ignore[reportIncompatibleVariableOverride]
         db_table = "voyant_policy"
         verbose_name = "Governance Policy"
         verbose_name_plural = "Governance Policies"
@@ -250,6 +250,12 @@ class QuotaTier(models.Model):
     Quota tier definition for tenant resource limits.
 
     Defines resource limits for different subscription tiers.
+
+    .. deprecated:: 3.0.0
+        This ORM model is **not used** by the current API implementation.
+        The governance API uses the `QuotaTier` enum from `apps.core.lib.tenant_quotas` instead.
+        Scheduled for removal in v4.0.0.
+        See: docs/PHASE_A_STATUS.md (Orphaned Models section)
     """
 
     tier_id = models.CharField(
@@ -290,7 +296,7 @@ class QuotaTier(models.Model):
         help_text="Timestamp when the tier was last updated",
     )
 
-    class Meta:
+    class Meta:  # type: ignore[reportIncompatibleVariableOverride]
         db_table = "voyant_quota_tier"
         verbose_name = "Quota Tier"
         verbose_name_plural = "Quota Tiers"
@@ -334,7 +340,7 @@ class TenantQuota(TenantModel):
         help_text="Last time daily counters were reset",
     )
 
-    class Meta:
+    class Meta:  # type: ignore[reportIncompatibleVariableOverride]
         db_table = "voyant_tenant_quota"
         verbose_name = "Tenant Quota"
         verbose_name_plural = "Tenant Quotas"
