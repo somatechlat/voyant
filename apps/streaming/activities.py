@@ -33,18 +33,7 @@ class FlinkJobResult:
 
 
 class StreamingActivities:
-    """
-    Temporal activities for Apache Flink streaming operations.
-
-    ISO Documentation (ISO Documenter):
-        These activities implement FR-21 (Streaming Analytics) from the SRS.
-        They enable the Voyant platform to submit, monitor, and manage
-        continuous stream processing jobs.
-
-    Performance Note (Performance Engineer):
-        The FlinkClient is instantiated per-activity call to avoid connection
-        staleness. For high-throughput scenarios, consider caching with TTL.
-    """
+    """Temporal activities for Apache Flink streaming operations."""
 
     def __init__(self):
         """Load settings."""

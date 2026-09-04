@@ -1,15 +1,6 @@
 """
 In-memory event schema registry with semver support and JSON Schema generation.
 
-Personas Applied:
-- PhD Developer: Enforces strong contracts and correct schema versioning semantics.
-- Analyst: Enables schema evolution tracking and reliable downstream consumption.
-- QA: Provides a foundation for comprehensive validation test coverage.
-- ISO Documenter: Ensures all event schemas are self-describing.
-- Security: Mandates that event schemas be designed to exclude sensitive data/PII.
-- Performance: Uses efficient in-memory validation with no I/O on the hot path.
-- UX: Produces clear, actionable errors upon validation failure.
-
 Usage:
     from apps.core.lib.event_schema import (
         EventSchema, FieldSpec, FieldType, register_schema, validate_event

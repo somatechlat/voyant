@@ -138,8 +138,6 @@ class ArtifactRef:
 class ArtifactStore:
     """
     Content-addressable artifact store.
-
-    PhD Developer: Clean storage abstraction with deduplication
     """
 
     def __init__(self, config: StoreConfig | None = None):

@@ -58,8 +58,6 @@ class QuotaLimit:
 class QuotaPolicy:
     """
     Quota policy for a tenant tier.
-
-    ISO Documenter: Clear limit definitions per tier
     """
 
     tier: QuotaTier

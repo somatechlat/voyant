@@ -5,8 +5,6 @@ Declarative validation for tabular data.
 Reference: docs/CANONICAL_ARCHITECTURE.md - Data Governance
 
 Personas:
-- PhD Developer: Protocol-based rule definition
-- ISO Documenter: Traceable validation failure reasons
 - QA Engineer: Fail-fast validation
 """
 

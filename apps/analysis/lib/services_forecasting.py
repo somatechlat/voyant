@@ -5,7 +5,6 @@ Implements regression-based forecasting for KPI trends.
 Registered as an AnalyzerPlugin in the Voyant platform.
 
 Personas:
-- PhD Developer: Regression with seasonal features (dummies/fourier)
 - Analyst: Forecast horizon and confidence intervals
 - Performance: Efficient pandas resampling
 """
