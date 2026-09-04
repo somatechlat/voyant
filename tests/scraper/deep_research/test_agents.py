@@ -306,7 +306,9 @@ class TestSynthesizer:
 
     def test_sentences_splitter(self):
         synth = Synthesizer()
-        sents = synth._sentences("First sentence. Second sentence. Third sentence.")
+        # Sentences must be > 20 chars to pass the filter
+        text = "Neural networks achieve state of the art results. Deep learning models outperform traditional methods. Transfer learning reduces training time significantly."
+        sents = synth._sentences(text)
         assert len(sents) >= 2
 
     def test_idf_computation(self):

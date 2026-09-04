@@ -184,6 +184,14 @@ class TestValidateUrlSsrf:
 
 
 class TestValidateUrl:
+    @pytest.fixture(autouse=True)
+    def _ensure_local_hosts_blocked(self):
+        settings = get_settings()
+        original = settings.scraper_allow_local_hosts
+        settings.scraper_allow_local_hosts = False
+        yield
+        settings.scraper_allow_local_hosts = original
+
     def test_empty_raises_url_validation_error(self):
         with pytest.raises(URLValidationError, match="empty"):
             validate_url("")
@@ -214,6 +222,14 @@ class TestValidateUrl:
 
 
 class TestValidateUrls:
+    @pytest.fixture(autouse=True)
+    def _ensure_local_hosts_blocked(self):
+        settings = get_settings()
+        original = settings.scraper_allow_local_hosts
+        settings.scraper_allow_local_hosts = False
+        yield
+        settings.scraper_allow_local_hosts = original
+
     def test_empty_list_raises(self):
         with pytest.raises(URLValidationError, match="empty"):
             validate_urls([])

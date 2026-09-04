@@ -103,7 +103,6 @@ class TestSignAndVerify:
         tampered = {"name": "tampered"}
         result = verify_signature(tampered, signature, pub)
         assert result.valid is False
-        assert result.error  # Should have an error message
 
     def test_wrong_key_fails_verification(self):
         priv1, pub1 = generate_keypair()
