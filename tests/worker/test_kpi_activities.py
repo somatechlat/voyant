@@ -57,8 +57,8 @@ class TestRunKPIs:
     def test_multiple_kpis_first_missing_sql_halts(self, activities):
         """First KPI with missing SQL halts execution before second KPI."""
         kpis = [
-            {"name": "good_kpi", "sql": "SELECT 1"},
             {"name": "bad_kpi", "sql": ""},
+            {"name": "good_kpi", "sql": "SELECT 1"},
         ]
         with pytest.raises(ApplicationError, match="bad_kpi"):
             activities.run_kpis({"kpis": kpis})
