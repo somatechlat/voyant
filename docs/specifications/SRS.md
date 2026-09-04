@@ -318,23 +318,23 @@ Kafka topics (default):
 | FR-8 | `apps/core/api.py`, `apps/discovery/lib/spec_parser.py` |
 | FR-9 | `apps/core/api.py` |
 | FR-10 | `apps/core/api.py`, `apps/core/lib/vector_store.py`, `apps/core/lib/embeddings.py` |
-| FR-11 | `apps/mcp/tools.py`, `voyant_project/asgi.py` |
+| FR-11 | `apps/mcp/tools_core.py`, `apps/mcp/tools_catalog.py`, `apps/mcp/tools_scrape.py`, `apps/mcp/server.py`, `voyant_project/asgi.py` |
 | FR-12 | `apps/worker/workflows/ingest_workflow.py`, `apps/worker/workflows/profile_workflow.py`, `apps/worker/workflows/operational_workflows.py` |
 | FR-13 | `apps/worker/activities/ingest_activities.py`, `apps/worker/activities/profile_activities.py`, `apps/worker/activities/analysis_activities.py` |
 | FR-14 | `apps/core/lib/plugin_registry.py` |
 | FR-15 | `apps/ingestion/lib/airbyte_client.py`, `apps/ingestion/lib/direct_utils.py`, `apps/ingestion/lib/unstructured_utils.py` |
-| FR-16 | `apps/core/security/auth.py`, `apps/core/middleware.py` |
+| FR-16 | `apps/core/security/auth.py`, `apps/core/security/policy.py`, `apps/core/lib/spicedb_rbac.py`, `apps/core/middleware.py` |
 | FR-17 | `apps/core/security/secrets.py`, `apps/core/lib/secrets.py` |
 | FR-18 | `apps/core/lib/events.py`, `apps/core/lib/event_schema.py` |
-| FR-20 | `apps/core/lib/iceberg.py` (planned), `config/iceberg/*` (planned) |
-| FR-21 | `apps/streaming/*` (planned), `config/flink/*` (planned) |
-| FR-22 | `apps/core/security/policy.py` (planned), Ranger integration (planned) |
-| FR-23 | `apps/governance/lib/atlas.py` (planned) |
-| FR-24 | `apps/observability/skywalking.py` (planned) |
-| FR-25 | `apps/ingestion/lib/nifi.py` (planned) |
-| FR-26 | `apps/bi/superset.py` (planned) |
-| FR-27 | `apps/olap/druid.py` (planned), `apps/olap/pinot.py` (planned) |
-| FR-28 | `apps/ingestion/lib/tika.py` (planned) |
+| FR-20 | `apps/core/lib/iceberg.py` — REST catalog client, table/snapshot management |
+| FR-21 | `apps/streaming/` — Flink REST API bridge, job submission, monitoring |
+| FR-22 | `apps/governance/lib/ranger_client.py` — policy evaluation, CRUD, health check |
+| FR-23 | `apps/governance/lib/atlas_client.py` — entity CRUD, search, lineage, classification |
+| FR-24 | `apps/core/lib/skywalking.py` — OpenTelemetry OTLP exporter |
+| FR-25 | `apps/ingestion/lib/nifi_client.py` — process group/processor management |
+| FR-26 | `apps/core/lib/superset_client.py` — dataset/chart/dashboard CRUD |
+| FR-27 | `apps/core/lib/druid_client.py` — dual Druid+Pinot SQL queries |
+| FR-28 | `apps/scraper/parsing/tika_client.py` — universal document extraction |
 
 ## 13. Error Code Traceability
 Error codes follow the `VYNT-XXXX` format and are defined in `apps/core/lib/errors.py` with additional domain-specific errors in analysis and ingestion modules.

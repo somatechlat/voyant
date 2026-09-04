@@ -1,5 +1,7 @@
 # Voyant Workflow & Activity Documentation
 
+**Last Updated:** 2026-09-04
+
 This document provides a comprehensive reference for all Temporal workflows and activities in the Voyant platform.
 
 ---
