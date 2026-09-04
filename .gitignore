@@ -118,3 +118,7 @@ docker-compose.override.yml
 # Local override configs
 config_overrides.yaml
 .local/
+
+# Runtime artifacts
+voyant.duckdb
+voyant.duckdb.wal
