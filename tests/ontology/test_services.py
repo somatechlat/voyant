@@ -4,10 +4,27 @@ Integration tests for apps.ontology.services — Service layer.
 Tests CRUD, batch, upsert, soft-delete, versioning, traversal, and
 referential integrity for Object Types, Objects, Link Types, and Links.
 Uses real DB via @pytest.mark.django_db.
+
+These tests require a running PostgreSQL instance. Mark as integration:
+    pytest tests/ontology/test_services.py -m integration
 """
 
 import pytest
+from django.db import connection
 from django.utils import timezone
+
+# Skip entire module if DB is unreachable
+_db_available = True
+try:
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT 1")
+except Exception:
+    _db_available = False
+
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.skipif(not _db_available, reason="PostgreSQL not available"),
+]
 
 from apps.ontology.models import (
     Cardinality,
