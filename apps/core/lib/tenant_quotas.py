@@ -10,7 +10,7 @@ import logging
 import threading
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from typing import Any
 
@@ -377,7 +377,7 @@ class QuotaManager:
         summaries = []
 
         resources = [resource] if resource else list(ResourceType)
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
 
         for res in resources:
             limit_config = policy.get_limit(res)

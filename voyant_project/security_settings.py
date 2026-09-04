@@ -103,7 +103,8 @@ class SecuritySettings(BaseSettings):
     # --------------------------------------------------------------------------
     cors_enabled: bool = Field(default=True, description="Enable CORS headers.")
     cors_allow_origins: List[str] = Field(
-        default=["*"], description="List of allowed CORS origins."
+        default=["http://localhost:3000", "http://localhost:8000", "http://127.0.0.1:8000"],
+        description="List of allowed CORS origins. Set explicitly for production.",
     )
     cors_allow_methods: List[str] = Field(
         default=["GET", "POST", "PUT", "DELETE", "OPTIONS"],

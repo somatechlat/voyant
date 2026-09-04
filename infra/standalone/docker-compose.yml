@@ -154,9 +154,19 @@ services:
       VOYANT_SECRET_KEY_FILE: /run/secrets/secret_key
       DATABASE_URL_FILE: /run/secrets/database_url
       REDIS_URL_FILE: /run/secrets/redis_url
+      MINIO_ACCESS_KEY_FILE: /run/secrets/minio_access_key
+      MINIO_SECRET_KEY_FILE: /run/secrets/minio_secret_key
+      KEYCLOAK_CLIENT_SECRET_FILE: /run/secrets/keycloak_client_secret
+      VOYANT_MCP_API_TOKEN_FILE: /run/secrets/mcp_api_token
+      VOYANT_SPICEDB_GRPC_PRESHARED_KEY_FILE: /run/secrets/spicedb_grpc_preshared_key
       KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
       TEMPORAL_HOST: ${TEMPORAL_HOST}
       TEMPORAL_TASK_QUEUE: ${TEMPORAL_TASK_QUEUE}
+      KEYCLOAK_URL: ${KEYCLOAK_URL}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+      DATAHUB_GMS_URL: ${DATAHUB_GMS_URL}
       VOYANT_TRINO_HOST: voyant_trino
       VOYANT_TRINO_PORT: 8080
       VOYANT_TRINO_USER: voyant
@@ -165,7 +175,12 @@ services:
       - secret_key
       - database_url
       - redis_url
+      - minio_access_key
+      - minio_secret_key
+      - keycloak_client_secret
       - vault_token
+      - spicedb_grpc_preshared_key
+      - mcp_api_token
     depends_on:
       voyant_redis:
         condition: service_healthy

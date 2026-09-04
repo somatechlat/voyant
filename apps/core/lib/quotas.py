@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -101,7 +101,7 @@ class TenantUsage:
     tenant_id: str
     tier: str = DEFAULT_TIER
     jobs_today: int = 0
-    jobs_today_reset: datetime = field(default_factory=datetime.utcnow)
+    jobs_today_reset: datetime = field(default_factory=lambda: datetime.now(UTC))
     artifacts_bytes: int = 0
     current_sources: int = 0
     concurrent_jobs: int = 0
@@ -123,7 +123,7 @@ def _get_usage(tenant_id: str) -> TenantUsage:
 
 def _reset_daily_if_needed(usage: TenantUsage) -> None:
     """Reset daily counters if day has changed."""
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
     if now.date() > usage.jobs_today_reset.date():
         usage.jobs_today = 0
         usage.jobs_today_reset = now

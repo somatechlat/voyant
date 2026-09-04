@@ -19,12 +19,12 @@ class TestFetchActivitiesEngineRouting:
 
     def test_scrapy_engine_raises_application_error(self):
         """Scrapy engine is not yet integrated and should raise."""
+        import asyncio
         from temporalio.exceptions import ApplicationError
 
         activity = FetchActivities()
         with pytest.raises(ApplicationError, match="Scrapy engine is not yet integrated"):
-            import asyncio
-            asyncio.get_event_loop().run_until_complete(
+            asyncio.run(
                 activity._fetch_scrapy("https://example.com", 30)
             )
 

@@ -7,13 +7,32 @@ import logging
 import uuid
 from typing import Any
 
-# Assuming Docker configuration applies
-import docker
-
 logger = logging.getLogger(__name__)
+
+# Security: scripts containing these substrings are blocked.
+_NETWORK_IMPORT_PATTERNS = (
+    "import socket",
+    "from socket",
+    "import urllib",
+    "from urllib",
+    "import requests",
+    "from requests",
+)
 
 
 class PythonSandboxNode:
+    @classmethod
+    def validate_script(cls, script_content: str, execution_id: str = "") -> None:
+        """Validate that a script does not attempt network access.
+
+        Raises:
+            ValueError: If a network import pattern is detected.
+        """
+        for pattern in _NETWORK_IMPORT_PATTERNS:
+            if pattern in script_content:
+                logger.error(f"[SANDBOX {execution_id}] Network import detected. Execution halted.")
+                raise ValueError("Security Violation: Network imports strictly forbidden in sandbox.")
+
     @classmethod
     async def execute_script(
         cls, script_content: str, parameters: dict[str, Any], tenant_id: str
@@ -21,21 +40,14 @@ class PythonSandboxNode:
         logger.info(f"Dispatching real sandboxed Python execution for tenant {tenant_id}")
         execution_id = str(uuid.uuid4())
 
-        # Security: Enforce that the script does not contain clear network imports
-        if (
-            "import socket" in script_content
-            or "from socket" in script_content
-            or "import urllib" in script_content
-            or "from urllib" in script_content
-            or "import requests" in script_content
-            or "from requests" in script_content
-        ):
-            logger.error(f"[SANDBOX {execution_id}] Network import detected. Execution halted.")
-            raise ValueError("Security Violation: Network imports strictly forbidden in sandbox.")
+        # Security: validate script before any Docker interaction
+        cls.validate_script(script_content, execution_id)
 
         logger.info(f"Sandbox {execution_id} evaluating parameters: {list(parameters.keys())}")
 
         # --- Physical Docker Execution ---
+        import docker
+
         client = docker.from_env()
 
         # Map parameters to environment securely

@@ -6,7 +6,7 @@ All models use Pydantic v2 ConfigDict for strict validation and serialization.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -43,7 +43,7 @@ class Citation(BaseModel):
     url: str
     title: str = ""
     domain: str = ""
-    accessed_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
+    accessed_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat() + "Z")
     credibility_score: float = 0.0
     freshness_score: float = 0.0
 
@@ -57,7 +57,7 @@ class EvidenceChunk(BaseModel):
     source_url: str
     source_title: str = ""
     relevance_score: float = 0.0
-    extracted_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
+    extracted_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat() + "Z")
 
     model_config = ConfigDict(extra="forbid")
 
@@ -82,7 +82,7 @@ class ResearchReport(BaseModel):
     findings: list[Finding] = Field(default_factory=list)
     citations: list[Citation] = Field(default_factory=list)
     confidence_score: float = 0.0
-    generated_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
+    generated_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat() + "Z")
     query: str = ""
     breadth: int = 0
     depth: int = 0
