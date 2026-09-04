@@ -8,6 +8,9 @@ Real pandas DataFrames and validation logic. No mocks.
 import pandas as pd
 import pytest
 
+# Skip entire module if plotly is not installed
+pytest.importorskip("plotly", reason="plotly not installed")
+
 from apps.core.lib.plotly_engine import PlotlyRenderer
 
 

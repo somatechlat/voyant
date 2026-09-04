@@ -10,6 +10,9 @@ import tempfile
 
 import pytest
 
+# Skip entire module if weasyprint is not installed
+pytest.importorskip("weasyprint", reason="weasyprint not installed")
+
 from apps.core.lib.pdf_engine import PDFAssembler
 
 

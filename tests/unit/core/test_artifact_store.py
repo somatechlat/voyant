@@ -150,7 +150,8 @@ class TestArtifactRef:
         }
         ref = ArtifactRef.from_dict(d)
         assert ref.compression == CompressionType.NONE
-        assert ref.created_at == ""
+        # created_at is auto-set by __post_init__ when empty
+        assert ref.created_at != ""
         assert ref.metadata == {}
 
 
