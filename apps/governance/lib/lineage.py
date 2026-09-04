@@ -104,6 +104,13 @@ class LineageGraph:
         )  # node -> downstream nodes
 
     def add_node(
+        self,
+        node_id: str,
+        node_type: NodeType,
+        name: str,
+        tenant_id: str,
+        properties: dict[str, Any] | None = None,
+    ) -> LineageNode:
         if node_id in self._nodes:
             # Update existing node
             node = self._nodes[node_id]
