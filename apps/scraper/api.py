@@ -3,10 +3,10 @@
 import logging
 from typing import Any
 
-from asgiref.sync import async_to_sync
 from django.shortcuts import get_object_or_404
 from ninja import Router, Schema
 
+from apps.core.api_utils import run_async
 from apps.core.config import get_settings
 from apps.core.security.auth import require_permission
 
@@ -140,8 +140,7 @@ def _get_security():
     return validate_url, validate_urls, SSRFError
 
 
-def _run_async(func, *args, **kwargs):
-    return async_to_sync(func)(*args, **kwargs)
+
 
 
 def _start_scrape_workflow(
@@ -156,8 +155,8 @@ def _start_scrape_workflow(
 
     from .workflow import ScrapeWorkflow
 
-    client = _run_async(get_temporal_client)
-    _run_async(
+    client = run_async(get_temporal_client)
+    run_async(
         client.start_workflow,
         ScrapeWorkflow.run,
         {
@@ -277,7 +276,7 @@ def fetch_page(request, payload: ScrapeFetchSchema):
     from .activities import ScrapeActivities
 
     activity_runner = ScrapeActivities()
-    return _run_async(
+    return run_async(
         activity_runner.fetch_page,
         {
             "url": payload.url,
@@ -301,7 +300,7 @@ def deep_archive(request, payload: ScrapeDeepArchiveSchema):
     from .activities import ScrapeActivities
 
     activity_runner = ScrapeActivities()
-    return _run_async(
+    return run_async(
         activity_runner.deep_archive,
         {
             "url": payload.url,
@@ -319,7 +318,7 @@ def process_ocr(request, payload: ScrapeOcrSchema):
     from .activities import ScrapeActivities
 
     activity_runner = ScrapeActivities()
-    return _run_async(
+    return run_async(
         activity_runner.process_ocr,
         {"images": [payload.image_url], "language": payload.language},
     )
@@ -330,7 +329,7 @@ def parse_pdf(request, payload: ScrapePdfSchema):
     from .activities import ScrapeActivities
 
     activity_runner = ScrapeActivities()
-    return _run_async(
+    return run_async(
         activity_runner.parse_pdf,
         {"pdf_url": payload.pdf_url, "extract_tables": payload.extract_tables},
     )
@@ -344,7 +343,7 @@ def transcribe_media(request, payload: ScrapeTranscribeSchema):
         return 503, {"error_code": "TRANSCRIPTION_DISABLED"}
 
     activity_runner = ScrapeActivities()
-    return _run_async(
+    return run_async(
         activity_runner.transcribe_media,
         {"media_urls": [payload.media_url], "language": payload.language},
     )
@@ -380,9 +379,9 @@ def cancel_scrape(request, job_id: str):
     try:
         from apps.core.lib.temporal_client import get_temporal_client
 
-        client = _run_async(get_temporal_client)
+        client = run_async(get_temporal_client)
         handle = client.get_workflow_handle(f"scrape-{job_id}")
-        _run_async(handle.cancel)
+        run_async(handle.cancel)
     except Exception as exc:
         logger.warning("Failed to cancel Temporal workflow for scrape-%s: %s", job_id, exc)
 
