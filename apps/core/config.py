@@ -1,14 +1,4 @@
-"""
-Voyant Configuration Management.
-
-This module provides a single, typed, and validated source of truth for all
-application configuration. It uses `pydantic-settings` to load configuration
-from environment variables and/or a .env file, ensuring that all settings
-are present and correctly typed before the application starts.
-
-The `get_settings()` function is the cached entrypoint for accessing configuration
-throughout the application.
-"""
+"""Typed application configuration via pydantic-settings. Singleton access via get_settings()."""
 
 from __future__ import annotations
 
