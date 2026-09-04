@@ -6,7 +6,10 @@ Tests somaAgent01-compatible bundle serialization.
 
 from __future__ import annotations
 
-from apps.capsules.services.capsule_export import _compute_checksum, verify_export_checksum
+from apps.capsules.services.capsule_export import (
+    _compute_checksum,
+    verify_export_checksum,
+)
 
 
 class TestExportChecksum:

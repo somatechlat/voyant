@@ -166,7 +166,9 @@ class KeycloakAuth:
         """
         try:
             from jose import JWTError, jwt  # type: ignore[import-not-found]
-            from jose.exceptions import ExpiredSignatureError  # type: ignore[import-not-found]
+            from jose.exceptions import (
+                ExpiredSignatureError,  # type: ignore[import-not-found]
+            )
 
             # Get unverified header to find the Key ID (kid) for JWKS lookup.
             unverified = jwt.get_unverified_header(token)

@@ -71,7 +71,9 @@ async def execute(request: OctopusRequest) -> OctopusResult:
 
         # Unstructured extraction for additional structure
         try:
-            from unstructured.partition.auto import partition  # type: ignore[reportMissingImports]
+            from unstructured.partition.auto import (
+                partition,  # type: ignore[reportMissingImports]
+            )
 
             elements = partition(filename=file_path)
             unstructured_text = "\n\n".join(str(el) for el in elements)
