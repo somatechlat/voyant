@@ -7,8 +7,8 @@ a universal metadata platform. It enables Voyant to:
 -   Register and update dataset metadata, including schemas and properties.
 -   Perform searches against the DataHub metadata catalog.
 
-This integration is crucial for maintaining a comprehensive understanding of
-data assets, their origins, transformations, and usage across the enterprise.
+for maintaining visibility into
+data assets, their origins, transformations, and usage.
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import httpx
 
@@ -77,7 +77,7 @@ class DataHubClient:
         Initializes the DataHubClient with the GMS URL from application settings.
         """
         self.gms_url = settings.datahub_gms_url
-        self._client: Optional[httpx.AsyncClient] = None
+        self._client: httpx.AsyncClient | None = None
 
     async def _get_client(self) -> httpx.AsyncClient:
         """
@@ -91,7 +91,7 @@ class DataHubClient:
         if self._client is None:
             self._client = httpx.AsyncClient(
                 base_url=self.gms_url,
-                timeout=30.0,  # Set a default timeout for API requests.
+                timeout=30.0,
             )
         return self._client
 
@@ -111,7 +111,7 @@ class DataHubClient:
 
     async def emit_lineage(
         self,
-        upstream_urns: List[str],
+        upstream_urns: list[str],
         downstream_urn: str,
     ) -> bool:
         """
@@ -149,7 +149,7 @@ class DataHubClient:
                                 }
                             ],
                         },
-                        "changeType": "UPSERT",  # Create or update the aspect.
+                        "changeType": "UPSERT",
                     }
                 }
 
@@ -174,9 +174,9 @@ class DataHubClient:
         self,
         urn: str,
         name: str,
-        description: Optional[str] = None,
-        schema_fields: Optional[List[Dict[str, Any]]] = None,
-        tags: Optional[List[str]] = None,
+        description: str | None = None,
+        schema_fields: list[dict[str, Any]] | None = None,
+        tags: list[str] | None = None,
     ) -> bool:
         """
         Registers or updates a dataset's metadata in DataHub.
@@ -281,7 +281,7 @@ class DataHubClient:
         query: str,
         entity_type: str = "DATASET",
         limit: int = 10,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Searches for entities within the DataHub metadata catalog.
 
@@ -354,7 +354,7 @@ class DataHubClient:
 
 
 # Singleton client instance for application-wide use.
-_client: Optional[DataHubClient] = None
+_client: DataHubClient | None = None
 
 
 def get_datahub_client() -> DataHubClient:

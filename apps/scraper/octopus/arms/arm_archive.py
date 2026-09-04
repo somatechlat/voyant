@@ -9,9 +9,9 @@ from __future__ import annotations
 
 import json as _json
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 from urllib.parse import urljoin
 
 import httpx
@@ -56,7 +56,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
     Returns:
         An OctopusResult with the archive manifest and file list.
     """
-    start = datetime.now(timezone.utc)
+    start = datetime.now(UTC)
     try:
         validate_url(request.url)
     except Exception as exc:
@@ -67,7 +67,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
             job_id=request.job_id,
             success=False,
             duration_ms=int(
-                (datetime.now(timezone.utc) - start).total_seconds() * 1000
+                (datetime.now(UTC) - start).total_seconds() * 1000
             ),
             fetched_at=start.isoformat(),
             error_code="SSRF_BLOCKED",
@@ -79,8 +79,8 @@ async def execute(request: OctopusRequest) -> OctopusResult:
     files_dir = out_dir / "files"
     files_dir.mkdir(exist_ok=True)
 
-    interaction_states: Dict[str, str] = {}
-    files_downloaded: List[Dict[str, Any]] = []
+    interaction_states: dict[str, str] = {}
+    files_downloaded: list[dict[str, Any]] = []
     html = ""
     status = 0
 
@@ -204,7 +204,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
             job_id=request.job_id,
             success=False,
             duration_ms=int(
-                (datetime.now(timezone.utc) - start).total_seconds() * 1000
+                (datetime.now(UTC) - start).total_seconds() * 1000
             ),
             fetched_at=start.isoformat(),
             error_code="ARCHIVE_ERROR",
@@ -212,7 +212,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
         )
 
     duration_ms = int(
-        (datetime.now(timezone.utc) - start).total_seconds() * 1000
+        (datetime.now(UTC) - start).total_seconds() * 1000
     )
     return OctopusResult(
         arm=request.arm.value,

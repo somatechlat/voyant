@@ -38,13 +38,13 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum
-from typing import Any, Dict, List, Optional
+from enum import StrEnum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
-class ErrorCategory(str, Enum):
+class ErrorCategory(StrEnum):
     """Error categories for classification."""
 
     VALIDATION = "validation"  # Input validation failures
@@ -57,7 +57,7 @@ class ErrorCategory(str, Enum):
     DATA = "data"  # Data quality/format issues
 
 
-class ErrorSeverity(str, Enum):
+class ErrorSeverity(StrEnum):
     """Error severity levels."""
 
     INFO = "info"  # Informational (e.g., deprecated)
@@ -79,7 +79,7 @@ class ErrorDefinition:
     resolution: str = ""  # How to fix
     retry_allowed: bool = False  # Can client retry?
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "code": self.code,
             "message": self.message,
@@ -96,7 +96,7 @@ class ErrorDefinition:
 # Error Catalog (Canonical Error Definitions)
 # =============================================================================
 
-ERROR_CATALOG: Dict[str, ErrorDefinition] = {
+ERROR_CATALOG: dict[str, ErrorDefinition] = {
     # =========================================================================
     # 1000-1999: Validation Errors
     # =========================================================================
@@ -420,8 +420,8 @@ class VoyantError(Exception):
     def __init__(
         self,
         code: str,
-        message: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None,
+        message: str | None = None,
+        details: dict[str, Any] | None = None,
         **format_args,
     ):
         self.code = code
@@ -448,7 +448,7 @@ class VoyantError(Exception):
 
         super().__init__(self.message)
 
-    def to_response(self, request_id: Optional[str] = None) -> Dict[str, Any]:
+    def to_response(self, request_id: str | None = None) -> dict[str, Any]:
         """Convert to API error response."""
         response = {
             "error": {
@@ -586,28 +586,28 @@ class IngestionError(VoyantError):
 
 def error_response(
     code: str,
-    message: Optional[str] = None,
-    details: Optional[Dict[str, Any]] = None,
-    request_id: Optional[str] = None,
+    message: str | None = None,
+    details: dict[str, Any] | None = None,
+    request_id: str | None = None,
     **format_args,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Create a standard error response without raising."""
     error = VoyantError(code, message, details, **format_args)
     return error.to_response(request_id)
 
 
-def get_error_catalog() -> Dict[str, Dict[str, Any]]:
+def get_error_catalog() -> dict[str, dict[str, Any]]:
     """Get the full error catalog as JSON-serializable dict."""
     return {code: defn.to_dict() for code, defn in ERROR_CATALOG.items()}
 
 
-def get_errors_by_category(category: ErrorCategory) -> List[Dict[str, Any]]:
+def get_errors_by_category(category: ErrorCategory) -> list[dict[str, Any]]:
     """Get all errors in a category."""
     return [
         defn.to_dict() for defn in ERROR_CATALOG.values() if defn.category == category
     ]
 
 
-def list_error_codes() -> List[str]:
+def list_error_codes() -> list[str]:
     """List all error codes."""
     return sorted(ERROR_CATALOG.keys())

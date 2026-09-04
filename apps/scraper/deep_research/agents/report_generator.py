@@ -7,8 +7,7 @@ and confidence metadata. No LLM — pure deterministic templating.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import List
+from datetime import UTC, datetime
 
 from apps.scraper.deep_research.schemas import Citation, Finding, ResearchReport
 
@@ -22,8 +21,8 @@ class ReportGenerator:
     def generate(
         self,
         query: str,
-        findings: List[Finding],
-        citations: List[Citation],
+        findings: list[Finding],
+        citations: list[Citation],
         urls_processed: int,
         sources_deduplicated: int,
         depth: int = 1,
@@ -44,7 +43,7 @@ class ReportGenerator:
         Returns:
             A populated ResearchReport with Markdown content.
         """
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
 
         # Aggregate confidence.
         if findings:
@@ -93,7 +92,7 @@ class ReportGenerator:
     @staticmethod
     def _build_executive_summary(
         query: str,
-        findings: List[Finding],
+        findings: list[Finding],
         confidence: float,
         urls_processed: int,
         deduplicated: int,
@@ -113,8 +112,8 @@ class ReportGenerator:
         self,
         query: str,
         summary: str,
-        findings: List[Finding],
-        citations: List[Citation],
+        findings: list[Finding],
+        citations: list[Citation],
         confidence: float,
         urls_processed: int,
         deduplicated: int,
@@ -123,7 +122,7 @@ class ReportGenerator:
         generated_at: str,
     ) -> str:
         """Assemble the full Markdown document."""
-        lines: List[str] = [
+        lines: list[str] = [
             f"# Deep Research Report: {query}",
             "",
             f"*Generated: {generated_at}*  ",

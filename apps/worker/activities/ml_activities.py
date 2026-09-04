@@ -8,9 +8,10 @@ and regression, and time series forecasting.
 """
 
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from temporalio import activity
+from temporalio.exceptions import ApplicationError
 
 from apps.analysis.lib.forecast_primitives import ForecastPrimitives
 from apps.analysis.lib.ml_primitives import MLPrimitives
@@ -35,7 +36,7 @@ class MLActivities:
         self.forecast = ForecastPrimitives()
 
     @activity.defn(name="cluster_data")
-    def cluster_data(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    def cluster_data(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Performs data clustering using algorithms like K-Means.
 
@@ -49,14 +50,14 @@ class MLActivities:
             and potentially quality metrics like silhouette score.
 
         Raises:
-            activity.ApplicationError: If no data is provided or if clustering fails.
+            ApplicationError: If no data is provided or if clustering fails.
         """
         try:
             data = params.get("data", [])
             n_clusters = params.get("clusters", 3)
 
             if not data:
-                raise activity.ApplicationError(
+                raise ApplicationError(
                     "No data provided for clustering activity.", non_retryable=True
                 )
 
@@ -67,20 +68,20 @@ class MLActivities:
 
         except AnalysisError as e:
             activity.logger.error(f"Clustering failed: {e}")
-            raise activity.ApplicationError(
+            raise ApplicationError(
                 f"Data clustering failed: {e}", non_retryable=True
             ) from e
         except Exception as e:
             activity.logger.error(
                 f"An unexpected error occurred during clustering: {e}"
             )
-            raise activity.ApplicationError(
+            raise ApplicationError(
                 f"Data clustering failed due to unexpected error: {e}",
                 non_retryable=False,
             ) from e
 
     @activity.defn(name="train_classifier_model")
-    def train_classifier_model(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    def train_classifier_model(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Trains a classification model (e.g., RandomForestClassifier).
 
@@ -94,7 +95,7 @@ class MLActivities:
             A dictionary containing the trained model's performance metrics and metadata.
 
         Raises:
-            activity.ApplicationError: If no data is provided or model training fails.
+            ApplicationError: If no data is provided or model training fails.
         """
         try:
             data = params.get("data", [])
@@ -102,7 +103,7 @@ class MLActivities:
             features = params.get("feature_cols", [])
 
             if not data:
-                raise activity.ApplicationError(
+                raise ApplicationError(
                     "No data provided for classification model training.",
                     non_retryable=True,
                 )
@@ -115,20 +116,20 @@ class MLActivities:
 
         except AnalysisError as e:
             activity.logger.error(f"Classification model training failed: {e}")
-            raise activity.ApplicationError(
+            raise ApplicationError(
                 f"Classification model training failed: {e}", non_retryable=True
             ) from e
         except Exception as e:
             activity.logger.error(
                 f"An unexpected error occurred during classification model training: {e}"
             )
-            raise activity.ApplicationError(
+            raise ApplicationError(
                 f"Classification model training failed due to unexpected error: {e}",
                 non_retryable=False,
             ) from e
 
     @activity.defn(name="forecast_time_series")
-    def forecast_time_series(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    def forecast_time_series(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Generates a time series forecast using algorithms like Prophet or EMA.
 
@@ -145,7 +146,7 @@ class MLActivities:
             and confidence intervals.
 
         Raises:
-            activity.ApplicationError: If dates/values are missing or forecasting fails.
+            ApplicationError: If dates/values are missing or forecasting fails.
         """
         try:
             dates = params.get("dates", [])
@@ -153,7 +154,7 @@ class MLActivities:
             periods = params.get("periods", 30)
 
             if not dates or not values:
-                raise activity.ApplicationError(
+                raise ApplicationError(
                     "Dates and values are required for time series forecasting.",
                     non_retryable=True,
                 )
@@ -166,20 +167,20 @@ class MLActivities:
 
         except AnalysisError as e:
             activity.logger.error(f"Time series forecasting failed: {e}")
-            raise activity.ApplicationError(
+            raise ApplicationError(
                 f"Time series forecasting failed: {e}", non_retryable=True
             ) from e
         except Exception as e:
             activity.logger.error(
                 f"An unexpected error occurred during time series forecasting: {e}"
             )
-            raise activity.ApplicationError(
+            raise ApplicationError(
                 f"Time series forecasting failed due to unexpected error: {e}",
                 non_retryable=False,
             ) from e
 
     @activity.defn(name="train_regression_model")
-    def train_regression_model(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    def train_regression_model(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Trains a linear regression model.
 
@@ -193,7 +194,7 @@ class MLActivities:
             A dictionary containing the trained model's coefficients, intercept, and metrics like R-squared.
 
         Raises:
-            activity.ApplicationError: If no data is provided or regression training fails.
+            ApplicationError: If no data is provided or regression training fails.
         """
         try:
             data = params.get("data", [])
@@ -201,7 +202,7 @@ class MLActivities:
             features = params.get("feature_cols", [])
 
             if not data:
-                raise activity.ApplicationError(
+                raise ApplicationError(
                     "No data provided for regression model training.",
                     non_retryable=True,
                 )
@@ -214,14 +215,14 @@ class MLActivities:
 
         except AnalysisError as e:
             activity.logger.error(f"Regression model training failed: {e}")
-            raise activity.ApplicationError(
+            raise ApplicationError(
                 f"Regression model training failed: {e}", non_retryable=True
             ) from e
         except Exception as e:
             activity.logger.error(
                 f"An unexpected error occurred during regression model training: {e}"
             )
-            raise activity.ApplicationError(
+            raise ApplicationError(
                 f"Regression model training failed due to unexpected error: {e}",
                 non_retryable=False,
             ) from e

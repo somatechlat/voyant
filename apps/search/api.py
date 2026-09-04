@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from django.http import HttpRequest
 from ninja import Router, Schema
@@ -53,7 +53,7 @@ class SearchQuery(Schema):
         le=100,
         description="Maximum number of results to return",
     )
-    filters: Optional[Dict[str, Any]] = Field(
+    filters: dict[str, Any] | None = Field(
         default=None,
         description="Optional metadata filters for exact match filtering",
     )
@@ -66,7 +66,7 @@ class SemanticSearchResult(Schema):
     score: float = Field(
         ..., description="Similarity score (0.0 to 1.0, higher is more similar)"
     )
-    metadata: Dict[str, Any] = Field(
+    metadata: dict[str, Any] = Field(
         default_factory=dict,
         description="Metadata associated with the indexed item",
     )
@@ -81,11 +81,11 @@ class IndexRequest(Schema):
         min_length=1,
         max_length=100000,
     )
-    metadata: Optional[Dict[str, Any]] = Field(
+    metadata: dict[str, Any] | None = Field(
         default=None,
         description="Optional metadata to store with the indexed item",
     )
-    item_id: Optional[str] = Field(
+    item_id: str | None = Field(
         default=None,
         description="Optional custom ID for the item (auto-generated if not provided)",
     )
@@ -109,9 +109,9 @@ class IndexResponse(Schema):
 
 
 @router.post(
-    "/query", response=List[SemanticSearchResult], summary="Semantic Search Query"
+    "/query", response=list[SemanticSearchResult], summary="Semantic Search Query"
 )
-def search(request: HttpRequest, payload: SearchQuery) -> List[SemanticSearchResult]:
+def search(request: HttpRequest, payload: SearchQuery) -> list[SemanticSearchResult]:
     """
     Execute a semantic search query to find similar indexed items.
 
@@ -259,10 +259,10 @@ def index_item(request: HttpRequest, payload: IndexRequest) -> IndexResponse:
 
 
 @router.delete(
-    "/{item_id}", response={200: Dict[str, str]}, summary="Delete Indexed Item",
+    "/{item_id}", response={200: dict[str, str]}, summary="Delete Indexed Item",
     auth=require_permission("write:documents"),
 )
-def delete_item(request: HttpRequest, item_id: str) -> Dict[str, str]:
+def delete_item(request: HttpRequest, item_id: str) -> dict[str, str]:
     """
     Delete an indexed item from the vector store.
 

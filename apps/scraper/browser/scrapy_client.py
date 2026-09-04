@@ -8,7 +8,8 @@ rules, and the ability to follow links for deeper data collection.
 """
 
 import logging
-from typing import Any, Callable, Dict, List, Optional
+from collections.abc import Callable, Generator
+from typing import Any
 
 import scrapy
 from scrapy.crawler import CrawlerProcess
@@ -30,8 +31,8 @@ class VoyantSpider(scrapy.Spider):
 
     def __init__(
         self,
-        urls: List[str],
-        callback: Optional[Callable[[Dict[str, Any]], None]] = None,
+        urls: list[str],
+        callback: Callable[[dict[str, Any]], None] | None = None,
         *args,
         **kwargs,
     ):
@@ -47,10 +48,10 @@ class VoyantSpider(scrapy.Spider):
         """
         super().__init__(*args, **kwargs)
         self.start_urls = urls
-        self.results: List[Dict[str, Any]] = []  # Stores all collected results.
+        self.results: list[dict[str, Any]] = []  # Stores all collected results.
         self._callback = callback
 
-    def parse(self, response: Response) -> Optional[Dict[str, Any]]:
+    def parse(self, response: Response) -> Generator[dict[str, Any], None, None]:
         """
         Parses the HTTP response, extracts relevant content, and stores it.
 
@@ -92,6 +93,7 @@ class ScrapyClient:
         concurrent_requests: int = 16,
         download_delay: float = 0.5,
         obey_robots: bool = True,
+        timeout: int = 30,
     ):
         """
         Initializes the ScrapyClient.
@@ -100,11 +102,13 @@ class ScrapyClient:
             concurrent_requests (int): The maximum number of concurrent requests Scrapy will perform.
             download_delay (float): The average number of seconds that the downloads should be delayed.
             obey_robots (bool): If True, Scrapy will respect robots.txt rules.
+            timeout (int): Timeout in seconds for HTTP requests.
         """
         self.concurrent_requests = concurrent_requests
         self.download_delay = download_delay
         self.obey_robots = obey_robots
-        self.results: List[Dict[str, Any]] = []
+        self.timeout = timeout
+        self.results: list[dict[str, Any]] = []
 
     def fetch(self, url: str) -> str:
         """
@@ -124,8 +128,8 @@ class ScrapyClient:
         return ""
 
     def crawl(
-        self, urls: List[str], follow_links: bool = False, max_depth: int = 1
-    ) -> List[Dict[str, Any]]:
+        self, urls: list[str], follow_links: bool = False, max_depth: int = 1
+    ) -> list[dict[str, Any]]:
         """
         Crawls a list of URLs and, optionally, follows links found on those pages.
 
@@ -159,13 +163,12 @@ class ScrapyClient:
         }
 
         process = CrawlerProcess(settings)
-        spider = VoyantSpider(urls=urls, callback=collect_result)
-        process.crawl(spider)
+        process.crawl(VoyantSpider, urls=urls, callback=collect_result)
         process.start()  # This is blocking until the crawl finishes.
 
         return self.results
 
-    def crawl_sitemap(self, sitemap_url: str) -> List[Dict[str, Any]]:
+    def crawl_sitemap(self, sitemap_url: str) -> list[dict[str, Any]]:
         """
         Crawls all URLs listed in a sitemap XML file.
 

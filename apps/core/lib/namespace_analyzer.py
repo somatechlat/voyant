@@ -16,8 +16,8 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass
-from enum import Enum
-from typing import Optional, Pattern
+from enum import StrEnum
+from re import Pattern
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 
-class IsolationMode(str, Enum):
+class IsolationMode(StrEnum):
     """Tenant isolation modes."""
 
     PREFIX = "prefix"  # Tables must start with tenant_id prefix
@@ -50,7 +50,7 @@ class NamespaceConfig:
 
     # Custom pattern override
     # If set, validation checks if re.match(pattern, table_name) is true
-    custom_pattern: Optional[str] = None
+    custom_pattern: str | None = None
 
 
 class NamespaceViolationError(Exception):
@@ -71,9 +71,9 @@ class NamespaceAnalyzer:
     The analyzer is stateless; the NamespaceConfig holds all behavioural parameters.
     """
 
-    def __init__(self, config: Optional[NamespaceConfig] = None):
+    def __init__(self, config: NamespaceConfig | None = None):
         self.config = config or NamespaceConfig()
-        self._compiled_pattern: Optional[Pattern] = None
+        self._compiled_pattern: Pattern | None = None
 
         if self.config.custom_pattern:
             self._compiled_pattern = re.compile(self.config.custom_pattern)
@@ -162,11 +162,11 @@ class NamespaceAnalyzer:
 # Global Instance
 # =============================================================================
 
-_analyzer: Optional[NamespaceAnalyzer] = None
+_analyzer: NamespaceAnalyzer | None = None
 
 
 def get_namespace_analyzer(
-    config: Optional[NamespaceConfig] = None,
+    config: NamespaceConfig | None = None,
 ) -> NamespaceAnalyzer:
     """Get global analyzer instance."""
     global _analyzer

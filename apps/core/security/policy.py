@@ -1,6 +1,6 @@
 import logging
 
-from authzed.api.v1 import (
+from authzed.api.v1 import (  # type: ignore[reportMissingImports]
     CheckPermissionRequest,
     CheckPermissionResponse,
     Consistency,
@@ -51,7 +51,7 @@ class SpiceDBClient:
     @property
     def permissions_service(self):
         if not self._permissions_service:
-            from authzed.api.v1 import PermissionsServiceStub
+            from authzed.api.v1 import PermissionsServiceStub  # type: ignore[reportMissingImports]
 
             self._permissions_service = PermissionsServiceStub(self.channel)
         return self._permissions_service
@@ -59,7 +59,7 @@ class SpiceDBClient:
     @property
     def schema_service(self):
         if not self._schema_service:
-            from authzed.api.v1 import SchemaServiceStub
+            from authzed.api.v1 import SchemaServiceStub  # type: ignore[reportMissingImports]
 
             self._schema_service = SchemaServiceStub(self.channel)
         return self._schema_service

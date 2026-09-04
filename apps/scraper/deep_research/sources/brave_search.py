@@ -8,7 +8,7 @@ Returns normalized SearchResultItem objects.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import httpx
 
@@ -22,9 +22,9 @@ BRAVE_API_URL = "https://api.search.brave.com/res/v1/web/search"
 class BraveSearchClient:
     """Client for the Brave Search API."""
 
-    def __init__(self, api_key: Optional[str] = None) -> None:
+    def __init__(self, api_key: str | None = None) -> None:
         self.api_key = api_key
-        self._client: Optional[httpx.AsyncClient] = None
+        self._client: httpx.AsyncClient | None = None
 
     async def _get_client(self) -> httpx.AsyncClient:
         if self._client is None or self._client.is_closed:
@@ -45,7 +45,7 @@ class BraveSearchClient:
         query: str,
         max_results: int = 10,
         tenant_id: str = "default",
-    ) -> List[SearchResultItem]:
+    ) -> list[SearchResultItem]:
         """
         Execute a query against Brave Search and return normalized results.
 
@@ -64,7 +64,7 @@ class BraveSearchClient:
         logger.info(f"[BraveSearch] query='{query}' tenant={tenant_id}")
         client = await self._get_client()
 
-        params: Dict[str, Any] = {
+        params: dict[str, Any] = {
             "q": query,
             "count": min(max_results, 20),
             "offset": 0,
@@ -89,7 +89,7 @@ class BraveSearchClient:
             return []
 
         web_results = data.get("web", {}).get("results", [])
-        extracted: List[SearchResultItem] = []
+        extracted: list[SearchResultItem] = []
         for rank, item in enumerate(web_results[:max_results], start=1):
             extracted.append(
                 SearchResultItem(

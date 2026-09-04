@@ -12,7 +12,7 @@ Personas:
 
 import logging
 from datetime import timedelta
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -47,7 +47,7 @@ class TimeForecaster(AnalyzerPlugin):
     Forecasting service using Linear Regression on time features.
     """
 
-    def analyze(self, data: Any, context: Dict[str, Any]) -> Dict[str, Any]:
+    def analyze(self, data: Any, context: dict[str, Any]) -> dict[str, Any]:
         """
         Forecast future values.
 
@@ -102,14 +102,11 @@ class TimeForecaster(AnalyzerPlugin):
             }
 
         # 2. Feature Engineering
-        # Create X (features) and y (target)
         # Features: Trend (ordinal date), Seasonality (Month, DayOfWeek)
-
-        # Train data
         X_train, y_train = self._create_features(ts.index, ts.values)
 
         # 3. Model Training
-        model = LinearRegression()
+        model = LinearRegression()  # type: ignore[reportPossiblyUnbound]
         model.fit(X_train, y_train)
 
         # 4. Forecasting
@@ -143,7 +140,7 @@ class TimeForecaster(AnalyzerPlugin):
             "frequency": freq,
             "rmse": float(rmse),
             "forecast": forecast_df.to_dict(orient="records"),
-            "visualization": self._generate_plot_spec(ts, forecast_df, value_col),
+            "visualization": self._generate_plot_spec(ts, forecast_df, str(value_col)),
         }
 
         return result
@@ -159,8 +156,8 @@ class TimeForecaster(AnalyzerPlugin):
         raise AnalysisError("VYNT-DATA-002", f"Unsupported data type: {type(data)}")
 
     def _create_features(
-        self, dates: pd.DatetimeIndex, values: Optional[np.ndarray] = None
-    ) -> Tuple[pd.DataFrame, Optional[np.ndarray]]:
+        self, dates: pd.DatetimeIndex, values: np.ndarray | None = None
+    ) -> tuple[pd.DataFrame, np.ndarray | None]:
         """Create time-series features: Trend, Month, DayOfWeek."""
         df_feat = pd.DataFrame(index=dates)
         df_feat["trend"] = dates.to_julian_date()
@@ -172,14 +169,14 @@ class TimeForecaster(AnalyzerPlugin):
         # Developer Persona: Correct approach for linear regression is dummies or fourier terms.
         # Let's use month/dayofweek as integers for simplicity in this MVP plugin,
         # acknowledging it assumes linear relationship which is imperfect but robust enough for basic trends.
-        df_feat["month"] = dates.month
-        df_feat["dow"] = dates.dayofweek
+        df_feat["month"] = dates.month  # type: ignore[reportAttributeAccessIssue]
+        df_feat["dow"] = dates.dayofweek  # type: ignore[reportAttributeAccessIssue]
 
         return df_feat, values
 
     def _generate_plot_spec(
         self, history: pd.Series, forecast: pd.DataFrame, value_name: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Generate Plotly spec for History + Forecast."""
         # Convert index to column for exporting
         hist_df = history.reset_index()

@@ -8,11 +8,12 @@ effectively even on large datasets.
 """
 
 import logging
-from typing import Any, Dict
+from typing import Any
 
 import duckdb
 import pandas as pd
 from temporalio import activity
+from temporalio.exceptions import ApplicationError
 
 from apps.analysis.lib.adaptive_sampling import SamplingStrategy, sample_table
 from apps.core.config import get_settings
@@ -25,7 +26,7 @@ class ProfileActivities:
     A collection of Temporal activities related to data profiling processes.
 
     These activities encapsulate the logic for sampling data, calculating
-    descriptive statistics, and generating comprehensive data profiles.
+    descriptive statistics, and generating data profiles.
     """
 
     def __init__(self):
@@ -33,7 +34,7 @@ class ProfileActivities:
         self.settings = get_settings()
 
     @activity.defn(name="profile_data")
-    def profile_data(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    def profile_data(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Profiles a dataset, optionally using adaptive sampling for large volumes.
 
@@ -54,7 +55,7 @@ class ProfileActivities:
             row counts, and sampling details.
 
         Raises:
-            activity.ApplicationError: If an error occurs during data fetching or profiling.
+            ApplicationError: If an error occurs during data fetching or profiling.
         """
         source_id = params.get("source_id")
         table_name = params.get("table") or source_id
@@ -67,7 +68,7 @@ class ProfileActivities:
         try:
             # 1. Connect to DuckDB and determine total row count.
             conn = duckdb.connect(database=self.settings.duckdb_path, read_only=True)
-            total_rows = conn.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[
+            total_rows = conn.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[  # type: ignore[index]
                 0
             ]
 
@@ -138,6 +139,6 @@ class ProfileActivities:
 
         except Exception as e:
             activity.logger.error(f"Profiling activity for '{table_name}' failed: {e}")
-            raise activity.ApplicationError(
+            raise ApplicationError(
                 f"Profiling failed due to an unexpected error: {e}", non_retryable=False
             ) from e

@@ -7,12 +7,12 @@ Adheres to Vibe Coding Rules: Uses Prophet if available, handles deps.
 """
 
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 import pandas as pd
 
 try:
-    from prophet import Prophet
+    from prophet import Prophet  # type: ignore[reportMissingImports]
 
     PROPHET_AVAILABLE = True
 except ImportError:
@@ -33,8 +33,8 @@ class ForecastPrimitives:
             logger.warning("Prophet not found. Forecasting primitives will fail.")
 
     def forecast_prophet(
-        self, dates: List[str], values: List[float], periods: int = 30, freq: str = "D"
-    ) -> Dict[str, Any]:
+        self, dates: list[str], values: list[float], periods: int = 30, freq: str = "D"
+    ) -> dict[str, Any]:
         """
         Generate forecast using Facebook Prophet.
         """
@@ -50,7 +50,7 @@ class ForecastPrimitives:
             df["ds"] = pd.to_datetime(df["ds"])
 
             # Configure & Fit
-            m = Prophet()
+            m = Prophet()  # type: ignore[reportPossiblyUnbound]
             m.fit(df)
 
             # Forecast

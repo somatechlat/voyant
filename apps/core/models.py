@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from typing import Any, Optional
+from typing import Any
 
 from django.db import models
 
@@ -48,7 +48,7 @@ class RBACManager(models.Manager):
 
     def get_queryset(self) -> models.QuerySet:
         qs = super().get_queryset()
-        user: Optional[Any] = get_current_user()
+        user: Any | None = get_current_user()
         if user is None:
             return qs
         if "voyant-admin" in getattr(user, "roles", []):
@@ -79,7 +79,7 @@ class TenantModel(TimeStampedModel):
 
     objects = RBACManager()
 
-    class Meta:
+    class Meta:  # type: ignore[assignment]
         abstract = True
         indexes = [
             models.Index(fields=["tenant_id", "-created_at"]),
@@ -155,7 +155,7 @@ class AuditLog(TenantModel, UUIDModel):
         help_text="User agent string of the client",
     )
 
-    class Meta:
+    class Meta:  # type: ignore[reportIncompatibleVariableOverride]
         db_table = "voyant_audit_log"
         verbose_name = "Audit Log Entry"
         verbose_name_plural = "Audit Log Entries"

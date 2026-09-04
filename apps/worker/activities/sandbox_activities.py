@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from temporalio import activity
 
@@ -7,9 +7,10 @@ logger = logging.getLogger(__name__)
 
 
 class SandboxActivities:
+    """Activities for running scripts in the Python sandbox."""
 
     @activity.defn(name="run_python_sandbox")
-    async def run_python_sandbox(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def run_python_sandbox(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Physical bridge to the PythonDockerNode.
         """

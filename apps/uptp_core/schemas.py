@@ -1,13 +1,13 @@
 import logging
-from enum import Enum
-from typing import Any, Dict, Optional
+from enum import StrEnum
+from typing import Any
 
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
 
-class TemplateCategory(str, Enum):
+class TemplateCategory(StrEnum):
     """
     Implemented UPTP execution categories.
 
@@ -42,14 +42,14 @@ class TemplateExecutionRequest(BaseModel):
     category: TemplateCategory = Field(
         ..., description="The operational layer this template belongs to."
     )
-    params: Dict[str, Any] = Field(
+    params: dict[str, Any] = Field(
         default_factory=dict,
         description="The arbitrary, template-specific parameters defining the execution boundaries.",
     )
     tenant_id: str = Field(
         ..., description="CRITICAL: The isolated tenant context executing the template."
     )
-    job_name: Optional[str] = Field(
+    job_name: str | None = Field(
         None, description="Optional human-readable alias for tracking."
     )
 

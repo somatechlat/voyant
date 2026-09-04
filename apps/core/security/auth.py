@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import httpx
 from ninja.errors import HttpError
@@ -52,8 +52,8 @@ class User:
     username: str
     tenant_id: str
     realm: str
-    roles: List[str]
-    permissions: List[str]
+    roles: list[str]
+    permissions: list[str]
     token: str
 
     def has_role(self, role: str) -> bool:
@@ -99,7 +99,7 @@ class KeycloakAuth:
         self._realm = settings.keycloak_realm
         self.client_id = settings.keycloak_client_id
         self.client_secret = settings.keycloak_client_secret
-        self._jwks: Optional[Dict[str, Any]] = None  # Cached JWKS.
+        self._jwks: dict[str, Any] | None = None  # Cached JWKS.
         self._update_urls()
 
     @property
@@ -127,7 +127,7 @@ class KeycloakAuth:
         )
         self._issuer = f"{self._server_url}/realms/{self._realm}"
 
-    def _get_jwks(self) -> Dict[str, Any]:
+    def _get_jwks(self) -> dict[str, Any]:
         """
         Fetches and caches the JSON Web Key Set (JWKS) from the Keycloak server.
 
@@ -267,7 +267,7 @@ class KeycloakAuth:
             return parts[-1]
         return ""
 
-    def _derive_permissions(self, roles: List[str]) -> List[str]:
+    def _derive_permissions(self, roles: list[str]) -> list[str]:
         """
         Derives a list of granular permissions based on the user's assigned roles.
 
@@ -278,8 +278,6 @@ class KeycloakAuth:
             List[str]: A unique list of permissions the user possesses.
         """
         permissions = []
-
-        # Define a mapping from roles to their associated permissions.
         role_map = {
             "voyant-admin": ["*"],  # Wildcard for full administrative access.
             "voyant-engineer": [
@@ -293,12 +291,11 @@ class KeycloakAuth:
             "voyant-viewer": ["read:dashboards", "read:reports", "read:artifacts"],
         }
 
-        # Aggregate permissions from all assigned roles.
         for role in roles:
             if role in role_map:
                 permissions.extend(role_map[role])
 
-        return list(set(permissions))  # Return unique permissions.
+        return list(set(permissions))
 
 
 class KeycloakBearer(HttpBearer):
@@ -309,7 +306,7 @@ class KeycloakBearer(HttpBearer):
     authenticate requests using a Bearer token provided in the 'Authorization' header.
     """
 
-    def authenticate(self, request, token: str) -> Optional[User]:
+    def authenticate(self, request, token: str) -> User | None:
         """
         Authenticates an incoming request by validating the provided Bearer token.
 
@@ -327,7 +324,7 @@ class KeycloakBearer(HttpBearer):
 
 
 # Singleton instance of KeycloakAuth for application-wide use.
-_auth: Optional[KeycloakAuth] = None
+_auth: KeycloakAuth | None = None
 
 
 def get_auth() -> KeycloakAuth:
@@ -346,7 +343,7 @@ def get_auth() -> KeycloakAuth:
     return _auth
 
 
-def _get_bearer_token(request) -> Optional[str]:
+def _get_bearer_token(request) -> str | None:
     """
     Extracts the Bearer token string from the Authorization header of an HTTP request.
 
@@ -384,7 +381,7 @@ def get_current_user(request) -> User:
     return get_auth().validate_token(token)
 
 
-def get_optional_user(request) -> Optional[User]:
+def get_optional_user(request) -> User | None:
     """
     Retrieves the authenticated user for the current request, if available.
 

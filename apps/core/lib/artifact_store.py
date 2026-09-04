@@ -36,9 +36,9 @@ import logging
 import threading
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +48,7 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 
-class HashAlgorithm(str, Enum):
+class HashAlgorithm(StrEnum):
     """Supported hash algorithms."""
 
     SHA256 = "sha256"
@@ -56,7 +56,7 @@ class HashAlgorithm(str, Enum):
     BLAKE2B = "blake2b"
 
 
-class CompressionType(str, Enum):
+class CompressionType(StrEnum):
     """Supported compression types."""
 
     NONE = "none"
@@ -117,7 +117,7 @@ class ArtifactRef:
     artifact_type: str
     compression: CompressionType
     created_at: str = ""
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         if not self.created_at:
@@ -131,7 +131,7 @@ class ArtifactRef:
     def hash_value(self) -> str:
         return self.hash.split(":")[1] if ":" in self.hash else self.hash
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "hash": self.hash,
             "size_bytes": self.size_bytes,
@@ -142,7 +142,7 @@ class ArtifactRef:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ArtifactRef":
+    def from_dict(cls, data: dict[str, Any]) -> ArtifactRef:
         return cls(
             hash=data["hash"],
             size_bytes=data["size_bytes"],
@@ -165,10 +165,10 @@ class ArtifactStore:
     PhD Developer: Clean storage abstraction with deduplication
     """
 
-    def __init__(self, config: Optional[StoreConfig] = None):
+    def __init__(self, config: StoreConfig | None = None):
         self.config = config or StoreConfig()
         self._lock = threading.RLock()
-        self._refs: Dict[str, ArtifactRef] = {}
+        self._refs: dict[str, ArtifactRef] = {}
 
         # Ensure base path exists
         Path(self.config.base_path).mkdir(parents=True, exist_ok=True)
@@ -208,7 +208,7 @@ class ArtifactStore:
         self,
         content: bytes,
         artifact_type: str,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> ArtifactRef:
         """
         Store an artifact.
@@ -252,7 +252,6 @@ class ArtifactStore:
             with open(content_file, "wb") as f:
                 f.write(compressed)
 
-            # Create reference
             ref = ArtifactRef(
                 hash=content_hash,
                 size_bytes=len(content),
@@ -276,7 +275,7 @@ class ArtifactStore:
 
             return ref
 
-    def retrieve(self, hash_value: str) -> Optional[bytes]:
+    def retrieve(self, hash_value: str) -> bytes | None:
         """
         Retrieve artifact content by hash.
 
@@ -335,7 +334,7 @@ class ArtifactStore:
 
         return expected == actual
 
-    def get_ref(self, hash_value: str) -> Optional[ArtifactRef]:
+    def get_ref(self, hash_value: str) -> ArtifactRef | None:
         """Get artifact reference without retrieving content."""
         if ":" in hash_value:
             return self._refs.get(hash_value)
@@ -389,8 +388,8 @@ class ArtifactStore:
             return deleted
 
     def list_artifacts(
-        self, artifact_type: Optional[str] = None, limit: int = 100
-    ) -> List[ArtifactRef]:
+        self, artifact_type: str | None = None, limit: int = 100
+    ) -> list[ArtifactRef]:
         """
         List stored artifacts.
 
@@ -411,11 +410,11 @@ class ArtifactStore:
 
         return refs[:limit]
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get store statistics."""
         with self._lock:
             total_size = sum(r.size_bytes for r in self._refs.values())
-            by_type: Dict[str, int] = {}
+            by_type: dict[str, int] = {}
             for ref in self._refs.values():
                 by_type[ref.artifact_type] = by_type.get(ref.artifact_type, 0) + 1
 
@@ -428,7 +427,7 @@ class ArtifactStore:
             "compression": self.config.compression.value,
         }
 
-    def gc(self, keep_hashes: Optional[set] = None) -> int:
+    def gc(self, keep_hashes: set | None = None) -> int:
         """
         Garbage collect unreferenced artifacts.
 
@@ -464,11 +463,11 @@ class ArtifactStore:
 # Global Instance
 # =============================================================================
 
-_artifact_store: Optional[ArtifactStore] = None
+_artifact_store: ArtifactStore | None = None
 _store_lock = threading.Lock()
 
 
-def get_artifact_store(config: Optional[StoreConfig] = None) -> ArtifactStore:
+def get_artifact_store(config: StoreConfig | None = None) -> ArtifactStore:
     """Get or create global artifact store."""
     global _artifact_store
     if _artifact_store is None:
@@ -484,9 +483,9 @@ def get_artifact_store(config: Optional[StoreConfig] = None) -> ArtifactStore:
 
 
 def store_artifact(
-    content: Union[bytes, str, Dict[str, Any]],
+    content: bytes | str | dict[str, Any],
     artifact_type: str,
-    metadata: Optional[Dict[str, Any]] = None,
+    metadata: dict[str, Any] | None = None,
 ) -> ArtifactRef:
     """
     Store an artifact.
@@ -512,7 +511,7 @@ def store_artifact(
     return get_artifact_store().store(content_bytes, artifact_type, metadata)
 
 
-def retrieve_artifact(hash_value: str) -> Optional[bytes]:
+def retrieve_artifact(hash_value: str) -> bytes | None:
     """Retrieve artifact content."""
     return get_artifact_store().retrieve(hash_value)
 
@@ -522,16 +521,16 @@ def verify_artifact(hash_value: str) -> bool:
     return get_artifact_store().verify(hash_value)
 
 
-def get_artifact_ref(hash_value: str) -> Optional[ArtifactRef]:
+def get_artifact_ref(hash_value: str) -> ArtifactRef | None:
     """Get artifact reference."""
     return get_artifact_store().get_ref(hash_value)
 
 
-def list_artifacts(artifact_type: Optional[str] = None) -> List[ArtifactRef]:
+def list_artifacts(artifact_type: str | None = None) -> list[ArtifactRef]:
     """List stored artifacts."""
     return get_artifact_store().list_artifacts(artifact_type)
 
 
-def get_store_stats() -> Dict[str, Any]:
+def get_store_stats() -> dict[str, Any]:
     """Get artifact store statistics."""
     return get_artifact_store().get_stats()

@@ -85,7 +85,7 @@ class IngestionJob(TenantModel, UUIDModel):
         help_text="Timestamp when job finished",
     )
 
-    class Meta:
+    class Meta:  # type: ignore[reportIncompatibleVariableOverride]
         db_table = "voyant_ingestion_job"
         verbose_name = "Ingestion Job"
         verbose_name_plural = "Ingestion Jobs"

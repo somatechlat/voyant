@@ -8,7 +8,7 @@ Returns normalized SearchResultItem objects.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import httpx
 
@@ -24,12 +24,12 @@ class GoogleCSEClient:
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
-        cx: Optional[str] = None,
+        api_key: str | None = None,
+        cx: str | None = None,
     ) -> None:
         self.api_key = api_key
         self.cx = cx
-        self._client: Optional[httpx.AsyncClient] = None
+        self._client: httpx.AsyncClient | None = None
 
     async def _get_client(self) -> httpx.AsyncClient:
         if self._client is None or self._client.is_closed:
@@ -41,7 +41,7 @@ class GoogleCSEClient:
         query: str,
         max_results: int = 10,
         tenant_id: str = "default",
-    ) -> List[SearchResultItem]:
+    ) -> list[SearchResultItem]:
         """
         Execute a query against Google CSE and return normalized results.
 
@@ -61,13 +61,13 @@ class GoogleCSEClient:
         client = await self._get_client()
 
         # Google CSE returns max 10 results per call; paginate if needed.
-        extracted: List[SearchResultItem] = []
+        extracted: list[SearchResultItem] = []
         start_index = 1
         remaining = max_results
 
         while remaining > 0:
             num = min(remaining, 10)
-            params: Dict[str, Any] = {
+            params: dict[str, Any] = {
                 "key": self.api_key,
                 "cx": self.cx,
                 "q": query,

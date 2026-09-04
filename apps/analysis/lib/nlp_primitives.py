@@ -7,7 +7,7 @@ Adheres to Vibe Coding Rules: Uses NLTK VADER or TextBlob.
 """
 
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 try:
     import nltk
@@ -15,7 +15,7 @@ try:
 
     NLTK_AVAILABLE = True
 except ImportError:
-    NLTK_AVAILABLE = False
+    NLTK_AVAILABLE = False  # type: ignore[reportPossiblyUnbound]
 
 logger = logging.getLogger(__name__)
 
@@ -36,13 +36,13 @@ class NLPPrimitives:
             raise ImportError("NLTK is not installed. Run: pip install nltk")
         if self._sia is None:
             try:
-                nltk.data.find("sentiment/vader_lexicon.zip")
+                nltk.data.find("sentiment/vader_lexicon.zip")  # type: ignore[reportPossiblyUnbound]
             except LookupError:
-                nltk.download("vader_lexicon", quiet=True)
-            self._sia = SentimentIntensityAnalyzer()
+                nltk.download("vader_lexicon", quiet=True)  # type: ignore[reportPossiblyUnbound]
+            self._sia = SentimentIntensityAnalyzer()  # type: ignore[reportPossiblyUnbound]
         return self._sia
 
-    def analyze_sentiment(self, texts: List[str]) -> List[Dict[str, Any]]:
+    def analyze_sentiment(self, texts: list[str]) -> list[dict[str, Any]]:
         """
         Analyze sentiment of a list of texts using VADER.
         Returns compound scores and classification.

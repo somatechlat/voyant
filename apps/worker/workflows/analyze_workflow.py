@@ -6,23 +6,20 @@ analysis request. It coordinates various activities including data profiling,
 running registered analyzer plugins, calculating Key Performance Indicators (KPIs),
 and generating data artifacts such as charts and reports.
 
-The workflow is designed to be flexible, allowing different stages of the
-analysis to be enabled or disabled based on the input parameters.
+Stages can be enabled or disabled via input parameters.
 """
 
 from datetime import timedelta
-from typing import Any, Dict, List
+from typing import Any
 
 from temporalio import workflow
+from temporalio.exceptions import ApplicationError
 
 # This context manager is necessary to allow importing non-workflow/activity
 # modules within the workflow definition. It passes control to the Python
 # import system directly, bypassing Temporal's default import handling.
 with workflow.unsafe.imports_passed_through():
-    from apps.worker.activities.analysis_activities import AnalysisActivities
-    from apps.worker.activities.generation_activities import GenerationActivities
-    from apps.worker.activities.kpi_activities import KPIActivities
-    from apps.worker.activities.profile_activities import ProfileActivities
+    pass
 
 
 @workflow.defn
@@ -32,7 +29,7 @@ class AnalyzeWorkflow:
     """
 
     @workflow.run
-    async def run(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def run(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Executes the end-to-end data analysis workflow based on provided parameters.
 
@@ -59,22 +56,22 @@ class AnalyzeWorkflow:
             from profiling, KPIs, analyzers, and generated artifacts.
 
         Raises:
-            workflow.ApplicationError: If essential parameters are missing or invalid.
+            ApplicationError: If essential parameters are missing or invalid.
         """
         table = params.get("table") or params.get("source_id")
         if not table:
-            raise workflow.ApplicationError("table or source_id is required")
+            raise ApplicationError("table or source_id is required")
 
         profile_summary = None
-        analyzer_results: Dict[str, Any] = {}
-        kpi_results: List[Dict[str, Any]] = []
-        generator_results: Dict[str, Any] = {}
+        analyzer_results: dict[str, Any] = {}
+        kpi_results: list[dict[str, Any]] = []
+        generator_results: dict[str, Any] = {}
 
         # Stage 1: Data Profiling
         # Execute the ProfileActivities.profile_data to generate a statistical summary of the dataset.
         if params.get("profile", True):
             profile_summary = await workflow.execute_activity(
-                ProfileActivities.profile_data,
+                "profile_data",
                 {
                     "source_id": params.get("source_id") or table,
                     "table": table,
@@ -87,7 +84,7 @@ class AnalyzeWorkflow:
         # Fetch a sample of data, then execute configured analyzer plugins to extract insights.
         if params.get("run_analyzers", True):
             sample_data = await workflow.execute_activity(
-                AnalysisActivities.fetch_sample,
+                "fetch_sample",
                 {
                     "table": table,
                     "sample_size": params.get("sample_size", 10000),
@@ -96,7 +93,7 @@ class AnalyzeWorkflow:
             )
 
             analyzer_results = await workflow.execute_activity(
-                AnalysisActivities.run_analyzers,
+                "run_analyzers",
                 {
                     "data": sample_data,
                     "analyzers": params.get("analyzers"),
@@ -109,7 +106,7 @@ class AnalyzeWorkflow:
         # Execute custom KPI queries provided in the workflow parameters.
         if params.get("kpis"):
             kpi_results = await workflow.execute_activity(
-                KPIActivities.run_kpis,
+                "run_kpis",
                 {"kpis": params.get("kpis")},
                 start_to_close_timeout=timedelta(minutes=10),
             )
@@ -118,7 +115,7 @@ class AnalyzeWorkflow:
         # Create visual reports and other artifacts based on the analysis results.
         if params.get("generate_artifacts", True):
             generator_results = await workflow.execute_activity(
-                GenerationActivities.run_generators,
+                "run_generators",
                 {
                     "table_name": table,
                     "tables": params.get("tables"),
@@ -138,7 +135,6 @@ class AnalyzeWorkflow:
             "analyzer_count": len(analyzer_results) if analyzer_results else 0,
         }
 
-        # Return all compiled results.
         return {
             "summary": summary,
             "profile": profile_summary,

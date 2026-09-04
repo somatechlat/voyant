@@ -20,13 +20,13 @@ import random
 from abc import ABC, abstractmethod
 from collections import Counter
 from dataclasses import dataclass
-from enum import Enum
-from typing import Any, Dict, List, Tuple
+from enum import StrEnum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
-class EmbeddingModel(str, Enum):
+class EmbeddingModel(StrEnum):
     """Available embedding models."""
 
     SIMPLE = "simple"  # Character-based (for testing)
@@ -39,12 +39,12 @@ class EmbeddingModel(str, Enum):
 class EmbeddingResult:
     """Result of embedding extraction."""
 
-    embeddings: List[List[float]]  # List of vectors
+    embeddings: list[list[float]]  # List of vectors
     model: str
     dimensions: int
     count: int
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "model": self.model,
             "dimensions": self.dimensions,
@@ -60,7 +60,7 @@ class SimilarityResult:
     similarity: float  # 0 to 1 (cosine similarity)
     distance: float  # Euclidean distance
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "similarity": round(self.similarity, 6),
             "distance": round(self.distance, 6),
@@ -79,7 +79,7 @@ class EmbeddingExtractor(ABC):
         self.dimensions = dimensions
 
     @abstractmethod
-    def embed(self, texts: List[str]) -> EmbeddingResult:
+    def embed(self, texts: list[str]) -> EmbeddingResult:
         """Embed a list of texts."""
         pass
 
@@ -111,7 +111,7 @@ class SimpleEmbedder(EmbeddingExtractor):
     def model_name(self) -> str:
         return "simple"
 
-    def embed(self, texts: List[str]) -> EmbeddingResult:
+    def embed(self, texts: list[str]) -> EmbeddingResult:
         embeddings = []
 
         for text in texts:
@@ -137,7 +137,7 @@ class SimpleEmbedder(EmbeddingExtractor):
             count=len(texts),
         )
 
-    def _normalize(self, vector: List[float]) -> List[float]:
+    def _normalize(self, vector: list[float]) -> list[float]:
         """L2 normalize a vector."""
         magnitude = math.sqrt(sum(x**2 for x in vector))
         if magnitude == 0:
@@ -155,15 +155,14 @@ class TFIDFEmbedder(EmbeddingExtractor):
     def __init__(self, dimensions: int = 128, max_features: int = 1000):
         super().__init__(dimensions)
         self.max_features = max_features
-        self._vocabulary: Dict[str, int] = {}
-        self._idf: Dict[str, float] = {}
+        self._vocabulary: dict[str, int] = {}
+        self._idf: dict[str, float] = {}
 
     @property
     def model_name(self) -> str:
         return "tfidf"
 
-    def embed(self, texts: List[str]) -> EmbeddingResult:
-        # Build vocabulary
+    def embed(self, texts: list[str]) -> EmbeddingResult:
         self._build_vocabulary(texts)
 
         embeddings = []
@@ -178,7 +177,7 @@ class TFIDFEmbedder(EmbeddingExtractor):
             count=len(texts),
         )
 
-    def _tokenize(self, text: str) -> List[str]:
+    def _tokenize(self, text: str) -> list[str]:
         """Simple word tokenization."""
         text = text.lower()[:10000]  # Security: limit length
         # Simple word split
@@ -194,9 +193,9 @@ class TFIDFEmbedder(EmbeddingExtractor):
             words.append("".join(current))
         return words
 
-    def _build_vocabulary(self, texts: List[str]):
+    def _build_vocabulary(self, texts: list[str]):
         """Build vocabulary and IDF from texts."""
-        doc_freq: Dict[str, int] = {}
+        doc_freq: dict[str, int] = {}
         n_docs = len(texts)
 
         for text in texts:
@@ -215,16 +214,15 @@ class TFIDFEmbedder(EmbeddingExtractor):
             self._vocabulary[term] = i
             self._idf[term] = math.log((n_docs + 1) / (freq + 1)) + 1
 
-    def _text_to_tfidf(self, text: str) -> List[float]:
+    def _text_to_tfidf(self, text: str) -> list[float]:
         """Convert text to TF-IDF vector."""
         tokens = self._tokenize(text)
 
         # Term frequency
-        tf: Dict[str, int] = {}
+        tf: dict[str, int] = {}
         for token in tokens:
             tf[token] = tf.get(token, 0) + 1
 
-        # Build vector
         vector = [0.0] * self.dimensions
         max_tf = max(tf.values()) if tf else 1
 
@@ -260,7 +258,7 @@ class DenseEmbedder(EmbeddingExtractor):
     def model_name(self) -> str:
         return "dense"
 
-    def embed(self, texts: List[str]) -> EmbeddingResult:
+    def embed(self, texts: list[str]) -> EmbeddingResult:
         embeddings = []
         for text in texts:
             vector = self._embed_text(text)
@@ -273,7 +271,7 @@ class DenseEmbedder(EmbeddingExtractor):
             count=len(texts),
         )
 
-    def _embed_text(self, text: str) -> List[float]:
+    def _embed_text(self, text: str) -> list[float]:
         """Embed a single text into a dense vector."""
         tokens = self._tokenize(text)
         vec = [0.0] * self.dimensions
@@ -296,7 +294,7 @@ class DenseEmbedder(EmbeddingExtractor):
             vec = [x / magnitude for x in vec]
         return vec
 
-    def _tokenize(self, text: str) -> List[str]:
+    def _tokenize(self, text: str) -> list[str]:
         """Simple word tokenization."""
         text = text.lower()[:10000]
         words = []
@@ -328,11 +326,11 @@ class SparseEmbedder:
     def model_name(self) -> str:
         return "sparse"
 
-    def embed(self, texts: List[str]) -> List[Dict[int, float]]:
+    def embed(self, texts: list[str]) -> list[dict[int, float]]:
         """Embed a list of texts into sparse vectors."""
         return [self._embed_text(t) for t in texts]
 
-    def _embed_text(self, text: str) -> Dict[int, float]:
+    def _embed_text(self, text: str) -> dict[int, float]:
         """Embed a single text into a sparse BM25 vector."""
         tokens = self._tokenize(text)
         if not tokens:
@@ -342,7 +340,7 @@ class SparseEmbedder:
         doc_len = len(tokens)
         avg_len = doc_len  # Single-doc average for simplicity
 
-        sparse: Dict[int, float] = {}
+        sparse: dict[int, float] = {}
         for term, freq in term_counts.items():
             idx = self._term_to_index(term)
             # Simplified BM25 without corpus IDF (using constant IDF=1)
@@ -356,7 +354,7 @@ class SparseEmbedder:
             sparse = {k: v / magnitude for k, v in sparse.items()}
         return sparse
 
-    def _tokenize(self, text: str) -> List[str]:
+    def _tokenize(self, text: str) -> list[str]:
         """Simple word tokenization."""
         text = text.lower()[:10000]
         words = []
@@ -382,7 +380,7 @@ class SparseEmbedder:
 # =============================================================================
 
 
-def cosine_similarity(a: List[float], b: List[float]) -> float:
+def cosine_similarity(a: list[float], b: list[float]) -> float:
     """Calculate cosine similarity between two equal-length vectors."""
     if len(a) != len(b):
         raise ValueError("Vectors must have same dimensions")
@@ -397,7 +395,7 @@ def cosine_similarity(a: List[float], b: List[float]) -> float:
     return dot_product / (magnitude_a * magnitude_b)
 
 
-def euclidean_distance(a: List[float], b: List[float]) -> float:
+def euclidean_distance(a: list[float], b: list[float]) -> float:
     """Calculate Euclidean distance between two vectors."""
     if len(a) != len(b):
         raise ValueError("Vectors must have same dimensions")
@@ -405,7 +403,7 @@ def euclidean_distance(a: List[float], b: List[float]) -> float:
     return math.sqrt(sum((a[i] - b[i]) ** 2 for i in range(len(a))))
 
 
-def calculate_similarity(a: List[float], b: List[float]) -> SimilarityResult:
+def calculate_similarity(a: list[float], b: list[float]) -> SimilarityResult:
     """
     Calculate similarity between two embedding vectors.
 
@@ -423,9 +421,9 @@ def calculate_similarity(a: List[float], b: List[float]) -> SimilarityResult:
 
 
 def reduce_dimensions(
-    embeddings: List[List[float]],
+    embeddings: list[list[float]],
     target_dims: int = 2,
-) -> List[List[float]]:
+) -> list[list[float]]:
     """
     Simple dimensionality reduction using variance-based projection.
 
@@ -470,7 +468,7 @@ _EMBEDDERS = {
 
 
 def embed_texts(
-    texts: List[str],
+    texts: list[str],
     model: str = "tfidf",
     dimensions: int = 64,
 ) -> EmbeddingResult:
@@ -494,7 +492,7 @@ def embed_texts(
     return embedder.embed(texts)
 
 
-def get_available_models() -> List[str]:
+def get_available_models() -> list[str]:
     """Get list of available embedding models."""
     return list(_EMBEDDERS.keys())
 
@@ -528,10 +526,10 @@ def get_sparse_embedder() -> SparseEmbedder:
 
 
 def find_similar(
-    query_embedding: List[float],
-    corpus_embeddings: List[List[float]],
+    query_embedding: list[float],
+    corpus_embeddings: list[list[float]],
     top_k: int = 5,
-) -> List[Tuple[int, float]]:
+) -> list[tuple[int, float]]:
     """
     Find most similar embeddings in a corpus.
 

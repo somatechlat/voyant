@@ -10,8 +10,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timezone
-from typing import Any, Callable, Coroutine, Dict
+from collections.abc import Callable, Coroutine
+from datetime import UTC, datetime
+from typing import Any
 
 from apps.core.lib.circuit_breaker import (
     CircuitBreaker,
@@ -31,7 +32,7 @@ from apps.scraper.security import SSRFError, URLValidationError, validate_url
 logger = logging.getLogger(__name__)
 
 
-def _get_arm_executors() -> Dict[
+def _get_arm_executors() -> dict[
     OctopusARM, Callable[[OctopusRequest], Coroutine[Any, Any, OctopusResult]]
 ]:
     """
@@ -40,7 +41,7 @@ def _get_arm_executors() -> Dict[
     Isolates import-time side effects so that missing optional
     dependencies for one arm do not break the entire dispatcher.
     """
-    executors: Dict[
+    executors: dict[
         OctopusARM,
         Callable[[OctopusRequest], Coroutine[Any, Any, OctopusResult]],
     ] = {}
@@ -134,7 +135,7 @@ class OctopusDispatcher:
         Returns:
             An OctopusResult containing the scrape outcome.
         """
-        start = datetime.now(timezone.utc)
+        start = datetime.now(UTC)
 
         # SSRF validation
         try:
@@ -197,7 +198,7 @@ class OctopusDispatcher:
             return self._error_result(
                 request, start, "CIRCUIT_BREAKER_OPEN", str(exc)
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return self._error_result(
                 request,
                 start,
@@ -270,7 +271,7 @@ class OctopusDispatcher:
     ) -> OctopusResult:
         """Construct a standardized failure result."""
         duration_ms = int(
-            (datetime.now(timezone.utc) - start).total_seconds() * 1000
+            (datetime.now(UTC) - start).total_seconds() * 1000
         )
         return OctopusResult(
             arm=request.arm.value,

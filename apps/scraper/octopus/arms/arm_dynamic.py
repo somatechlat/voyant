@@ -8,8 +8,8 @@ extraction for modern web applications.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
-from typing import Any, Dict, List
+from datetime import UTC, datetime
+from typing import Any
 
 from playwright.async_api import async_playwright
 
@@ -27,7 +27,7 @@ except Exception:
     logger.warning("playwright-stealth not installed")
 
 
-async def _perform_actions(page, actions: List[BrowserAction]) -> None:
+async def _perform_actions(page, actions: list[BrowserAction]) -> None:
     """Execute a sequence of browser actions on a Playwright page."""
     for action in actions:
         atype = action.type
@@ -75,7 +75,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
     Returns:
         An OctopusResult with rendered HTML and extracted fields.
     """
-    start = datetime.now(timezone.utc)
+    start = datetime.now(UTC)
     html = ""
     status = 0
 
@@ -147,7 +147,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
             job_id=request.job_id,
             success=False,
             duration_ms=int(
-                (datetime.now(timezone.utc) - start).total_seconds() * 1000
+                (datetime.now(UTC) - start).total_seconds() * 1000
             ),
             fetched_at=start.isoformat(),
             error_code="DYNAMIC_ERROR",
@@ -155,25 +155,25 @@ async def execute(request: OctopusRequest) -> OctopusResult:
         )
 
     parser = HTMLParser()
-    extracted: Dict[str, Any] = {}
+    extracted: dict[str, Any] = {}
     if request.css_selectors or request.xpath_selectors:
-        selectors: Dict[str, Any] = {}
+        selectors: dict[str, Any] = {}
         selectors.update(request.css_selectors)
         selectors.update(request.xpath_selectors)
         extracted = parser.extract(html, selectors)
 
-    metadata: Dict[str, Any] = {}
+    metadata: dict[str, Any] = {}
     if request.extract_metadata:
         from apps.scraper.octopus.arms.arm_static import _extract_metadata
 
         metadata = _extract_metadata(html)
 
-    links: List[str] = []
+    links: list[str] = []
     if request.extract_links:
         links = parser.get_all_links(html)
 
     duration_ms = int(
-        (datetime.now(timezone.utc) - start).total_seconds() * 1000
+        (datetime.now(UTC) - start).total_seconds() * 1000
     )
     return OctopusResult(
         arm=request.arm.value,

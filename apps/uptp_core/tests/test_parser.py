@@ -1,8 +1,7 @@
 """
-Strict URIParser Unit Tests (QA Persona)
+Strict URIParser Unit Tests
 
-Verification of the core routing protocols ensures malicious or
-malformed inputs immediately fail before crossing the boundary.
+Verifies that malformed URIs raise ValueError before processing.
 """
 
 import pytest
@@ -46,7 +45,7 @@ def test_pii_hash_redaction_contract():
     import hashlib
 
     ssn = "123-45-6789"
-    # The ETL hash pipeline ensures this specific mathematical transformation
+    # Asserts SHA-256 hash of SSN matches expected value.
     hashed = hashlib.sha256(ssn.encode()).hexdigest()
     # Ensure standard SHA-256 compliance in the generic transformer mechanism
     assert hashed == "01a54629efb952287e554eb23ef69c52097a75aecc0e3a93ca0855ab6d7a31a0"

@@ -10,8 +10,8 @@ import hashlib
 import json
 import logging
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime
+from typing import Any
 from uuid import UUID
 
 from apps.capsules.models import Capsule, CapsuleInstance
@@ -43,8 +43,8 @@ class CapsuleBodyExport:
 @dataclass
 class CapsuleGovernanceExport:
     constitution_ref: dict
-    registry_signature: Optional[str]
-    certified_at: Optional[str]
+    registry_signature: str | None
+    certified_at: str | None
 
 
 @dataclass
@@ -55,7 +55,7 @@ class CapsuleExport:
     tenant: str
     description: str
     status: str
-    parent_id: Optional[str]
+    parent_id: str | None
     soul: CapsuleSoulExport
     body: CapsuleBodyExport
     governance: CapsuleGovernanceExport
@@ -70,7 +70,7 @@ class CapsuleInstanceExport:
     state: dict
     status: str
     started_at: str
-    completed_at: Optional[str]
+    completed_at: str | None
 
 
 @dataclass
@@ -78,7 +78,7 @@ class CapsuleBundleExport:
     export_version: str = "1.0.0"
     exported_at: str = ""
     export_checksum: str = ""
-    capsule: Optional[CapsuleExport] = None
+    capsule: CapsuleExport | None = None
     instances: list = field(default_factory=list)
 
 
@@ -98,7 +98,7 @@ def export_capsule(
 
     bundle = CapsuleBundleExport(
         export_version="1.0.0",
-        exported_at=datetime.now(timezone.utc).isoformat(),
+        exported_at=datetime.now(UTC).isoformat(),
         capsule=_export_capsule_core(capsule),
     )
 
@@ -130,7 +130,7 @@ def export_tenant_capsules(tenant_id: str) -> dict:
     export = {
         "tenant_export_version": "1.0.0",
         "tenant": tenant_id,
-        "exported_at": datetime.now(timezone.utc).isoformat(),
+        "exported_at": datetime.now(UTC).isoformat(),
         "capsule_count": len(exports),
         "capsules": exports,
     }

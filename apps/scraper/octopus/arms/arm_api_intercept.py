@@ -9,8 +9,8 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Set
+from datetime import UTC, datetime
+from typing import Any
 
 from playwright.async_api import async_playwright
 
@@ -34,9 +34,9 @@ async def execute(request: OctopusRequest) -> OctopusResult:
     Returns:
         An OctopusResult with captured JSON payloads and page HTML.
     """
-    start = datetime.now(timezone.utc)
-    captured_json: List[Dict[str, Any]] = []
-    capture_tasks: Set[asyncio.Task] = set()
+    start = datetime.now(UTC)
+    captured_json: list[dict[str, Any]] = []
+    capture_tasks: set[asyncio.Task] = set()
     capturing_enabled = True
 
     try:
@@ -136,7 +136,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
             job_id=request.job_id,
             success=False,
             duration_ms=int(
-                (datetime.now(timezone.utc) - start).total_seconds() * 1000
+                (datetime.now(UTC) - start).total_seconds() * 1000
             ),
             fetched_at=start.isoformat(),
             error_code="API_INTERCEPT_ERROR",
@@ -144,7 +144,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
         )
 
     duration_ms = int(
-        (datetime.now(timezone.utc) - start).total_seconds() * 1000
+        (datetime.now(UTC) - start).total_seconds() * 1000
     )
     return OctopusResult(
         arm=request.arm.value,

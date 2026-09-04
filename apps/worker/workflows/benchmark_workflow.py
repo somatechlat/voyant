@@ -15,15 +15,12 @@ Execution sequence:
 
 import asyncio
 from datetime import timedelta
-from typing import Any, Dict
+from typing import Any
 
 from temporalio import workflow
 
 with workflow.unsafe.imports_passed_through():
-    from apps.worker.activities.analysis_activities import AnalysisActivities
-    from apps.worker.activities.generation_activities import GenerationActivities
-    from apps.worker.activities.ingest_activities import IngestActivities
-    from apps.worker.activities.stats_activities import StatsActivities
+    pass
 
 
 @workflow.defn
@@ -36,7 +33,7 @@ class BenchmarkBrandWorkflow:
     """
 
     @workflow.run
-    async def run(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def run(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Execute the competitive brand analysis benchmark end-to-end.
 
@@ -66,7 +63,7 @@ class BenchmarkBrandWorkflow:
         all_sources = [brand_source] + comp_sources
         ingest_futures = [
             workflow.execute_activity(
-                IngestActivities.run_ingestion,
+                "run_ingestion",
                 {"job_id": f"ingest_{src}_{job_id}", "source_id": src},
                 start_to_close_timeout=timedelta(minutes=10),
             )
@@ -78,7 +75,7 @@ class BenchmarkBrandWorkflow:
 
         # ── Phase 2: Real Data Sampling ──────────────────────────────────────
         brand_sample = await workflow.execute_activity(
-            AnalysisActivities.fetch_sample,
+            "fetch_sample",
             {
                 "source_id": brand_source,
                 "columns": [metric],
@@ -91,7 +88,7 @@ class BenchmarkBrandWorkflow:
         competitor_samples = []
         for src in comp_sources:
             sample = await workflow.execute_activity(
-                AnalysisActivities.fetch_sample,
+                "fetch_sample",
                 {
                     "source_id": src,
                     "columns": [metric],
@@ -124,7 +121,7 @@ class BenchmarkBrandWorkflow:
 
         # ── Phase 3: Statistical Analysis ────────────────────────────────────
         market_share = await workflow.execute_activity(
-            StatsActivities.calculate_market_share,
+            "calculate_market_share",
             {
                 "brand_data": brand_rows,
                 "competitor_data": competitor_rows,
@@ -134,7 +131,7 @@ class BenchmarkBrandWorkflow:
         )
 
         significance_test = await workflow.execute_activity(
-            StatsActivities.perform_hypothesis_test,
+            "perform_hypothesis_test",
             {
                 "group_a": brand_values,
                 "group_b": competitor_values,
@@ -145,7 +142,7 @@ class BenchmarkBrandWorkflow:
 
         # ── Phase 4: Chart Generation ─────────────────────────────────────────
         chart_artifact = await workflow.execute_activity(
-            GenerationActivities.run_generators,
+            "run_generators",
             {
                 "generator": "bar_comparison",
                 "job_id": job_id,
@@ -162,7 +159,7 @@ class BenchmarkBrandWorkflow:
 
         # ── Phase 5: PDF Report via UPTP Render ───────────────────────────────
         report_artifact = await workflow.execute_activity(
-            GenerationActivities.run_generators,
+            "run_generators",
             {
                 "generator": "pdf_report",
                 "job_id": job_id,

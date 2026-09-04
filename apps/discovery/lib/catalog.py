@@ -18,7 +18,6 @@ import logging
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Dict, List, Optional
 
 from apps.discovery.lib.models import ApiEndpoint
 
@@ -48,14 +47,17 @@ class ServiceDef:
     version: str = "1.0.0"
     description: str = ""
     auth_type: str = "none"
-    endpoints: List[ApiEndpoint] = field(
+    spec_url: str | None = None
+    owner: str = "unknown"
+    tags: list[str] = field(default_factory=list)
+    endpoints: list[ApiEndpoint] = field(
         default_factory=list
     )  # Changed type from Dict[str,str] to ApiEndpoint
-    metadata: Dict[str, str] = field(default_factory=dict)
+    metadata: dict[str, str] = field(default_factory=dict)
     first_seen: float = field(default_factory=time.time)
     last_seen: float = field(default_factory=time.time)
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         """
         Converts the ServiceDef object into a dictionary for serialization.
         """
@@ -87,7 +89,7 @@ class DiscoveryRepo:
         """
         Initializes the DiscoveryRepo.
         """
-        self._services: Dict[str, ServiceDef] = {}
+        self._services: dict[str, ServiceDef] = {}
 
     def register(self, service: ServiceDef) -> ServiceDef:
         """
@@ -121,7 +123,7 @@ class DiscoveryRepo:
             logger.info(f"Registered new service: '{service.name}'.")
             return service
 
-    def get(self, name: str) -> Optional[ServiceDef]:
+    def get(self, name: str) -> ServiceDef | None:
         """
         Retrieves a service definition by its unique name.
 
@@ -133,7 +135,7 @@ class DiscoveryRepo:
         """
         return self._services.get(name)
 
-    def list_services(self) -> List[ServiceDef]:
+    def list_services(self) -> list[ServiceDef]:
         """
         Lists all service definitions currently registered in the repository.
 
@@ -142,7 +144,7 @@ class DiscoveryRepo:
         """
         return list(self._services.values())
 
-    def search(self, query: str) -> List[ServiceDef]:
+    def search(self, query: str) -> list[ServiceDef]:
         """
         Searches for services by matching a query against their name or description.
 
@@ -173,7 +175,7 @@ class DiscoveryRepo:
 # Global Instance
 # =============================================================================
 
-_repo: Optional[DiscoveryRepo] = None
+_repo: DiscoveryRepo | None = None
 
 
 def get_discovery_repo() -> DiscoveryRepo:

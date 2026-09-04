@@ -9,7 +9,7 @@ of available endpoints.
 """
 
 import logging
-from typing import Any, Dict
+from typing import Any
 from urllib.parse import urlparse
 
 import requests
@@ -53,7 +53,7 @@ class SpecParser:
             response = requests.get(url, timeout=10)
             response.raise_for_status()
 
-            data: Dict[str, Any]
+            data: dict[str, Any]
             try:
                 # Attempt to parse as JSON first.
                 data = response.json()
@@ -73,7 +73,7 @@ class SpecParser:
             logger.error(f"An unexpected error occurred parsing spec from {url}: {e}")
             raise
 
-    def parse_spec(self, data: Dict[str, Any], source_url: str = "") -> ApiSpec:
+    def parse_spec(self, data: dict[str, Any], source_url: str = "") -> ApiSpec:
         """
         Parses a raw API specification dictionary into an `ApiSpec` model.
 
@@ -147,7 +147,7 @@ class SpecParser:
 
         # Detect Auth Type: Heuristic based on security schemes defined in the spec.
         auth_type = "none"
-        security_schemes: Dict[str, Any] = {}
+        security_schemes: dict[str, Any] = {}
         if is_openapi_v3:
             components = data.get("components", {})
             security_schemes = components.get("securitySchemes", {})

@@ -7,7 +7,7 @@ All models use Pydantic v2 ConfigDict for strict validation and serialization.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -66,8 +66,8 @@ class Finding(BaseModel):
     """A structured finding synthesized from one or more evidence chunks."""
 
     claim: str
-    evidence_chunks: List[EvidenceChunk] = Field(default_factory=list)
-    supporting_sources: List[str] = Field(default_factory=list)
+    evidence_chunks: list[EvidenceChunk] = Field(default_factory=list)
+    supporting_sources: list[str] = Field(default_factory=list)
     confidence_score: float = 0.0
     cross_validated: bool = False
 
@@ -79,8 +79,8 @@ class ResearchReport(BaseModel):
 
     markdown: str = ""
     executive_summary: str = ""
-    findings: List[Finding] = Field(default_factory=list)
-    citations: List[Citation] = Field(default_factory=list)
+    findings: list[Finding] = Field(default_factory=list)
+    citations: list[Citation] = Field(default_factory=list)
     confidence_score: float = 0.0
     generated_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
     query: str = ""
@@ -88,7 +88,7 @@ class ResearchReport(BaseModel):
     depth: int = 0
     urls_processed: int = 0
     sources_deduplicated: int = 0
-    artifact_hash: Optional[str] = None
+    artifact_hash: str | None = None
 
     model_config = ConfigDict(extra="forbid")
 
@@ -98,10 +98,10 @@ class ResearchResult(BaseModel):
 
     status: str = "pending"  # pending | success | failed | partial
     job_id: str = ""
-    config: Optional[ResearchConfig] = None
-    report: Optional[ResearchReport] = None
-    error: Optional[str] = None
-    artifacts: List[Dict[str, Any]] = Field(default_factory=list)
+    config: ResearchConfig | None = None
+    report: ResearchReport | None = None
+    error: str | None = None
+    artifacts: list[dict[str, Any]] = Field(default_factory=list)
 
     model_config = ConfigDict(extra="forbid")
 
@@ -129,7 +129,7 @@ class FetchedContent(BaseModel):
     source_score: float = 0.0
     freshness_score: float = 0.0
     fetched_at: str = ""
-    error: Optional[str] = None
+    error: str | None = None
 
     model_config = ConfigDict(extra="forbid")
 
@@ -137,8 +137,8 @@ class FetchedContent(BaseModel):
 class SynthesisOutput(BaseModel):
     """Intermediate output produced by the synthesizer agent."""
 
-    findings: List[Finding] = Field(default_factory=list)
-    citations: List[Citation] = Field(default_factory=list)
-    follow_up_queries: List[str] = Field(default_factory=list)
+    findings: list[Finding] = Field(default_factory=list)
+    citations: list[Citation] = Field(default_factory=list)
+    follow_up_queries: list[str] = Field(default_factory=list)
 
     model_config = ConfigDict(extra="forbid")

@@ -48,13 +48,13 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from enum import StrEnum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
-class FieldType(str, Enum):
+class FieldType(StrEnum):
     """Enumeration of supported data types for event fields."""
 
     STRING = "string"
@@ -85,10 +85,10 @@ class FieldSpec:
     field_type: FieldType
     required: bool = True
     description: str = ""
-    enum_values: Optional[List[str]] = None
+    enum_values: list[str] | None = None
     default: Any = None
 
-    def to_json_schema(self) -> Dict[str, Any]:
+    def to_json_schema(self) -> dict[str, Any]:
         """Convert the field specification to a JSON Schema property definition."""
         type_mapping = {
             FieldType.STRING: {"type": "string"},
@@ -103,7 +103,7 @@ class FieldSpec:
         schema = type_mapping.get(self.field_type, {"type": "string"})
 
         if self.field_type == FieldType.ENUM and self.enum_values:
-            schema["enum"] = self.enum_values
+            schema["enum"] = self.enum_values  # type: ignore[assignment]
 
         if self.description:
             schema["description"] = self.description
@@ -131,7 +131,7 @@ class EventSchema:
 
     name: str
     version: str
-    fields: List[FieldSpec]
+    fields: list[FieldSpec]
     description: str = ""
 
     # Metadata
@@ -147,7 +147,7 @@ class EventSchema:
             # Schemas here are canonical/static, so a deterministic placeholder timestamp is correct.
             self.created_at = "1970-01-01T00:00:00Z"
 
-    def to_json_schema(self) -> Dict[str, Any]:
+    def to_json_schema(self) -> dict[str, Any]:
         """Convert the EventSchema into a standard JSON Schema format."""
         properties = {}
         required = []
@@ -168,7 +168,7 @@ class EventSchema:
             "additionalProperties": False,  # Disallow unknown fields by default
         }
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Return a dictionary representation of the schema."""
         return {
             "name": self.name,
@@ -200,10 +200,10 @@ class ValidationResult:
     """
 
     valid: bool
-    errors: List[str] = field(default_factory=list)
-    warnings: List[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Return a dictionary representation of the validation result."""
         return {
             "valid": self.valid,
@@ -217,9 +217,9 @@ class ValidationResult:
 # =============================================================================
 
 # In-memory registry mapping (name, version) -> EventSchema
-_schema_registry: Dict[Tuple[str, str], EventSchema] = {}
+_schema_registry: dict[tuple[str, str], EventSchema] = {}
 # In-memory mapping of event name -> latest version string
-_latest_versions: Dict[str, str] = {}
+_latest_versions: dict[str, str] = {}
 
 
 def register_schema(schema: EventSchema) -> None:
@@ -243,7 +243,7 @@ def register_schema(schema: EventSchema) -> None:
     logger.info(f"Registered event schema: {schema.name} v{schema.version}")
 
 
-def get_schema(name: str, version: Optional[str] = None) -> Optional[EventSchema]:
+def get_schema(name: str, version: str | None = None) -> EventSchema | None:
     """
     Retrieve a schema from the registry by name and optional version.
 
@@ -264,7 +264,7 @@ def get_schema(name: str, version: Optional[str] = None) -> Optional[EventSchema
     return None
 
 
-def list_schemas() -> List[Dict[str, Any]]:
+def list_schemas() -> list[dict[str, Any]]:
     """
     List metadata for all registered schemas.
 
@@ -304,8 +304,8 @@ def _version_gt(v1: str, v2: str) -> bool:
 
 def validate_event(
     event_name: str,
-    data: Dict[str, Any],
-    version: Optional[str] = None,
+    data: dict[str, Any],
+    version: str | None = None,
 ) -> ValidationResult:
     """
     Validate a given event data payload against its registered schema.
@@ -368,7 +368,7 @@ def validate_event(
 
 
 def _check_type(
-    value: Any, expected_type: FieldType, enum_values: Optional[List[str]]
+    value: Any, expected_type: FieldType, enum_values: list[str] | None
 ) -> bool:
     """
     Internal helper to check if a value matches the expected FieldType.
@@ -569,7 +569,6 @@ def _register_canonical_schemas():
     )
 
 
-# Initialize all canonical schemas when this module is first imported.
 _register_canonical_schemas()
 
 

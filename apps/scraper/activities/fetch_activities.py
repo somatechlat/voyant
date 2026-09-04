@@ -1,4 +1,3 @@
-import typing
 """
 Voyant Scraper — Fetch Activities.
 
@@ -11,8 +10,9 @@ Extracted from scraper/activities.py (Rule 245 compliance — 949-line split).
 import asyncio
 import json
 import logging
+import typing
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any
 
 from temporalio import activity
 from temporalio.exceptions import ApplicationError
@@ -41,7 +41,7 @@ class FetchActivities:
             return
 
     @activity.defn(name="fetch_page")
-    async def fetch_page(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def fetch_page(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Fetch a web page using a specified engine (Playwright, httpx, or Scrapy).
         This activity is a mechanical executor and includes SSRF protection.
@@ -139,7 +139,7 @@ class FetchActivities:
         capture_url_contains: list[str] | None = None,
         capture_max_bytes: int = 524288,
         capture_max_items: int = 25,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Fetch a URL using Playwright to support JavaScript rendering."""
         from playwright.async_api import async_playwright
 
@@ -283,7 +283,7 @@ class FetchActivities:
             return result
 
     @activity.defn(name="deep_archive")
-    async def deep_archive(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def deep_archive(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Generic deep archival scrape. Connects to obfuscated SPAs/tabbed interfaces,
         invokes UI clicks programmatically, and intercepts/downloads matching files.
@@ -421,7 +421,7 @@ class FetchActivities:
 
             return extracted_data
 
-    async def _fetch_httpx(self, url: str, timeout: int = 30) -> Dict[str, Any]:
+    async def _fetch_httpx(self, url: str, timeout: int = 30) -> dict[str, Any]:
         """Fetch a URL using httpx for fast static HTML retrieval."""
         import ssl
 
@@ -455,7 +455,7 @@ class FetchActivities:
                 "fetched_at": datetime.utcnow().isoformat(),
             }
 
-    async def _fetch_scrapy(self, url: str, timeout: int = 30) -> Dict[str, Any]:
+    async def _fetch_scrapy(self, url: str, timeout: int = 30) -> dict[str, Any]:
         """Scrapy engine is not yet integrated. Raises to prevent silent httpx fallback."""
         raise ApplicationError(
             "Scrapy engine is not yet integrated. Use 'playwright', 'httpx', or 'browserless'.",

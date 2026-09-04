@@ -9,7 +9,7 @@ Features:
 - In-memory provider (testing)
 - File provider (development)
 - Fernet encryption support
-- Vault provider (production-ready)
+- Vault provider
 - AWS KMS provider (extensible)
 - Secret rotation support
 
@@ -44,7 +44,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from apps.core.config import get_settings
 
@@ -58,11 +58,11 @@ class SecretMetadata:
     key: str
     created_at: str
     updated_at: str
-    expires_at: Optional[str] = None
+    expires_at: str | None = None
     version: int = 1
-    tags: Dict[str, str] = field(default_factory=dict)
+    tags: dict[str, str] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "key": self.key,
             "created_at": self.created_at,
@@ -82,12 +82,12 @@ class SecretsBackend(ABC):
     """
 
     @abstractmethod
-    async def get(self, key: str) -> Optional[str]:
+    async def get(self, key: str) -> str | None:
         """Get a secret value by key."""
         pass
 
     @abstractmethod
-    async def set(self, key: str, value: str, expires_in: Optional[int] = None) -> bool:
+    async def set(self, key: str, value: str, expires_in: int | None = None) -> bool:
         """Set a secret value. expires_in is seconds."""
         pass
 
@@ -97,12 +97,12 @@ class SecretsBackend(ABC):
         pass
 
     @abstractmethod
-    async def list_keys(self) -> List[str]:
+    async def list_keys(self) -> list[str]:
         """List all secret keys (not values)."""
         pass
 
     @abstractmethod
-    async def get_metadata(self, key: str) -> Optional[SecretMetadata]:
+    async def get_metadata(self, key: str) -> SecretMetadata | None:
         """Get metadata for a secret."""
         pass
 
@@ -126,14 +126,14 @@ class InMemorySecretsBackend(SecretsBackend):
     """
 
     def __init__(self):
-        self._secrets: Dict[str, str] = {}
-        self._metadata: Dict[str, SecretMetadata] = {}
+        self._secrets: dict[str, str] = {}
+        self._metadata: dict[str, SecretMetadata] = {}
 
     @property
     def provider_name(self) -> str:
         return "memory"
 
-    async def get(self, key: str) -> Optional[str]:
+    async def get(self, key: str) -> str | None:
         meta = self._metadata.get(key)
         if meta and meta.expires_at:
             if datetime.utcnow().isoformat() > meta.expires_at:
@@ -141,7 +141,7 @@ class InMemorySecretsBackend(SecretsBackend):
                 return None
         return self._secrets.get(key)
 
-    async def set(self, key: str, value: str, expires_in: Optional[int] = None) -> bool:
+    async def set(self, key: str, value: str, expires_in: int | None = None) -> bool:
         now = datetime.utcnow().isoformat() + "Z"
         expires_at = None
         if expires_in:
@@ -172,10 +172,10 @@ class InMemorySecretsBackend(SecretsBackend):
             return True
         return False
 
-    async def list_keys(self) -> List[str]:
+    async def list_keys(self) -> list[str]:
         return list(self._secrets.keys())
 
-    async def get_metadata(self, key: str) -> Optional[SecretMetadata]:
+    async def get_metadata(self, key: str) -> SecretMetadata | None:
         return self._metadata.get(key)
 
 
@@ -195,20 +195,20 @@ class EnvSecretsBackend(SecretsBackend):
     def _key_to_env(key: str) -> str:
         return key.upper().replace("/", "_").replace("-", "_")
 
-    async def get(self, key: str) -> Optional[str]:
+    async def get(self, key: str) -> str | None:
         return os.environ.get(self._key_to_env(key))
 
-    async def set(self, key: str, value: str, expires_in: Optional[int] = None) -> bool:
+    async def set(self, key: str, value: str, expires_in: int | None = None) -> bool:
         os.environ[self._key_to_env(key)] = value
         return True
 
     async def delete(self, key: str) -> bool:
         return os.environ.pop(self._key_to_env(key), None) is not None
 
-    async def list_keys(self) -> List[str]:
+    async def list_keys(self) -> list[str]:
         return sorted(os.environ.keys())
 
-    async def get_metadata(self, key: str) -> Optional[SecretMetadata]:
+    async def get_metadata(self, key: str) -> SecretMetadata | None:
         if await self.get(key) is None:
             return None
         now = datetime.utcnow().isoformat() + "Z"
@@ -233,7 +233,7 @@ class K8sSecretsBackend(SecretsBackend):
     def _path(self, key: str) -> Path:
         return self._root / key
 
-    async def get(self, key: str) -> Optional[str]:
+    async def get(self, key: str) -> str | None:
         try:
             return self._path(key).read_text(encoding="utf-8").strip()
         except FileNotFoundError:
@@ -242,7 +242,7 @@ class K8sSecretsBackend(SecretsBackend):
             logger.error(f"K8s secret read error for '{key}': {e}")
             return None
 
-    async def set(self, key: str, value: str, expires_in: Optional[int] = None) -> bool:
+    async def set(self, key: str, value: str, expires_in: int | None = None) -> bool:
         logger.error(f"K8s secrets backend is read-only; cannot set '{key}'")
         return False
 
@@ -250,7 +250,7 @@ class K8sSecretsBackend(SecretsBackend):
         logger.error(f"K8s secrets backend is read-only; cannot delete '{key}'")
         return False
 
-    async def list_keys(self) -> List[str]:
+    async def list_keys(self) -> list[str]:
         if not self._root.exists():
             return []
         return sorted(
@@ -259,7 +259,7 @@ class K8sSecretsBackend(SecretsBackend):
             if path.is_file()
         )
 
-    async def get_metadata(self, key: str) -> Optional[SecretMetadata]:
+    async def get_metadata(self, key: str) -> SecretMetadata | None:
         path = self._path(key)
         if not path.exists():
             return None
@@ -281,7 +281,7 @@ class FileSecretsBackend(SecretsBackend):
     Security: Uses Fernet symmetric encryption if UDB_SECRET_KEY is set.
     """
 
-    def __init__(self, path: str = ".secrets.json", encrypt_key: Optional[str] = None):
+    def __init__(self, path: str = ".secrets.json", encrypt_key: str | None = None):
         self._path = Path(path)
         self._encrypt_key = encrypt_key or get_settings().udb_secret_key
         self._fernet = None
@@ -304,7 +304,7 @@ class FileSecretsBackend(SecretsBackend):
     def provider_name(self) -> str:
         return "file"
 
-    def _load(self) -> Dict[str, Any]:
+    def _load(self) -> dict[str, Any]:
         if not self._path.exists():
             return {"secrets": {}, "metadata": {}}
 
@@ -317,7 +317,7 @@ class FileSecretsBackend(SecretsBackend):
             logger.error(f"Failed to load secrets: {e}")
             return {"secrets": {}, "metadata": {}}
 
-    def _save(self, data: Dict[str, Any]) -> bool:
+    def _save(self, data: dict[str, Any]) -> bool:
         try:
             content = json.dumps(data, indent=2)
             if self._fernet:
@@ -328,7 +328,7 @@ class FileSecretsBackend(SecretsBackend):
             logger.error(f"Failed to save secrets: {e}")
             return False
 
-    async def get(self, key: str) -> Optional[str]:
+    async def get(self, key: str) -> str | None:
         data = self._load()
         meta_dict = data.get("metadata", {}).get(key)
 
@@ -339,7 +339,7 @@ class FileSecretsBackend(SecretsBackend):
 
         return data.get("secrets", {}).get(key)
 
-    async def set(self, key: str, value: str, expires_in: Optional[int] = None) -> bool:
+    async def set(self, key: str, value: str, expires_in: int | None = None) -> bool:
         data = self._load()
         secrets = data.get("secrets", {})
         metadata = data.get("metadata", {})
@@ -381,11 +381,11 @@ class FileSecretsBackend(SecretsBackend):
                 return True
         return False
 
-    async def list_keys(self) -> List[str]:
+    async def list_keys(self) -> list[str]:
         data = self._load()
         return list(data.get("secrets", {}).keys())
 
-    async def get_metadata(self, key: str) -> Optional[SecretMetadata]:
+    async def get_metadata(self, key: str) -> SecretMetadata | None:
         data = self._load()
         meta_dict = data.get("metadata", {}).get(key)
         if meta_dict:
@@ -414,8 +414,8 @@ class VaultSecretsBackend(SecretsBackend):
 
     def __init__(
         self,
-        addr: Optional[str] = None,
-        token: Optional[str] = None,
+        addr: str | None = None,
+        token: str | None = None,
         mount_point: str = "secret",
     ):
         settings = get_settings()
@@ -442,7 +442,7 @@ class VaultSecretsBackend(SecretsBackend):
                 logger.error("hvac package not installed")
         return self._client
 
-    async def get(self, key: str) -> Optional[str]:
+    async def get(self, key: str) -> str | None:
         client = self._get_client()
         if not client:
             return None
@@ -457,7 +457,7 @@ class VaultSecretsBackend(SecretsBackend):
             logger.error(f"Vault get error: {e}")
             return None
 
-    async def set(self, key: str, value: str, expires_in: Optional[int] = None) -> bool:
+    async def set(self, key: str, value: str, expires_in: int | None = None) -> bool:
         client = self._get_client()
         if not client:
             return False
@@ -490,7 +490,7 @@ class VaultSecretsBackend(SecretsBackend):
             logger.error(f"Vault delete error: {e}")
             return False
 
-    async def list_keys(self) -> List[str]:
+    async def list_keys(self) -> list[str]:
         client = self._get_client()
         if not client:
             return []
@@ -505,7 +505,7 @@ class VaultSecretsBackend(SecretsBackend):
             logger.error(f"Vault list error: {e}")
             return []
 
-    async def get_metadata(self, key: str) -> Optional[SecretMetadata]:
+    async def get_metadata(self, key: str) -> SecretMetadata | None:
         client = self._get_client()
         if not client:
             return None
@@ -531,7 +531,7 @@ class VaultSecretsBackend(SecretsBackend):
 # Provider Factory
 # =============================================================================
 
-_backend: Optional[SecretsBackend] = None
+_backend: SecretsBackend | None = None
 
 
 def get_secrets_backend() -> SecretsBackend:
@@ -583,12 +583,12 @@ def get_secrets_backend() -> SecretsBackend:
     return _backend
 
 
-async def get_secret(key: str) -> Optional[str]:
+async def get_secret(key: str) -> str | None:
     """Get a secret value."""
     return await get_secrets_backend().get(key)
 
 
-async def set_secret(key: str, value: str, expires_in: Optional[int] = None) -> bool:
+async def set_secret(key: str, value: str, expires_in: int | None = None) -> bool:
     """Set a secret value."""
     return await get_secrets_backend().set(key, value, expires_in)
 
@@ -598,7 +598,7 @@ async def delete_secret(key: str) -> bool:
     return await get_secrets_backend().delete(key)
 
 
-async def list_secret_keys() -> List[str]:
+async def list_secret_keys() -> list[str]:
     """List all secret keys."""
     return await get_secrets_backend().list_keys()
 

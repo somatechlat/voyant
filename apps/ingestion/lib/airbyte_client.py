@@ -1,5 +1,5 @@
 """
-Airbyte HTTP Client: Production-Ready Integration for Data Ingestion.
+Airbyte HTTP Client for Data Ingestion.
 
 This module provides an asynchronous, resilient client for interacting with the
 Airbyte API. It enables Voyant to programmatically manage data synchronization
@@ -8,7 +8,7 @@ jobs, monitor their status, and orchestrate data ingestion from various sources.
 Key features include:
 -   Asynchronous HTTP communication using `httpx`.
 -   Integration with a circuit breaker pattern for enhanced fault tolerance.
--   Robust error handling with specific exception types.
+-   Error handling with specific exception types.
 -   Support for common Airbyte operations such as listing connections,
     triggering syncs, and monitoring job status.
 """
@@ -19,8 +19,8 @@ import asyncio
 import logging
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum
-from typing import Any, Dict, List, Optional
+from enum import StrEnum
+from typing import Any
 
 import httpx
 
@@ -28,6 +28,7 @@ from apps.core.lib.circuit_breaker import (
     CircuitBreaker,
     CircuitBreakerConfig,
     CircuitBreakerOpenError,
+    CircuitState,
     get_circuit_breaker,
 )
 from apps.core.lib.errors import ExternalServiceError
@@ -40,7 +41,7 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 
-class AirbyteJobStatus(str, Enum):
+class AirbyteJobStatus(StrEnum):
     """
     Enumeration representing the possible states of an Airbyte synchronization job.
     """
@@ -85,9 +86,9 @@ class AirbyteClientConfig:
     cb_success_threshold: int = 3
 
     # Authentication credentials.
-    api_key: Optional[str] = None
-    basic_auth_user: Optional[str] = None
-    basic_auth_password: Optional[str] = None
+    api_key: str | None = None
+    basic_auth_user: str | None = None
+    basic_auth_password: str | None = None
 
 
 # =============================================================================
@@ -105,7 +106,7 @@ class AirbyteClient:
     temporary Airbyte service unavailability.
     """
 
-    def __init__(self, config: Optional[AirbyteClientConfig] = None):
+    def __init__(self, config: AirbyteClientConfig | None = None):
         """
         Initializes the AirbyteClient with specified or default configuration.
 
@@ -116,13 +117,12 @@ class AirbyteClient:
         self.config = config or AirbyteClientConfig()
         if not self.config.base_url:
             raise ValueError("Airbyte base_url must be configured")
-        self._client: Optional[httpx.AsyncClient] = None
+        self._client: httpx.AsyncClient | None = None
         self._circuit_breaker: CircuitBreaker
 
-        # Initialize circuit breaker for Airbyte API calls.
         cb_config = CircuitBreakerConfig(
             failure_threshold=self.config.cb_failure_threshold,
-            recovery_timeout=self.config.cb_recovery_timeout,
+            recovery_timeout=int(self.config.cb_recovery_timeout),
             success_threshold=self.config.cb_success_threshold,
         )
         self._circuit_breaker = get_circuit_breaker("airbyte", cb_config)
@@ -163,8 +163,8 @@ class AirbyteClient:
         return self._client
 
     async def _request(
-        self, method: str, endpoint: str, json_data: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        self, method: str, endpoint: str, json_data: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """
         Makes an HTTP request to the Airbyte API, protected by a circuit breaker.
 
@@ -182,7 +182,7 @@ class AirbyteClient:
             ValueError: If an unsupported HTTP method is used.
         """
         # Check circuit breaker state before proceeding with the request.
-        if not self._circuit_breaker.can_proceed():
+        if self._circuit_breaker.get_state() == CircuitState.OPEN:
             logger.warning("Airbyte API circuit breaker is OPEN. Failing fast.")
             raise CircuitBreakerOpenError(
                 "Airbyte service is currently unavailable (circuit breaker is open)."
@@ -215,14 +215,19 @@ class AirbyteClient:
                 f"Airbyte API returned HTTP error: {e.response.status_code} for {endpoint}."
             )
             raise ExternalServiceError(
-                service_name="Airbyte",
-                details=f"HTTP {e.response.status_code}: {e.response.text[:200]}...",
+                code="VYNT-6001",
+                message=f"Airbyte HTTP error: {e.response.status_code}",
+                details={"status_code": e.response.status_code, "response": e.response.text[:200]},
             ) from e
         except httpx.RequestError as e:
             # Record a failure with the circuit breaker and raise a specific error for network issues.
             self._circuit_breaker.record_failure()
             logger.error(f"Airbyte connection error for {endpoint}: {e}.")
-            raise ExternalServiceError(service_name="Airbyte", details=str(e)) from e
+            raise ExternalServiceError(
+                code="VYNT-6001",
+                message="Airbyte connection error",
+                details={"error": str(e)},
+            ) from e
         except Exception as e:
             # Catch other unexpected errors and record as failure.
             self._circuit_breaker.record_failure()
@@ -230,7 +235,9 @@ class AirbyteClient:
                 f"An unexpected error occurred during Airbyte API request to {endpoint}: {e}."
             )
             raise ExternalServiceError(
-                service_name="Airbyte", details=f"Unexpected error: {e}"
+                code="VYNT-6001",
+                message="Airbyte unexpected error",
+                details={"error": str(e)},
             ) from e
 
     async def close(self):
@@ -248,7 +255,7 @@ class AirbyteClient:
     # Connection Operations
     # =========================================================================
 
-    async def list_connections(self) -> List[Dict[str, Any]]:
+    async def list_connections(self) -> list[dict[str, Any]]:
         """
         Retrieves a list of all existing Airbyte connections.
 
@@ -259,7 +266,7 @@ class AirbyteClient:
         response = await self._request("GET", "/connections")
         return response.get("connections", [])
 
-    async def get_connection(self, connection_id: str) -> Dict[str, Any]:
+    async def get_connection(self, connection_id: str) -> dict[str, Any]:
         """
         Retrieves details for a specific Airbyte connection by its ID.
 
@@ -275,10 +282,60 @@ class AirbyteClient:
         return await self._request("GET", f"/connections/{connection_id}")
 
     # =========================================================================
+    # Dynamic Connection Operations
+    # =========================================================================
+
+    async def create_dynamic_connection(
+        self,
+        workspace_id: str,
+        connector_id: str,
+        credentials: dict[str, Any],
+        target_namespace: str,
+    ) -> str:
+        """
+        Creates a new Airbyte connection dynamically for a given source connector.
+
+        Args:
+            workspace_id: The Airbyte workspace ID (or tenant identifier).
+            connector_id: The Airbyte source connector definition ID.
+            credentials: Source-specific configuration (host, port, auth, etc.).
+            target_namespace: The destination namespace for the synced data.
+
+        Returns:
+            The connection_id of the newly created connection.
+
+        Raises:
+            ExternalServiceError: If the Airbyte API returns an error.
+        """
+        logger.info(
+            f"Creating dynamic Airbyte connection: workspace={workspace_id}, "
+            f"connector={connector_id}, namespace={target_namespace}"
+        )
+
+        payload: dict[str, Any] = {
+            "workspaceId": workspace_id,
+            "sourceDefinitionId": connector_id,
+            "sourceConfiguration": credentials,
+            "destinationNamespace": target_namespace,
+        }
+
+        response = await self._request("POST", "/connections", json_data=payload)
+
+        connection_id = response.get("connectionId") or response.get("connection", {}).get(
+            "connectionId", ""
+        )
+
+        logger.info(
+            f"Dynamic Airbyte connection created: connection_id={connection_id}"
+        )
+
+        return connection_id
+
+    # =========================================================================
     # Sync Operations
     # =========================================================================
 
-    async def trigger_sync(self, connection_id: str) -> Dict[str, Any]:
+    async def trigger_sync(self, connection_id: str) -> dict[str, Any]:
         """
         Triggers a data synchronization job for a given Airbyte connection.
 
@@ -306,7 +363,7 @@ class AirbyteClient:
             "triggered_at": datetime.utcnow().isoformat(),
         }
 
-    async def get_job_status(self, job_id: str) -> Dict[str, Any]:
+    async def get_job_status(self, job_id: str) -> dict[str, Any]:
         """
         Retrieves the current status and metrics of an Airbyte synchronization job.
 
@@ -331,7 +388,7 @@ class AirbyteClient:
             "updated_at": job_info.get("updatedAt"),
         }
 
-    async def cancel_job(self, job_id: str) -> Dict[str, Any]:
+    async def cancel_job(self, job_id: str) -> dict[str, Any]:
         """
         Cancels a running Airbyte synchronization job.
 
@@ -346,7 +403,7 @@ class AirbyteClient:
 
     async def wait_for_completion(
         self, job_id: str, poll_interval: float = 5.0, timeout: float = 3600.0
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Waits for an Airbyte synchronization job to complete, polling its status periodically.
 
@@ -404,7 +461,7 @@ class AirbyteClient:
             logger.warning(f"Airbyte health check failed: {e}.")
             return False
 
-    def get_circuit_breaker_status(self) -> Dict[str, Any]:
+    def get_circuit_breaker_status(self) -> dict[str, Any]:
         """
         Retrieves the current status and metrics of the internal circuit breaker.
 
@@ -421,10 +478,10 @@ class AirbyteClient:
 # Global Client Instance & Convenience Functions
 # =============================================================================
 
-_global_client: Optional[AirbyteClient] = None
+_global_client: AirbyteClient | None = None
 
 
-def get_airbyte_client(config: Optional[AirbyteClientConfig] = None) -> AirbyteClient:
+def get_airbyte_client(config: AirbyteClientConfig | None = None) -> AirbyteClient:
     """
     Retrieves the singleton instance of the AirbyteClient.
 
@@ -445,7 +502,7 @@ def get_airbyte_client(config: Optional[AirbyteClientConfig] = None) -> AirbyteC
     return _global_client
 
 
-async def trigger_airbyte_sync(connection_id: str) -> Dict[str, Any]:
+async def trigger_airbyte_sync(connection_id: str) -> dict[str, Any]:
     """
     Convenience function to trigger an Airbyte synchronization job.
 
@@ -459,7 +516,7 @@ async def trigger_airbyte_sync(connection_id: str) -> Dict[str, Any]:
     return await client.trigger_sync(connection_id)
 
 
-async def get_airbyte_job_status(job_id: str) -> Dict[str, Any]:
+async def get_airbyte_job_status(job_id: str) -> dict[str, Any]:
     """
     Convenience function to retrieve the status of an Airbyte synchronization job.
 

@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
-from authzed.api.v1 import (
+from authzed.api.v1 import (  # type: ignore[reportMissingImports]
     CheckPermissionRequest,
     CheckPermissionResponse,
     Consistency,
@@ -52,7 +51,7 @@ class SpiceRBAC:
         permission: str,
         subject_type: str,
         subject_id: str,
-        subject_relation: Optional[str] = None,
+        subject_relation: str | None = None,
     ) -> bool:
         """
         Check whether *subject* has *permission* on *resource*.
@@ -131,7 +130,7 @@ class SpiceRBAC:
         relation: str,
         subject_type: str,
         subject_id: str,
-        subject_relation: Optional[str] = None,
+        subject_relation: str | None = None,
     ) -> bool:
         """
         Idempotently write a relationship tuple to SpiceDB.
@@ -185,7 +184,7 @@ class SpiceRBAC:
         relation: str,
         subject_type: str,
         subject_id: str,
-        subject_relation: Optional[str] = None,
+        subject_relation: str | None = None,
     ) -> bool:
         """
         Delete a relationship tuple from SpiceDB.

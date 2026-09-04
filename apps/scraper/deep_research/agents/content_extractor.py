@@ -8,7 +8,7 @@ priority-based fallback chain. All extraction is deterministic.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -46,9 +46,8 @@ except ImportError:
     pass
 
 try:
-    import crawl4ai  # type: ignore[import-not-found]
-
-    _CRAWL4AI_AVAILABLE = True
+    import importlib.util
+    _CRAWL4AI_AVAILABLE = importlib.util.find_spec("crawl4ai") is not None
 except ImportError:
     pass
 
@@ -72,7 +71,7 @@ class ContentExtractor:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _extract_trafilatura(html: str, url: str) -> Optional[Dict[str, Any]]:
+    def _extract_trafilatura(html: str, url: str) -> dict[str, Any] | None:
         if not _TRAFILATURA_AVAILABLE:
             return None
         try:
@@ -84,7 +83,7 @@ class ContentExtractor:
         return None
 
     @staticmethod
-    def _extract_readability(html: str, url: str) -> Optional[Dict[str, Any]]:
+    def _extract_readability(html: str, url: str) -> dict[str, Any] | None:
         if not _READABILITY_AVAILABLE:
             return None
         try:
@@ -105,7 +104,7 @@ class ContentExtractor:
         return None
 
     @staticmethod
-    def _extract_newspaper(html: str, url: str) -> Optional[Dict[str, Any]]:
+    def _extract_newspaper(html: str, url: str) -> dict[str, Any] | None:
         if not _NEWSPAPER_AVAILABLE:
             return None
         try:
@@ -124,7 +123,7 @@ class ContentExtractor:
         return None
 
     @staticmethod
-    def _extract_crawl4ai(html: str, url: str) -> Optional[Dict[str, Any]]:
+    def _extract_crawl4ai(html: str, url: str) -> dict[str, Any] | None:
         if not _CRAWL4AI_AVAILABLE:
             return None
         try:
@@ -147,7 +146,7 @@ class ContentExtractor:
     # Public API
     # ------------------------------------------------------------------
 
-    def extract(self, html: str, url: str) -> Dict[str, Any]:
+    def extract(self, html: str, url: str) -> dict[str, Any]:
         """
         Extract content from *html* originating from *url*.
 
@@ -177,7 +176,7 @@ class ContentExtractor:
 
     def bulk_extract(
         self, items: list[tuple[str, str]]
-    ) -> list[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Extract content from multiple (url, html) pairs.
 

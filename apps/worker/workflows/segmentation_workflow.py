@@ -8,7 +8,7 @@ the results by profiling the characteristics of each identified segment.
 """
 
 from datetime import timedelta
-from typing import Any, Dict
+from typing import Any
 
 from temporalio import workflow
 
@@ -16,7 +16,7 @@ from temporalio import workflow
 # modules within the workflow definition. It passes control to the Python
 # import system directly, bypassing Temporal's default import handling.
 with workflow.unsafe.imports_passed_through():
-    from apps.worker.activities.ml_activities import MLActivities
+    pass
 
 
 @workflow.defn
@@ -26,7 +26,7 @@ class SegmentCustomersWorkflow:
     """
 
     @workflow.run
-    async def run(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def run(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Executes the customer segmentation analysis workflow.
 
@@ -53,7 +53,7 @@ class SegmentCustomersWorkflow:
         # Execute the activity that performs the clustering analysis (e.g., K-Means).
         # This offloads the heavy computation to a dedicated activity worker.
         result = await workflow.execute_activity(
-            MLActivities.cluster_data,
+            "cluster_data",
             {"data": data, "clusters": n_segments},
             start_to_close_timeout=timedelta(
                 minutes=10

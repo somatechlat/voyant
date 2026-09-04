@@ -4,7 +4,7 @@ Retry Policy and Timeout Configuration
 Centralized configuration for Temporal activity retry policies and timeouts.
 It provides a set of pre-defined policies with sensible defaults
 for common scenarios, such as external service calls and data processing tasks.
-These configurations are designed to ensure the robustness and reliability of
+These configurations provide defaults for
 Temporal activities.
 """
 

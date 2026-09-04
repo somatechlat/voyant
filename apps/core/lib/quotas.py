@@ -27,7 +27,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +50,7 @@ class QuotaTier:
 
 
 # Default quota tiers
-QUOTA_TIERS: Dict[str, QuotaTier] = {
+QUOTA_TIERS: dict[str, QuotaTier] = {
     "free": QuotaTier(
         name="Free",
         max_jobs_per_day=10,
@@ -108,9 +108,9 @@ class TenantUsage:
 
 
 # In-memory usage store; keyed by tenant_id.
-_usage_store: Dict[str, TenantUsage] = {}
+_usage_store: dict[str, TenantUsage] = {}
 # Tenant-to-tier assignment table; persisted via set_tenant_tier().
-_tenant_tiers: Dict[str, str] = {}
+_tenant_tiers: dict[str, str] = {}
 
 
 def _get_usage(tenant_id: str) -> TenantUsage:
@@ -153,7 +153,7 @@ def get_tenant_tier(tenant_id: str) -> str:
     return _tenant_tiers.get(tenant_id, DEFAULT_TIER)
 
 
-def get_quota_limits(tenant_id: str) -> Dict[str, Any]:
+def get_quota_limits(tenant_id: str) -> dict[str, Any]:
     """Get quota limits for a tenant."""
     tier = get_tenant_tier(tenant_id)
     quota = QUOTA_TIERS[tier]
@@ -168,7 +168,7 @@ def get_quota_limits(tenant_id: str) -> Dict[str, Any]:
     }
 
 
-def get_usage_status(tenant_id: str) -> Dict[str, Any]:
+def get_usage_status(tenant_id: str) -> dict[str, Any]:
     """Get current usage status for a tenant."""
     usage = _get_usage(tenant_id)
     _reset_daily_if_needed(usage)
@@ -189,7 +189,7 @@ def get_usage_status(tenant_id: str) -> Dict[str, Any]:
     }
 
 
-def check_quota(tenant_id: str, quota_type: str) -> Tuple[bool, Optional[str]]:
+def check_quota(tenant_id: str, quota_type: str) -> tuple[bool, str | None]:
     """
     Check if tenant can use a quota resource.
 
@@ -302,7 +302,7 @@ def reset_tenant_usage(tenant_id: str) -> None:
         _usage_store[tenant_id] = TenantUsage(tenant_id=tenant_id, tier=tier)
 
 
-def list_tiers() -> Dict[str, Dict[str, Any]]:
+def list_tiers() -> dict[str, dict[str, Any]]:
     """List all available quota tiers."""
     return {
         name: {

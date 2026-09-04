@@ -21,7 +21,7 @@ This command:
 - waits for core services to be healthy/running
 - runs smoke checks on API, MinIO, Keycloak, and Trino
 
-## Services Included (18 Total)
+## Services Included (23 Total)
 
 | Service | Port | Purpose |
 |---------|------|---------|
@@ -39,8 +39,15 @@ This command:
 | voyant_datahub_gms | 45081 | DataHub Backend |
 | voyant_datahub_frontend | 45002 | DataHub UI |
 | voyant_keycloak | 45180 | Identity & Auth |
+| voyant_vault | 45820 | Secrets Management |
+| voyant_spicedb | 50051 | Authorization (ReBAC) |
+| voyant_etcd | - | Milvus metadata store |
+| voyant_milvus | 19530 | Vector Database |
 | voyant_flink_jobmanager | 45082 | Flink JobManager UI |
 | voyant_flink_taskmanager | - | Flink TaskManager |
+| voyant_searxng | 45088 | Search Engine |
+| voyant_flaresolverr | 45191 | Anti-bot bypass |
+| voyant_browserless | 45300 | Headless Chrome |
 
 ## Memory Budget
 

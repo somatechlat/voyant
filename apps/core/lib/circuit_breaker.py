@@ -1,13 +1,12 @@
 """
 Circuit Breaker Pattern Implementation for Fault-Tolerant Systems.
 
-This module provides a robust, thread-safe implementation of the Circuit Breaker
+This module provides a thread-safe implementation of the Circuit Breaker
 design pattern. It is designed to prevent cascading failures in a distributed
 system by wrapping calls to external services and automatically rejecting calls
 to a service that is deemed unhealthy.
 
-Adheres to Vibe Coding Rules: This is a real, production-ready state machine with
-no mocks, designed for high performance and reliability.
+State machine with OPEN/HALF_OPEN/CLOSED states.
 
 The Circuit Breaker has three states:
 - CLOSED: Normal operation. Calls are passed through to the wrapped function.
@@ -20,25 +19,25 @@ The Circuit Breaker has three states:
 Personas Applied:
 - PhD-level Software Developer: Implements a classic state machine with thread
   safety using locks to ensure correctness in concurrent environments.
-- Performance Engineer: Ensures minimal overhead (<1ms) on the hot path by
+- Performance Engineer: Aims for minimal overhead (<1ms) on the hot path by
   using efficient in-memory counters and locks.
-- Security Auditor: Ensures that error messages do not leak sensitive internal
-  details about the failing service.
-- ISO Documenter: Provides clear documentation for states, transitions, and usage.
-- UX Consultant: Provides a manual reset capability for operational flexibility.
+- Security Auditor: Prevents error message leakage about the failing service.
+- ISO Documenter: Documents states, transitions, and usage.
+- UX Consultant: Includes manual reset for operational flexibility.
 """
 
 import logging
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
-from enum import Enum
-from typing import Any, Callable, Optional
+from enum import StrEnum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
-class CircuitState(str, Enum):
+class CircuitState(StrEnum):
     """Enumeration for the possible states of the circuit breaker."""
 
     CLOSED = "closed"
@@ -86,7 +85,7 @@ class CircuitBreaker:
     Performance Engineer: O(1) state check on the critical path, minimal overhead.
     """
 
-    def __init__(self, name: str, config: Optional[CircuitBreakerConfig] = None):
+    def __init__(self, name: str, config: CircuitBreakerConfig | None = None):
         """
         Initialize a new Circuit Breaker.
 
@@ -160,6 +159,14 @@ class CircuitBreaker:
                 self._transition_to(CircuitState.HALF_OPEN)
 
         return self._state.state
+
+    def record_success(self) -> None:
+        """Record a successful call externally (e.g., from outside the call() wrapper)."""
+        self._on_success()
+
+    def record_failure(self) -> None:
+        """Record a failed call externally (e.g., from outside the call() wrapper)."""
+        self._on_failure()
 
     def _on_success(self):
         """Update state upon a successful call."""
@@ -261,7 +268,7 @@ _registry_lock = threading.Lock()
 
 
 def get_circuit_breaker(
-    name: str, config: Optional[CircuitBreakerConfig] = None
+    name: str, config: CircuitBreakerConfig | None = None
 ) -> CircuitBreaker:
     """
     Factory function to get or create a named CircuitBreaker instance.

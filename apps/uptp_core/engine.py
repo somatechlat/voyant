@@ -1,7 +1,7 @@
 import logging
 import uuid
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Dict
+from typing import Any
 
 from django.core.exceptions import ValidationError
 
@@ -47,7 +47,7 @@ class UPTPExecutionEngine:
     """
 
     @staticmethod
-    def dispatch_execution(request: TemplateExecutionRequest) -> Dict[str, Any]:
+    def dispatch_execution(request: TemplateExecutionRequest) -> dict[str, Any]:
         """
         Translates the Agent's generic request into the physical Temporal workflow
         or synchronous DuckDB/Plotly execution natively mapped.

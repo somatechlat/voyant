@@ -14,8 +14,8 @@ The target architecture (`docs/architecture/DESIGN.md`) mentions Soma, but the *
 
 ---
 
-## 2. Exhaustive Registry of Exposed MCP Tools (37 Total)
-Voyant exposes **37 distinct tools** to any connected agent. These tools cover the entire data lifecycle:
+## 2. Exhaustive Registry of Exposed MCP Tools (45 Total)
+Voyant exposes **45 distinct tools** to any connected agent. These tools cover the entire data lifecycle:
 
 ### A. Web Scraping & Media Extraction (`apps/scraper`)
 1. `scrape.fetch`: Fetch a webpage using Playwright or HTTPX (supports JS rendering & scrolling).
@@ -77,6 +77,27 @@ Voyant exposes **37 distinct tools** to any connected agent. These tools cover t
 41. `voyant.kpi_templates.categories`: Filter templates by category (e.g., Sales, HR).
 42. `voyant.kpi_templates.get`: Retrieve the SQL string for a template.
 43. `voyant.kpi_templates.render`: Safely inject parameters into a KPI SQL template.
+
+### J. Capsules — Installable Intelligence Recipes (`apps/capsules`)
+44. `voyant.capsules.list`: List available capsules.
+45. `voyant.capsules.get`: Get capsule details.
+46. `voyant.capsules.install`: Install a capsule from a registry.
+47. `voyant.capsules.execute`: Execute an installed capsule.
+48. `voyant.capsules.instances`: List capsule execution instances.
+
+### K. Deep Research (`apps/scraper`)
+49. `scrape.deep_archive`: Deep crawl and archive a website.
+50. `voyant.research.run`: Start a deep research job.
+51. `voyant.research.status`: Check research job status.
+52. `voyant.research.report`: Retrieve research report.
+
+### L. Streaming (`apps/streaming`)
+53. `voyant.streaming.status`: Check streaming job status.
+54. `voyant.streaming.submit`: Submit a streaming job.
+55. `voyant.streaming.jobs`: List active streaming jobs.
+
+### M. Sources CRUD
+56. `voyant.sources.create`: Create a new data source.
 
 ---
 

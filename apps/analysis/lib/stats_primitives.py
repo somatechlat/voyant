@@ -7,7 +7,7 @@ Adheres to Vibe Coding Rules: Uses REngine for actual computation.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from apps.core.lib.errors import AnalysisError
 from apps.core.lib.r_bridge import REngine
@@ -20,12 +20,12 @@ class RStatsPrimitives:
     Core statistical operations powered by R.
     """
 
-    def __init__(self, r_engine: Optional[REngine] = None):
+    def __init__(self, r_engine: REngine | None = None):
         self.r = r_engine or REngine()
 
     def describe_column(
-        self, vector: List[float], col_name: str = "x"
-    ) -> Dict[str, float]:
+        self, vector: list[float], col_name: str = "x"
+    ) -> dict[str, float]:
         """
         Calculate descriptive statistics for a numeric vector.
         Includes: mean, median, sd, quartiles, skewness, kurtosis.
@@ -41,21 +41,21 @@ class RStatsPrimitives:
             script = f"""
             x <- {col_name}
             x <- x[!is.na(x)]
-            
+
             n <- length(x)
             mu <- mean(x)
             md <- median(x)
             s <- sd(x)
-            
+
             # Moments
             m3 <- sum((x-mu)^3)/n
             m4 <- sum((x-mu)^4)/n
             skew <- m3/(s^3)
             kurt <- m4/(s^4) - 3
-            
+
             qs <- quantile(x, probs=c(0.25, 0.75))
             iqr <- qs[2] - qs[1]
-            
+
             list(
                 mean = mu,
                 median = md,
@@ -77,8 +77,8 @@ class RStatsPrimitives:
             raise AnalysisError("VYNT-6020", f"R Describe Error: {e}")
 
     def correlation_matrix(
-        self, df_dict: Dict[str, List[float]], method: str = "pearson"
-    ) -> Dict[str, Any]:
+        self, df_dict: dict[str, list[float]], method: str = "pearson"
+    ) -> dict[str, Any]:
         """
         Calculate correlation matrix.
         Args:
@@ -108,8 +108,8 @@ class RStatsPrimitives:
             raise AnalysisError("VYNT-6021", f"Correlation Error: {e}")
 
     def fit_distribution(
-        self, vector: List[float], dist: str = "normal"
-    ) -> Dict[str, float]:
+        self, vector: list[float], dist: str = "normal"
+    ) -> dict[str, float]:
         """
         Fit a distribution to data using MASS::fitdistr.
         """

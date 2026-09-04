@@ -14,12 +14,12 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, Dict, Optional
+from typing import Any
 
 from temporalio import workflow
 
 with workflow.unsafe.imports_passed_through():
-    from apps.streaming.activities import FlinkJobResult, StreamingActivities
+    from apps.streaming.activities import FlinkJobResult
 
 
 logger = logging.getLogger(__name__)
@@ -41,8 +41,8 @@ class StreamingJobInput:
     job_name: str
     job_type: str
     source_topic: str
-    sink_topic: Optional[str] = None
-    config: Optional[Dict[str, Any]] = None
+    sink_topic: str | None = None
+    config: dict[str, Any] | None = None
 
 
 @workflow.defn
@@ -74,7 +74,7 @@ class StreamingJobWorkflow:
         # Step 1: Health check - verify cluster is reachable
         try:
             overview = await workflow.execute_activity(
-                StreamingActivities.get_cluster_overview,
+                "get_cluster_overview",
                 start_to_close_timeout=timedelta(seconds=30),
             )
             workflow.logger.info(f"Flink cluster healthy: {overview}")
@@ -94,7 +94,7 @@ class StreamingJobWorkflow:
         }
 
         result = await workflow.execute_activity(
-            StreamingActivities.submit_streaming_job,
+            "submit_streaming_job",
             args=[input.job_name, job_config],
             start_to_close_timeout=timedelta(minutes=5),
         )

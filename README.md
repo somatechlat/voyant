@@ -50,7 +50,7 @@ Voyant is an autonomous data intelligence service designed specifically for AI a
 
 ### 1. Agent-First Data Intelligence
 - **One-Call Analyze:** Complete data analysis pipeline from source to artifacts
-- **MCP Tool Integration:** 15+ tools for agent orchestration
+- **MCP Tool Integration:** 45 tools for agent orchestration
 - **Pure Execution:** DataScraper module for web scraping without LLM integration
 
 ### 2. Data Ingestion & Processing
@@ -79,7 +79,7 @@ Voyant is an autonomous data intelligence service designed specifically for AI a
 ## API Documentation
 
 ### REST API Endpoints
-- Health & Status: `/health`, `/ready`, `/status`
+- Health & Status: `/health`, `/ready`, `/status`, `/version`
 - Source Management: `/v1/sources/*`
 - Job Execution: `/v1/jobs/ingest`, `/v1/jobs/profile`, `/v1/jobs/quality`
 - Analysis Pipeline: `/v1/analyze` (one-call endpoint)
@@ -87,23 +87,24 @@ Voyant is an autonomous data intelligence service designed specifically for AI a
 - Artifacts: `/v1/artifacts/*`
 - Governance: `/v1/governance/*`
 - Discovery: `/v1/discovery/*`
+- Search: `/v1/search/*`
+- Scraping: `/v1/scrape/*`
+- Capsules: `/v1/capsules/*`
+- Presets: `/v1/presets/*`
 
-### MCP Tools Available
-- `voyant.discover` - Auto-detect data source types
-- `voyant.connect` - Establish data connections
-- `voyant.ingest` - Trigger data ingestion
-- `voyant.profile` - Generate data profiles
-- `voyant.quality` - Run quality checks
-- `voyant.analyze` - End-to-end analysis
-- `voyant.kpi` - Execute KPI queries
-- `voyant.status` - Check job status
-- `voyant.artifact` - Retrieve artifacts
-- `voyant.sql_query` - Execute SQL queries
-- `voyant.search` - Search data catalog
-- `voyant.lineage` - Get data lineage
+### MCP Tools Available (45 Total)
 
-Plus DataScraper tools:
-- `scrape.fetch`, `scrape.extract`, `scrape.ocr`, `scrape.parse_pdf`, `scrape.transcribe`
+**Core Tools:** `voyant.analyze`, `voyant.ingest`, `voyant.profile`, `voyant.quality`, `voyant.search`, `voyant.sql_query`, `voyant.connect`, `voyant.sources.list`, `voyant.sources.get`, `voyant.sources.create`, `voyant.sources.delete`, `voyant.jobs.list`, `voyant.jobs.get`, `voyant.artifacts.list`, `voyant.artifacts.get`, `voyant.health`
+
+**Catalog Tools:** `voyant.discovery.services.list`, `voyant.discovery.services.get`, `voyant.discovery.services.register`, `voyant.templates.execute`
+
+**Scrape Tools:** `scrape.fetch`, `scrape.extract`, `scrape.ocr`, `scrape.parse_pdf`, `scrape.transcribe`, `scrape.deep_archive`
+
+**Capsule Tools:** `voyant.capsules.list`, `voyant.capsules.get`, `voyant.capsules.install`, `voyant.capsules.execute`, `voyant.capsules.instances`
+
+**Research Tools:** `voyant.research.run`, `voyant.research.status`, `voyant.research.report`
+
+**Streaming Tools:** `voyant.streaming.status`, `voyant.streaming.submit`, `voyant.streaming.jobs`
 
 ## Documentation Index
 

@@ -22,8 +22,8 @@ import logging
 import time
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from enum import StrEnum
+from typing import Any
 
 import duckdb
 
@@ -32,7 +32,7 @@ from apps.core.config import get_settings
 logger = logging.getLogger(__name__)
 
 
-class CompatibilityLevel(str, Enum):
+class CompatibilityLevel(StrEnum):
     """Enumeration of schema compatibility levels between two versions."""
 
     FULL = "full"  # Fully compatible in both directions.
@@ -43,7 +43,7 @@ class CompatibilityLevel(str, Enum):
     NONE = "none"  # A breaking change exists between versions.
 
 
-class ChangeType(str, Enum):
+class ChangeType(StrEnum):
     """Enumeration for the different types of schema changes that can be detected."""
 
     COLUMN_ADDED = "column_added"
@@ -75,7 +75,7 @@ class SchemaChange:
     new_value: Any = None
     is_breaking: bool = False
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the change object to a dictionary."""
         return {
             "change_type": self.change_type.value,
@@ -86,7 +86,7 @@ class SchemaChange:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "SchemaChange":
+    def from_dict(cls, data: dict[str, Any]) -> SchemaChange:
         """Create a SchemaChange instance from a dictionary."""
         return cls(
             change_type=ChangeType(data["change_type"]),
@@ -114,14 +114,14 @@ class ColumnSchema:
     data_type: str
     nullable: bool = True
     default: Any = None
-    constraints: List[str] = field(default_factory=list)
+    constraints: list[str] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the column schema to a dictionary."""
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ColumnSchema":
+    def from_dict(cls, data: dict[str, Any]) -> ColumnSchema:
         """Create a ColumnSchema instance from a dictionary."""
         return cls(**data)
 
@@ -138,10 +138,10 @@ class TableSchema:
     """
 
     name: str
-    columns: List[ColumnSchema]
-    primary_key: Optional[List[str]] = None
+    columns: list[ColumnSchema]
+    primary_key: list[str] | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the table schema to a dictionary."""
         return {
             "name": self.name,
@@ -150,7 +150,7 @@ class TableSchema:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "TableSchema":
+    def from_dict(cls, data: dict[str, Any]) -> TableSchema:
         """Create a TableSchema instance from a dictionary."""
         return cls(
             name=data["name"],
@@ -158,7 +158,7 @@ class TableSchema:
             primary_key=data.get("primary_key"),
         )
 
-    def get_column(self, name: str) -> Optional[ColumnSchema]:
+    def get_column(self, name: str) -> ColumnSchema | None:
         """Retrieve a column's schema by its name."""
         for col in self.columns:
             if col.name == name:
@@ -166,7 +166,7 @@ class TableSchema:
         return None
 
     @property
-    def column_names(self) -> Set[str]:
+    def column_names(self) -> set[str]:
         """Return a set of all column names in the table."""
         return {c.name for c in self.columns}
 
@@ -191,14 +191,14 @@ class SchemaVersion:
     created_at: float = 0
     created_by: str = ""
     description: str = ""
-    changes_from_previous: List[SchemaChange] = field(default_factory=list)
+    changes_from_previous: list[SchemaChange] = field(default_factory=list)
 
     def __post_init__(self):
         """Set the creation timestamp if not provided."""
         if self.created_at == 0:
             self.created_at = time.time()
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the schema version to a dictionary."""
         return {
             "version": self.version,
@@ -217,15 +217,15 @@ class CompatibilityReport:
     source_version: str
     target_version: str
     compatibility: CompatibilityLevel
-    changes: List[SchemaChange]
-    breaking_changes: List[SchemaChange]
+    changes: list[SchemaChange]
+    breaking_changes: list[SchemaChange]
 
     @property
     def is_compatible(self) -> bool:
         """Return True if there are no breaking changes."""
         return len(self.breaking_changes) == 0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the compatibility report to a dictionary."""
         return {
             "source_version": self.source_version,
@@ -247,7 +247,7 @@ class CompatibilityReport:
 def compare_schemas(
     old_schema: TableSchema,
     new_schema: TableSchema,
-) -> List[SchemaChange]:
+) -> list[SchemaChange]:
     """
     Compare two table schemas and generate a list of changes.
 
@@ -462,7 +462,7 @@ class SchemaEvolutionRegistry:
             logger.warning(
                 f"Schema version {table_name} v{version} already exists. Returning existing."
             )
-            return self.get_version(table_name, version)
+            return self.get_version(table_name, version)  # type: ignore[return-value]
         except Exception as e:
             logger.error(f"Failed to register schema {table_name} v{version}: {e}")
             raise
@@ -470,8 +470,8 @@ class SchemaEvolutionRegistry:
     def get_version(
         self,
         table_name: str,
-        version: Optional[str] = None,
-    ) -> Optional[SchemaVersion]:
+        version: str | None = None,
+    ) -> SchemaVersion | None:
         """
         Retrieve a schema version from the registry.
 
@@ -494,7 +494,7 @@ class SchemaEvolutionRegistry:
         result = self._conn.execute(query, params).fetchone()
         return self._row_to_version(result) if result else None
 
-    def get_history(self, table_name: str) -> List[Dict[str, Any]]:
+    def get_history(self, table_name: str) -> list[dict[str, Any]]:
         """
         Retrieve the full version history for a given table.
 
@@ -525,7 +525,7 @@ class SchemaEvolutionRegistry:
             )
         return history
 
-    def _row_to_version(self, row: Tuple) -> SchemaVersion:
+    def _row_to_version(self, row: tuple) -> SchemaVersion:
         """Convert a database row tuple into a SchemaVersion object."""
         _, version_str, schema_str, created_at, created_by, description, changes_str = (
             row
@@ -541,7 +541,7 @@ class SchemaEvolutionRegistry:
             ],
         )
 
-    def list_tables(self) -> List[str]:
+    def list_tables(self) -> list[str]:
         """List all tables with a tracked schema history."""
         result = self._conn.execute(
             "SELECT DISTINCT table_name FROM schema_versions;"
@@ -569,7 +569,7 @@ class SchemaEvolutionRegistry:
 # Global Singleton Accessor
 # =============================================================================
 
-_registry: Optional[SchemaEvolutionRegistry] = None
+_registry: SchemaEvolutionRegistry | None = None
 
 
 def get_registry() -> SchemaEvolutionRegistry:
@@ -587,12 +587,12 @@ def track_schema(
     return get_registry().register(table_name, schema, version, description)
 
 
-def get_schema_history(table_name: str) -> List[Dict[str, Any]]:
+def get_schema_history(table_name: str) -> list[dict[str, Any]]:
     """A convenience function to get the version history of a table."""
     return get_registry().get_history(table_name)
 
 
-def get_latest_schema(table_name: str) -> Optional[TableSchema]:
+def get_latest_schema(table_name: str) -> TableSchema | None:
     """A convenience function to get the latest schema for a table."""
     version_obj = get_registry().get_version(table_name)
     return version_obj.schema if version_obj else None
@@ -600,7 +600,7 @@ def get_latest_schema(table_name: str) -> Optional[TableSchema]:
 
 def check_schema_compatibility(
     table_name: str, source_version: str, target_version: str
-) -> Optional[Dict[str, Any]]:
+) -> dict[str, Any] | None:
     """A convenience function to generate a compatibility report between two versions."""
     registry = get_registry()
     source = registry.get_version(table_name, source_version)

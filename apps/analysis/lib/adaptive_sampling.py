@@ -33,8 +33,8 @@ import logging
 import math
 import random
 from dataclasses import dataclass, field
-from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, TypeVar
+from enum import StrEnum
+from typing import Any, TypeVar
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 
-class SamplingStrategy(str, Enum):
+class SamplingStrategy(StrEnum):
     """Available sampling strategies."""
 
     RANDOM = "random"  # Simple random sampling
@@ -70,11 +70,11 @@ class SampleStats:
     strategy: SamplingStrategy
     confidence_level: float
     margin_of_error: float
-    seed: Optional[int] = None
-    strata_info: Dict[str, int] = field(default_factory=dict)
+    seed: int | None = None
+    strata_info: dict[str, int] = field(default_factory=dict)
     duration_ms: float = 0.0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "total_rows": self.total_rows,
             "sample_size": self.sample_size,
@@ -92,10 +92,10 @@ class SampleStats:
 class SampleResult:
     """Result of sampling operation."""
 
-    data: List[Dict[str, Any]]
+    data: list[dict[str, Any]]
     stats: SampleStats
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "data_preview": self.data[:5] if self.data else [],
             "stats": self.stats.to_dict(),
@@ -186,8 +186,8 @@ T = TypeVar("T")
 
 
 def random_sample(
-    data: List[T], sample_size: int, seed: Optional[int] = None
-) -> List[T]:
+    data: list[T], sample_size: int, seed: int | None = None
+) -> list[T]:
     """Simple random sampling using the Fisher-Yates approach."""
     if sample_size >= len(data):
         return data.copy()
@@ -197,8 +197,8 @@ def random_sample(
 
 
 def systematic_sample(
-    data: List[T], sample_size: int, seed: Optional[int] = None
-) -> List[T]:
+    data: list[T], sample_size: int, seed: int | None = None
+) -> list[T]:
     """Systematic (every-nth) sampling starting at a random offset within the first interval."""
     if sample_size >= len(data):
         return data.copy()
@@ -215,17 +215,17 @@ def systematic_sample(
 
 
 def stratified_sample(
-    data: List[Dict[str, Any]],
+    data: list[dict[str, Any]],
     sample_size: int,
     strata_column: str,
-    seed: Optional[int] = None,
-) -> Tuple[List[Dict[str, Any]], Dict[str, int]]:
+    seed: int | None = None,
+) -> tuple[list[dict[str, Any]], dict[str, int]]:
     """Stratified sampling that preserves group proportions relative to the full dataset."""
     if sample_size >= len(data):
         return data.copy(), {}
 
     # Group by strata
-    strata: Dict[Any, List[Dict[str, Any]]] = {}
+    strata: dict[Any, list[dict[str, Any]]] = {}
     for row in data:
         key = row.get(strata_column, "unknown")
         if key not in strata:
@@ -250,8 +250,8 @@ def stratified_sample(
 
 
 def reservoir_sample(
-    data: List[T], sample_size: int, seed: Optional[int] = None
-) -> List[T]:
+    data: list[T], sample_size: int, seed: int | None = None
+) -> list[T]:
     """Reservoir sampling — single-pass algorithm, O(n) time, O(k) space."""
     rng = random.Random(seed)
     reservoir = []
@@ -268,8 +268,8 @@ def reservoir_sample(
 
 
 def deterministic_sample(
-    data: List[Dict[str, Any]], sample_size: int, key_column: str
-) -> List[Dict[str, Any]]:
+    data: list[dict[str, Any]], sample_size: int, key_column: str
+) -> list[dict[str, Any]]:
     """Deterministic sampling using content hash for reproducible audit samples."""
     if sample_size >= len(data):
         return data.copy()
@@ -316,12 +316,12 @@ def select_strategy(
 
 
 def sample_table(
-    data: List[Dict[str, Any]],
+    data: list[dict[str, Any]],
     strategy: SamplingStrategy = SamplingStrategy.ADAPTIVE,
-    sample_size: Optional[int] = None,
-    strata_column: Optional[str] = None,
-    key_column: Optional[str] = None,
-    seed: Optional[int] = None,
+    sample_size: int | None = None,
+    strata_column: str | None = None,
+    key_column: str | None = None,
+    seed: int | None = None,
     confidence: float = 0.95,
     margin_of_error: float = 0.03,
 ) -> SampleResult:
@@ -428,8 +428,8 @@ def sample_table(
 
 
 def quick_sample(
-    data: List[Dict[str, Any]], max_rows: int = 10000
-) -> List[Dict[str, Any]]:
+    data: list[dict[str, Any]], max_rows: int = 10000
+) -> list[dict[str, Any]]:
     """
     Quick sampling with sensible defaults.
 

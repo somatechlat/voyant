@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 from uuid import UUID
 
 import httpx
@@ -112,7 +112,7 @@ def _ensure_suffix(base_url: str, suffix: str) -> str:
     return normalized if normalized.endswith(suffix) else f"{normalized}{suffix}"
 
 
-def _parse_uuid(value: str) -> Optional[UUID]:
+def _parse_uuid(value: str) -> UUID | None:
     if not value:
         return None
     try:

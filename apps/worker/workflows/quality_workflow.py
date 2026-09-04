@@ -3,13 +3,14 @@ Quality Workflow: Runs data quality validation.
 """
 
 from datetime import timedelta
-from typing import Any, Dict
+from typing import Any
 
 from temporalio import workflow
 from temporalio.common import RetryPolicy
+from temporalio.exceptions import ApplicationError
 
 with workflow.unsafe.imports_passed_through():
-    from apps.worker.activities.quality_activities import QualityActivities
+    pass
 
 
 @workflow.defn
@@ -19,13 +20,13 @@ class QualityWorkflow:
     """
 
     @workflow.run
-    async def run(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def run(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Execute sampling and quality validation.
         """
         table = params.get("table") or params.get("source_id")
         if not table:
-            raise workflow.ApplicationError(
+            raise ApplicationError(
                 "table or source_id is required for quality workflow"
             )
 
@@ -37,14 +38,14 @@ class QualityWorkflow:
         )
 
         sample = await workflow.execute_activity(
-            QualityActivities.fetch_sample,
+            "quality_fetch_sample",
             params,
             start_to_close_timeout=timedelta(minutes=5),
             retry_policy=retry_policy,
         )
 
         result = await workflow.execute_activity(
-            QualityActivities.run_quality_checks,
+            "run_quality_checks",
             {"data": sample, "checks": params.get("checks")},
             start_to_close_timeout=timedelta(minutes=10),
             retry_policy=retry_policy,

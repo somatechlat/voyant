@@ -1,6 +1,6 @@
 import logging
 import urllib.parse
-from typing import Any, Dict, List
+from typing import Any
 
 import httpx
 from temporalio import activity
@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 class SearchActivities:
     """
-    Physical Voyager Search Engine Node.
+    Search activity that queries the internal SearXNG instance.
     Communicates strictly with the internal, sovereign SearXNG Docker container
     to execute bulk generic queries without API costs or tracking.
     """
@@ -21,8 +21,8 @@ class SearchActivities:
 
     @activity.defn(name="execute_searxng_query")
     async def execute_searxng_query(
-        self, params: Dict[str, Any]
-    ) -> List[Dict[str, str]]:
+        self, params: dict[str, Any]
+    ) -> list[dict[str, str]]:
         """
         Executes a query against the sovereign internal engine.
         Returns a structured mathematical list of dictionaries [URL, Title, Snippet].
@@ -40,7 +40,6 @@ class SearchActivities:
         # We request JSON specifically
         search_url = f"{self.base_url}/search?q={encoded_query}&format=json"
 
-        # Vibe Rule 5: Error handling logic implemented robustly
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
                 # Force specific headers to respect open-source engines

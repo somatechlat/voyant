@@ -32,13 +32,13 @@ import json
 import logging
 import time
 from dataclasses import dataclass
-from enum import Enum
-from typing import Any, Dict, List, Optional
+from enum import StrEnum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
-class JobStatus(str, Enum):
+class JobStatus(StrEnum):
     QUEUED = "queued"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -56,9 +56,9 @@ class QueuedJob:
     priority: int = 0  # Lower = higher priority
     created_at: float = 0  # Unix timestamp
     status: JobStatus = JobStatus.QUEUED
-    worker_id: Optional[str] = None
-    lease_expires_at: Optional[float] = None
-    metadata: Dict[str, Any] = None
+    worker_id: str | None = None
+    lease_expires_at: float | None = None
+    metadata: dict[str, Any] | None = None
 
     def __post_init__(self):
         if self.created_at == 0:
@@ -66,7 +66,7 @@ class QueuedJob:
         if self.metadata is None:
             self.metadata = {}
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "job_id": self.job_id,
             "tenant_id": self.tenant_id,
@@ -80,7 +80,7 @@ class QueuedJob:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "QueuedJob":
+    def from_dict(cls, data: dict[str, Any]) -> QueuedJob:
         return cls(
             job_id=data["job_id"],
             tenant_id=data["tenant_id"],
@@ -104,9 +104,9 @@ class InMemoryJobQueue:
 
     def __init__(self, default_lease_seconds: int = 300):
         self.lease_duration = default_lease_seconds
-        self._queues: Dict[str, List[QueuedJob]] = {}  # tenant_id -> jobs
-        self._running: Dict[str, QueuedJob] = {}  # job_id -> job
-        self._all_jobs: Dict[str, QueuedJob] = {}  # job_id -> job
+        self._queues: dict[str, list[QueuedJob]] = {}  # tenant_id -> jobs
+        self._running: dict[str, QueuedJob] = {}  # job_id -> job
+        self._all_jobs: dict[str, QueuedJob] = {}  # job_id -> job
         self._lock = asyncio.Lock()
 
     async def enqueue(
@@ -115,7 +115,7 @@ class InMemoryJobQueue:
         job_id: str,
         job_type: str = "analyze",
         priority: int = 0,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> int:
         """
         Add job to tenant's queue.
@@ -156,7 +156,7 @@ class InMemoryJobQueue:
         tenant_id: str,
         worker_id: str = "default",
         max_concurrent: int = 1,
-    ) -> Optional[QueuedJob]:
+    ) -> QueuedJob | None:
         """
         Try to acquire the next job for a tenant.
 
@@ -196,7 +196,7 @@ class InMemoryJobQueue:
         self,
         job_id: str,
         status: JobStatus = JobStatus.COMPLETED,
-        result: Optional[Dict[str, Any]] = None,
+        result: dict[str, Any] | None = None,
     ) -> bool:
         """
         Release a job after completion.
@@ -214,7 +214,7 @@ class InMemoryJobQueue:
             job.lease_expires_at = None
 
             if result:
-                job.metadata["result"] = result
+                job.metadata["result"] = result  # type: ignore[index]
 
             logger.debug(f"Released job {job_id} with status {status.value}")
             return True
@@ -229,7 +229,7 @@ class InMemoryJobQueue:
             job.lease_expires_at = time.time() + self.lease_duration
             return True
 
-    async def get_job(self, job_id: str) -> Optional[QueuedJob]:
+    async def get_job(self, job_id: str) -> QueuedJob | None:
         """Get job by ID."""
         if job_id in self._running:
             return self._running[job_id]
@@ -243,7 +243,7 @@ class InMemoryJobQueue:
         """Get number of running jobs for tenant."""
         return sum(1 for j in self._running.values() if j.tenant_id == tenant_id)
 
-    async def get_queue_stats(self, tenant_id: str) -> Dict[str, Any]:
+    async def get_queue_stats(self, tenant_id: str) -> dict[str, Any]:
         """Get queue statistics for tenant."""
         queue = self._queues.get(tenant_id, [])
         running = [j for j in self._running.values() if j.tenant_id == tenant_id]
@@ -378,7 +378,7 @@ class RedisJobQueue(InMemoryJobQueue):
         job_id: str,
         job_type: str = "analyze",
         priority: int = 0,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> int:
         """Add job to tenant's queue."""
         client = await self._get_redis()
@@ -414,7 +414,7 @@ class RedisJobQueue(InMemoryJobQueue):
         tenant_id: str,
         worker_id: str = "default",
         max_concurrent: int = 1,
-    ) -> Optional[QueuedJob]:
+    ) -> QueuedJob | None:
         """Try to acquire next job."""
         client = await self._get_redis()
 
@@ -471,7 +471,7 @@ class RedisJobQueue(InMemoryJobQueue):
         self,
         job_id: str,
         status: JobStatus = JobStatus.COMPLETED,
-        result: Optional[Dict[str, Any]] = None,
+        result: dict[str, Any] | None = None,
     ) -> bool:
         """Release a job."""
         client = await self._get_redis()
@@ -517,7 +517,7 @@ class RedisJobQueue(InMemoryJobQueue):
 # Singleton
 # =============================================================================
 
-_job_queue: Optional[InMemoryJobQueue] = None
+_job_queue: InMemoryJobQueue | None = None
 
 
 def get_job_queue() -> InMemoryJobQueue:

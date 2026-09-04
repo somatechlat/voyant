@@ -8,7 +8,6 @@ using deterministic n-gram overlap and source-diversity heuristics.
 from __future__ import annotations
 
 import re
-from typing import Dict, List, Set, Tuple
 
 from apps.scraper.deep_research.schemas import Finding
 
@@ -36,7 +35,7 @@ class CrossValidator:
             netloc = netloc[4:]
         return netloc
 
-    def _ngrams(self, text: str) -> Set[str]:
+    def _ngrams(self, text: str) -> set[str]:
         """Return character n-grams for the text."""
         cleaned = re.sub(r"\s+", " ", text.lower().strip())
         if len(cleaned) < self._n:
@@ -55,9 +54,9 @@ class CrossValidator:
 
     def validate(
         self,
-        findings: List[Finding],
-        url_texts: Dict[str, str],
-    ) -> List[Finding]:
+        findings: list[Finding],
+        url_texts: dict[str, str],
+    ) -> list[Finding]:
         """
         Validate findings against the full source corpus.
 
@@ -68,7 +67,7 @@ class CrossValidator:
         Returns:
             Updated findings with cross_validated and confidence_score set.
         """
-        validated: List[Finding] = []
+        validated: list[Finding] = []
 
         for finding in findings:
             claim = finding.claim
@@ -77,7 +76,7 @@ class CrossValidator:
                 validated.append(finding)
                 continue
 
-            supporting_domains: Set[str] = set()
+            supporting_domains: set[str] = set()
             total_overlap = 0.0
             matches = 0
 
@@ -119,16 +118,16 @@ class CrossValidator:
     def validate_single(
         self,
         claim: str,
-        url_texts: Dict[str, str],
-    ) -> Tuple[bool, float, List[str]]:
+        url_texts: dict[str, str],
+    ) -> tuple[bool, float, list[str]]:
         """
         Validate a single claim string.
 
         Returns:
             (is_validated, confidence_score, list_of_supporting_urls)
         """
-        supporting: List[str] = []
-        domains: Set[str] = set()
+        supporting: list[str] = []
+        domains: set[str] = set()
         total_overlap = 0.0
         matches = 0
 

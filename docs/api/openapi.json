@@ -2,118 +2,30 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Voyant API",
-    "description": "Autonomous Data Intelligence for AI Agents",
-    "version": "3.0.0"
+    "version": "3.0.0",
+    "description": "Autonomous Data Intelligence for AI Agents"
   },
   "paths": {
-    "/health": {
-      "get": {
-        "tags": [
-          "health"
-        ],
-        "summary": "Health",
-        "description": "Liveness probe - Is the service running?\n\nReturns 200 if service is alive, regardless of external dependencies.\nKubernetes uses this to restart crashed pods.\n\nPerformance Engineer: O(1) check, <1ms response time",
-        "operationId": "health_health_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
-    },
-    "/ready": {
-      "get": {
-        "tags": [
-          "health"
-        ],
-        "summary": "Ready",
-        "description": "Readiness probe - Is the service ready to handle requests?\n\nChecks:\n- Temporal connection\n- DuckDB availability\n- R-Engine availability\n- Circuit breaker states\n\nReturns 200 if ready, 503 if not ready.\nKubernetes uses this to route traffic.\n\nQA Engineer: Comprehensive dependency validation\nSecurity Auditor: No sensitive data in responses",
-        "operationId": "ready_ready_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
-    },
-    "/healthz": {
-      "get": {
-        "tags": [
-          "health"
-        ],
-        "summary": "Healthz",
-        "description": "Kubernetes-style liveness endpoint (alias for /health).\n\nUX Consultant: Standard Kubernetes naming convention",
-        "operationId": "healthz_healthz_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
-    },
-    "/readyz": {
-      "get": {
-        "tags": [
-          "health"
-        ],
-        "summary": "Readyz",
-        "description": "Kubernetes-style readiness endpoint (alias for /ready).\n\nUX Consultant: Standard Kubernetes naming convention",
-        "operationId": "readyz_readyz_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
-    },
-    "/status": {
-      "get": {
-        "tags": [
-          "health"
-        ],
-        "summary": "Detailed Status",
-        "description": "Detailed system status for monitoring dashboards.\n\nReturns comprehensive system state including:\n- All service health\n- Circuit breaker metrics\n- Version information\n- Uptime\n\nISO Documenter: Structured status for SRE dashboards",
-        "operationId": "detailed_status_status_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
-    },
     "/v1/sources/discover": {
       "post": {
+        "operationId": "apps_discovery_api_discover_source",
+        "summary": "Discover Source",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscoverResponse"
+                }
+              }
+            }
+          }
+        },
         "tags": [
           "sources"
         ],
-        "summary": "Discover Source",
-        "description": "Auto-detect source type from hint.",
-        "operationId": "discover_source_v1_sources_discover_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -123,63 +35,29 @@
             }
           },
           "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DiscoverResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
         }
       }
     },
     "/v1/sources": {
-      "get": {
-        "tags": [
-          "sources"
-        ],
-        "summary": "List Sources",
-        "description": "List all sources for current tenant.",
-        "operationId": "list_sources_v1_sources_get",
+      "post": {
+        "operationId": "apps_discovery_api_create_source",
+        "summary": "Create Source",
+        "parameters": [],
         "responses": {
-          "200": {
-            "description": "Successful Response",
+          "201": {
+            "description": "Created",
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/SourceResponse"
-                  },
-                  "type": "array",
-                  "title": "Response List Sources V1 Sources Get"
+                  "$ref": "#/components/schemas/SourceResponse"
                 }
               }
             }
           }
-        }
-      },
-      "post": {
+        },
         "tags": [
           "sources"
         ],
-        "summary": "Create Source",
-        "description": "Create a new data source.",
-        "operationId": "create_source_v1_sources_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -189,53 +67,51 @@
             }
           },
           "required": true
-        },
+        }
+      },
+      "get": {
+        "operationId": "apps_discovery_api_list_sources",
+        "summary": "List Sources",
+        "parameters": [],
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SourceResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "items": {
+                    "$ref": "#/components/schemas/SourceResponse"
+                  },
+                  "title": "Response",
+                  "type": "array"
                 }
               }
             }
           }
-        }
+        },
+        "tags": [
+          "sources"
+        ]
       }
     },
     "/v1/sources/{source_id}": {
       "get": {
-        "tags": [
-          "sources"
-        ],
+        "operationId": "apps_discovery_api_get_source",
         "summary": "Get Source",
-        "description": "Get source by ID.",
-        "operationId": "get_source_v1_sources__source_id__get",
         "parameters": [
           {
-            "name": "source_id",
             "in": "path",
-            "required": true,
+            "name": "source_id",
             "schema": {
-              "type": "string",
-              "title": "Source Id"
-            }
+              "title": "Source Id",
+              "type": "string"
+            },
+            "required": true
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -243,67 +119,67 @@
                 }
               }
             }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
           }
-        }
-      },
-      "delete": {
+        },
         "tags": [
           "sources"
-        ],
+        ]
+      },
+      "delete": {
+        "operationId": "apps_discovery_api_delete_source",
         "summary": "Delete Source",
-        "description": "Delete a source.",
-        "operationId": "delete_source_v1_sources__source_id__delete",
         "parameters": [
           {
-            "name": "source_id",
             "in": "path",
-            "required": true,
+            "name": "source_id",
             "schema": {
-              "type": "string",
-              "title": "Source Id"
-            }
+              "title": "Source Id",
+              "type": "string"
+            },
+            "required": true
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response",
+                  "type": "object"
                 }
               }
             }
           }
-        }
+        },
+        "tags": [
+          "sources"
+        ]
       }
     },
     "/v1/jobs/ingest": {
       "post": {
+        "operationId": "apps_workflows_api_trigger_ingest",
+        "summary": "Trigger Ingest",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResponse"
+                }
+              }
+            }
+          }
+        },
         "tags": [
           "jobs"
         ],
-        "summary": "Trigger Ingest",
-        "description": "Trigger data ingestion via Apache Beam/Airbyte.",
-        "operationId": "trigger_ingest_v1_jobs_ingest_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -313,10 +189,17 @@
             }
           },
           "required": true
-        },
+        }
+      }
+    },
+    "/v1/jobs/profile": {
+      "post": {
+        "operationId": "apps_workflows_api_trigger_profile",
+        "summary": "Trigger Profile",
+        "parameters": [],
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -324,28 +207,11 @@
                 }
               }
             }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
           }
-        }
-      }
-    },
-    "/v1/jobs/profile": {
-      "post": {
+        },
         "tags": [
           "jobs"
         ],
-        "summary": "Trigger Profile",
-        "description": "Trigger data profiling via ydata-profiling.",
-        "operationId": "trigger_profile_v1_jobs_profile_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -355,10 +221,17 @@
             }
           },
           "required": true
-        },
+        }
+      }
+    },
+    "/v1/jobs/quality": {
+      "post": {
+        "operationId": "apps_workflows_api_trigger_quality",
+        "summary": "Trigger Quality",
+        "parameters": [],
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -366,28 +239,11 @@
                 }
               }
             }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
           }
-        }
-      }
-    },
-    "/v1/jobs/quality": {
-      "post": {
+        },
         "tags": [
           "jobs"
         ],
-        "summary": "Trigger Quality",
-        "description": "Trigger data quality checks via Great Expectations.",
-        "operationId": "trigger_quality_v1_jobs_quality_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -397,44 +253,17 @@
             }
           },
           "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/JobResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
         }
       }
     },
     "/v1/jobs": {
       "get": {
-        "tags": [
-          "jobs"
-        ],
+        "operationId": "apps_workflows_api_list_jobs",
         "summary": "List Jobs",
-        "description": "List jobs for current tenant.",
-        "operationId": "list_jobs_v1_jobs_get",
         "parameters": [
           {
-            "name": "status",
             "in": "query",
-            "required": false,
+            "name": "status",
             "schema": {
               "anyOf": [
                 {
@@ -445,12 +274,12 @@
                 }
               ],
               "title": "Status"
-            }
+            },
+            "required": false
           },
           {
-            "name": "job_type",
             "in": "query",
-            "required": false,
+            "name": "job_type",
             "schema": {
               "anyOf": [
                 {
@@ -461,69 +290,59 @@
                 }
               ],
               "title": "Job Type"
-            }
+            },
+            "required": false
           },
           {
-            "name": "limit",
             "in": "query",
-            "required": false,
+            "name": "limit",
             "schema": {
-              "type": "integer",
               "default": 50,
-              "title": "Limit"
-            }
+              "title": "Limit",
+              "type": "integer"
+            },
+            "required": false
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/JobResponse"
                   },
-                  "title": "Response List Jobs V1 Jobs Get"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "title": "Response",
+                  "type": "array"
                 }
               }
             }
           }
-        }
+        },
+        "tags": [
+          "jobs"
+        ]
       }
     },
     "/v1/jobs/{job_id}": {
       "get": {
-        "tags": [
-          "jobs"
-        ],
+        "operationId": "apps_workflows_api_get_job",
         "summary": "Get Job",
-        "description": "Get job status by ID.",
-        "operationId": "get_job_v1_jobs__job_id__get",
         "parameters": [
           {
-            "name": "job_id",
             "in": "path",
-            "required": true,
+            "name": "job_id",
             "schema": {
-              "type": "string",
-              "title": "Job Id"
-            }
+              "title": "Job Id",
+              "type": "string"
+            },
+            "required": true
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -531,69 +350,70 @@
                 }
               }
             }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
           }
-        }
+        },
+        "tags": [
+          "jobs"
+        ]
       }
     },
     "/v1/jobs/{job_id}/cancel": {
       "post": {
-        "tags": [
-          "jobs"
-        ],
+        "operationId": "apps_workflows_api_cancel_job",
         "summary": "Cancel Job",
-        "description": "Cancel a running job.",
-        "operationId": "cancel_job_v1_jobs__job_id__cancel_post",
         "parameters": [
           {
-            "name": "job_id",
             "in": "path",
-            "required": true,
+            "name": "job_id",
             "schema": {
-              "type": "string",
-              "title": "Job Id"
-            }
+              "title": "Job Id",
+              "type": "string"
+            },
+            "required": true
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response",
+                  "type": "object"
                 }
               }
             }
           }
-        }
+        },
+        "tags": [
+          "jobs"
+        ]
       }
     },
     "/v1/sql/query": {
       "post": {
+        "operationId": "apps_sql_api_execute_sql",
+        "summary": "Execute Ad-Hoc SQL Query",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SqlResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Executes an ad-hoc SQL query against the Trino engine for the current tenant.\n\nThis endpoint strictly enforces a read-only policy via the underlying `TrinoClient`\nto prevent any data modification or destructive operations.",
         "tags": [
           "sql"
         ],
-        "summary": "Execute Sql",
-        "description": "Execute guarded SQL query via Trino.",
-        "operationId": "execute_sql_v1_sql_query_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -603,44 +423,17 @@
             }
           },
           "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SqlResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
         }
       }
     },
     "/v1/sql/tables": {
       "get": {
-        "tags": [
-          "sql"
-        ],
-        "summary": "List Tables",
-        "description": "List available tables.",
-        "operationId": "list_tables_v1_sql_tables_get",
+        "operationId": "apps_sql_api_list_tables",
+        "summary": "List Available Tables",
         "parameters": [
           {
-            "name": "schema",
             "in": "query",
-            "required": false,
+            "name": "schema",
             "schema": {
               "anyOf": [
                 {
@@ -651,53 +444,47 @@
                 }
               ],
               "title": "Schema"
-            }
+            },
+            "required": false
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "additionalProperties": true,
+                  "title": "Response",
+                  "type": "object"
                 }
               }
             }
           }
-        }
+        },
+        "description": "Retrieves a list of all tables accessible via the Trino engine for the current tenant.",
+        "tags": [
+          "sql"
+        ]
       }
     },
     "/v1/sql/tables/{table}/columns": {
       "get": {
-        "tags": [
-          "sql"
-        ],
-        "summary": "Get Columns",
-        "description": "Get columns for a table.",
-        "operationId": "get_columns_v1_sql_tables__table__columns_get",
+        "operationId": "apps_sql_api_get_columns",
+        "summary": "Get Table Columns",
         "parameters": [
           {
-            "name": "table",
             "in": "path",
-            "required": true,
+            "name": "table",
             "schema": {
-              "type": "string",
-              "title": "Table"
-            }
+              "title": "Table",
+              "type": "string"
+            },
+            "required": true
           },
           {
-            "name": "schema",
             "in": "query",
-            "required": false,
+            "name": "schema",
             "schema": {
               "anyOf": [
                 {
@@ -708,53 +495,47 @@
                 }
               ],
               "title": "Schema"
-            }
+            },
+            "required": false
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "additionalProperties": true,
+                  "title": "Response",
+                  "type": "object"
                 }
               }
             }
           }
-        }
+        },
+        "description": "Retrieves the column details for a specific table accessible via the Trino engine.",
+        "tags": [
+          "sql"
+        ]
       }
     },
     "/v1/governance/search": {
       "get": {
-        "tags": [
-          "governance"
-        ],
+        "operationId": "apps_governance_api_search_metadata",
         "summary": "Search Metadata",
-        "description": "Search metadata in DataHub.",
-        "operationId": "search_metadata_v1_governance_search_get",
         "parameters": [
           {
-            "name": "query",
             "in": "query",
-            "required": true,
+            "name": "query",
             "schema": {
-              "type": "string",
-              "title": "Query"
-            }
+              "title": "Query",
+              "type": "string"
+            },
+            "required": true
           },
           {
-            "name": "types",
             "in": "query",
-            "required": false,
+            "name": "types",
             "schema": {
               "anyOf": [
                 {
@@ -765,22 +546,23 @@
                 }
               ],
               "title": "Types"
-            }
+            },
+            "required": false
           },
           {
-            "name": "limit",
             "in": "query",
-            "required": false,
+            "name": "limit",
             "schema": {
-              "type": "integer",
               "default": 10,
-              "title": "Limit"
-            }
+              "title": "Limit",
+              "type": "integer"
+            },
+            "required": false
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -788,62 +570,51 @@
                 }
               }
             }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
           }
-        }
+        },
+        "tags": [
+          "governance"
+        ]
       }
     },
     "/v1/governance/lineage/{urn}": {
       "get": {
-        "tags": [
-          "governance"
-        ],
+        "operationId": "apps_governance_api_get_lineage",
         "summary": "Get Lineage",
-        "description": "Get data lineage from DataHub.",
-        "operationId": "get_lineage_v1_governance_lineage__urn__get",
         "parameters": [
           {
-            "name": "urn",
             "in": "path",
-            "required": true,
+            "name": "urn",
             "schema": {
-              "type": "string",
-              "title": "Urn"
-            }
+              "title": "Urn",
+              "type": "string"
+            },
+            "required": true
           },
           {
+            "in": "query",
             "name": "direction",
-            "in": "query",
-            "required": false,
             "schema": {
-              "type": "string",
               "default": "both",
-              "title": "Direction"
-            }
+              "title": "Direction",
+              "type": "string"
+            },
+            "required": false
           },
           {
-            "name": "depth",
             "in": "query",
-            "required": false,
+            "name": "depth",
             "schema": {
-              "type": "integer",
               "default": 3,
-              "title": "Depth"
-            }
+              "title": "Depth",
+              "type": "integer"
+            },
+            "required": false
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -851,42 +622,31 @@
                 }
               }
             }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
           }
-        }
+        },
+        "tags": [
+          "governance"
+        ]
       }
     },
     "/v1/governance/schema/{urn}": {
       "get": {
-        "tags": [
-          "governance"
-        ],
+        "operationId": "apps_governance_api_get_schema",
         "summary": "Get Schema",
-        "description": "Get schema from DataHub.",
-        "operationId": "get_schema_v1_governance_schema__urn__get",
         "parameters": [
           {
-            "name": "urn",
             "in": "path",
-            "required": true,
+            "name": "urn",
             "schema": {
-              "type": "string",
-              "title": "Urn"
-            }
+              "title": "Urn",
+              "type": "string"
+            },
+            "required": true
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -894,57 +654,47 @@
                 }
               }
             }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
           }
-        }
+        },
+        "tags": [
+          "governance"
+        ]
       }
     },
     "/v1/governance/quotas/tiers": {
       "get": {
-        "tags": [
-          "governance"
-        ],
+        "operationId": "apps_governance_api_list_quota_tiers",
         "summary": "List Quota Tiers",
-        "description": "List all available quota tiers.",
-        "operationId": "list_quota_tiers_v1_governance_quotas_tiers_get",
+        "parameters": [],
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
                   "items": {
                     "$ref": "#/components/schemas/QuotaTierInfo"
                   },
-                  "type": "array",
-                  "title": "Response List Quota Tiers V1 Governance Quotas Tiers Get"
+                  "title": "Response",
+                  "type": "array"
                 }
               }
             }
           }
-        }
+        },
+        "tags": [
+          "governance"
+        ]
       }
     },
     "/v1/governance/quotas/usage": {
       "get": {
-        "tags": [
-          "governance"
-        ],
+        "operationId": "apps_governance_api_get_quota_usage",
         "summary": "Get Quota Usage",
-        "description": "Get current quota usage for the authenticated tenant.",
-        "operationId": "get_quota_usage_v1_governance_quotas_usage_get",
+        "parameters": [],
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -953,37 +703,58 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "governance"
+        ]
       }
     },
     "/v1/governance/quotas/limits": {
       "get": {
-        "tags": [
-          "governance"
-        ],
+        "operationId": "apps_governance_api_get_quota_limits",
         "summary": "Get Quota Limits",
-        "description": "Get quota limits for the authenticated tenant.",
-        "operationId": "get_quota_limits_v1_governance_quotas_limits_get",
+        "parameters": [],
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "OK",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/QuotaUsageStatus"
+                }
               }
             }
           }
-        }
+        },
+        "tags": [
+          "governance"
+        ]
       }
     },
-    "/v1/governance/quotas/tier": {
+    "/v1/governance/quotas/set-tier": {
       "post": {
+        "operationId": "apps_governance_api_update_quota_tier",
+        "summary": "Update Quota Tier",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
         "tags": [
           "governance"
         ],
-        "summary": "Set Quota Tier",
-        "description": "Set quota tier for a tenant (admin only).\n\nIn production, this requires admin authentication.",
-        "operationId": "set_quota_tier_v1_governance_quotas_tier_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -993,42 +764,17 @@
             }
           },
           "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
         }
       }
     },
     "/v1/presets": {
       "get": {
-        "tags": [
-          "presets"
-        ],
+        "operationId": "apps_workflows_api_list_presets",
         "summary": "List Presets",
-        "description": "List available preset workflows.",
-        "operationId": "list_presets_v1_presets_get",
         "parameters": [
           {
-            "name": "category",
             "in": "query",
-            "required": false,
+            "name": "category",
             "schema": {
               "anyOf": [
                 {
@@ -1039,62 +785,52 @@
                 }
               ],
               "title": "Category"
-            }
+            },
+            "required": false
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
                   "additionalProperties": {
-                    "type": "array",
                     "items": {
                       "$ref": "#/components/schemas/PresetInfo"
-                    }
+                    },
+                    "type": "array"
                   },
-                  "title": "Response List Presets V1 Presets Get"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "title": "Response",
+                  "type": "object"
                 }
               }
             }
           }
-        }
+        },
+        "tags": [
+          "presets"
+        ]
       }
     },
     "/v1/presets/{preset_name}": {
       "get": {
-        "tags": [
-          "presets"
-        ],
+        "operationId": "apps_workflows_api_get_preset",
         "summary": "Get Preset",
-        "description": "Get preset details.",
-        "operationId": "get_preset_v1_presets__preset_name__get",
         "parameters": [
           {
-            "name": "preset_name",
             "in": "path",
-            "required": true,
+            "name": "preset_name",
             "schema": {
-              "type": "string",
-              "title": "Preset Name"
-            }
+              "title": "Preset Name",
+              "type": "string"
+            },
+            "required": true
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -1102,433 +838,314 @@
                 }
               }
             }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
           }
-        }
+        },
+        "tags": [
+          "presets"
+        ]
       }
     },
     "/v1/presets/{preset_name}/execute": {
       "post": {
-        "tags": [
-          "presets"
-        ],
+        "operationId": "apps_workflows_api_execute_preset",
         "summary": "Execute Preset",
-        "description": "Execute a preset workflow.",
-        "operationId": "execute_preset_v1_presets__preset_name__execute_post",
         "parameters": [
           {
-            "name": "preset_name",
             "in": "path",
-            "required": true,
+            "name": "preset_name",
             "schema": {
-              "type": "string",
-              "title": "Preset Name"
-            }
+              "title": "Preset Name",
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "payload",
+            "schema": {
+              "additionalProperties": true,
+              "title": "Payload",
+              "type": "object"
+            },
+            "required": true
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PresetExecuteRequest"
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response",
+                  "type": "object"
+                }
               }
             }
           }
         },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PresetExecuteResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
+        "tags": [
+          "presets"
+        ]
       }
     },
     "/v1/presets/kpi-templates": {
       "get": {
-        "tags": [
-          "presets"
-        ],
-        "summary": "List Kpi Templates",
-        "description": "List available KPI SQL templates.\n\nThese templates provide standard SQL patterns for common KPI calculations\nthat can be applied to any compatible dataset.\n\nArgs:\n    category: Optional filter by category (financial, customer, quality, etc.)",
-        "operationId": "list_kpi_templates_v1_presets_kpi_templates_get",
-        "parameters": [
-          {
-            "name": "category",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Category"
-            }
-          }
-        ],
+        "operationId": "apps_workflows_api_list_kpi_templates_endpoint",
+        "summary": "List Kpi Templates Endpoint",
+        "parameters": [],
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/KPITemplateInfo"
                   },
-                  "title": "Response List Kpi Templates V1 Presets Kpi Templates Get"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "title": "Response",
+                  "type": "array"
                 }
               }
             }
           }
-        }
+        },
+        "tags": [
+          "presets"
+        ]
       }
     },
     "/v1/presets/kpi-templates/categories": {
       "get": {
-        "tags": [
-          "presets"
-        ],
-        "summary": "List Kpi Categories",
-        "description": "List available KPI template categories.",
-        "operationId": "list_kpi_categories_v1_presets_kpi_templates_categories_get",
+        "operationId": "apps_workflows_api_list_kpi_template_categories",
+        "summary": "List Kpi Template Categories",
+        "parameters": [],
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
                   "items": {
                     "type": "string"
                   },
-                  "type": "array",
-                  "title": "Response List Kpi Categories V1 Presets Kpi Templates Categories Get"
+                  "title": "Response",
+                  "type": "array"
                 }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/presets/kpi-templates/{template_name}": {
-      "get": {
-        "tags": [
-          "presets"
-        ],
-        "summary": "Get Kpi Template",
-        "description": "Get details for a specific KPI template.",
-        "operationId": "get_kpi_template_v1_presets_kpi_templates__template_name__get",
-        "parameters": [
-          {
-            "name": "template_name",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Template Name"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/KPITemplateInfo"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/presets/kpi-templates/{template_name}/render": {
-      "post": {
-        "tags": [
-          "presets"
-        ],
-        "summary": "Render Kpi Template",
-        "description": "Render a KPI template with provided parameters.\n\nReturns the generated SQL query ready for execution.\n\nArgs:\n    template_name: Name of the template to render\n    request: Parameters to substitute in the template (table names, column names)",
-        "operationId": "render_kpi_template_v1_presets_kpi_templates__template_name__render_post",
-        "parameters": [
-          {
-            "name": "template_name",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Template Name"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/KPIRenderRequest"
               }
             }
           }
         },
+        "tags": [
+          "presets"
+        ]
+      }
+    },
+    "/v1/presets/kpi-templates/{template_name}": {
+      "get": {
+        "operationId": "apps_workflows_api_get_kpi_template_endpoint",
+        "summary": "Get Kpi Template Endpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "template_name",
+            "schema": {
+              "title": "Template Name",
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/KPIRenderResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "additionalProperties": true,
+                  "title": "Response",
+                  "type": "object"
                 }
               }
             }
           }
+        },
+        "tags": [
+          "presets"
+        ]
+      }
+    },
+    "/v1/presets/kpi-templates/{template_name}/render": {
+      "post": {
+        "operationId": "apps_workflows_api_render_kpi_template_endpoint",
+        "summary": "Render Kpi Template Endpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "template_name",
+            "schema": {
+              "title": "Template Name",
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "presets"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenderKPIRequest"
+              }
+            }
+          },
+          "required": true
         }
       }
     },
     "/v1/artifacts/{job_id}": {
       "get": {
-        "tags": [
-          "artifacts"
-        ],
+        "operationId": "apps_workflows_api_list_artifacts",
         "summary": "List Artifacts",
-        "description": "List artifacts for a job.",
-        "operationId": "list_artifacts_v1_artifacts__job_id__get",
         "parameters": [
           {
-            "name": "job_id",
             "in": "path",
-            "required": true,
+            "name": "job_id",
             "schema": {
-              "type": "string",
-              "title": "Job Id"
-            }
+              "title": "Job Id",
+              "type": "string"
+            },
+            "required": true
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ArtifactListResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "additionalProperties": {
+                    "items": {
+                      "$ref": "#/components/schemas/ArtifactInfo"
+                    },
+                    "type": "array"
+                  },
+                  "title": "Response",
+                  "type": "object"
                 }
               }
             }
           }
-        }
-      }
-    },
-    "/v1/artifacts/{job_id}/{artifact_type}": {
-      "get": {
+        },
         "tags": [
           "artifacts"
-        ],
-        "summary": "Get Artifact",
-        "description": "Get artifact metadata and download URL.",
-        "operationId": "get_artifact_v1_artifacts__job_id___artifact_type__get",
-        "parameters": [
-          {
-            "name": "job_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Job Id"
-            }
-          },
-          {
-            "name": "artifact_type",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Artifact Type"
-            }
-          },
-          {
-            "name": "format",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "default": "json",
-              "title": "Format"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
+        ]
       }
     },
     "/v1/artifacts/{job_id}/{artifact_type}/download": {
       "get": {
-        "tags": [
-          "artifacts"
-        ],
+        "operationId": "apps_workflows_api_download_artifact",
         "summary": "Download Artifact",
-        "description": "Download artifact file.",
-        "operationId": "download_artifact_v1_artifacts__job_id___artifact_type__download_get",
         "parameters": [
           {
+            "in": "path",
             "name": "job_id",
-            "in": "path",
-            "required": true,
             "schema": {
-              "type": "string",
-              "title": "Job Id"
-            }
+              "title": "Job Id",
+              "type": "string"
+            },
+            "required": true
           },
           {
+            "in": "path",
             "name": "artifact_type",
-            "in": "path",
-            "required": true,
             "schema": {
-              "type": "string",
-              "title": "Artifact Type"
-            }
+              "title": "Artifact Type",
+              "type": "string"
+            },
+            "required": true
           },
           {
-            "name": "format",
             "in": "query",
-            "required": false,
+            "name": "format",
             "schema": {
-              "type": "string",
               "default": "json",
-              "title": "Format"
-            }
+              "title": "Format",
+              "type": "string"
+            },
+            "required": false
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "artifacts"
+        ]
+      }
+    },
+    "/v1/analyze": {
+      "post": {
+        "operationId": "apps_analysis_api_analyze",
+        "summary": "Analyze",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/AnalyzeResponse"
                 }
               }
             }
           }
+        },
+        "tags": [
+          "analyze"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalyzeRequest"
+              }
+            }
+          },
+          "required": true
         }
       }
     },
     "/v1/discovery/services": {
       "post": {
-        "tags": [
-          "discovery"
-        ],
+        "operationId": "apps_discovery_api_register_service",
         "summary": "Register Service",
-        "description": "Register a new service in the catalog.\n\nPhD Developer: \"Platform of Platforms\" pattern.",
-        "operationId": "register_service_v1_discovery_services_post",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ServiceRegisterRequest"
-              }
-            }
-          }
-        },
+        "parameters": [],
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -1536,31 +1153,29 @@
                 }
               }
             }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
           }
-        }
-      },
-      "get": {
+        },
         "tags": [
           "discovery"
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceRegisterRequest"
+              }
+            }
+          },
+          "required": true
+        }
+      },
+      "get": {
+        "operationId": "apps_discovery_api_list_services",
         "summary": "List Services",
-        "description": "List registered services.",
-        "operationId": "list_services_v1_discovery_services_get",
         "parameters": [
           {
-            "name": "tag",
             "in": "query",
-            "required": false,
+            "name": "tag",
             "schema": {
               "anyOf": [
                 {
@@ -1571,59 +1186,49 @@
                 }
               ],
               "title": "Tag"
-            }
+            },
+            "required": false
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/ServiceDef"
                   },
-                  "title": "Response List Services V1 Discovery Services Get"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "title": "Response",
+                  "type": "array"
                 }
               }
             }
           }
-        }
+        },
+        "tags": [
+          "discovery"
+        ]
       }
     },
     "/v1/discovery/services/{name}": {
       "get": {
-        "tags": [
-          "discovery"
-        ],
+        "operationId": "apps_discovery_api_get_service",
         "summary": "Get Service",
-        "description": "Get service details.",
-        "operationId": "get_service_v1_discovery_services__name__get",
         "parameters": [
           {
-            "name": "name",
             "in": "path",
-            "required": true,
+            "name": "name",
             "schema": {
-              "type": "string",
-              "title": "Name"
-            }
+              "title": "Name",
+              "type": "string"
+            },
+            "required": true
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -1631,28 +1236,35 @@
                 }
               }
             }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
           }
-        }
+        },
+        "tags": [
+          "discovery"
+        ]
       }
     },
     "/v1/discovery/scan": {
       "post": {
+        "operationId": "apps_discovery_api_scan_spec",
+        "summary": "Scan Spec",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
         "tags": [
           "discovery"
         ],
-        "summary": "Scan Spec",
-        "description": "Scan an OpenAPI/Swagger spec URL.",
-        "operationId": "scan_spec_v1_discovery_scan_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1662,37 +1274,34 @@
             }
           },
           "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
         }
       }
     },
     "/v1/search/query": {
       "post": {
+        "operationId": "apps_search_api_search",
+        "summary": "Semantic Search Query",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SemanticSearchResult"
+                  },
+                  "title": "Response",
+                  "type": "array"
+                }
+              }
+            }
+          }
+        },
+        "description": "Execute a semantic search query to find similar indexed items.\n\nThis endpoint:\n1. Extracts an embedding vector from the query text\n2. Searches the vector store for similar items\n3. Returns ranked results by similarity score\n\nThe search uses cosine similarity to measure relevance between the query\nand indexed items. Results are filtered by tenant_id to ensure isolation.\n\nArgs:\n    request: The HTTP request containing tenant context\n    payload: The search query parameters\n\nReturns:\n    A list of SemanticSearchResult objects ranked by similarity (highest first)\n\nRaises:\n    HttpError 400: If the query is invalid\n    HttpError 500: If the search operation fails",
         "tags": [
           "search"
         ],
-        "summary": "Search",
-        "description": "Semantic search over vector store.",
-        "operationId": "search_v1_search_query_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1702,189 +1311,950 @@
             }
           },
           "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/voyant__api__routes__search__SearchResult"
-                  },
-                  "type": "array",
-                  "title": "Response Search V1 Search Query Post"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
         }
       }
     },
     "/v1/search/index": {
       "post": {
-        "tags": [
-          "search"
-        ],
-        "summary": "Index Item",
-        "description": "Index a text item (Ad-hoc).",
-        "operationId": "index_item_v1_search_index_post",
-        "parameters": [
-          {
-            "name": "text",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Text"
+        "operationId": "apps_search_api_index_item",
+        "summary": "Index New Item",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndexResponse"
+                }
+              }
             }
           }
+        },
+        "description": "Index a new text item for semantic search.\n\nThis endpoint:\n1. Extracts an embedding vector from the provided text\n2. Stores the vector in the vector store with metadata\n3. Associates the item with the current tenant for isolation\n\nThe indexed item becomes immediately searchable via the /query endpoint.\n\nArgs:\n    request: The HTTP request containing tenant context\n    payload: The item to index with text and optional metadata\n\nReturns:\n    An IndexResponse with the assigned item ID and status\n\nRaises:\n    HttpError 400: If the text is invalid or embedding extraction fails\n    HttpError 500: If the indexing operation fails",
+        "tags": [
+          "search"
         ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "title": "Metadata"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
+                "$ref": "#/components/schemas/IndexRequest"
               }
             }
           },
-          "422": {
-            "description": "Validation Error",
+          "required": true
+        }
+      }
+    },
+    "/v1/search/{item_id}": {
+      "delete": {
+        "operationId": "apps_search_api_delete_item",
+        "summary": "Delete Indexed Item",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "item_id",
+            "schema": {
+              "title": "Item Id",
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response",
+                  "type": "object"
                 }
               }
             }
           }
-        }
-      }
-    },
-    "/version": {
-      "get": {
+        },
+        "description": "Delete an indexed item from the vector store.\n\nThis endpoint removes an item by its ID. For security, it verifies that\nthe item belongs to the current tenant before deletion.\n\nArgs:\n    request: The HTTP request containing tenant context\n    item_id: The unique identifier of the item to delete\n\nReturns:\n    A confirmation message with the deleted item ID\n\nRaises:\n    HttpError 403: If the item does not belong to the current tenant\n    HttpError 404: If the item is not found\n    HttpError 500: If the deletion operation fails",
         "tags": [
-          "meta"
+          "search"
+        ]
+      },
+      "get": {
+        "operationId": "apps_search_api_get_item",
+        "summary": "Get Indexed Item",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "item_id",
+            "schema": {
+              "title": "Item Id",
+              "type": "string"
+            },
+            "required": true
+          }
         ],
-        "summary": "Version",
-        "description": "Get API version information and negotiation details.",
-        "operationId": "version_version_get",
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "OK",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/SemanticSearchResult"
+                }
               }
             }
           }
+        },
+        "description": "Retrieve an indexed item by its ID.\n\nThis endpoint fetches the metadata of a specific indexed item.\nFor security, it verifies that the item belongs to the current tenant.\n\nArgs:\n    request: The HTTP request containing tenant context\n    item_id: The unique identifier of the item to retrieve\n\nReturns:\n    A SemanticSearchResult with the item's metadata\n\nRaises:\n    HttpError 403: If the item does not belong to the current tenant\n    HttpError 404: If the item is not found\n    HttpError 500: If the retrieval operation fails",
+        "tags": [
+          "search"
+        ]
+      }
+    },
+    "/v1/scrape/start": {
+      "post": {
+        "operationId": "apps_scraper_api_start_scrape",
+        "summary": "Start Scrape",
+        "parameters": [],
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScrapeJobSchema"
+                }
+              }
+            }
+          }
+        },
+        "description": "Start a new web scraping job.\n\nPure execution - Agent provides URLs and optional selectors.\n\nOptions:\n- engine: playwright | scrapy | httpx (default: playwright)\n- timeout: seconds (default: 30)\n- scroll: true/false - Scroll page before capture\n- wait_for: CSS selector to wait for\n- ocr: true/false - Enable OCR for images found\n- transcribe: true/false - Enable transcription for media",
+        "tags": [
+          "scrape"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScrapeStartSchema"
+              }
+            }
+          },
+          "required": true
         }
+      }
+    },
+    "/v1/scrape/extract": {
+      "post": {
+        "operationId": "apps_scraper_api_extract_data",
+        "summary": "Extract Data",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "description": "Extract data from HTML using agent-provided selectors.\n\nPure execution - no LLM, just CSS/XPath parsing.",
+        "tags": [
+          "scrape"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScrapeExtractSchema"
+              }
+            }
+          },
+          "required": true
+        }
+      }
+    },
+    "/v1/scrape/fetch": {
+      "post": {
+        "operationId": "apps_scraper_api_fetch_page",
+        "summary": "Fetch Page",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "description": "Fetch a page using a selected engine with SSRF validation.",
+        "tags": [
+          "scrape"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScrapeFetchSchema"
+              }
+            }
+          },
+          "required": true
+        }
+      }
+    },
+    "/v1/scrape/deep_archive": {
+      "post": {
+        "operationId": "apps_scraper_api_deep_archive",
+        "summary": "Deep Archive",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "description": "Run a deep archive scrape combining interactions and file downloads.",
+        "tags": [
+          "scrape"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScrapeDeepArchiveSchema"
+              }
+            }
+          },
+          "required": true
+        }
+      }
+    },
+    "/v1/scrape/ocr": {
+      "post": {
+        "operationId": "apps_scraper_api_process_ocr",
+        "summary": "Process Ocr",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "description": "Run OCR for a single image URL or path.",
+        "tags": [
+          "scrape"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScrapeOcrSchema"
+              }
+            }
+          },
+          "required": true
+        }
+      }
+    },
+    "/v1/scrape/parse_pdf": {
+      "post": {
+        "operationId": "apps_scraper_api_parse_pdf",
+        "summary": "Parse Pdf",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "description": "Extract text and optional tables from a PDF.",
+        "tags": [
+          "scrape"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScrapePdfSchema"
+              }
+            }
+          },
+          "required": true
+        }
+      }
+    },
+    "/v1/scrape/transcribe": {
+      "post": {
+        "operationId": "apps_scraper_api_transcribe_media",
+        "summary": "Transcribe Media",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "description": "Transcribe one media URL and return text segments.",
+        "tags": [
+          "scrape"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScrapeTranscribeSchema"
+              }
+            }
+          },
+          "required": true
+        }
+      }
+    },
+    "/v1/scrape/status/{job_id}": {
+      "get": {
+        "operationId": "apps_scraper_api_get_scrape_status",
+        "summary": "Get Scrape Status",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScrapeJobSchema"
+                }
+              }
+            }
+          }
+        },
+        "description": "Get status of a scraping job.",
+        "tags": [
+          "scrape"
+        ]
+      }
+    },
+    "/v1/scrape/cancel": {
+      "post": {
+        "operationId": "apps_scraper_api_cancel_scrape",
+        "summary": "Cancel Scrape",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "job_id",
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "description": "Cancel a running scrape job.",
+        "tags": [
+          "scrape"
+        ]
+      }
+    },
+    "/v1/scrape/result/{job_id}": {
+      "get": {
+        "operationId": "apps_scraper_api_get_scrape_result",
+        "summary": "Get Scrape Result",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScrapeResultSchema"
+                }
+              }
+            }
+          }
+        },
+        "description": "Get results of a completed scrape job.",
+        "tags": [
+          "scrape"
+        ]
+      }
+    },
+    "/v1/scrape/metrics/{job_id}": {
+      "get": {
+        "operationId": "apps_scraper_api_get_scrape_metrics",
+        "summary": "Get Scrape Metrics",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "description": "Get metrics for a scrape job.",
+        "tags": [
+          "scrape"
+        ]
+      }
+    },
+    "/v1/capsules/registry": {
+      "get": {
+        "operationId": "apps_capsules_api_list_registry",
+        "summary": "List Registry",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "category",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "include_public",
+            "schema": {
+              "default": true,
+              "title": "Include Public",
+              "type": "boolean"
+            },
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response",
+                  "type": "array"
+                }
+              }
+            }
+          }
+        },
+        "description": "List all discoverable capsules for the tenant.",
+        "tags": [
+          "capsules"
+        ]
+      }
+    },
+    "/v1/capsules/registry/{capsule_id}": {
+      "get": {
+        "operationId": "apps_capsules_api_get_capsule_definition",
+        "summary": "Get Capsule Definition",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "capsule_id",
+            "schema": {
+              "title": "Capsule Id",
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Get a single capsule definition.",
+        "tags": [
+          "capsules"
+        ]
+      }
+    },
+    "/v1/capsules/install": {
+      "post": {
+        "operationId": "apps_capsules_api_install_capsule_endpoint",
+        "summary": "Install Capsule Endpoint",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "description": "Install a capsule for the tenant.",
+        "tags": [
+          "capsules"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CapsuleInstallRequest"
+              }
+            }
+          },
+          "required": true
+        }
+      }
+    },
+    "/v1/capsules/installed": {
+      "get": {
+        "operationId": "apps_capsules_api_list_installed",
+        "summary": "List Installed",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response",
+                  "type": "array"
+                }
+              }
+            }
+          }
+        },
+        "description": "List all capsules installed for this tenant.",
+        "tags": [
+          "capsules"
+        ]
+      }
+    },
+    "/v1/capsules/installed/{installation_id}": {
+      "delete": {
+        "operationId": "apps_capsules_api_uninstall_capsule_endpoint",
+        "summary": "Uninstall Capsule Endpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "installation_id",
+            "schema": {
+              "title": "Installation Id",
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "description": "Uninstall a capsule.",
+        "tags": [
+          "capsules"
+        ]
+      }
+    },
+    "/v1/capsules/run": {
+      "post": {
+        "operationId": "apps_capsules_api_run_capsule",
+        "summary": "Run Capsule",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "description": "Execute an installed capsule. Returns job_urn for polling.",
+        "tags": [
+          "capsules"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CapsuleRunRequest"
+              }
+            }
+          },
+          "required": true
+        }
+      }
+    },
+    "/v1/capsules/instances/{instance_id}": {
+      "get": {
+        "operationId": "apps_capsules_api_get_instance",
+        "summary": "Get Instance",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "instance_id",
+            "schema": {
+              "title": "Instance Id",
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Get status of a running capsule instance.",
+        "tags": [
+          "capsules"
+        ]
+      }
+    },
+    "/v1/capsules/create": {
+      "post": {
+        "operationId": "apps_capsules_api_create_capsule",
+        "summary": "Create Capsule",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "description": "Create a new capsule (DRAFT status).",
+        "tags": [
+          "capsules"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CapsuleCreateRequest"
+              }
+            }
+          },
+          "required": true
+        }
+      }
+    },
+    "/v1/capsules/{capsule_id}/certify": {
+      "post": {
+        "operationId": "apps_capsules_api_certify_capsule_endpoint",
+        "summary": "Certify Capsule Endpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "capsule_id",
+            "schema": {
+              "title": "Capsule Id",
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "description": "Certify a draft capsule.",
+        "tags": [
+          "capsules"
+        ]
+      }
+    },
+    "/v1/capsules/{capsule_id}/activate": {
+      "post": {
+        "operationId": "apps_capsules_api_activate_capsule_endpoint",
+        "summary": "Activate Capsule Endpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "capsule_id",
+            "schema": {
+              "title": "Capsule Id",
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "description": "Activate a certified capsule.",
+        "tags": [
+          "capsules"
+        ]
+      }
+    },
+    "/v1/capsules/{capsule_id}/suspend": {
+      "post": {
+        "operationId": "apps_capsules_api_suspend_capsule_endpoint",
+        "summary": "Suspend Capsule Endpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "capsule_id",
+            "schema": {
+              "title": "Capsule Id",
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "reason",
+            "schema": {
+              "default": "",
+              "title": "Reason",
+              "type": "string"
+            },
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "description": "Suspend a capsule.",
+        "tags": [
+          "capsules"
+        ]
+      }
+    },
+    "/v1/capsules/{capsule_id}/archive": {
+      "post": {
+        "operationId": "apps_capsules_api_archive_capsule_endpoint",
+        "summary": "Archive Capsule Endpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "capsule_id",
+            "schema": {
+              "title": "Capsule Id",
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "description": "Archive a capsule.",
+        "tags": [
+          "capsules"
+        ]
+      }
+    },
+    "/v1/capsules/import": {
+      "post": {
+        "operationId": "apps_capsules_api_import_capsule_endpoint",
+        "summary": "Import Capsule Endpoint",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "payload",
+            "schema": {
+              "additionalProperties": true,
+              "title": "Payload",
+              "type": "object"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "description": "Import a capsule from a JSON bundle.",
+        "tags": [
+          "capsules"
+        ]
+      }
+    },
+    "/v1/capsules/export/{capsule_id}": {
+      "post": {
+        "operationId": "apps_capsules_api_export_capsule_endpoint",
+        "summary": "Export Capsule Endpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "capsule_id",
+            "schema": {
+              "title": "Capsule Id",
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "description": "Export a capsule to a JSON bundle.",
+        "tags": [
+          "capsules"
+        ]
       }
     }
   },
   "components": {
     "schemas": {
-      "ArtifactInfo": {
+      "DiscoverResponse": {
         "properties": {
-          "artifact_id": {
-            "type": "string",
-            "title": "Artifact Id"
+          "source_type": {
+            "title": "Source Type",
+            "type": "string"
           },
-          "job_id": {
-            "type": "string",
-            "title": "Job Id"
+          "detected_properties": {
+            "additionalProperties": true,
+            "title": "Detected Properties",
+            "type": "object"
           },
-          "artifact_type": {
-            "type": "string",
-            "title": "Artifact Type"
+          "suggested_connector": {
+            "title": "Suggested Connector",
+            "type": "string"
           },
-          "format": {
-            "type": "string",
-            "title": "Format"
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          }
+        },
+        "required": [
+          "source_type",
+          "detected_properties",
+          "suggested_connector",
+          "confidence"
+        ],
+        "title": "DiscoverResponse",
+        "type": "object"
+      },
+      "DiscoverRequest": {
+        "properties": {
+          "hint": {
+            "description": "A string that provides a hint about the data source.",
+            "title": "Hint",
+            "type": "string"
+          }
+        },
+        "required": [
+          "hint"
+        ],
+        "title": "DiscoverRequest",
+        "type": "object"
+      },
+      "SourceResponse": {
+        "properties": {
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
           },
-          "storage_path": {
-            "type": "string",
-            "title": "Storage Path"
+          "tenant_id": {
+            "title": "Tenant Id",
+            "type": "string"
           },
-          "size_bytes": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "source_type": {
+            "title": "Source Type",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "datahub_urn": {
             "anyOf": [
               {
-                "type": "integer"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Size Bytes"
-          },
-          "created_at": {
-            "type": "string",
-            "title": "Created At"
+            "title": "Datahub Urn"
           }
         },
-        "type": "object",
         "required": [
-          "artifact_id",
-          "job_id",
-          "artifact_type",
-          "format",
-          "storage_path",
+          "source_id",
+          "tenant_id",
+          "name",
+          "source_type",
+          "status",
           "created_at"
         ],
-        "title": "ArtifactInfo"
-      },
-      "ArtifactListResponse": {
-        "properties": {
-          "artifacts": {
-            "items": {
-              "$ref": "#/components/schemas/ArtifactInfo"
-            },
-            "type": "array",
-            "title": "Artifacts"
-          }
-        },
-        "type": "object",
-        "required": [
-          "artifacts"
-        ],
-        "title": "ArtifactListResponse"
+        "title": "SourceResponse",
+        "type": "object"
       },
       "CreateSourceRequest": {
         "properties": {
           "name": {
-            "type": "string",
-            "title": "Name"
+            "title": "Name",
+            "type": "string"
           },
           "source_type": {
-            "type": "string",
-            "title": "Source Type"
+            "title": "Source Type",
+            "type": "string"
           },
           "connection_config": {
             "additionalProperties": true,
-            "type": "object",
-            "title": "Connection Config"
+            "title": "Connection Config",
+            "type": "object"
           },
           "credentials": {
             "anyOf": [
@@ -1910,128 +2280,39 @@
             "title": "Sync Schedule"
           }
         },
-        "type": "object",
         "required": [
           "name",
           "source_type",
           "connection_config"
         ],
-        "title": "CreateSourceRequest"
-      },
-      "DiscoverRequest": {
-        "properties": {
-          "hint": {
-            "type": "string",
-            "title": "Hint",
-            "description": "Data source hint (URL, path, connection string)"
-          }
-        },
-        "type": "object",
-        "required": [
-          "hint"
-        ],
-        "title": "DiscoverRequest"
-      },
-      "DiscoverResponse": {
-        "properties": {
-          "source_type": {
-            "type": "string",
-            "title": "Source Type"
-          },
-          "detected_properties": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Detected Properties"
-          },
-          "suggested_connector": {
-            "type": "string",
-            "title": "Suggested Connector"
-          },
-          "confidence": {
-            "type": "number",
-            "title": "Confidence"
-          }
-        },
-        "type": "object",
-        "required": [
-          "source_type",
-          "detected_properties",
-          "suggested_connector",
-          "confidence"
-        ],
-        "title": "DiscoverResponse"
-      },
-      "HTTPValidationError": {
-        "properties": {
-          "detail": {
-            "items": {
-              "$ref": "#/components/schemas/ValidationError"
-            },
-            "type": "array",
-            "title": "Detail"
-          }
-        },
-        "type": "object",
-        "title": "HTTPValidationError"
-      },
-      "IngestRequest": {
-        "properties": {
-          "source_id": {
-            "type": "string",
-            "title": "Source Id"
-          },
-          "mode": {
-            "type": "string",
-            "title": "Mode",
-            "description": "full or incremental",
-            "default": "full"
-          },
-          "tables": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Tables"
-          }
-        },
-        "type": "object",
-        "required": [
-          "source_id"
-        ],
-        "title": "IngestRequest"
+        "title": "CreateSourceRequest",
+        "type": "object"
       },
       "JobResponse": {
         "properties": {
           "job_id": {
-            "type": "string",
-            "title": "Job Id"
+            "title": "Job Id",
+            "type": "string"
           },
           "tenant_id": {
-            "type": "string",
-            "title": "Tenant Id"
+            "title": "Tenant Id",
+            "type": "string"
           },
           "job_type": {
-            "type": "string",
-            "title": "Job Type"
+            "title": "Job Type",
+            "type": "string"
           },
           "status": {
-            "type": "string",
-            "title": "Status"
+            "title": "Status",
+            "type": "string"
           },
           "progress": {
-            "type": "integer",
-            "title": "Progress"
+            "title": "Progress",
+            "type": "integer"
           },
           "created_at": {
-            "type": "string",
-            "title": "Created At"
+            "title": "Created At",
+            "type": "string"
           },
           "started_at": {
             "anyOf": [
@@ -2079,7 +2360,6 @@
             "title": "Error Message"
           }
         },
-        "type": "object",
         "required": [
           "job_id",
           "tenant_id",
@@ -2088,258 +2368,46 @@
           "progress",
           "created_at"
         ],
-        "title": "JobResponse"
+        "title": "JobResponse",
+        "type": "object"
       },
-      "KPIRenderRequest": {
+      "IngestRequest": {
         "properties": {
-          "parameters": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "type": "object",
-            "title": "Parameters"
-          }
-        },
-        "type": "object",
-        "required": [
-          "parameters"
-        ],
-        "title": "KPIRenderRequest"
-      },
-      "KPIRenderResponse": {
-        "properties": {
-          "template_name": {
-            "type": "string",
-            "title": "Template Name"
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
           },
-          "sql": {
-            "type": "string",
-            "title": "Sql"
-          }
-        },
-        "type": "object",
-        "required": [
-          "template_name",
-          "sql"
-        ],
-        "title": "KPIRenderResponse"
-      },
-      "KPITemplateInfo": {
-        "properties": {
-          "name": {
-            "type": "string",
-            "title": "Name"
+          "mode": {
+            "default": "full",
+            "title": "Mode",
+            "type": "string"
           },
-          "category": {
-            "type": "string",
-            "title": "Category"
-          },
-          "description": {
-            "type": "string",
-            "title": "Description"
-          },
-          "required_columns": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Required Columns"
-          },
-          "optional_columns": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "type": "object",
-            "title": "Optional Columns"
-          },
-          "output_columns": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Output Columns"
-          }
-        },
-        "type": "object",
-        "required": [
-          "name",
-          "category",
-          "description",
-          "required_columns"
-        ],
-        "title": "KPITemplateInfo"
-      },
-      "LineageEdge": {
-        "properties": {
-          "source": {
-            "type": "string",
-            "title": "Source"
-          },
-          "target": {
-            "type": "string",
-            "title": "Target"
-          },
-          "type": {
-            "type": "string",
-            "title": "Type"
-          }
-        },
-        "type": "object",
-        "required": [
-          "source",
-          "target",
-          "type"
-        ],
-        "title": "LineageEdge"
-      },
-      "LineageNode": {
-        "properties": {
-          "urn": {
-            "type": "string",
-            "title": "Urn"
-          },
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
-          "type": {
-            "type": "string",
-            "title": "Type"
-          },
-          "platform": {
+          "tables": {
             "anyOf": [
               {
-                "type": "string"
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Platform"
+            "title": "Tables"
           }
         },
-        "type": "object",
-        "required": [
-          "urn",
-          "name",
-          "type"
-        ],
-        "title": "LineageNode"
-      },
-      "LineageResponse": {
-        "properties": {
-          "nodes": {
-            "items": {
-              "$ref": "#/components/schemas/LineageNode"
-            },
-            "type": "array",
-            "title": "Nodes"
-          },
-          "edges": {
-            "items": {
-              "$ref": "#/components/schemas/LineageEdge"
-            },
-            "type": "array",
-            "title": "Edges"
-          }
-        },
-        "type": "object",
-        "required": [
-          "nodes",
-          "edges"
-        ],
-        "title": "LineageResponse"
-      },
-      "PresetExecuteRequest": {
-        "properties": {
-          "source_id": {
-            "type": "string",
-            "title": "Source Id"
-          },
-          "parameters": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Parameters"
-          }
-        },
-        "type": "object",
         "required": [
           "source_id"
         ],
-        "title": "PresetExecuteRequest"
-      },
-      "PresetExecuteResponse": {
-        "properties": {
-          "job_id": {
-            "type": "string",
-            "title": "Job Id"
-          },
-          "preset_name": {
-            "type": "string",
-            "title": "Preset Name"
-          },
-          "status": {
-            "type": "string",
-            "title": "Status"
-          },
-          "created_at": {
-            "type": "string",
-            "title": "Created At"
-          }
-        },
-        "type": "object",
-        "required": [
-          "job_id",
-          "preset_name",
-          "status",
-          "created_at"
-        ],
-        "title": "PresetExecuteResponse"
-      },
-      "PresetInfo": {
-        "properties": {
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
-          "category": {
-            "type": "string",
-            "title": "Category"
-          },
-          "description": {
-            "type": "string",
-            "title": "Description"
-          },
-          "parameters": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Parameters"
-          },
-          "output_artifacts": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Output Artifacts"
-          }
-        },
-        "type": "object",
-        "required": [
-          "name",
-          "category",
-          "description",
-          "parameters",
-          "output_artifacts"
-        ],
-        "title": "PresetInfo"
+        "title": "IngestRequest",
+        "type": "object"
       },
       "ProfileRequest": {
         "properties": {
           "source_id": {
-            "type": "string",
-            "title": "Source Id"
+            "title": "Source Id",
+            "type": "string"
           },
           "table": {
             "anyOf": [
@@ -2353,24 +2421,24 @@
             "title": "Table"
           },
           "sample_size": {
-            "type": "integer",
-            "maximum": 1000000.0,
-            "minimum": 100.0,
+            "default": 10000,
+            "maximum": 1000000,
+            "minimum": 100,
             "title": "Sample Size",
-            "default": 10000
+            "type": "integer"
           }
         },
-        "type": "object",
         "required": [
           "source_id"
         ],
-        "title": "ProfileRequest"
+        "title": "ProfileRequest",
+        "type": "object"
       },
       "QualityRequest": {
         "properties": {
           "source_id": {
-            "type": "string",
-            "title": "Source Id"
+            "title": "Source Id",
+            "type": "string"
           },
           "table": {
             "anyOf": [
@@ -2398,364 +2466,48 @@
             "title": "Checks"
           }
         },
-        "type": "object",
         "required": [
           "source_id"
         ],
-        "title": "QualityRequest"
+        "title": "QualityRequest",
+        "type": "object"
       },
-      "QuotaTierInfo": {
+      "SqlResponse": {
+        "description": "Response schema for the result of an executed SQL query.",
         "properties": {
-          "tier_id": {
-            "type": "string",
-            "title": "Tier Id"
-          },
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
-          "max_jobs_per_day": {
-            "type": "integer",
-            "title": "Max Jobs Per Day"
-          },
-          "max_artifacts_gb": {
-            "type": "number",
-            "title": "Max Artifacts Gb"
-          },
-          "max_sources": {
-            "type": "integer",
-            "title": "Max Sources"
-          },
-          "max_concurrent_jobs": {
-            "type": "integer",
-            "title": "Max Concurrent Jobs"
-          }
-        },
-        "type": "object",
-        "required": [
-          "tier_id",
-          "name",
-          "max_jobs_per_day",
-          "max_artifacts_gb",
-          "max_sources",
-          "max_concurrent_jobs"
-        ],
-        "title": "QuotaTierInfo"
-      },
-      "QuotaUsageStatus": {
-        "properties": {
-          "tenant_id": {
-            "type": "string",
-            "title": "Tenant Id"
-          },
-          "tier": {
-            "type": "string",
-            "title": "Tier"
-          },
-          "jobs_today": {
-            "type": "integer",
-            "title": "Jobs Today"
-          },
-          "jobs_limit": {
-            "type": "integer",
-            "title": "Jobs Limit"
-          },
-          "jobs_remaining": {
-            "type": "integer",
-            "title": "Jobs Remaining"
-          },
-          "artifacts_gb": {
-            "type": "number",
-            "title": "Artifacts Gb"
-          },
-          "artifacts_limit_gb": {
-            "type": "number",
-            "title": "Artifacts Limit Gb"
-          },
-          "sources_count": {
-            "type": "integer",
-            "title": "Sources Count"
-          },
-          "sources_limit": {
-            "type": "integer",
-            "title": "Sources Limit"
-          },
-          "concurrent_jobs": {
-            "type": "integer",
-            "title": "Concurrent Jobs"
-          },
-          "concurrent_limit": {
-            "type": "integer",
-            "title": "Concurrent Limit"
-          }
-        },
-        "type": "object",
-        "required": [
-          "tenant_id",
-          "tier",
-          "jobs_today",
-          "jobs_limit",
-          "jobs_remaining",
-          "artifacts_gb",
-          "artifacts_limit_gb",
-          "sources_count",
-          "sources_limit",
-          "concurrent_jobs",
-          "concurrent_limit"
-        ],
-        "title": "QuotaUsageStatus"
-      },
-      "SchemaField": {
-        "properties": {
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
-          "type": {
-            "type": "string",
-            "title": "Type"
-          },
-          "nullable": {
-            "type": "boolean",
-            "title": "Nullable",
-            "default": true
-          },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description"
-          }
-        },
-        "type": "object",
-        "required": [
-          "name",
-          "type"
-        ],
-        "title": "SchemaField"
-      },
-      "SchemaResponse": {
-        "properties": {
-          "urn": {
-            "type": "string",
-            "title": "Urn"
-          },
-          "fields": {
-            "items": {
-              "$ref": "#/components/schemas/SchemaField"
-            },
-            "type": "array",
-            "title": "Fields"
-          }
-        },
-        "type": "object",
-        "required": [
-          "urn",
-          "fields"
-        ],
-        "title": "SchemaResponse"
-      },
-      "SearchQuery": {
-        "properties": {
-          "query": {
-            "type": "string",
-            "title": "Query"
-          },
-          "limit": {
-            "type": "integer",
-            "title": "Limit",
-            "default": 5
-          },
-          "filters": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Filters"
-          }
-        },
-        "type": "object",
-        "required": [
-          "query"
-        ],
-        "title": "SearchQuery"
-      },
-      "SearchResponse": {
-        "properties": {
-          "results": {
-            "items": {
-              "$ref": "#/components/schemas/voyant__api__routes__governance__SearchResult"
-            },
-            "type": "array",
-            "title": "Results"
-          },
-          "total": {
-            "type": "integer",
-            "title": "Total"
-          }
-        },
-        "type": "object",
-        "required": [
-          "results",
-          "total"
-        ],
-        "title": "SearchResponse"
-      },
-      "ServiceDef": {
-        "properties": {
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
-          "base_url": {
-            "type": "string",
-            "title": "Base Url"
-          },
-          "version": {
-            "type": "string",
-            "title": "Version",
-            "default": "1.0.0"
-          },
-          "description": {
-            "type": "string",
-            "title": "Description",
-            "default": ""
-          },
-          "auth_type": {
-            "type": "string",
-            "title": "Auth Type",
-            "default": "none"
-          },
-          "endpoints": {
-            "items": {
-              "additionalProperties": {
-                "type": "string"
-              },
-              "type": "object"
-            },
-            "type": "array",
-            "title": "Endpoints"
-          },
-          "metadata": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "type": "object",
-            "title": "Metadata"
-          },
-          "first_seen": {
-            "type": "number",
-            "title": "First Seen"
-          },
-          "last_seen": {
-            "type": "number",
-            "title": "Last Seen"
-          }
-        },
-        "type": "object",
-        "required": [
-          "name",
-          "base_url"
-        ],
-        "title": "ServiceDef"
-      },
-      "ServiceRegisterRequest": {
-        "properties": {
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
-          "base_url": {
-            "type": "string",
-            "title": "Base Url"
-          },
-          "spec_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Spec Url"
-          },
-          "version": {
-            "type": "string",
-            "title": "Version",
-            "default": "1.0.0"
-          },
-          "owner": {
-            "type": "string",
-            "title": "Owner",
-            "default": "unknown"
-          },
-          "tags": {
+          "columns": {
+            "description": "A list of column names returned by the query.",
             "items": {
               "type": "string"
             },
-            "type": "array",
-            "title": "Tags",
-            "default": []
-          }
-        },
-        "type": "object",
-        "required": [
-          "name",
-          "base_url"
-        ],
-        "title": "ServiceRegisterRequest"
-      },
-      "SetTierRequest": {
-        "properties": {
-          "tier": {
-            "type": "string",
-            "title": "Tier"
-          }
-        },
-        "type": "object",
-        "required": [
-          "tier"
-        ],
-        "title": "SetTierRequest"
-      },
-      "SourceResponse": {
-        "properties": {
-          "source_id": {
-            "type": "string",
-            "title": "Source Id"
+            "title": "Columns",
+            "type": "array"
           },
-          "tenant_id": {
-            "type": "string",
-            "title": "Tenant Id"
+          "rows": {
+            "description": "A list of lists, where each inner list represents a row of data.",
+            "items": {
+              "items": {},
+              "type": "array"
+            },
+            "title": "Rows",
+            "type": "array"
           },
-          "name": {
-            "type": "string",
-            "title": "Name"
+          "row_count": {
+            "description": "The total number of rows returned.",
+            "title": "Row Count",
+            "type": "integer"
           },
-          "source_type": {
-            "type": "string",
-            "title": "Source Type"
+          "truncated": {
+            "description": "True if the result set was truncated due to the specified limit.",
+            "title": "Truncated",
+            "type": "boolean"
           },
-          "status": {
-            "type": "string",
-            "title": "Status"
+          "execution_time_ms": {
+            "description": "The time taken to execute the query in milliseconds.",
+            "title": "Execution Time Ms",
+            "type": "integer"
           },
-          "created_at": {
-            "type": "string",
-            "title": "Created At"
-          },
-          "datahub_urn": {
+          "query_id": {
             "anyOf": [
               {
                 "type": "string"
@@ -2764,46 +2516,35 @@
                 "type": "null"
               }
             ],
-            "title": "Datahub Urn"
+            "description": "The unique ID assigned to the query by the Trino engine.",
+            "title": "Query Id"
           }
         },
-        "type": "object",
         "required": [
-          "source_id",
-          "tenant_id",
-          "name",
-          "source_type",
-          "status",
-          "created_at"
+          "columns",
+          "rows",
+          "row_count",
+          "truncated",
+          "execution_time_ms"
         ],
-        "title": "SourceResponse"
-      },
-      "SpecScanRequest": {
-        "properties": {
-          "url": {
-            "type": "string",
-            "title": "Url"
-          }
-        },
-        "type": "object",
-        "required": [
-          "url"
-        ],
-        "title": "SpecScanRequest"
+        "title": "SqlResponse",
+        "type": "object"
       },
       "SqlRequest": {
+        "description": "Request schema for executing an ad-hoc SQL query.",
         "properties": {
           "sql": {
-            "type": "string",
+            "description": "The SQL query string to execute. Only SELECT queries are permitted.",
             "title": "Sql",
-            "description": "SQL query (SELECT only)"
+            "type": "string"
           },
           "limit": {
-            "type": "integer",
-            "maximum": 10000.0,
-            "minimum": 1.0,
+            "default": 1000,
+            "description": "The maximum number of rows to return from the query.",
+            "maximum": 10000,
+            "minimum": 1,
             "title": "Limit",
-            "default": 1000
+            "type": "integer"
           },
           "parameters": {
             "anyOf": [
@@ -2815,112 +2556,29 @@
                 "type": "null"
               }
             ],
+            "description": "Optional parameters to pass to the SQL query (e.g., for parameterized queries).",
             "title": "Parameters"
           }
         },
-        "type": "object",
         "required": [
           "sql"
         ],
-        "title": "SqlRequest"
+        "title": "SqlRequest",
+        "type": "object"
       },
-      "SqlResponse": {
-        "properties": {
-          "columns": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Columns"
-          },
-          "rows": {
-            "items": {
-              "items": {},
-              "type": "array"
-            },
-            "type": "array",
-            "title": "Rows"
-          },
-          "row_count": {
-            "type": "integer",
-            "title": "Row Count"
-          },
-          "truncated": {
-            "type": "boolean",
-            "title": "Truncated"
-          },
-          "execution_time_ms": {
-            "type": "integer",
-            "title": "Execution Time Ms"
-          },
-          "query_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Query Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "columns",
-          "rows",
-          "row_count",
-          "truncated",
-          "execution_time_ms"
-        ],
-        "title": "SqlResponse"
-      },
-      "ValidationError": {
-        "properties": {
-          "loc": {
-            "items": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "integer"
-                }
-              ]
-            },
-            "type": "array",
-            "title": "Location"
-          },
-          "msg": {
-            "type": "string",
-            "title": "Message"
-          },
-          "type": {
-            "type": "string",
-            "title": "Error Type"
-          }
-        },
-        "type": "object",
-        "required": [
-          "loc",
-          "msg",
-          "type"
-        ],
-        "title": "ValidationError"
-      },
-      "voyant__api__routes__governance__SearchResult": {
+      "GovernanceSearchResult": {
         "properties": {
           "urn": {
-            "type": "string",
-            "title": "Urn"
+            "title": "Urn",
+            "type": "string"
           },
           "name": {
-            "type": "string",
-            "title": "Name"
+            "title": "Name",
+            "type": "string"
           },
           "type": {
-            "type": "string",
-            "title": "Type"
+            "title": "Type",
+            "type": "string"
           },
           "description": {
             "anyOf": [
@@ -2948,30 +2606,77 @@
             "items": {
               "type": "string"
             },
-            "type": "array",
             "title": "Tags",
-            "default": []
+            "type": "array"
           }
         },
-        "type": "object",
         "required": [
           "urn",
           "name",
           "type"
         ],
-        "title": "SearchResult"
+        "title": "GovernanceSearchResult",
+        "type": "object"
       },
-      "voyant__api__routes__search__SearchResult": {
+      "SearchResponse": {
         "properties": {
-          "id": {
-            "type": "string",
-            "title": "Id"
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/GovernanceSearchResult"
+            },
+            "title": "Results",
+            "type": "array"
           },
-          "score": {
-            "type": "number",
-            "title": "Score"
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "results",
+          "total"
+        ],
+        "title": "SearchResponse",
+        "type": "object"
+      },
+      "LineageEdge": {
+        "properties": {
+          "source": {
+            "title": "Source",
+            "type": "string"
           },
-          "text": {
+          "target": {
+            "title": "Target",
+            "type": "string"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "target",
+          "type"
+        ],
+        "title": "LineageEdge",
+        "type": "object"
+      },
+      "LineageNode": {
+        "properties": {
+          "urn": {
+            "title": "Urn",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          },
+          "platform": {
             "anyOf": [
               {
                 "type": "string"
@@ -2980,22 +2685,1700 @@
                 "type": "null"
               }
             ],
-            "title": "Text"
+            "title": "Platform"
+          }
+        },
+        "required": [
+          "urn",
+          "name",
+          "type"
+        ],
+        "title": "LineageNode",
+        "type": "object"
+      },
+      "LineageResponse": {
+        "properties": {
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/LineageNode"
+            },
+            "title": "Nodes",
+            "type": "array"
+          },
+          "edges": {
+            "items": {
+              "$ref": "#/components/schemas/LineageEdge"
+            },
+            "title": "Edges",
+            "type": "array"
+          }
+        },
+        "required": [
+          "nodes",
+          "edges"
+        ],
+        "title": "LineageResponse",
+        "type": "object"
+      },
+      "SchemaField": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          },
+          "nullable": {
+            "default": true,
+            "title": "Nullable",
+            "type": "boolean"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          }
+        },
+        "required": [
+          "name",
+          "type"
+        ],
+        "title": "SchemaField",
+        "type": "object"
+      },
+      "SchemaResponse": {
+        "properties": {
+          "urn": {
+            "title": "Urn",
+            "type": "string"
+          },
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/SchemaField"
+            },
+            "title": "Fields",
+            "type": "array"
+          }
+        },
+        "required": [
+          "urn",
+          "fields"
+        ],
+        "title": "SchemaResponse",
+        "type": "object"
+      },
+      "QuotaTierInfo": {
+        "properties": {
+          "tier_id": {
+            "title": "Tier Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "max_jobs_per_day": {
+            "title": "Max Jobs Per Day",
+            "type": "integer"
+          },
+          "max_artifacts_gb": {
+            "title": "Max Artifacts Gb",
+            "type": "number"
+          },
+          "max_sources": {
+            "title": "Max Sources",
+            "type": "integer"
+          },
+          "max_concurrent_jobs": {
+            "title": "Max Concurrent Jobs",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "tier_id",
+          "name",
+          "max_jobs_per_day",
+          "max_artifacts_gb",
+          "max_sources",
+          "max_concurrent_jobs"
+        ],
+        "title": "QuotaTierInfo",
+        "type": "object"
+      },
+      "QuotaUsageStatus": {
+        "properties": {
+          "tenant_id": {
+            "title": "Tenant Id",
+            "type": "string"
+          },
+          "tier": {
+            "title": "Tier",
+            "type": "string"
+          },
+          "jobs_today": {
+            "title": "Jobs Today",
+            "type": "integer"
+          },
+          "jobs_limit": {
+            "title": "Jobs Limit",
+            "type": "integer"
+          },
+          "jobs_remaining": {
+            "title": "Jobs Remaining",
+            "type": "integer"
+          },
+          "artifacts_gb": {
+            "title": "Artifacts Gb",
+            "type": "number"
+          },
+          "artifacts_limit_gb": {
+            "title": "Artifacts Limit Gb",
+            "type": "number"
+          },
+          "sources_count": {
+            "title": "Sources Count",
+            "type": "integer"
+          },
+          "sources_limit": {
+            "title": "Sources Limit",
+            "type": "integer"
+          },
+          "concurrent_jobs": {
+            "title": "Concurrent Jobs",
+            "type": "integer"
+          },
+          "concurrent_limit": {
+            "title": "Concurrent Limit",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "tier",
+          "jobs_today",
+          "jobs_limit",
+          "jobs_remaining",
+          "artifacts_gb",
+          "artifacts_limit_gb",
+          "sources_count",
+          "sources_limit",
+          "concurrent_jobs",
+          "concurrent_limit"
+        ],
+        "title": "QuotaUsageStatus",
+        "type": "object"
+      },
+      "SetTierRequest": {
+        "properties": {
+          "tier": {
+            "title": "Tier",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tier"
+        ],
+        "title": "SetTierRequest",
+        "type": "object"
+      },
+      "PresetInfo": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "category": {
+            "title": "Category",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "parameters": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Parameters",
+            "type": "array"
+          },
+          "output_artifacts": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Output Artifacts",
+            "type": "array"
+          }
+        },
+        "required": [
+          "name",
+          "category",
+          "description",
+          "parameters",
+          "output_artifacts"
+        ],
+        "title": "PresetInfo",
+        "type": "object"
+      },
+      "KPITemplateInfo": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "category": {
+            "title": "Category",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "required_columns": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Required Columns",
+            "type": "array"
+          }
+        },
+        "required": [
+          "name",
+          "category",
+          "description",
+          "required_columns"
+        ],
+        "title": "KPITemplateInfo",
+        "type": "object"
+      },
+      "RenderKPIRequest": {
+        "properties": {
+          "params": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Params",
+            "type": "object"
+          }
+        },
+        "required": [
+          "params"
+        ],
+        "title": "RenderKPIRequest",
+        "type": "object"
+      },
+      "ArtifactInfo": {
+        "properties": {
+          "artifact_id": {
+            "title": "Artifact Id",
+            "type": "string"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "artifact_type": {
+            "title": "Artifact Type",
+            "type": "string"
+          },
+          "format": {
+            "title": "Format",
+            "type": "string"
+          },
+          "storage_path": {
+            "title": "Storage Path",
+            "type": "string"
+          },
+          "size_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Size Bytes"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "artifact_id",
+          "job_id",
+          "artifact_type",
+          "format",
+          "storage_path",
+          "created_at"
+        ],
+        "title": "ArtifactInfo",
+        "type": "object"
+      },
+      "AnalyzeResponse": {
+        "properties": {
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "tenant_id": {
+            "title": "Tenant Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "summary": {
+            "additionalProperties": true,
+            "title": "Summary",
+            "type": "object"
+          },
+          "artifacts": {
+            "additionalProperties": true,
+            "title": "Artifacts",
+            "type": "object"
+          },
+          "manifest": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Manifest",
+            "type": "array"
+          }
+        },
+        "required": [
+          "job_id",
+          "tenant_id",
+          "status",
+          "summary",
+          "artifacts",
+          "manifest"
+        ],
+        "title": "AnalyzeResponse",
+        "type": "object"
+      },
+      "AnalyzeRequest": {
+        "properties": {
+          "source_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Id"
+          },
+          "table": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Table"
+          },
+          "tables": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tables"
+          },
+          "sample_size": {
+            "default": 10000,
+            "maximum": 1000000,
+            "minimum": 100,
+            "title": "Sample Size",
+            "type": "integer"
+          },
+          "kpis": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/KPIQuery"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kpis"
+          },
+          "analyzers": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analyzers"
+          },
+          "analyzer_context": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analyzer Context"
+          },
+          "profile": {
+            "default": true,
+            "title": "Profile",
+            "type": "boolean"
+          },
+          "run_analyzers": {
+            "default": true,
+            "title": "Run Analyzers",
+            "type": "boolean"
+          },
+          "generate_artifacts": {
+            "default": true,
+            "title": "Generate Artifacts",
+            "type": "boolean"
+          }
+        },
+        "title": "AnalyzeRequest",
+        "type": "object"
+      },
+      "KPIQuery": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "sql": {
+            "title": "Sql",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "sql"
+        ],
+        "title": "KPIQuery",
+        "type": "object"
+      },
+      "ApiEndpoint": {
+        "properties": {
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "parameters": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Parameters",
+            "type": "array"
+          },
+          "auth_required": {
+            "default": true,
+            "title": "Auth Required",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "path",
+          "method",
+          "summary"
+        ],
+        "title": "ApiEndpoint",
+        "type": "object"
+      },
+      "ServiceDef": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "base_url": {
+            "title": "Base Url",
+            "type": "string"
+          },
+          "version": {
+            "default": "1.0.0",
+            "title": "Version",
+            "type": "string"
+          },
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "auth_type": {
+            "default": "none",
+            "title": "Auth Type",
+            "type": "string"
+          },
+          "spec_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spec Url"
+          },
+          "owner": {
+            "default": "unknown",
+            "title": "Owner",
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "endpoints": {
+            "items": {
+              "$ref": "#/components/schemas/ApiEndpoint"
+            },
+            "title": "Endpoints",
+            "type": "array"
+          },
+          "metadata": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Metadata",
+            "type": "object"
+          },
+          "first_seen": {
+            "title": "First Seen",
+            "type": "number"
+          },
+          "last_seen": {
+            "title": "Last Seen",
+            "type": "number"
+          }
+        },
+        "required": [
+          "name",
+          "base_url"
+        ],
+        "title": "ServiceDef",
+        "type": "object"
+      },
+      "ServiceRegisterRequest": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "base_url": {
+            "title": "Base Url",
+            "type": "string"
+          },
+          "spec_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spec Url"
+          },
+          "version": {
+            "default": "1.0.0",
+            "title": "Version",
+            "type": "string"
+          },
+          "owner": {
+            "default": "unknown",
+            "title": "Owner",
+            "type": "string"
+          },
+          "tags": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          }
+        },
+        "required": [
+          "name",
+          "base_url"
+        ],
+        "title": "ServiceRegisterRequest",
+        "type": "object"
+      },
+      "SpecScanRequest": {
+        "properties": {
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "SpecScanRequest",
+        "type": "object"
+      },
+      "SemanticSearchResult": {
+        "description": "Response schema for a single search result.",
+        "properties": {
+          "id": {
+            "description": "Unique identifier of the indexed item",
+            "title": "Id",
+            "type": "string"
+          },
+          "score": {
+            "description": "Similarity score (0.0 to 1.0, higher is more similar)",
+            "title": "Score",
+            "type": "number"
           },
           "metadata": {
             "additionalProperties": true,
-            "type": "object",
+            "description": "Metadata associated with the indexed item",
             "title": "Metadata",
-            "default": {}
+            "type": "object"
           }
         },
-        "type": "object",
         "required": [
           "id",
           "score"
         ],
-        "title": "SearchResult"
+        "title": "SemanticSearchResult",
+        "type": "object"
+      },
+      "SearchQuery": {
+        "description": "Request schema for semantic search query.",
+        "properties": {
+          "query": {
+            "description": "The search query text to find similar items",
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Query",
+            "type": "string"
+          },
+          "limit": {
+            "default": 5,
+            "description": "Maximum number of results to return",
+            "maximum": 100,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "filters": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional metadata filters for exact match filtering",
+            "title": "Filters"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "SearchQuery",
+        "type": "object"
+      },
+      "IndexResponse": {
+        "description": "Response schema after indexing an item.",
+        "properties": {
+          "id": {
+            "description": "The unique identifier assigned to the indexed item",
+            "title": "Id",
+            "type": "string"
+          },
+          "status": {
+            "description": "Status of the indexing operation",
+            "title": "Status",
+            "type": "string"
+          },
+          "dimensions": {
+            "description": "Dimensionality of the generated embedding vector",
+            "title": "Dimensions",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "dimensions"
+        ],
+        "title": "IndexResponse",
+        "type": "object"
+      },
+      "IndexRequest": {
+        "description": "Request schema for indexing a new item.",
+        "properties": {
+          "text": {
+            "description": "The text content to index",
+            "maxLength": 100000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional metadata to store with the indexed item",
+            "title": "Metadata"
+          },
+          "item_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional custom ID for the item (auto-generated if not provided)",
+            "title": "Item Id"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "IndexRequest",
+        "type": "object"
+      },
+      "ScrapeJobSchema": {
+        "description": "Response schema for scrape job.",
+        "properties": {
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "pages_fetched": {
+            "title": "Pages Fetched",
+            "type": "integer"
+          },
+          "bytes_processed": {
+            "title": "Bytes Processed",
+            "type": "integer"
+          },
+          "artifact_count": {
+            "title": "Artifact Count",
+            "type": "integer"
+          },
+          "error_count": {
+            "title": "Error Count",
+            "type": "integer"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          }
+        },
+        "required": [
+          "job_id",
+          "status",
+          "pages_fetched",
+          "bytes_processed",
+          "artifact_count",
+          "error_count",
+          "created_at"
+        ],
+        "title": "ScrapeJobSchema",
+        "type": "object"
+      },
+      "ScrapeStartSchema": {
+        "description": "Request schema for starting a scrape job.",
+        "properties": {
+          "urls": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Urls",
+            "type": "array"
+          },
+          "selectors": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selectors"
+          },
+          "options": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Options"
+          }
+        },
+        "required": [
+          "urls"
+        ],
+        "title": "ScrapeStartSchema",
+        "type": "object"
+      },
+      "ScrapeExtractSchema": {
+        "description": "Request schema for extracting data from HTML.",
+        "properties": {
+          "html": {
+            "title": "Html",
+            "type": "string"
+          },
+          "selectors": {
+            "additionalProperties": true,
+            "title": "Selectors",
+            "type": "object"
+          }
+        },
+        "required": [
+          "html",
+          "selectors"
+        ],
+        "title": "ScrapeExtractSchema",
+        "type": "object"
+      },
+      "ScrapeFetchSchema": {
+        "description": "Request schema for fetching a web page.",
+        "properties": {
+          "url": {
+            "title": "Url",
+            "type": "string"
+          },
+          "engine": {
+            "default": "playwright",
+            "title": "Engine",
+            "type": "string"
+          },
+          "wait_for": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wait For"
+          },
+          "scroll": {
+            "default": false,
+            "title": "Scroll",
+            "type": "boolean"
+          },
+          "timeout": {
+            "default": 30,
+            "title": "Timeout",
+            "type": "integer"
+          },
+          "wait_until": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wait Until"
+          },
+          "settle_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Settle Ms"
+          },
+          "block_resources": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Block Resources"
+          },
+          "capture_json": {
+            "default": false,
+            "title": "Capture Json",
+            "type": "boolean"
+          },
+          "capture_url_contains": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capture Url Contains"
+          },
+          "capture_max_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capture Max Bytes"
+          },
+          "capture_max_items": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capture Max Items"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "ScrapeFetchSchema",
+        "type": "object"
+      },
+      "ScrapeDeepArchiveSchema": {
+        "description": "Request schema for generic deep archival scraping.",
+        "properties": {
+          "url": {
+            "title": "Url",
+            "type": "string"
+          },
+          "interaction_selectors": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Interaction Selectors",
+            "type": "array"
+          },
+          "download_patterns": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Download Patterns",
+            "type": "array"
+          },
+          "target_dir": {
+            "title": "Target Dir",
+            "type": "string"
+          },
+          "wait_settle_ms": {
+            "default": 2000,
+            "title": "Wait Settle Ms",
+            "type": "integer"
+          },
+          "timeout_ms": {
+            "default": 60000,
+            "title": "Timeout Ms",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "url",
+          "target_dir"
+        ],
+        "title": "ScrapeDeepArchiveSchema",
+        "type": "object"
+      },
+      "ScrapeOcrSchema": {
+        "description": "Request schema for OCR processing.",
+        "properties": {
+          "image_url": {
+            "title": "Image Url",
+            "type": "string"
+          },
+          "language": {
+            "default": "spa+eng",
+            "title": "Language",
+            "type": "string"
+          }
+        },
+        "required": [
+          "image_url"
+        ],
+        "title": "ScrapeOcrSchema",
+        "type": "object"
+      },
+      "ScrapePdfSchema": {
+        "description": "Request schema for PDF parsing.",
+        "properties": {
+          "pdf_url": {
+            "title": "Pdf Url",
+            "type": "string"
+          },
+          "extract_tables": {
+            "default": false,
+            "title": "Extract Tables",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "pdf_url"
+        ],
+        "title": "ScrapePdfSchema",
+        "type": "object"
+      },
+      "ScrapeTranscribeSchema": {
+        "description": "Request schema for audio transcription.",
+        "properties": {
+          "media_url": {
+            "title": "Media Url",
+            "type": "string"
+          },
+          "language": {
+            "default": "es",
+            "title": "Language",
+            "type": "string"
+          }
+        },
+        "required": [
+          "media_url"
+        ],
+        "title": "ScrapeTranscribeSchema",
+        "type": "object"
+      },
+      "ScrapeArtifactSchema": {
+        "description": "Response schema for scrape artifact.",
+        "properties": {
+          "artifact_id": {
+            "title": "Artifact Id",
+            "type": "string"
+          },
+          "artifact_type": {
+            "title": "Artifact Type",
+            "type": "string"
+          },
+          "format": {
+            "title": "Format",
+            "type": "string"
+          },
+          "storage_path": {
+            "title": "Storage Path",
+            "type": "string"
+          },
+          "size_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Size Bytes"
+          },
+          "content_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Hash"
+          }
+        },
+        "required": [
+          "artifact_id",
+          "artifact_type",
+          "format",
+          "storage_path"
+        ],
+        "title": "ScrapeArtifactSchema",
+        "type": "object"
+      },
+      "ScrapeResultSchema": {
+        "description": "Response schema for scrape results.",
+        "properties": {
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "artifacts": {
+            "items": {
+              "$ref": "#/components/schemas/ScrapeArtifactSchema"
+            },
+            "title": "Artifacts",
+            "type": "array"
+          }
+        },
+        "required": [
+          "job_id",
+          "status",
+          "artifacts"
+        ],
+        "title": "ScrapeResultSchema",
+        "type": "object"
+      },
+      "CapsuleInstallRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "capsule_id": {
+            "minLength": 1,
+            "title": "Capsule Id",
+            "type": "string"
+          },
+          "parameter_overrides": {
+            "additionalProperties": true,
+            "title": "Parameter Overrides",
+            "type": "object"
+          },
+          "tenant_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tenant Id"
+          }
+        },
+        "required": [
+          "capsule_id"
+        ],
+        "title": "CapsuleInstallRequest",
+        "type": "object"
+      },
+      "CapsuleRunRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "installation_id": {
+            "minLength": 1,
+            "title": "Installation Id",
+            "type": "string"
+          },
+          "parameter_values": {
+            "additionalProperties": true,
+            "title": "Parameter Values",
+            "type": "object"
+          },
+          "tenant_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tenant Id"
+          }
+        },
+        "required": [
+          "installation_id"
+        ],
+        "title": "CapsuleRunRequest",
+        "type": "object"
+      },
+      "AdminOverrideRule": {
+        "properties": {
+          "audited": {
+            "default": true,
+            "title": "Audited",
+            "type": "boolean"
+          },
+          "requires_justification": {
+            "default": true,
+            "title": "Requires Justification",
+            "type": "boolean"
+          }
+        },
+        "title": "AdminOverrideRule",
+        "type": "object"
+      },
+      "CapsuleBody": {
+        "properties": {
+          "capsule_type": {
+            "default": "voyant.intelligence_recipe",
+            "title": "Capsule Type",
+            "type": "string"
+          },
+          "capabilities_whitelist": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Capabilities Whitelist",
+            "type": "array"
+          },
+          "resource_limits": {
+            "additionalProperties": true,
+            "title": "Resource Limits",
+            "type": "object"
+          },
+          "json_schema": {
+            "additionalProperties": true,
+            "title": "Json Schema",
+            "type": "object"
+          },
+          "config": {
+            "additionalProperties": true,
+            "title": "Config",
+            "type": "object"
+          },
+          "execution_graph": {
+            "items": {
+              "$ref": "#/components/schemas/ExecutionStep"
+            },
+            "title": "Execution Graph",
+            "type": "array"
+          },
+          "parameters": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ParameterSchema"
+            },
+            "title": "Parameters",
+            "type": "object"
+          },
+          "rbac": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CapsuleRBAC"
+              }
+            ]
+          },
+          "output_formats": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Output Formats",
+            "type": "array"
+          },
+          "triggers": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Triggers",
+            "type": "array"
+          }
+        },
+        "title": "CapsuleBody",
+        "type": "object"
+      },
+      "CapsuleCreateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "version": {
+            "default": "1.0.0",
+            "maxLength": 50,
+            "title": "Version",
+            "type": "string"
+          },
+          "description": {
+            "default": "",
+            "maxLength": 5000,
+            "title": "Description",
+            "type": "string"
+          },
+          "soul": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CapsuleSoul"
+              }
+            ]
+          },
+          "body": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CapsuleBody"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "CapsuleCreateRequest",
+        "type": "object"
+      },
+      "CapsuleRBAC": {
+        "properties": {
+          "required_permission": {
+            "minLength": 1,
+            "title": "Required Permission",
+            "type": "string"
+          },
+          "viewer_blocked": {
+            "default": true,
+            "title": "Viewer Blocked",
+            "type": "boolean"
+          },
+          "analyst_caps": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RoleCaps"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "engineer_caps": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RoleCaps"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "admin_override": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminOverrideRule"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "required_permission"
+        ],
+        "title": "CapsuleRBAC",
+        "type": "object"
+      },
+      "CapsuleSoul": {
+        "properties": {
+          "system_prompt": {
+            "default": "",
+            "title": "System Prompt",
+            "type": "string"
+          },
+          "personality_traits": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Personality Traits",
+            "type": "object"
+          },
+          "neuromodulator_baseline": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Neuromodulator Baseline",
+            "type": "object"
+          }
+        },
+        "title": "CapsuleSoul",
+        "type": "object"
+      },
+      "ExecutionStep": {
+        "properties": {
+          "step_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Step Id",
+            "type": "string"
+          },
+          "action": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Action",
+            "type": "string"
+          },
+          "condition": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Condition"
+          },
+          "params": {
+            "additionalProperties": true,
+            "title": "Params",
+            "type": "object"
+          },
+          "inputs": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Inputs",
+            "type": "object"
+          },
+          "outputs": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Outputs",
+            "type": "object"
+          },
+          "retry_policy": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StepRetryPolicy"
+              }
+            ]
+          },
+          "timeout_seconds": {
+            "default": 60,
+            "maximum": 3600,
+            "minimum": 1,
+            "title": "Timeout Seconds",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "step_id",
+          "action"
+        ],
+        "title": "ExecutionStep",
+        "type": "object"
+      },
+      "ParameterSchema": {
+        "properties": {
+          "type": {
+            "pattern": "^(string|integer|number|boolean|array|object|daterange)$",
+            "title": "Type",
+            "type": "string"
+          },
+          "required": {
+            "default": false,
+            "title": "Required",
+            "type": "boolean"
+          },
+          "default": {
+            "title": "Default"
+          },
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "options": {
+            "anyOf": [
+              {
+                "items": {},
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Options"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "title": "ParameterSchema",
+        "type": "object"
+      },
+      "RoleCaps": {
+        "properties": {
+          "max_breadth": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Breadth"
+          },
+          "max_depth": {
+            "anyOf": [
+              {
+                "maximum": 10,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Depth"
+          },
+          "allowed_actions": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allowed Actions"
+          },
+          "blocked_actions": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blocked Actions"
+          }
+        },
+        "title": "RoleCaps",
+        "type": "object"
+      },
+      "StepRetryPolicy": {
+        "properties": {
+          "max_attempts": {
+            "default": 3,
+            "maximum": 10,
+            "minimum": 1,
+            "title": "Max Attempts",
+            "type": "integer"
+          },
+          "backoff_seconds": {
+            "default": 5,
+            "maximum": 300,
+            "minimum": 1,
+            "title": "Backoff Seconds",
+            "type": "integer"
+          }
+        },
+        "title": "StepRetryPolicy",
+        "type": "object"
       }
     }
-  }
+  },
+  "servers": []
 }

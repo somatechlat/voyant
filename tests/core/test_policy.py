@@ -1,5 +1,5 @@
 import pytest
-from authzed.api.v1 import (
+from authzed.api.v1 import (  # type: ignore[reportMissingImports]
     ObjectReference,
     Relationship,
     RelationshipUpdate,

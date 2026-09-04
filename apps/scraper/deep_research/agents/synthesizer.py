@@ -11,7 +11,6 @@ from __future__ import annotations
 import math
 import re
 from collections import Counter
-from typing import Dict, List, Set, Tuple
 
 from apps.scraper.deep_research.schemas import (
     Citation,
@@ -38,24 +37,24 @@ class Synthesizer:
         self._max_sentences = max_sentences_per_source
 
     @staticmethod
-    def _tokenize(text: str) -> List[str]:
+    def _tokenize(text: str) -> list[str]:
         """Lower-case alphanumeric tokenization."""
         return re.findall(r"[a-z0-9áéíóúñü]+", text.lower())
 
     @staticmethod
-    def _sentences(text: str) -> List[str]:
+    def _sentences(text: str) -> list[str]:
         """Naive sentence splitter."""
         text = re.sub(r"\s+", " ", text)
         # Split on sentence terminators followed by space and capital.
         parts = re.split(r'(?<=[.!?])\s+(?=[A-Z"\'])', text)
         return [s.strip() for s in parts if len(s.strip()) > 20]
 
-    def _compute_idf(self, docs: List[List[str]]) -> Dict[str, float]:
+    def _compute_idf(self, docs: list[list[str]]) -> dict[str, float]:
         """Compute IDF over tokenized documents."""
         n = len(docs)
-        idf: Dict[str, float] = {}
+        idf: dict[str, float] = {}
         for doc in docs:
-            seen: Set[str] = set()
+            seen: set[str] = set()
             for token in doc:
                 if token not in seen:
                     seen.add(token)
@@ -66,11 +65,11 @@ class Synthesizer:
 
     def _score_sentences(
         self,
-        sentences: List[Tuple[str, str]],  # (sentence, source_url)
-        idf: Dict[str, float],
-    ) -> List[Tuple[float, str, str]]:
+        sentences: list[tuple[str, str]],  # (sentence, source_url)
+        idf: dict[str, float],
+    ) -> list[tuple[float, str, str]]:
         """Return list of (score, sentence, source_url) sorted descending."""
-        scored: List[Tuple[float, str, str]] = []
+        scored: list[tuple[float, str, str]] = []
         for sent, src in sentences:
             tokens = self._tokenize(sent)
             if not tokens:
@@ -86,15 +85,15 @@ class Synthesizer:
 
     def _cluster_findings(
         self,
-        scored: List[Tuple[float, str, str]],
+        scored: list[tuple[float, str, str]],
         top_n: int = 15,
-    ) -> List[Finding]:
+    ) -> list[Finding]:
         """
         Cluster top sentences into findings by Jaccard token overlap.
         """
         top = scored[:top_n]
-        findings: List[Finding] = []
-        used: Set[int] = set()
+        findings: list[Finding] = []
+        used: set[int] = set()
 
         for idx, (score, sent, src) in enumerate(top):
             if idx in used:
@@ -141,8 +140,8 @@ class Synthesizer:
 
     def synthesize(
         self,
-        url_texts: Dict[str, str],
-        search_results: Dict[str, SearchResultItem],
+        url_texts: dict[str, str],
+        search_results: dict[str, SearchResultItem],
     ) -> SynthesisOutput:
         """
         Synthesize text from multiple sources into structured findings.
@@ -155,8 +154,8 @@ class Synthesizer:
             SynthesisOutput with findings, citations, and follow-up queries.
         """
         # 1. Gather sentences per source.
-        all_sentences: List[Tuple[str, str]] = []
-        docs: List[List[str]] = []
+        all_sentences: list[tuple[str, str]] = []
+        docs: list[list[str]] = []
 
         for url, text in url_texts.items():
             sents = self._sentences(text)[: self._max_sentences]
@@ -175,8 +174,8 @@ class Synthesizer:
         findings = self._cluster_findings(scored)
 
         # 4. Build citations.
-        citations: List[Citation] = []
-        seen_domains: Set[str] = set()
+        citations: list[Citation] = []
+        seen_domains: set[str] = set()
         for url, item in search_results.items():
             if url in url_texts:
                 from urllib.parse import urlparse
@@ -193,10 +192,10 @@ class Synthesizer:
                     )
 
         # 5. Generate follow-up queries from finding keywords.
-        follow_up_queries: List[str] = []
+        follow_up_queries: list[str] = []
         if findings:
             base_claims = [f.claim for f in findings[:3]]
-            keywords: Set[str] = set()
+            keywords: set[str] = set()
             for claim in base_claims:
                 keywords.update(self._tokenize(claim))
             # Remove common words.

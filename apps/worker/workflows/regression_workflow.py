@@ -9,7 +9,7 @@ the model's quality.
 """
 
 from datetime import timedelta
-from typing import Any, Dict
+from typing import Any
 
 from temporalio import workflow
 
@@ -17,7 +17,7 @@ from temporalio import workflow
 # modules within the workflow definition. It passes control to the Python
 # import system directly, bypassing Temporal's default import handling.
 with workflow.unsafe.imports_passed_through():
-    from apps.worker.activities.ml_activities import MLActivities
+    pass
 
 
 @workflow.defn
@@ -27,7 +27,7 @@ class LinearRegressionWorkflow:
     """
 
     @workflow.run
-    async def run(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def run(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Executes the linear regression analysis workflow.
 
@@ -55,7 +55,7 @@ class LinearRegressionWorkflow:
         # Execute the activity that trains the linear regression model.
         # This offloads the heavy computation to a separate activity worker.
         result = await workflow.execute_activity(
-            MLActivities.train_regression_model,
+            "train_regression_model",
             {"data": data, "target_col": target_col, "feature_cols": feature_cols},
             start_to_close_timeout=timedelta(
                 minutes=10
@@ -72,7 +72,7 @@ class LinearRegressionWorkflow:
             },
         }
 
-    def _format_equation(self, result: Dict[str, Any]) -> str:
+    def _format_equation(self, result: dict[str, Any]) -> str:
         """
         Formats the regression model's coefficients into a human-readable equation string.
 

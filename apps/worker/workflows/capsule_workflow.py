@@ -7,13 +7,13 @@ Temporal's 2MB event history limit.
 """
 
 from datetime import timedelta
-from typing import Any, Dict
+from typing import Any
 
 from temporalio import workflow
 from temporalio.common import RetryPolicy
 
 with workflow.unsafe.imports_passed_through():
-    from apps.worker.activities.capsule_activities import CapsuleActivities
+    pass
 
 
 @workflow.defn(name="CapsuleWorkflow")
@@ -27,13 +27,13 @@ class CapsuleWorkflow:
     async def run(
         self,
         capsule_id: str,
-        parameter_values: Dict[str, Any],
+        parameter_values: dict[str, Any],
         tenant_id: str,
         instance_id: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         # Load capsule definition
         capsule = await workflow.execute_activity(
-            CapsuleActivities.load_capsule,
+            "capsule.load_capsule",
             {"capsule_id": capsule_id, "tenant_id": tenant_id},
             start_to_close_timeout=timedelta(seconds=30),
             retry_policy=RetryPolicy(maximum_attempts=3),
@@ -41,7 +41,7 @@ class CapsuleWorkflow:
 
         graph = capsule.get("execution_graph", [])
         capabilities_whitelist = capsule.get("capabilities_whitelist", [])
-        step_metadata: Dict[str, Any] = {}
+        step_metadata: dict[str, Any] = {}
 
         for step in graph:
             step_id = step["step_id"]
@@ -49,7 +49,7 @@ class CapsuleWorkflow:
             # Check condition
             if step.get("condition"):
                 condition_met = await workflow.execute_activity(
-                    CapsuleActivities.eval_condition,
+                    "capsule.eval_condition",
                     {"condition": step["condition"], "steps": step_metadata},
                     start_to_close_timeout=timedelta(seconds=10),
                 )
@@ -58,7 +58,7 @@ class CapsuleWorkflow:
 
             # Substitute parameters
             resolved_params = await workflow.execute_activity(
-                CapsuleActivities.substitute_params,
+                "capsule.substitute_params",
                 {
                     "params": step.get("params", {}),
                     "parameter_values": parameter_values,
@@ -72,7 +72,7 @@ class CapsuleWorkflow:
             retry = step.get("retry_policy", {"max_attempts": 3, "backoff_seconds": 5})
 
             meta = await workflow.execute_activity(
-                CapsuleActivities.execute_step,
+                "capsule.execute_step",
                 {
                     "action": step["action"],
                     "params": resolved_params,
@@ -92,7 +92,7 @@ class CapsuleWorkflow:
         # Cross-validate if configured
         if capsule.get("body", {}).get("cross_validate"):
             validated = await workflow.execute_activity(
-                CapsuleActivities.cross_validate,
+                "capsule.cross_validate",
                 {"instance_id": instance_id, "tenant_id": tenant_id},
                 start_to_close_timeout=timedelta(seconds=60),
             )
@@ -100,7 +100,7 @@ class CapsuleWorkflow:
 
         # Generate artifacts
         artifacts = await workflow.execute_activity(
-            CapsuleActivities.generate_artifacts,
+            "capsule.generate_artifacts",
             {
                 "capsule_id": capsule_id,
                 "instance_id": instance_id,
@@ -111,7 +111,7 @@ class CapsuleWorkflow:
 
         # Store final report
         await workflow.execute_activity(
-            CapsuleActivities.store_report,
+            "capsule.store_report",
             {
                 "capsule_id": capsule_id,
                 "instance_id": instance_id,

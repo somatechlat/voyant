@@ -340,4 +340,4 @@ class Link(TenantModel, UUIDModel):
         ]
 
     def __str__(self) -> str:
-        return f"{self.link_type.name}: {self.source_object_id} → {self.target_object_id}"
+        return f"{self.link_type.name}: {self.source_object_id} → {self.target_object_id}"  # type: ignore[attr-defined]

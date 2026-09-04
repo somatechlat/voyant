@@ -10,10 +10,11 @@ to be performed within Temporal workflows.
 
 import logging
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any
 
 import pandas as pd
 from temporalio import activity
+from temporalio.exceptions import ApplicationError
 
 from apps.analysis.lib.stats_primitives import RStatsPrimitives
 from apps.core.lib.circuit_breaker import CircuitBreakerOpenError
@@ -28,19 +29,16 @@ class StatsActivities:
     """
     A collection of Temporal activities for executing statistical operations via an R-Engine.
 
-    These activities provide an interface to R's powerful statistical capabilities,
+    These activities provide an interface to R's statistical capabilities,
     allowing complex analyses to be integrated into data processing workflows.
     """
 
     def __init__(self):
-        """
-        Initializes the StatsActivities with an R-Engine instance and statistical primitives.
-        """
         self.r_engine = REngine()
         self.primitives = RStatsPrimitives(self.r_engine)
 
     @activity.defn(name="describe_distribution")
-    def describe_distribution(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    def describe_distribution(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Calculates descriptive statistics for a specified data distribution.
 
@@ -56,12 +54,12 @@ class StatsActivities:
             A dictionary containing descriptive statistics of the data.
 
         Raises:
-            activity.ApplicationError: If no data is provided or R-Engine is unavailable.
+            ApplicationError: If no data is provided or R-Engine is unavailable.
         """
         try:
             data = params.get("data", [])
             if not data:
-                raise activity.ApplicationError(
+                raise ApplicationError(
                     "No data provided for distribution analysis.", non_retryable=True
                 )
             # Infer and track schema if table_name provided
@@ -91,18 +89,18 @@ class StatsActivities:
 
             return self.primitives.describe_column(data)
         except CircuitBreakerOpenError:
-            raise activity.ApplicationError(
+            raise ApplicationError(
                 "R-Engine circuit breaker is open. Service unavailable.",
                 non_retryable=True,
             )
         except Exception as e:
             logger.error(f"Distribution analysis failed: {e}")
-            raise activity.ApplicationError(
+            raise ApplicationError(
                 f"Distribution analysis failed: {e}", non_retryable=False
             ) from e
 
     @activity.defn(name="calculate_correlation")
-    def calculate_correlation(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    def calculate_correlation(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Calculates the correlation matrix for a given dataset.
 
@@ -115,29 +113,29 @@ class StatsActivities:
             A dictionary representing the correlation matrix.
 
         Raises:
-            activity.ApplicationError: If no data is provided or R-Engine is unavailable.
+            ApplicationError: If no data is provided or R-Engine is unavailable.
         """
         try:
             data = params.get("data", {})
             method = params.get("method", "pearson")
             if not data:
-                raise activity.ApplicationError(
+                raise ApplicationError(
                     "No data provided for correlation analysis.", non_retryable=True
                 )
             return self.primitives.correlation_matrix(data, method)
         except CircuitBreakerOpenError:
-            raise activity.ApplicationError(
+            raise ApplicationError(
                 "R-Engine circuit breaker is open. Service unavailable.",
                 non_retryable=True,
             )
         except Exception as e:
             logger.error(f"Correlation calculation failed: {e}")
-            raise activity.ApplicationError(
+            raise ApplicationError(
                 f"Correlation calculation failed: {e}", non_retryable=False
             ) from e
 
     @activity.defn(name="fit_distribution")
-    def fit_distribution(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    def fit_distribution(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Fits a statistical distribution to a given dataset.
 
@@ -151,29 +149,29 @@ class StatsActivities:
             A dictionary containing parameters of the fitted distribution and goodness-of-fit metrics.
 
         Raises:
-            activity.ApplicationError: If no data is provided or R-Engine is unavailable.
+            ApplicationError: If no data is provided or R-Engine is unavailable.
         """
         try:
             data = params.get("data", [])
             dist = params.get("dist", "normal")
             if not data:
-                raise activity.ApplicationError(
+                raise ApplicationError(
                     "No data provided for distribution fitting.", non_retryable=True
                 )
             return self.primitives.fit_distribution(data, dist)
         except CircuitBreakerOpenError:
-            raise activity.ApplicationError(
+            raise ApplicationError(
                 "R-Engine circuit breaker is open. Service unavailable.",
                 non_retryable=True,
             )
         except Exception as e:
             logger.error(f"Distribution fitting failed: {e}")
-            raise activity.ApplicationError(
+            raise ApplicationError(
                 f"Distribution fitting failed: {e}", non_retryable=False
             ) from e
 
     @activity.defn(name="calculate_market_share")
-    def calculate_market_share(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    def calculate_market_share(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Calculates market share metrics based on provided brand and competitor data.
 
@@ -189,7 +187,7 @@ class StatsActivities:
             A dictionary containing the total market size, brand share, and competitor share.
 
         Raises:
-            activity.ApplicationError: If input data is empty or R-Engine is unavailable.
+            ApplicationError: If input data is empty or R-Engine is unavailable.
             ExternalServiceError: If R-Engine execution encounters an unexpected error.
         """
         activity.logger.info("Starting market share calculation in R.")
@@ -216,13 +214,13 @@ class StatsActivities:
             brand_df$type <- 'brand'
             comp_df$type <- 'competitor'
             all_df <- rbind(brand_df, comp_df)
-            
+
             # Calculate the total market size based on the 'value' metric.
             total_market <- sum(all_df$value, na.rm=TRUE)
-            
+
             # Calculate the primary brand's market share.
             brand_share <- sum(brand_df$value, na.rm=TRUE) / total_market
-            
+
             # Aggregate results into a list (R's equivalent of a dictionary for returning).
             result <- list(
                 total_market = total_market,
@@ -237,12 +235,12 @@ class StatsActivities:
             return dict(result)
 
         except CircuitBreakerOpenError:
-            raise activity.ApplicationError(
+            raise ApplicationError(
                 "R-Engine circuit breaker is open. Service unavailable.",
                 non_retryable=True,
             )
         except ValueError as e:
-            raise activity.ApplicationError(
+            raise ApplicationError(
                 f"Invalid input data for market share calculation: {e}",
                 non_retryable=True,
             ) from e
@@ -251,7 +249,7 @@ class StatsActivities:
             raise ExternalServiceError("VYNT-6020", f"R Execution Error: {e}") from e
 
     @activity.defn(name="perform_hypothesis_test")
-    def perform_hypothesis_test(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    def perform_hypothesis_test(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Performs a statistical hypothesis test (e.g., t-test) using the R-Engine.
 
@@ -267,7 +265,7 @@ class StatsActivities:
             p-value, test statistic, and method used.
 
         Raises:
-            activity.ApplicationError: If invalid test parameters are provided,
+            ApplicationError: If invalid test parameters are provided,
                                      or if the R-Engine is unavailable, or an
                                      unsupported test type is requested.
         """
@@ -296,17 +294,17 @@ class StatsActivities:
                 )
 
         except CircuitBreakerOpenError:
-            raise activity.ApplicationError(
+            raise ApplicationError(
                 "R-Engine circuit breaker is open. Service unavailable.",
                 non_retryable=True,
             )
         except ValueError as e:
-            raise activity.ApplicationError(
+            raise ApplicationError(
                 f"Invalid test parameters: {e}", non_retryable=True
             ) from e
         except Exception as e:
             logger.error(f"Hypothesis test failed: {e}")
-            raise activity.ApplicationError(
+            raise ApplicationError(
                 f"Hypothesis test failed due to unexpected error: {e}",
                 non_retryable=False,
             ) from e

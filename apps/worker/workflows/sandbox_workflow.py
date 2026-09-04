@@ -12,7 +12,7 @@ from datetime import timedelta
 from temporalio import workflow
 
 with workflow.unsafe.imports_passed_through():
-    from apps.worker.activities.sandbox_activities import SandboxActivities
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ class SandboxWorkflow:
         }
 
         result = await workflow.execute_activity(
-            SandboxActivities.run_python_sandbox,
+            "run_python_sandbox",
             activity_params,
             start_to_close_timeout=start_to_close_timeout,
             retry_policy=None,  # Security: Do not silently retry malicious or faulty compute

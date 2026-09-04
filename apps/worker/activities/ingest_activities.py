@@ -7,11 +7,12 @@ Temporal activities for data ingestion.
 import asyncio
 import logging
 import re
-from datetime import datetime, timezone
-from typing import Any, Dict
+from datetime import UTC, datetime
+from typing import Any
 
 import duckdb
 from temporalio import activity
+from temporalio.exceptions import ApplicationError
 
 from apps.core.config import get_settings
 from apps.core.lib.circuit_breaker import CircuitBreakerOpenError
@@ -24,11 +25,12 @@ _SAFE_IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
 class IngestActivities:
+    """Activities for data ingestion, contract validation, and lineage recording."""
     def __init__(self):
         self.settings = get_settings()
 
     @activity.defn(name="run_ingestion")
-    async def run_ingestion(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def run_ingestion(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Execute data ingestion job.
 
@@ -57,7 +59,7 @@ class IngestActivities:
             # Step 2: Determine ingestion method based on source type and mode.
             activity.heartbeat("Determining ingestion method")
             if mode not in ("full", "incremental"):
-                raise activity.ApplicationError(
+                raise ApplicationError(
                     f"Unsupported ingestion mode: {mode}",
                     non_retryable=True,
                 )
@@ -82,9 +84,10 @@ class IngestActivities:
                     raise ValueError(
                         f"Invalid source identifier for row count query: {source_id}"
                     )
-                row_count = conn.execute(
+                row_result = conn.execute(
                     f"SELECT COUNT(*) FROM {source_id}"
-                ).fetchone()[0]
+                ).fetchone()
+                row_count = row_result[0] if row_result else 0
                 conn.close()
             except Exception as count_error:
                 activity.logger.warning(
@@ -98,7 +101,7 @@ class IngestActivities:
                 "status": "completed",
                 "rows_ingested": row_count,
                 "tables_synced": tables or ["default_table"],
-                "completed_at": datetime.now(timezone.utc)
+                "completed_at": datetime.now(UTC)
                 .isoformat()
                 .replace("+00:00", "Z"),
             }
@@ -111,11 +114,11 @@ class IngestActivities:
             activity.logger.error(f"DuckDB error during ingestion: {e}")
             raise
         except CircuitBreakerOpenError:
-            raise activity.ApplicationError(
+            raise ApplicationError(
                 "Ingestion service circuit breaker is open", non_retryable=True
             )
         except ValueError as e:
-            raise activity.ApplicationError(
+            raise ApplicationError(
                 f"Invalid ingestion parameters: {e}", non_retryable=True
             )
         except Exception as e:
@@ -123,14 +126,14 @@ class IngestActivities:
             raise
 
     @activity.defn(name="sync_airbyte")
-    async def sync_airbyte(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def sync_airbyte(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Trigger an Airbyte sync job with circuit breaker protection.
 
         Resolves the Airbyte connection ID from a UPTP generic URI if provided,
         triggers the sync, and optionally polls for completion.
         """
-        from apps.ingestion.airbyte_client import get_airbyte_client
+        from apps.ingestion.lib.airbyte_client import get_airbyte_client
         from apps.uptp_core.parser import URIParser
 
         connection_id = params.get("connection_id")
@@ -153,7 +156,7 @@ class IngestActivities:
                 destination_namespace = f"tenant_{tenant_id}_iceberg"
 
                 # Dynamic connection resolution via Voyant Airbyte Client
-                connection_id = await client.create_dynamic_connection(
+                connection_id = await client.create_dynamic_connection(  # type: ignore[attr-defined]
                     workspace_id=tenant_id,
                     connector_id=parsed_source["connector_id"],
                     credentials=parsed_source["config"],
@@ -161,7 +164,7 @@ class IngestActivities:
                 )
 
             if not connection_id:
-                raise activity.ApplicationError(
+                raise ApplicationError(
                     "connection_id or generic_uri is exclusively required",
                     non_retryable=True,
                 )
@@ -199,13 +202,13 @@ class IngestActivities:
 
         except CircuitBreakerOpenError:
             activity.logger.error("Airbyte circuit breaker is OPEN")
-            raise activity.ApplicationError(
+            raise ApplicationError(
                 "Airbyte service circuit breaker is open - service unavailable",
                 non_retryable=True,
             )
         except TimeoutError as e:
             activity.logger.error(f"Airbyte sync timed out: {e}")
-            raise activity.ApplicationError(
+            raise ApplicationError(
                 f"Airbyte sync timed out: {e}", non_retryable=False  # Retry may succeed
             )
         except Exception as e:
@@ -214,8 +217,8 @@ class IngestActivities:
 
     @activity.defn(name="validate_contract_activity")
     async def validate_contract_activity(
-        self, params: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, params: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Validate the data contract for the given source before ingestion.
 
@@ -226,7 +229,7 @@ class IngestActivities:
         source_id = params.get("source_id")
 
         # Check if a contract is registered for this source and return its status.
-        contract = get_contract(source_id)
+        contract = get_contract(source_id) if source_id else None
 
         if not contract:
             activity.logger.info(
@@ -243,12 +246,12 @@ class IngestActivities:
         return {
             "valid": validation_result.valid,
             "contract_version": contract.version,
-            "checks_passed": len(validation_result.passed_checks),
+            "error_count": len(validation_result.errors),
             "errors": validation_result.errors,
         }
 
     @activity.defn(name="record_lineage_activity")
-    async def record_lineage_activity(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def record_lineage_activity(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Record data lineage edges for the ingestion job.
 
@@ -265,7 +268,7 @@ class IngestActivities:
         output_table = f"raw_{source_id}"
 
         graph.record_job_lineage(
-            job_id=job_id,
+            job_id=job_id or "",
             tenant_id=tenant_id,
             source_tables=[f"source:{source_id}"],
             output_artifacts=[f"table:{output_table}"],

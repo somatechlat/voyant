@@ -8,8 +8,8 @@ Bypasses anti-bot measures via TLS fingerprint impersonation
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
-from typing import Any, Dict, List
+from datetime import UTC, datetime
+from typing import Any
 
 from apps.core.config import get_settings
 from apps.scraper.octopus.schemas import OctopusRequest, OctopusResult
@@ -21,7 +21,7 @@ settings = get_settings()
 
 async def _execute_curl_cffi(request: OctopusRequest) -> OctopusResult:
     """Execute evasion scrape using curl-cffi."""
-    start = datetime.now(timezone.utc)
+    start = datetime.now(UTC)
     try:
         from curl_cffi.requests import AsyncSession  # type: ignore[import-not-found]
 
@@ -57,7 +57,7 @@ async def _execute_curl_cffi(request: OctopusRequest) -> OctopusResult:
             job_id=request.job_id,
             success=False,
             duration_ms=int(
-                (datetime.now(timezone.utc) - start).total_seconds() * 1000
+                (datetime.now(UTC) - start).total_seconds() * 1000
             ),
             fetched_at=start.isoformat(),
             error_code="EVASION_CURL_ERROR",
@@ -65,25 +65,25 @@ async def _execute_curl_cffi(request: OctopusRequest) -> OctopusResult:
         )
 
     parser = HTMLParser()
-    extracted: Dict[str, Any] = {}
+    extracted: dict[str, Any] = {}
     if request.css_selectors or request.xpath_selectors:
-        selectors: Dict[str, Any] = {}
+        selectors: dict[str, Any] = {}
         selectors.update(request.css_selectors)
         selectors.update(request.xpath_selectors)
         extracted = parser.extract(html, selectors)
 
-    metadata: Dict[str, Any] = {}
+    metadata: dict[str, Any] = {}
     if request.extract_metadata:
         from apps.scraper.octopus.arms.arm_static import _extract_metadata
 
         metadata = _extract_metadata(html)
 
-    links: List[str] = []
+    links: list[str] = []
     if request.extract_links:
         links = parser.get_all_links(html)
 
     duration_ms = int(
-        (datetime.now(timezone.utc) - start).total_seconds() * 1000
+        (datetime.now(UTC) - start).total_seconds() * 1000
     )
     return OctopusResult(
         arm=request.arm.value,
@@ -104,14 +104,14 @@ async def _execute_curl_cffi(request: OctopusRequest) -> OctopusResult:
 
 async def _execute_camoufox(request: OctopusRequest) -> OctopusResult:
     """Execute evasion scrape using Camoufox stealth browser."""
-    start = datetime.now(timezone.utc)
+    start = datetime.now(UTC)
     html = ""
     status = 0
 
     try:
         from camoufox.async_api import AsyncCamoufox  # type: ignore[import-not-found]
 
-        kwargs: Dict[str, Any] = {"headless": True}
+        kwargs: dict[str, Any] = {"headless": True}
         if request.proxy_url:
             kwargs["proxy"] = {"server": request.proxy_url}
 
@@ -134,7 +134,7 @@ async def _execute_camoufox(request: OctopusRequest) -> OctopusResult:
             job_id=request.job_id,
             success=False,
             duration_ms=int(
-                (datetime.now(timezone.utc) - start).total_seconds() * 1000
+                (datetime.now(UTC) - start).total_seconds() * 1000
             ),
             fetched_at=start.isoformat(),
             error_code="EVASION_CAMOUFOX_ERROR",
@@ -142,25 +142,25 @@ async def _execute_camoufox(request: OctopusRequest) -> OctopusResult:
         )
 
     parser = HTMLParser()
-    extracted: Dict[str, Any] = {}
+    extracted: dict[str, Any] = {}
     if request.css_selectors or request.xpath_selectors:
-        selectors: Dict[str, Any] = {}
+        selectors: dict[str, Any] = {}
         selectors.update(request.css_selectors)
         selectors.update(request.xpath_selectors)
         extracted = parser.extract(html, selectors)
 
-    metadata: Dict[str, Any] = {}
+    metadata: dict[str, Any] = {}
     if request.extract_metadata:
         from apps.scraper.octopus.arms.arm_static import _extract_metadata
 
         metadata = _extract_metadata(html)
 
-    links: List[str] = []
+    links: list[str] = []
     if request.extract_links:
         links = parser.get_all_links(html)
 
     duration_ms = int(
-        (datetime.now(timezone.utc) - start).total_seconds() * 1000
+        (datetime.now(UTC) - start).total_seconds() * 1000
     )
     return OctopusResult(
         arm=request.arm.value,

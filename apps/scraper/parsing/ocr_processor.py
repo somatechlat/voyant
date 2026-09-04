@@ -16,7 +16,7 @@ For future refactoring, these two modules should be consolidated.
 
 import io
 import logging
-from typing import Any, Dict, List, Union
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +41,7 @@ class OCRProcessor:
         # Tesseract configuration for LSTM engine mode and automatic page segmentation.
         self.config = "--oem 3 --psm 3"
 
-    def extract(self, image_source: Union[bytes, str]) -> Dict[str, Any]:
+    def extract(self, image_source: bytes | str) -> dict[str, Any]:
         """
         Extracts plain text content from an image.
 
@@ -85,7 +85,7 @@ class OCRProcessor:
             "height": image.height,
         }
 
-    def extract_structured(self, image_source: Union[bytes, str]) -> Dict[str, Any]:
+    def extract_structured(self, image_source: bytes | str) -> dict[str, Any]:
         """
         Extracts text from an image along with structural information (e.g., bounding boxes).
 
@@ -188,7 +188,7 @@ class OCRProcessor:
 
         return 0.0
 
-    def batch_extract(self, images: List[Union[bytes, str]]) -> List[Dict[str, Any]]:
+    def batch_extract(self, images: list[bytes | str]) -> list[dict[str, Any]]:
         """
         Extracts text from a list of images in a batch.
 

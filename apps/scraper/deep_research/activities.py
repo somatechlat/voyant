@@ -10,8 +10,8 @@ from __future__ import annotations
 import hashlib
 import logging
 import re
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Set
+from datetime import UTC, datetime
+from typing import Any
 
 from temporalio import activity
 
@@ -40,7 +40,7 @@ _NUM_HASHES = 64
 _SHINGLE_SIZE = 5
 
 
-def _shingles(text: str, k: int = _SHINGLE_SIZE) -> Set[str]:
+def _shingles(text: str, k: int = _SHINGLE_SIZE) -> set[str]:
     """Return character k-shingles for the text."""
     cleaned = re.sub(r"\s+", " ", text.lower().strip())
     if len(cleaned) < k:
@@ -48,9 +48,9 @@ def _shingles(text: str, k: int = _SHINGLE_SIZE) -> Set[str]:
     return {cleaned[i : i + k] for i in range(len(cleaned) - k + 1)}
 
 
-def _minhash_signature(shingles: Set[str], num_hashes: int = _NUM_HASHES) -> List[int]:
+def _minhash_signature(shingles: set[str], num_hashes: int = _NUM_HASHES) -> list[int]:
     """Compute a MinHash signature from a set of shingles."""
-    sig: List[int] = []
+    sig: list[int] = []
     for seed in range(num_hashes):
         min_val = 2**32
         for s in shingles:
@@ -63,7 +63,7 @@ def _minhash_signature(shingles: Set[str], num_hashes: int = _NUM_HASHES) -> Lis
 
 
 def _jaccard_from_signatures(
-    sig_a: List[int], sig_b: List[int]
+    sig_a: list[int], sig_b: list[int]
 ) -> float:
     """Estimate Jaccard similarity from two MinHash signatures."""
     if not sig_a or not sig_b:
@@ -79,8 +79,8 @@ class DeepResearchActivities:
 
     @activity.defn(name="dr_generate_queries")
     async def generate_queries(
-        self, params: Dict[str, Any]
-    ) -> List[str]:
+        self, params: dict[str, Any]
+    ) -> list[str]:
         """
         Generate search-optimized sub-queries.
 
@@ -99,8 +99,8 @@ class DeepResearchActivities:
 
     @activity.defn(name="dr_search_all_engines")
     async def search_all_engines(
-        self, params: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+        self, params: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         """
         Search across SearXNG, Brave, and Google CSE in parallel.
 
@@ -118,8 +118,8 @@ class DeepResearchActivities:
         tenant_id = str(params.get("tenant_id", "default"))
         settings = get_settings()
 
-        results: List[SearchResultItem] = []
-        seen_urls: Set[str] = set()
+        results: list[SearchResultItem] = []
+        seen_urls: set[str] = set()
 
         # SearXNG (sovereign, zero-cost)
         try:
@@ -166,8 +166,8 @@ class DeepResearchActivities:
 
     @activity.defn(name="dr_fetch_octopus")
     async def fetch_octopus(
-        self, params: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, params: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Fetch a URL via Octopus ARM-2 (dynamic) or ARM-3 (evasion).
 
@@ -214,7 +214,7 @@ class DeepResearchActivities:
                 "html": result.html or "",
                 "url": url,
                 "status_code": result.status_code or 0,
-                "fetched_at": datetime.now(timezone.utc).isoformat(),
+                "fetched_at": datetime.now(UTC).isoformat(),
                 "error": result.error_message,
             }
         except Exception as exc:
@@ -241,8 +241,8 @@ class DeepResearchActivities:
 
     @activity.defn(name="dr_extract_content")
     async def extract_content(
-        self, params: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, params: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Extract text from HTML using the extraction agent.
 
@@ -261,8 +261,8 @@ class DeepResearchActivities:
 
     @activity.defn(name="dr_score_sources")
     async def score_sources(
-        self, params: Dict[str, Any]
-    ) -> Dict[str, Dict[str, float]]:
+        self, params: dict[str, Any]
+    ) -> dict[str, dict[str, float]]:
         """
         Score sources by credibility and freshness.
 
@@ -284,8 +284,8 @@ class DeepResearchActivities:
 
     @activity.defn(name="dr_deduplicate")
     async def deduplicate(
-        self, params: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, params: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Remove near-duplicate sources using MinHash/LSH.
 
@@ -300,19 +300,19 @@ class DeepResearchActivities:
                 - removed_urls (List[str])
                 - duplicate_groups (Dict[str, List[str]])
         """
-        url_texts: Dict[str, str] = params.get("url_texts", {})
+        url_texts: dict[str, str] = params.get("url_texts", {})
         threshold = float(params.get("threshold", 0.85))
 
-        signatures: Dict[str, List[int]] = {}
+        signatures: dict[str, list[int]] = {}
         for url, text in url_texts.items():
             sig = _minhash_signature(_shingles(text))
             signatures[url] = sig
 
-        keep: List[str] = []
-        removed: List[str] = []
-        groups: Dict[str, List[str]] = {}
+        keep: list[str] = []
+        removed: list[str] = []
+        groups: dict[str, list[str]] = {}
 
-        processed: Set[str] = set()
+        processed: set[str] = set()
         for url, sig in signatures.items():
             if url in processed:
                 continue
@@ -340,8 +340,8 @@ class DeepResearchActivities:
 
     @activity.defn(name="dr_synthesize")
     async def synthesize(
-        self, params: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, params: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Synthesize extracted text into findings, citations, and follow-ups.
 
@@ -353,8 +353,8 @@ class DeepResearchActivities:
         Returns:
             Serialized SynthesisOutput dict.
         """
-        url_texts: Dict[str, str] = params.get("url_texts", {})
-        raw_results: List[Dict[str, Any]] = params.get("search_results", [])
+        url_texts: dict[str, str] = params.get("url_texts", {})
+        raw_results: list[dict[str, Any]] = params.get("search_results", [])
 
         search_results = {
             r["url"]: SearchResultItem(**r) for r in raw_results if r.get("url")
@@ -366,8 +366,8 @@ class DeepResearchActivities:
 
     @activity.defn(name="dr_cross_validate")
     async def cross_validate(
-        self, params: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, params: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Cross-validate findings against the full source corpus.
 
@@ -381,8 +381,8 @@ class DeepResearchActivities:
         """
         from apps.scraper.deep_research.schemas import Finding
 
-        raw_findings: List[Dict[str, Any]] = params.get("findings", [])
-        url_texts: Dict[str, str] = params.get("url_texts", {})
+        raw_findings: list[dict[str, Any]] = params.get("findings", [])
+        url_texts: dict[str, str] = params.get("url_texts", {})
 
         findings = [Finding(**f) for f in raw_findings]
         validator = CrossValidator()
@@ -391,8 +391,8 @@ class DeepResearchActivities:
 
     @activity.defn(name="dr_generate_report")
     async def generate_report(
-        self, params: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, params: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Generate the final Markdown research report.
 
@@ -433,8 +433,8 @@ class DeepResearchActivities:
 
     @activity.defn(name="dr_store_artifact")
     async def store_artifact(
-        self, params: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, params: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Store a research report artifact via ArtifactStore.
 

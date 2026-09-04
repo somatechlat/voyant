@@ -1,7 +1,7 @@
 """
 Kafka Event Producer for Voyant.
 
-This module provides a standardized interface for emitting structured, schema-validated
+This module provides an interface for emitting structured, schema-validated
 events to Kafka topics. It abstracts the underlying `confluent_kafka` producer,
 provides a singleton pattern for efficient connection management, and offers
 high-level helper functions for dispatching common business events.
@@ -19,7 +19,7 @@ import logging
 import uuid
 from dataclasses import asdict, dataclass
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any
 
 from apps.core.config import get_settings
 from apps.core.lib.event_schema import validate_event
@@ -51,7 +51,7 @@ class VoyantEvent:
     event_id: str
     timestamp: str
     tenant_id: str
-    payload: Dict[str, Any]
+    payload: dict[str, Any]
 
     def to_json(self) -> str:
         """Serialize the event to a JSON string."""
@@ -183,7 +183,7 @@ class KafkaProducer:
 
 
 # Singleton producer instance to be shared across the application.
-_producer: Optional[KafkaProducer] = None
+_producer: KafkaProducer | None = None
 
 
 def get_kafka_producer() -> KafkaProducer:
@@ -191,7 +191,7 @@ def get_kafka_producer() -> KafkaProducer:
     Get the singleton instance of the KafkaProducer.
 
     This factory function ensures that only one KafkaProducer is instantiated
-    per application process, which is critical for performance and resource management.
+    per application process, for performance.
     """
     global _producer
     if _producer is None:

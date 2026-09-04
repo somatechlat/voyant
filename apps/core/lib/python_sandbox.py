@@ -10,7 +10,7 @@ or RandomForest purely on numerical inputs, returning statistical structures.
 
 import logging
 import uuid
-from typing import Any, Dict
+from typing import Any
 
 # Assuming Docker configuration applies
 import docker
@@ -23,8 +23,8 @@ class PythonSandboxNode:
 
     @classmethod
     async def execute_script(
-        cls, script_content: str, parameters: Dict[str, Any], tenant_id: str
-    ) -> Dict[str, Any]:
+        cls, script_content: str, parameters: dict[str, Any], tenant_id: str
+    ) -> dict[str, Any]:
         """
         Spawns an isolated container, mounts the data into the container,
         executes the script, and retrieves the mathematical result.
@@ -67,7 +67,7 @@ class PythonSandboxNode:
 
         # Execute asynchronously
         try:
-            container = client.containers.run(
+            container = client.containers.run(  # type: ignore[call-overload]
                 image="voyant_sandbox:python",
                 command=["python", "-c", script_content],
                 environment=environment,

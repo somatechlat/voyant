@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any
 
 from temporalio import activity
 
@@ -45,9 +45,9 @@ class FlinkJobResult:
     """
 
     success: bool
-    job_id: Optional[str] = None
+    job_id: str | None = None
     message: str = ""
-    details: Optional[Dict[str, Any]] = None
+    details: dict[str, Any] | None = None
 
 
 class StreamingActivities:
@@ -65,7 +65,7 @@ class StreamingActivities:
     """
 
     def __init__(self):
-        """Initialize activities with settings-based configuration."""
+        """Load settings."""
         self.settings = get_settings()
 
     def _get_client(self) -> FlinkClient:
@@ -77,7 +77,7 @@ class StreamingActivities:
         return FlinkClient(jobmanager_url=self.settings.flink_jobmanager_url)
 
     @activity.defn
-    async def get_cluster_overview(self) -> Dict[str, Any]:
+    async def get_cluster_overview(self) -> dict[str, Any]:
         """
         Get the current Flink cluster overview.
 
@@ -103,7 +103,7 @@ class StreamingActivities:
             raise
 
     @activity.defn
-    async def list_running_jobs(self) -> Dict[str, Any]:
+    async def list_running_jobs(self) -> dict[str, Any]:
         """
         List all running Flink jobs.
 
@@ -125,7 +125,7 @@ class StreamingActivities:
     async def submit_streaming_job(
         self,
         job_name: str,
-        job_config: Dict[str, Any],
+        job_config: dict[str, Any],
     ) -> FlinkJobResult:
         """
         Submit a new streaming job to the Flink cluster.

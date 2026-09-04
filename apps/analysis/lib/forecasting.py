@@ -31,13 +31,13 @@ import logging
 import math
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from enum import Enum
-from typing import Any, Dict, List, Optional
+from enum import StrEnum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
-class ForecastMethod(str, Enum):
+class ForecastMethod(StrEnum):
     """Available forecasting methods."""
 
     NAIVE = "naive"  # Last value repeated
@@ -54,9 +54,9 @@ class ForecastPoint:
     value: float
     lower_bound: float  # Lower confidence interval
     upper_bound: float  # Upper confidence interval
-    date: Optional[str] = None
+    date: str | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         result = {
             "period": self.period,
             "value": round(self.value, 4),
@@ -72,13 +72,13 @@ class ForecastPoint:
 class ForecastResult:
     """Result of a forecast."""
 
-    predictions: List[ForecastPoint]
+    predictions: list[ForecastPoint]
     method: str
     periods: int
     confidence_level: float  # e.g., 0.95 for 95%
-    stats: Dict[str, float]
+    stats: dict[str, float]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "method": self.method,
             "periods": self.periods,
@@ -102,9 +102,9 @@ class Forecaster(ABC):
     @abstractmethod
     def forecast(
         self,
-        values: List[float],
+        values: list[float],
         periods: int,
-        dates: Optional[List[str]] = None,
+        dates: list[str] | None = None,
     ) -> ForecastResult:
         """Generate forecast for future periods."""
         pass
@@ -114,7 +114,7 @@ class Forecaster(ABC):
     def method_name(self) -> str:
         pass
 
-    def _calculate_std(self, values: List[float]) -> float:
+    def _calculate_std(self, values: list[float]) -> float:
         """Calculate standard deviation."""
         if len(values) < 2:
             return 0.0
@@ -147,9 +147,9 @@ class NaiveForecaster(Forecaster):
 
     def forecast(
         self,
-        values: List[float],
+        values: list[float],
         periods: int,
-        dates: Optional[List[str]] = None,
+        dates: list[str] | None = None,
     ) -> ForecastResult:
         if not values:
             return ForecastResult(
@@ -204,9 +204,9 @@ class MovingAverageForecaster(Forecaster):
 
     def forecast(
         self,
-        values: List[float],
+        values: list[float],
         periods: int,
-        dates: Optional[List[str]] = None,
+        dates: list[str] | None = None,
     ) -> ForecastResult:
         if len(values) < 2:
             return ForecastResult(
@@ -263,9 +263,9 @@ class ExponentialSmoothingForecaster(Forecaster):
 
     def forecast(
         self,
-        values: List[float],
+        values: list[float],
         periods: int,
-        dates: Optional[List[str]] = None,
+        dates: list[str] | None = None,
     ) -> ForecastResult:
         if len(values) < 2:
             return ForecastResult(
@@ -319,9 +319,9 @@ class LinearTrendForecaster(Forecaster):
 
     def forecast(
         self,
-        values: List[float],
+        values: list[float],
         periods: int,
-        dates: Optional[List[str]] = None,
+        dates: list[str] | None = None,
     ) -> ForecastResult:
         if len(values) < 3:
             return ForecastResult(
@@ -383,7 +383,7 @@ class LinearTrendForecaster(Forecaster):
                 "slope": slope,
                 "intercept": intercept,
                 "residual_std": residual_std,
-                "trend": (
+                "trend": (  # type: ignore[arg-type]
                     "increasing" if slope > 0 else "decreasing" if slope < 0 else "flat"
                 ),
             },
@@ -403,11 +403,11 @@ _FORECASTERS = {
 
 
 def forecast(
-    values: List[float],
+    values: list[float],
     periods: int = 7,
     method: str = "ema",
     confidence_level: float = 0.95,
-    dates: Optional[List[str]] = None,
+    dates: list[str] | None = None,
     **kwargs,
 ) -> ForecastResult:
     """
@@ -435,7 +435,7 @@ def forecast(
     return forecaster.forecast(values, periods, dates)
 
 
-def get_available_methods() -> List[str]:
+def get_available_methods() -> list[str]:
     """Get list of available forecasting methods."""
     return list(_FORECASTERS.keys())
 
@@ -445,7 +445,7 @@ def get_available_methods() -> List[str]:
 # =============================================================================
 
 
-def detect_trend(values: List[float]) -> Dict[str, Any]:
+def detect_trend(values: list[float]) -> dict[str, Any]:
     """
     Detect trend direction and strength.
 

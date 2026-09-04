@@ -6,8 +6,8 @@ Reference: docs/CANONICAL_ROADMAP.md - P6 Advanced Analytics
 
 Features:
 - Z-score detection (parametric)
-- IQR-based detection (robust to outliers)
-- Modified Z-score (MAD-based, most robust)
+- IQR-based detection (resistant to outliers)
+- Modified Z-score (MAD-based)
 - Isolation Forest (ML-based)
 - Time series seasonality-aware detection
 
@@ -31,13 +31,13 @@ import logging
 import math
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from enum import Enum
-from typing import Any, Dict, List, Optional
+from enum import StrEnum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
-class AnomalyMethod(str, Enum):
+class AnomalyMethod(StrEnum):
     """Available anomaly detection methods."""
 
     ZSCORE = "zscore"  # Standard z-score
@@ -56,7 +56,7 @@ class Anomaly:
     method: str
     threshold: float
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "index": self.index,
             "value": self.value,
@@ -70,8 +70,8 @@ class Anomaly:
 class AnomalyResult:
     """Result of anomaly detection."""
 
-    anomalies: List[Anomaly]
-    stats: Dict[str, float]
+    anomalies: list[Anomaly]
+    stats: dict[str, float]
     method: str
     threshold: float
     total_points: int
@@ -86,7 +86,7 @@ class AnomalyResult:
             return 0.0
         return len(self.anomalies) / self.total_points
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "anomaly_count": self.anomaly_count,
             "anomaly_rate": round(self.anomaly_rate, 4),
@@ -110,7 +110,7 @@ class AnomalyDetector(ABC):
         self.threshold = threshold
 
     @abstractmethod
-    def detect(self, values: List[float]) -> AnomalyResult:
+    def detect(self, values: list[float]) -> AnomalyResult:
         """Detect anomalies in a list of values."""
         pass
 
@@ -132,7 +132,7 @@ class ZScoreDetector(AnomalyDetector):
     def method_name(self) -> str:
         return "zscore"
 
-    def detect(self, values: List[float]) -> AnomalyResult:
+    def detect(self, values: list[float]) -> AnomalyResult:
         if len(values) < 3:
             return AnomalyResult(
                 anomalies=[],
@@ -175,7 +175,7 @@ class IQRDetector(AnomalyDetector):
     """
     Interquartile Range (IQR) based anomaly detection.
 
-    More robust to outliers than z-score.
+    Resistant to outliers, unlike z-score.
     Detects values outside [Q1 - threshold*IQR, Q3 + threshold*IQR].
     """
 
@@ -186,7 +186,7 @@ class IQRDetector(AnomalyDetector):
     def method_name(self) -> str:
         return "iqr"
 
-    def detect(self, values: List[float]) -> AnomalyResult:
+    def detect(self, values: list[float]) -> AnomalyResult:
         if len(values) < 4:
             return AnomalyResult(
                 anomalies=[],
@@ -244,7 +244,7 @@ class MADDetector(AnomalyDetector):
     """
     Median Absolute Deviation (MAD) based anomaly detection.
 
-    Most robust to outliers. Uses median instead of mean.
+    Uses median instead of mean.
     Modified z-score = 0.6745 * (x - median) / MAD
     """
 
@@ -255,7 +255,7 @@ class MADDetector(AnomalyDetector):
     def method_name(self) -> str:
         return "mad"
 
-    def detect(self, values: List[float]) -> AnomalyResult:
+    def detect(self, values: list[float]) -> AnomalyResult:
         if len(values) < 3:
             return AnomalyResult(
                 anomalies=[],
@@ -316,9 +316,9 @@ _DETECTORS = {
 
 
 def detect_anomalies(
-    values: List[float],
+    values: list[float],
     method: str = "mad",
-    threshold: Optional[float] = None,
+    threshold: float | None = None,
 ) -> AnomalyResult:
     """
     Detect anomalies in a list of values.
@@ -346,7 +346,7 @@ def detect_anomalies(
     return detector.detect(values)
 
 
-def get_available_methods() -> List[str]:
+def get_available_methods() -> list[str]:
     """Get list of available detection methods."""
     return list(_DETECTORS.keys())
 
@@ -357,11 +357,11 @@ def get_available_methods() -> List[str]:
 
 
 def detect_column_anomalies(
-    data: List[Dict[str, Any]],
-    columns: Optional[List[str]] = None,
+    data: list[dict[str, Any]],
+    columns: list[str] | None = None,
     method: str = "mad",
-    threshold: Optional[float] = None,
-) -> Dict[str, AnomalyResult]:
+    threshold: float | None = None,
+) -> dict[str, AnomalyResult]:
     """
     Detect anomalies in specific columns of tabular data.
 
