@@ -1,9 +1,4 @@
-"""Voyant Scraper - API Endpoints.
-
-This module defines the REST API endpoints for the web scraping service,
-built using Django Ninja. The API exposes "pure execution" tools that
-are controlled by an external agent, following an Agent-Tool Architecture.
-"""
+"""Voyant Scraper REST API endpoints."""
 
 import logging
 from typing import Any
@@ -134,21 +129,18 @@ class ScrapeResultSchema(Schema):
 
 
 def _get_models():
-    """Lazy import of Django models to avoid AppRegistryNotReady."""
     from .models import ScrapeArtifact, ScrapeJob
 
     return ScrapeJob, ScrapeArtifact
 
 
 def _get_security():
-    """Lazy import of security module."""
     from .security import SSRFError, validate_url, validate_urls
 
     return validate_url, validate_urls, SSRFError
 
 
 def _run_async(func, *args, **kwargs):
-    """Run async function synchronously."""
     return async_to_sync(func)(*args, **kwargs)
 
 
@@ -280,7 +272,6 @@ def extract_data(request, payload: ScrapeExtractSchema):
 
 @scrape_router.post("/fetch", auth=require_permission("write:jobs"))
 def fetch_page(request, payload: ScrapeFetchSchema):
-    """Fetch a page using a selected engine with SSRF validation."""
     from .activities import ScrapeActivities
 
     activity_runner = ScrapeActivities()
@@ -305,7 +296,6 @@ def fetch_page(request, payload: ScrapeFetchSchema):
 
 @scrape_router.post("/deep_archive", auth=require_permission("write:jobs"))
 def deep_archive(request, payload: ScrapeDeepArchiveSchema):
-    """Run a deep archive scrape combining interactions and file downloads."""
     from .activities import ScrapeActivities
 
     activity_runner = ScrapeActivities()
@@ -324,7 +314,6 @@ def deep_archive(request, payload: ScrapeDeepArchiveSchema):
 
 @scrape_router.post("/ocr", auth=require_permission("write:jobs"))
 def process_ocr(request, payload: ScrapeOcrSchema):
-    """Run OCR for a single image URL or path."""
     from .activities import ScrapeActivities
 
     activity_runner = ScrapeActivities()
@@ -336,7 +325,6 @@ def process_ocr(request, payload: ScrapeOcrSchema):
 
 @scrape_router.post("/parse_pdf", auth=require_permission("write:jobs"))
 def parse_pdf(request, payload: ScrapePdfSchema):
-    """Extract text and optional tables from a PDF."""
     from .activities import ScrapeActivities
 
     activity_runner = ScrapeActivities()
@@ -348,7 +336,6 @@ def parse_pdf(request, payload: ScrapePdfSchema):
 
 @scrape_router.post("/transcribe", auth=require_permission("write:jobs"))
 def transcribe_media(request, payload: ScrapeTranscribeSchema):
-    """Transcribe one media URL and return text segments."""
     from .activities import ScrapeActivities
 
     if not settings.scraper_enable_transcribe:
@@ -363,7 +350,6 @@ def transcribe_media(request, payload: ScrapeTranscribeSchema):
 
 @scrape_router.get("/status/{job_id}", response=ScrapeJobSchema)
 def get_scrape_status(request, job_id: str):
-    """Get status of a scraping job."""
     ScrapeJob, _ = _get_models()
     tenant_id = request.headers.get("X-Tenant-ID", settings.default_tenant_id)
     job = get_object_or_404(ScrapeJob, job_id=job_id, tenant_id=tenant_id)
@@ -384,7 +370,6 @@ def get_scrape_status(request, job_id: str):
 
 @scrape_router.post("/cancel", auth=require_permission("write:jobs"))
 def cancel_scrape(request, job_id: str):
-    """Cancel a running scrape job."""
     ScrapeJob, _ = _get_models()
     tenant_id = request.headers.get("X-Tenant-ID", settings.default_tenant_id)
     job = get_object_or_404(ScrapeJob, job_id=job_id, tenant_id=tenant_id)
@@ -407,7 +392,6 @@ def cancel_scrape(request, job_id: str):
 
 @scrape_router.get("/result/{job_id}", response=ScrapeResultSchema)
 def get_scrape_result(request, job_id: str):
-    """Get results of a completed scrape job."""
     ScrapeJob, ScrapeArtifact = _get_models()
     tenant_id = request.headers.get("X-Tenant-ID", settings.default_tenant_id)
     job = get_object_or_404(ScrapeJob, job_id=job_id, tenant_id=tenant_id)
@@ -432,7 +416,6 @@ def get_scrape_result(request, job_id: str):
 
 @scrape_router.get("/metrics/{job_id}")
 def get_scrape_metrics(request, job_id: str):
-    """Get metrics for a scrape job."""
     ScrapeJob, _ = _get_models()
     tenant_id = request.headers.get("X-Tenant-ID", settings.default_tenant_id)
     job = get_object_or_404(ScrapeJob, job_id=job_id, tenant_id=tenant_id)

@@ -1,29 +1,7 @@
 """
-Circuit Breaker Pattern Implementation for Fault-Tolerant Systems.
+Circuit breaker pattern implementation.
 
-This module provides a thread-safe implementation of the Circuit Breaker
-design pattern. It is designed to prevent cascading failures in a distributed
-system by wrapping calls to external services and automatically rejecting calls
-to a service that is deemed unhealthy.
-
-State machine with OPEN/HALF_OPEN/CLOSED states.
-
-The Circuit Breaker has three states:
-- CLOSED: Normal operation. Calls are passed through to the wrapped function.
-- OPEN: The service is considered unhealthy. Calls fail immediately without
-  being executed, preventing system overload.
-- HALF_OPEN: After a timeout period, the breaker allows a limited number of
-  "probe" calls to pass through. If they succeed, the breaker transitions
-  to CLOSED. If they fail, it returns to OPEN.
-
-Personas Applied:
-- PhD-level Software Developer: Implements a classic state machine with thread
-  safety using locks to ensure correctness in concurrent environments.
-- Performance Engineer: Aims for minimal overhead (<1ms) on the hot path by
-  using efficient in-memory counters and locks.
-- Security Auditor: Prevents error message leakage about the failing service.
-- ISO Documenter: Documents states, transitions, and usage.
-- UX Consultant: Includes manual reset for operational flexibility.
+State machine: CLOSED → OPEN → HALF_OPEN → CLOSED.
 """
 
 import logging
@@ -38,7 +16,6 @@ logger = logging.getLogger(__name__)
 
 
 class CircuitState(StrEnum):
-    """Enumeration for the possible states of the circuit breaker."""
 
     CLOSED = "closed"
     OPEN = "open"

@@ -1,11 +1,4 @@
-"""
-Voyant Scraper — Storage Activities.
-
-Temporal activities for artifact persistence and job finalization.
-Bridges scrape results to the Django ORM and MinIO artifact store.
-
-Extracted from scraper/activities.py (Rule 245 compliance — 949-line split).
-"""
+"""Temporal activities for artifact persistence and job finalization."""
 
 import hashlib
 import logging
@@ -21,13 +14,7 @@ settings = get_settings()
 
 
 class StorageActivities:
-    """
-    Artifact storage and job lifecycle activities.
-
-    Handles: JSON artifact persistence to MinIO via artifact_store,
-    ScrapeArtifact ORM record creation, and ScrapeJob status finalization.
-    All storage operations are idempotent via update_or_create.
-    """
+    """Artifact storage and job lifecycle activities."""
 
     @staticmethod
     def _load_models():

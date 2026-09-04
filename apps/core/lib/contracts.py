@@ -1,31 +1,7 @@
 """
-Data Contracts Module for Schema Validation and Governance.
-
-This module provides a system for defining, managing, and enforcing
-schema-based data contracts. It is a cornerstone of the platform's data governance
-capabilities, so data conforms to expected quality, format, and
-sensitivity standards before it is used in analysis.
+Data contracts for schema validation and governance.
 
 Reference: docs/CANONICAL_ROADMAP.md - P5 Governance & Contracts
-
-Features:
-- Loading contract definitions from YAML or JSON files.
-- In-memory registry for managing and versioning contracts.
-- Validation of data schemas against a contract.
-- Classification of data sensitivity (e.g., PII, Secret).
-- Generation of standard JSON Schema for external tools.
-
-Usage:
-    from apps.core.lib.contracts import load_contract, validate_schema
-
-    # Load a contract from a YAML file
-    contract = load_contract("/path/to/contract.yaml")
-
-    # Validate a dataset's schema against the contract
-    column_schema = [{"name": "id", "type": "integer"}, ...]
-    result = validate_schema(contract, column_schema)
-    if not result.valid:
-        print(f"Schema validation failed: {result.errors}")
 """
 
 from __future__ import annotations
@@ -42,9 +18,6 @@ logger = logging.getLogger(__name__)
 
 
 class SensitivityLevel(StrEnum):
-    """
-    Enumeration for data sensitivity classification.
-    """
 
     PUBLIC = "public"  # No restrictions on access.
     INTERNAL = "internal"  # For internal company use only.

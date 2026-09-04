@@ -1,24 +1,7 @@
 """
-Tenant Quotas Module
+Tenant quota enforcement and usage tracking.
 
-Enforce resource limits and track usage per tenant for multi-tenant deployments.
 Reference: docs/CANONICAL_ROADMAP.md - P4 Scale & Multi-Tenant
-
-Usage:
-    from apps.core.lib.tenant_quotas import (
-        QuotaPolicy,
-        check_quota,
-        record_usage,
-        get_usage_stats
-    )
-
-    # Check if operation is allowed
-    check_result = check_quota(tenant_id="tenant_123", resource="jobs")
-    if not check_result.allowed:
-        raise QuotaExceededError(check_result.message)
-
-    # Record usage
-    record_usage(tenant_id="tenant_123", resource="jobs", amount=1)
 """
 
 from __future__ import annotations
@@ -40,7 +23,6 @@ logger = logging.getLogger(__name__)
 
 
 class ResourceType(StrEnum):
-    """Types of resources that can be quota-limited."""
 
     JOBS_PER_DAY = "jobs_per_day"
     JOBS_CONCURRENT = "jobs_concurrent"
@@ -53,7 +35,6 @@ class ResourceType(StrEnum):
 
 
 class QuotaTier(StrEnum):
-    """Tenant quota tiers."""
 
     FREE = "free"
     STARTER = "starter"
@@ -69,7 +50,6 @@ class QuotaTier(StrEnum):
 
 @dataclass
 class QuotaLimit:
-    """A single quota limit."""
 
     resource: ResourceType
     limit: int

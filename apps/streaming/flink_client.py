@@ -1,10 +1,4 @@
-"""
-Flink Client for Voyant.
-
-This module provides a Python wrapper around the Apache Flink REST API to submit,
-monitor, and cancel streaming jobs. It is used by the Temporal worker to manage
-the lifecycle of streaming analytics pipelines.
-"""
+"""Apache Flink REST API client."""
 
 import logging
 from pathlib import Path
@@ -22,17 +16,8 @@ class FlinkClientError(Exception):
 
 
 class FlinkClient:
-    """
-    Client for interacting with the Apache Flink JobManager REST API.
-    """
 
     def __init__(self, jobmanager_url: str | None = None):
-        """
-        Initialize the Flink client.
-
-        Args:
-            jobmanager_url: Base URL of the Flink JobManager. Defaults to settings.
-        """
         settings = get_settings()
         resolved_url = jobmanager_url or settings.flink_jobmanager_url
         if not resolved_url:
@@ -40,7 +25,6 @@ class FlinkClient:
         self.base_url = resolved_url.rstrip("/")
 
     def get_overview(self) -> dict[str, Any]:
-        """Get cluster overview."""
         url = f"{self.base_url}/overview"
         try:
             response = httpx.get(url, timeout=5.0)
@@ -54,7 +38,6 @@ class FlinkClient:
             raise FlinkClientError(f"API error: {e}")
 
     def list_jobs(self) -> dict[str, Any]:
-        """List all jobs."""
         url = f"{self.base_url}/jobs/overview"
         try:
             response = httpx.get(url, timeout=5.0)
@@ -70,9 +53,6 @@ class FlinkClient:
         program_args: str | None = None,
         parallelism: int | None = None,
     ) -> str:
-        """
-        Submit a job from an uploaded JAR.
-        """
         payload: dict[str, Any] = {}
         if entry_class:
             payload["entryClass"] = entry_class
@@ -94,7 +74,6 @@ class FlinkClient:
             raise FlinkClientError(f"Failed to submit JAR {jar_id}: {e}") from e
 
     def upload_jar(self, jar_path: str) -> str:
-        """Upload a JAR file."""
         path = Path(jar_path)
         if not path.exists() or not path.is_file():
             raise FlinkClientError(f"JAR file not found: {jar_path}")

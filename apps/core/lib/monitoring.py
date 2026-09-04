@@ -1,9 +1,4 @@
-"""
-Monitoring Core
-
-Prometheus metrics registry and setup.
-Adheres to Vibe Coding Rules: Singleton pattern for global metrics.
-"""
+"""Prometheus metrics registry and setup."""
 
 import logging
 
@@ -13,9 +8,6 @@ logger = logging.getLogger(__name__)
 
 
 class MetricsRegistry:
-    """
-    Central registry for Prometheus metrics.
-    """
 
     _instance = None
 
@@ -63,7 +55,6 @@ class MetricsRegistry:
         )
 
     def start_server(self, port: int = 9090):
-        """Start Prometheus HTTP server."""
         try:
             start_http_server(port)
             logger.info(f"Prometheus metrics server started on port {port}")

@@ -174,10 +174,8 @@ _CONN = _MilvusConnection()
 
 class VectorStore:
     """
-    Production vector store backed exclusively by Milvus 2.4+.
-
-    Hybrid search (dense + sparse), tenant isolation via partition key,
-    realm filtering, and resilient auto-reconnection.
+    Milvus 2.4+ vector store with hybrid search (dense + sparse),
+    tenant isolation via partition key, and auto-reconnection.
     """
 
     def __init__(self) -> None:
@@ -213,7 +211,6 @@ class VectorStore:
             client.insert(collection_name=_COLLECTION_NAME, data=[row])
 
     def get(self, id: str) -> VectorItem | None:
-        """Retrieve a document by doc_id."""
         client = _CONN.client()
         results = client.query(
             collection_name=_COLLECTION_NAME,
@@ -337,7 +334,6 @@ _store: VectorStore | None = None
 
 
 def get_vector_store() -> VectorStore:
-    """Return the global Milvus-backed VectorStore singleton."""
     global _store
     if _store is None:
         _store = VectorStore()

@@ -38,17 +38,6 @@ async def _download_to_temp(url: str, suffix: str) -> str:
 
 async def execute(request: OctopusRequest) -> OctopusResult:
     """
-    Execute ARM-6 document parsing.
-
-    Downloads the document if remote, then extracts text,
-    metadata, and tables using pdfplumber and unstructured.
-
-    Args:
-        request: The OctopusRequest pointing to a document.
-
-    Returns:
-        An OctopusResult with extracted document content.
-    """
     start = datetime.now(UTC)
     file_path = request.url
     is_remote = file_path.startswith(("http://", "https://"))

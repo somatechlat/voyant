@@ -1,9 +1,4 @@
-"""
-Rserve Bridge Module
-
-Handles communication with the R statistical engine via Rserve.
-Part of Phase 2: Statistical Engine.
-"""
+"""Rserve bridge for R statistical engine."""
 
 import logging
 from typing import Any
@@ -17,14 +12,6 @@ logger = logging.getLogger(__name__)
 
 
 class REngine:
-    """
-    Interface to the R statistical engine via Rserve.
-
-    Usage:
-        r = REngine()
-        r.assign("data", df)
-        result = r.eval("mean(data$value)")
-    """
 
     def __init__(self):
         self.settings = get_settings()
@@ -33,7 +20,6 @@ class REngine:
         self.conn = None
 
     def _ensure_dependency(self):
-        """Ensure pyRserve is installed."""
         try:
             import pyRserve  # type: ignore[reportMissingImports]  # noqa: F401 - Import check only
         except ImportError:
@@ -63,7 +49,6 @@ class REngine:
             )
 
     def disconnect(self):
-        """Close connection."""
         if self.conn:
             self.conn.close()
             self.conn = None

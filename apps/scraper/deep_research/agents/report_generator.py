@@ -13,10 +13,6 @@ from apps.scraper.deep_research.schemas import Citation, Finding, ResearchReport
 
 
 class ReportGenerator:
-    """
-    Generates a Markdown research report with executive summary, findings,
-    citations, and aggregate confidence score.
-    """
 
     def generate(
         self,
@@ -28,21 +24,6 @@ class ReportGenerator:
         depth: int = 1,
         breadth: int = 1,
     ) -> ResearchReport:
-        """
-        Build a ResearchReport from validated findings.
-
-        Args:
-            query: Original research query.
-            findings: Cross-validated findings.
-            citations: Unique source citations.
-            urls_processed: Total URLs fetched across all depths.
-            sources_deduplicated: Number of near-duplicate sources removed.
-            depth: Recursive depth reached.
-            breadth: Breadth (parallel queries) used.
-
-        Returns:
-            A populated ResearchReport with Markdown content.
-        """
         now = datetime.now(UTC).isoformat()
 
         # Aggregate confidence.
@@ -98,7 +79,6 @@ class ReportGenerator:
         deduplicated: int,
     ) -> str:
         """Compose a short executive summary paragraph."""
-        validated = sum(1 for f in findings if f.cross_validated)
         parts = [
             f"Deep research on \"{query}\" processed {urls_processed} sources",
             f"({deduplicated} near-duplicates removed)",
@@ -122,7 +102,6 @@ class ReportGenerator:
         generated_at: str,
     ) -> str:
         """Assemble the full Markdown document."""
-        lines: list[str] = [
             f"# Deep Research Report: {query}",
             "",
             f"*Generated: {generated_at}*  ",
