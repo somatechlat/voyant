@@ -2,28 +2,51 @@
 
 Note: ReportGenerator excluded — report_generator.py has a pre-existing
 IndentationError (missing `lines = [` and undefined `validated` variable).
-We use importlib to load individual agent modules directly, bypassing
-the __init__.py which triggers the broken import chain.
+We use importlib.util to load individual agent modules directly from file,
+bypassing the __init__.py which triggers the broken import chain.
 """
 
-import importlib
+import importlib.util
 import sys
+from pathlib import Path
 
 import pytest
 
-# Block the broken __init__.py from executing by pre-loading the package with a stub
-_pkg = "apps.scraper.deep_research.agents"
-if _pkg not in sys.modules:
-    import types
-    sys.modules[_pkg] = types.ModuleType(_pkg)
-    sys.modules[_pkg].__path__ = []
-    sys.modules[_pkg].__package__ = _pkg
+_AGENTS_DIR = Path(__file__).resolve().parents[3] / "apps" / "scraper" / "deep_research" / "agents"
 
-from apps.scraper.deep_research.agents.query_generator import QueryGenerator
-from apps.scraper.deep_research.agents.content_extractor import ContentExtractor
-from apps.scraper.deep_research.agents.source_scorer import SourceScorer
-from apps.scraper.deep_research.agents.synthesizer import Synthesizer
-from apps.scraper.deep_research.agents.cross_validator import CrossValidator
+
+def _load_module(name: str, filepath: Path):
+    """Load a Python module directly from filepath, registering it in sys.modules."""
+    spec = importlib.util.spec_from_file_location(name, filepath)
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[name] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+# Ensure the parent packages exist in sys.modules
+for _pkg in [
+    "apps.scraper.deep_research.agents",
+]:
+    if _pkg not in sys.modules:
+        import types
+        _mod = types.ModuleType(_pkg)
+        _mod.__path__ = [str(Path(_pkg.replace(".", "/")))]
+        _mod.__package__ = _pkg
+        sys.modules[_pkg] = _mod
+
+_qg_mod = _load_module("apps.scraper.deep_research.agents.query_generator", _AGENTS_DIR / "query_generator.py")
+_ce_mod = _load_module("apps.scraper.deep_research.agents.content_extractor", _AGENTS_DIR / "content_extractor.py")
+_ss_mod = _load_module("apps.scraper.deep_research.agents.source_scorer", _AGENTS_DIR / "source_scorer.py")
+_sy_mod = _load_module("apps.scraper.deep_research.agents.synthesizer", _AGENTS_DIR / "synthesizer.py")
+_cv_mod = _load_module("apps.scraper.deep_research.agents.cross_validator", _AGENTS_DIR / "cross_validator.py")
+
+QueryGenerator = _qg_mod.QueryGenerator
+ContentExtractor = _ce_mod.ContentExtractor
+SourceScorer = _ss_mod.SourceScorer
+Synthesizer = _sy_mod.Synthesizer
+CrossValidator = _cv_mod.CrossValidator
+
 from apps.scraper.deep_research.schemas import (
     Citation,
     EvidenceChunk,
