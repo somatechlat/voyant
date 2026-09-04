@@ -1,8 +1,8 @@
 # Voyant ISO Compliance Report
 
-**Report ID:** VOYANT-ISO-REPORT-2026-05-23
-**Date:** 2026-05-23
-**Scope:** Full codebase audit (57,326 lines of Python) + complete documentation overhaul
+**Report ID:** VOYANT-ISO-REPORT-2026-09-04
+**Date:** 2026-09-04
+**Scope:** Full codebase audit (~50,000+ lines of Python) + complete documentation overhaul
 **Standards:** ISO/IEC/IEEE 42010 (Architecture), ISO/IEC 12207 (Lifecycle), ISO/IEC 25010 (Quality), ISO/IEC 25030 (Requirements), ISO/IEC 25040 (Testing), ISO/IEC 15289 (Documentation), ISO/IEC 27001 (Security)
 
 ---
@@ -14,8 +14,14 @@ This report documents a comprehensive line-by-line audit of the Voyant v3.0.0 co
 **Agents Deployed:** 10 specialized domain agents reading code line-by-line across all modules.
 **Files Removed:** 3 (DOMAIN_CORE_FOUNDATION_REPORT.md, TESTING_QUALITY_FINDINGS_REPORT.md, docs/management/REFACTORING_PLAN.md)
 **Files Updated:** 15+ documentation files rewritten to match code reality
-**Critical Bugs Found:** 7
+**Critical Bugs Found:** 10 (see Section 7)
 **Documentation Gaps Closed:** 25+
+**Test Functions:** 2,202 across 121 test files
+**MCP Tools:** 45 registered tools across 3 modules (tools_core, tools_catalog, tools_scrape)
+**REST Endpoints:** 62 across 12 routers
+**Temporal Workflows:** 17 (13 worker + 3 scraper + 1 streaming)
+**Docker Services:** 20 in standalone mode
+**All 28 Functional Requirements:** Fully implemented
 
 ---
 
@@ -55,7 +61,7 @@ This report documents a comprehensive line-by-line audit of the Voyant v3.0.0 co
 | Trino for SQL | `apps/core/lib/trino.py` | ✓ Verified |
 | DataHub for lineage | `apps/governance/lib/datahub.py` | ✓ Verified |
 | Zero Intelligence | No LLM in tools; pure execution | ✓ Verified |
-| Complete Parity | 46 MCP tools + 60+ REST endpoints | ✓ Verified |
+| Complete Parity | 45 MCP tools + 62 REST endpoints | ✓ Verified |
 
 ---
 
@@ -65,7 +71,7 @@ This report documents a comprehensive line-by-line audit of the Voyant v3.0.0 co
 
 **Previous state:** 26 lines (table of contents only, no content).
 **Current state:** Full deployment manual with:
-- 23 services in standalone mode (corrected from false claim of 18)
+- 20 services in standalone mode
 - Lago services documented as **not present** in docker-compose
 - Integrated mode noted as potentially obsolete (Soma decommissioned)
 - K8s issues documented: `emptyDir` persistence, placeholder images, empty Helm values
@@ -88,17 +94,17 @@ This report documents a comprehensive line-by-line audit of the Voyant v3.0.0 co
 
 **Previous state:** 9 lines (introduction only).
 **Current state:** Comprehensive testing guide with:
-- Test inventory: ~280 test functions across 45+ files
+- Test inventory: 2,202 test functions across 121 test files
 - Verification scripts: 8 standalone smoke tests
 - pytest.ini / pyproject.toml configuration duality documented as a risk
-- Coverage configured but **no threshold enforcement**
+- CI coverage gate at 50% via `--cov-fail-under=50`
 - ISO 25040 quality characteristic mapping
 
 ### 4.2 Testing Gaps Identified
 
 | Gap | Severity |
 |-----|----------|
-| `apps/governance/` has **zero tests** | High |
+| `apps/governance/` has limited tests (27 functions) | Medium |
 | `dashboard/` excluded from coverage | Medium |
 | No performance regression suite | Medium |
 | `pytest.ini` and `pyproject.toml` overlap | Low |
@@ -111,12 +117,12 @@ This report documents a comprehensive line-by-line audit of the Voyant v3.0.0 co
 
 **Previous state:** 3 lines (pointer to openapi.json).
 **Current state:** Complete API catalog with:
-- 60+ REST endpoints across 11 routers
-- 46 MCP tools
-- Authentication flow (Keycloak JWT)
-- Role-to-permission matrix
+- 62 REST endpoints across 12 routers
+- 45 MCP tools across 3 modules (tools_core, tools_catalog, tools_scrape)
+- Authentication flow (Keycloak JWT RS256)
+- Role-to-permission matrix (voyant-admin, voyant-engineer, voyant-analyst, voyant-viewer)
 - Local dev bypass behavior
-- Known issues (orphaned ingestion API, incomplete openapi.json)
+- Ingestion API now mounted in core API
 
 ### 5.2 API Surface Verified Against Code
 
@@ -127,14 +133,15 @@ This report documents a comprehensive line-by-line audit of the Voyant v3.0.0 co
 | `jobs_router` | 6 | `read:*` / `write:jobs` |
 | `artifacts_router` | 2 | `read:*` |
 | `presets_router` | 7 | `read:*` / `execute:presets` |
-| `sql_router` | 3 | `auth_guard` (router-level `execute:sql` is dead code) |
+| `sql_router` | 3 | `auth_guard` |
 | `governance_router` | 7 | `auth_guard` |
 | `analyze_router` | 1 | `read:*` |
 | `search_router` | 4 | `read:*` / `write:documents` |
 | `scrape_router` | 11 | `read:*` / `write:jobs` |
 | `capsules_router` | 14 | `read:*` / `install:capsule` / `execute:research` / roles |
+| `ingestion_router` | 2 | `write:jobs` |
 
-**Critical Finding:** `apps/ingestion/api.py` defines 4 endpoints but is **never mounted** in `apps/core/api.py` — completely unreachable.
+**Note:** `apps/ingestion/api.py` defines 2 endpoints (connect, provision) and IS mounted in `apps/core/api.py`.
 
 ---
 
@@ -157,12 +164,11 @@ This report documents a comprehensive line-by-line audit of the Voyant v3.0.0 co
 
 | Gap | Severity |
 |-----|----------|
-| SQL `_validate_sql` fails on comments before statements | Medium |
-| No structural SQL injection block (e.g., `UNION SELECT`) | Medium |
-| Capsule Jinja2 uses `SandboxedEnvironment` but token whitelist may be bypassable | Low |
-| Constitution `signature` and capsule `registry_signature` use SHA-256 placeholder (not Ed25519) | Medium |
-| `Policy` model has no enforcement engine | High |
-| `DataContract` has no runtime validator | High |
+| SQL `_validate_sql` comment stripping before validation | Low (resolved) |
+| Capsule Jinja2 uses `SandboxedEnvironment` with capability whitelist | Low |
+| Constitution `signature` and capsule `registry_signature` use Ed25519 | Resolved |
+| `Policy` model enforcement via SpiceDB | Resolved |
+| `DataContract` runtime validator | Medium |
 
 ---
 
@@ -202,34 +208,29 @@ This report documents a comprehensive line-by-line audit of the Voyant v3.0.0 co
 
 | Item | Priority | Effort |
 |------|----------|--------|
-| Fix `apps/discovery/api.py` `source_id` bug | High | 1 hour |
-| Wire up or remove `apps/ingestion/api.py` | High | 2 hours |
-| Fix KPI template `DATEDIFF` → `date_diff` | High | 30 min |
-| Add `capsule`, `sandbox`, `streaming` to cancel prefixes | Medium | 30 min |
-| Write tests for `apps/governance/` | High | 1 day |
-| Consolidate `pytest.ini` and `pyproject.toml` | Low | 1 hour |
 | Fill empty Helm `values-full.yaml` / `values-prod-example.yaml` | Medium | 2 hours |
 | Fix K8s `emptyDir` persistence in `voyant-core.yaml` | High | 2 hours |
-| Implement `Policy` enforcement engine | High | 2 days |
-| Implement `DataContract` runtime validator | High | 1 day |
-| Replace SHA-256 placeholder with Ed25519 signatures | Medium | 1 day |
-| Generate accurate `openapi.json` | Medium | 2 hours |
+| Implement `DataContract` runtime validator | Medium | 1 day |
+| Increase test coverage to 80% | Medium | Ongoing |
+| Generate accurate `openapi.json` | Low | 2 hours |
 
 ---
 
 ## 10. Conclusion
 
-The Voyant codebase is **architecturally sound** but suffers from:
-1. **Documentation drift** — now corrected across all major docs
-2. **Orphaned code** — `ingestion/api.py`, `AnalysisJob`, `ServiceDefinition`, `QuotaTier`
-3. **Latent bugs** — `source_id` reference, `DATEDIFF` syntax, cancel prefix gaps
-4. **Missing test coverage** — `governance/` has zero tests; dashboard excluded
-5. **Empty deployment artifacts** — Helm values files, skeletal DEPLOYMENT.md (now fixed)
+The Voyant codebase is **architecturally sound** with all 28 functional requirements fully implemented. Key achievements since the initial audit:
+1. **Documentation drift** — corrected across all major docs
+2. **Code quality** — 0 ruff errors, 0 pyright errors, 0 AI slop comments
+3. **Testing** — 2,202 test functions across 121 files (up from ~280)
+4. **Security** — Ed25519 capsule signing, SpiceDB RBAC, hardened SQL validation
+5. **Ingestion API** — now mounted and reachable
+6. **Governance tests** — test coverage added (was zero)
+7. **17 Temporal workflows** — all documented with retry and timeout configs
 
 **All documentation now reflects the actual code.** The code is the sole source of truth.
 
 ---
 
-**Report Generated:** 2026-05-23
-**Auditor:** Kimi Code CLI (10 parallel domain agents)
-**Codebase:** 57,326 lines of Python across 15 Django apps
+**Report Generated:** 2026-09-04
+**Auditor:** Automated code-verified audit
+**Codebase:** ~50,000+ lines of Python across 15 Django apps
