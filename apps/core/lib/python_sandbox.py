@@ -31,9 +31,12 @@ class PythonSandboxNode:
 
         # Security: Enforce that the script does not contain clear network imports
         if (
-            "socket " in script_content
-            or "urllib" in script_content
-            or "requests" in script_content
+            "import socket" in script_content
+            or "from socket" in script_content
+            or "import urllib" in script_content
+            or "from urllib" in script_content
+            or "import requests" in script_content
+            or "from requests" in script_content
         ):
             logger.error(
                 f"[SANDBOX {execution_id}] Network import detected. Execution halted."

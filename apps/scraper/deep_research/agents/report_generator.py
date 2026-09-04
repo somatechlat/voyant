@@ -79,6 +79,7 @@ class ReportGenerator:
         deduplicated: int,
     ) -> str:
         """Compose a short executive summary paragraph."""
+        validated = sum(1 for f in findings if f.cross_validated)
         parts = [
             f"Deep research on \"{query}\" processed {urls_processed} sources",
             f"({deduplicated} near-duplicates removed)",
@@ -102,6 +103,7 @@ class ReportGenerator:
         generated_at: str,
     ) -> str:
         """Assemble the full Markdown document."""
+        lines = [
             f"# Deep Research Report: {query}",
             "",
             f"*Generated: {generated_at}*  ",

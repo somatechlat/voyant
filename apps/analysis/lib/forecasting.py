@@ -60,7 +60,7 @@ class ForecastResult:
             "method": self.method,
             "periods": self.periods,
             "confidence_level": self.confidence_level,
-            "stats": {k: round(v, 4) for k, v in self.stats.items()},
+            "stats": {k: round(v, 4) if isinstance(v, (int, float)) else v for k, v in self.stats.items()},
             "predictions": [p.to_dict() for p in self.predictions],
         }
 
