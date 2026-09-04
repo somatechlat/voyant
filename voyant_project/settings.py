@@ -120,6 +120,7 @@ INSTALLED_APPS = [
     "apps.scraper",  # Data scraping module (Pure Execution)
     "apps.uptp_core",  # Universal Parametric Template Pattern Core
     "apps.capsules",  # Installable intelligence capsules (cross-compatible with somaAgent01)
+    "apps.ontology",  # Ontology Engine (Object Types, Properties, Links)
 ]
 
 # --- Middleware Configuration ---
