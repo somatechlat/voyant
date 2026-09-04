@@ -50,9 +50,12 @@ def _shingles(text: str, k: int = _SHINGLE_SIZE) -> set[str]:
 
 def _minhash_signature(shingles: set[str], num_hashes: int = _NUM_HASHES) -> list[int]:
     """Compute a MinHash signature from a set of shingles."""
+    if not shingles:
+        return [0] * num_hashes
     sig: list[int] = []
+    max_hash = 2**128  # MD5 produces 128-bit hashes
     for seed in range(num_hashes):
-        min_val = 2**32
+        min_val = max_hash
         for s in shingles:
             h = hashlib.md5((s + str(seed)).encode("utf-8")).hexdigest()
             val = int(h, 16)
