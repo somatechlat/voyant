@@ -215,6 +215,95 @@ class IngestActivities:
             activity.logger.error(f"Airbyte sync failed: {e}")
             raise
 
+    @activity.defn(name="connect_airbyte_source")
+    async def connect_airbyte_source(self, params: dict[str, Any]) -> dict[str, Any]:
+        """
+        Provision an Airbyte source and optionally a destination.
+
+        This activity connects a new source to Airbyte by provisioning it via
+        the Airbyte API. If destination parameters are provided, it also provisions
+        a destination (e.g. DuckDB or Postgres) and creates a connection between
+        source and destination.
+
+        Params:
+            source_id: Voyant source identifier
+            workspace_id: Airbyte workspace / tenant ID
+            source_definition_id: Airbyte source definition (connector) ID
+            source_name: Human-readable name for the source
+            connection_config: Source-specific configuration dict
+            destination_definition_id: (optional) Airbyte destination definition ID
+            destination_name: (optional) Human-readable destination name
+            destination_config: (optional) Destination-specific configuration dict
+        """
+        from apps.ingestion.lib.airbyte_client import get_airbyte_client
+
+        source_id = params.get("source_id")
+        workspace_id = params.get("workspace_id", "default")
+        source_definition_id = params.get("source_definition_id")
+        source_name = params.get("source_name", f"source-{source_id}")
+        connection_config = params.get("connection_config", {})
+        destination_definition_id = params.get("destination_definition_id")
+        destination_name = params.get("destination_name")
+        destination_config = params.get("destination_config", {})
+
+        if not source_definition_id:
+            raise ApplicationError(
+                "source_definition_id is required for Airbyte source provisioning",
+                non_retryable=True,
+            )
+
+        try:
+            client = get_airbyte_client()
+
+            # Step 1: Provision the source
+            activity.heartbeat("Provisioning Airbyte source")
+            source_result = await client.connect_source(
+                workspace_id=workspace_id,
+                source_definition_id=source_definition_id,
+                name=source_name,
+                connection_config=connection_config,
+            )
+
+            airbyte_source_id = source_result.get("source_id")
+            activity.logger.info(
+                f"Airbyte source provisioned: {airbyte_source_id}"
+            )
+
+            result: dict[str, Any] = {
+                "source_id": source_id,
+                "airbyte_source_id": airbyte_source_id,
+                "status": "connected",
+            }
+
+            # Step 2: Optionally provision a destination
+            if destination_definition_id:
+                activity.heartbeat("Provisioning Airbyte destination")
+                dest_name = destination_name or f"dest-{source_id}"
+                dest_result = await client.provision_destination(
+                    workspace_id=workspace_id,
+                    destination_definition_id=destination_definition_id,
+                    name=dest_name,
+                    connection_config=destination_config,
+                )
+                airbyte_dest_id = dest_result.get("destination_id")
+                activity.logger.info(
+                    f"Airbyte destination provisioned: {airbyte_dest_id}"
+                )
+                result["airbyte_destination_id"] = airbyte_dest_id
+                result["destination_status"] = "provisioned"
+
+            return result
+
+        except CircuitBreakerOpenError:
+            activity.logger.error("Airbyte circuit breaker is OPEN")
+            raise ApplicationError(
+                "Airbyte service circuit breaker is open - service unavailable",
+                non_retryable=True,
+            )
+        except Exception as e:
+            activity.logger.error(f"Airbyte source connection failed: {e}")
+            raise
+
     @activity.defn(name="validate_contract_activity")
     async def validate_contract_activity(
         self, params: dict[str, Any]

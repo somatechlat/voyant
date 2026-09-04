@@ -252,6 +252,114 @@ class AirbyteClient:
             self._client = None
 
     # =========================================================================
+    # Source Provisioning
+    # =========================================================================
+
+    async def connect_source(
+        self,
+        workspace_id: str,
+        source_definition_id: str,
+        name: str,
+        connection_config: dict[str, Any],
+    ) -> dict[str, Any]:
+        """
+        Provisions a new Airbyte source connector.
+
+        Creates a source in the Airbyte workspace with the given definition
+        and configuration. Returns the created source details including its ID.
+
+        Args:
+            workspace_id: The Airbyte workspace (or tenant) identifier.
+            source_definition_id: The Airbyte source definition ID (connector type).
+            name: Human-readable name for the source.
+            connection_config: Source-specific configuration (host, port, auth, etc.).
+
+        Returns:
+            Dict containing source_id, name, and status of the provisioned source.
+
+        Raises:
+            ExternalServiceError: If the Airbyte API returns an error.
+        """
+        logger.info(
+            f"Provisioning Airbyte source: name={name}, "
+            f"workspace={workspace_id}, definition={source_definition_id}"
+        )
+
+        payload: dict[str, Any] = {
+            "workspaceId": workspace_id,
+            "sourceDefinitionId": source_definition_id,
+            "name": name,
+            "connectionConfiguration": connection_config,
+        }
+
+        response = await self._request("POST", "/sources", json_data=payload)
+
+        source_id = response.get("sourceId", "")
+
+        logger.info(f"Airbyte source provisioned: source_id={source_id}")
+
+        return {
+            "source_id": source_id,
+            "name": response.get("name", name),
+            "workspace_id": workspace_id,
+            "source_definition_id": source_definition_id,
+            "status": "provisioned",
+        }
+
+    async def provision_destination(
+        self,
+        workspace_id: str,
+        destination_definition_id: str,
+        name: str,
+        connection_config: dict[str, Any],
+    ) -> dict[str, Any]:
+        """
+        Provisions a new Airbyte destination connector.
+
+        Creates a destination in the Airbyte workspace with the given definition
+        and configuration. Supports DuckDB, Postgres, and other destination types.
+
+        Args:
+            workspace_id: The Airbyte workspace (or tenant) identifier.
+            destination_definition_id: The Airbyte destination definition ID.
+            name: Human-readable name for the destination.
+            connection_config: Destination-specific configuration.
+
+        Returns:
+            Dict containing destination_id, name, and status of the provisioned destination.
+
+        Raises:
+            ExternalServiceError: If the Airbyte API returns an error.
+        """
+        logger.info(
+            f"Provisioning Airbyte destination: name={name}, "
+            f"workspace={workspace_id}, definition={destination_definition_id}"
+        )
+
+        payload: dict[str, Any] = {
+            "workspaceId": workspace_id,
+            "destinationDefinitionId": destination_definition_id,
+            "name": name,
+            "connectionConfiguration": connection_config,
+        }
+
+        response = await self._request("POST", "/destinations", json_data=payload)
+
+        destination_id = response.get("destinationId", "")
+
+        logger.info(
+            f"Airbyte destination provisioned: destination_id={destination_id}"
+        )
+
+        return {
+            "destination_id": destination_id,
+            "name": response.get("name", name),
+            "workspace_id": workspace_id,
+            "destination_definition_id": destination_definition_id,
+            "status": "provisioned",
+        }
+
+    # =========================================================================
     # Connection Operations
     # =========================================================================
 
@@ -528,3 +636,51 @@ async def get_airbyte_job_status(job_id: str) -> dict[str, Any]:
     """
     client = get_airbyte_client()
     return await client.get_job_status(job_id)
+
+
+async def connect_airbyte_source(
+    workspace_id: str,
+    source_definition_id: str,
+    name: str,
+    connection_config: dict[str, Any],
+) -> dict[str, Any]:
+    """
+    Convenience function to provision an Airbyte source.
+
+    Args:
+        workspace_id: The Airbyte workspace identifier.
+        source_definition_id: The Airbyte source definition ID.
+        name: Human-readable name for the source.
+        connection_config: Source-specific configuration.
+
+    Returns:
+        Dict[str, Any]: Details of the provisioned source.
+    """
+    client = get_airbyte_client()
+    return await client.connect_source(
+        workspace_id, source_definition_id, name, connection_config
+    )
+
+
+async def provision_airbyte_destination(
+    workspace_id: str,
+    destination_definition_id: str,
+    name: str,
+    connection_config: dict[str, Any],
+) -> dict[str, Any]:
+    """
+    Convenience function to provision an Airbyte destination.
+
+    Args:
+        workspace_id: The Airbyte workspace identifier.
+        destination_definition_id: The Airbyte destination definition ID.
+        name: Human-readable name for the destination.
+        connection_config: Destination-specific configuration.
+
+    Returns:
+        Dict[str, Any]: Details of the provisioned destination.
+    """
+    client = get_airbyte_client()
+    return await client.provision_destination(
+        workspace_id, destination_definition_id, name, connection_config
+    )

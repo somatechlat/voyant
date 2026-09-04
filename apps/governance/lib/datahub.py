@@ -1,15 +1,4 @@
-"""
-DataHub Client for Voyant Metadata Governance and Lineage.
-
-This module provides a dedicated client for integrating with DataHub,
-a universal metadata platform. It enables Voyant to:
--   Emit data lineage relationships (source -> job -> dataset).
--   Register and update dataset metadata, including schemas and properties.
--   Perform searches against the DataHub metadata catalog.
-
-for maintaining visibility into
-data assets, their origins, transformations, and usage.
-"""
+"""DataHub client for metadata governance and lineage."""
 
 from __future__ import annotations
 
@@ -29,14 +18,12 @@ settings = get_settings()
 @dataclass
 class DatasetUrn:
     """
-    Helper for constructing DataHub Dataset URNs (Unique Resource Names).
-
-    A URN uniquely identifies a data asset within DataHub.
+    Helper for constructing DataHub Dataset URNs.
 
     Attributes:
-        platform (str): The name of the data platform (e.g., "iceberg", "postgresql").
-        name (str): The logical name of the dataset (e.g., "customers", "orders_table").
-        env (str, optional): The environment where the dataset resides (e.g., "PROD", "DEV"). Defaults to "PROD".
+        platform: Data platform name (e.g., "iceberg", "postgresql").
+        name: Logical dataset name.
+        env: Environment (e.g., "PROD", "DEV"). Defaults to "PROD".
     """
 
     platform: str
@@ -44,19 +31,18 @@ class DatasetUrn:
     env: str = "PROD"
 
     def __str__(self) -> str:
-        """Returns the fully qualified DataHub Dataset URN string."""
         return f"urn:li:dataset:(urn:li:dataPlatform:{self.platform},{self.name},{self.env})"
 
 
 @dataclass
 class LineageEdge:
     """
-    Represents a directed lineage relationship between two data entities in DataHub.
+    Directed lineage relationship between two data entities.
 
     Attributes:
-        upstream (str): The URN of the upstream data asset.
-        downstream (str): The URN of the downstream data asset.
-        created (str): The ISO 8601 timestamp when this lineage relationship was created.
+        upstream: URN of the upstream data asset.
+        downstream: URN of the downstream data asset.
+        created: ISO 8601 timestamp.
     """
 
     upstream: str
@@ -65,17 +51,8 @@ class LineageEdge:
 
 
 class DataHubClient:
-    """
-    Asynchronous client for interacting with the DataHub GMS (GraphQL Metadata Service).
-
-    This client facilitates the registration of metadata, emission of lineage,
-    and querying of the DataHub catalog.
-    """
 
     def __init__(self):
-        """
-        Initializes the DataHubClient with the GMS URL from application settings.
-        """
         self.gms_url = settings.datahub_gms_url
         self._client: httpx.AsyncClient | None = None
 
@@ -96,11 +73,6 @@ class DataHubClient:
         return self._client
 
     async def close(self):
-        """
-        Closes the underlying HTTP client session.
-
-        This should be called to gracefully release network resources.
-        """
         if self._client:
             await self._client.aclose()
             self._client = None

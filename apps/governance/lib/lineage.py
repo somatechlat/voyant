@@ -1,29 +1,7 @@
 """
-Data Lineage Module
+Data lineage tracking.
 
-Tracks data flow from sources to artifacts.
 Reference: docs/CANONICAL_ROADMAP.md - P5 Governance & Contracts
-
-Features:
-- Source-to-artifact lineage graph
-- Column-level lineage
-- Impact analysis (downstream dependencies)
-- Lineage JSON export
-
-Usage:
-    from apps.governance.lib.lineage import (
-        LineageGraph, get_lineage_graph,
-        add_lineage_edge, get_upstream, get_downstream
-    )
-
-    graph = get_lineage_graph()
-
-    # Record lineage
-    graph.add_edge("source:orders", "artifact:profile_123")
-
-    # Query lineage
-    upstream = graph.get_upstream("artifact:profile_123")
-    downstream = graph.get_downstream("source:orders")
 """
 
 from __future__ import annotations
@@ -39,7 +17,6 @@ logger = logging.getLogger(__name__)
 
 
 class NodeType(StrEnum):
-    """Types of nodes in the lineage graph."""
 
     SOURCE = "source"  # External data source
     TABLE = "table"  # Ingested table
@@ -51,7 +28,6 @@ class NodeType(StrEnum):
 
 
 class EdgeType(StrEnum):
-    """Types of edges in the lineage graph."""
 
     DERIVES_FROM = "derives_from"  # Downstream derives from upstream
     PRODUCES = "produces"  # Job produces artifact
@@ -61,7 +37,6 @@ class EdgeType(StrEnum):
 
 @dataclass
 class LineageNode:
-    """A node in the lineage graph."""
 
     node_id: str  # Unique ID (e.g., "source:orders", "artifact:abc123")
     node_type: NodeType
@@ -88,7 +63,6 @@ class LineageNode:
 
 @dataclass
 class LineageEdge:
-    """An edge in the lineage graph."""
 
     source_id: str  # Upstream node
     target_id: str  # Downstream node
@@ -130,14 +104,6 @@ class LineageGraph:
         )  # node -> downstream nodes
 
     def add_node(
-        self,
-        node_id: str,
-        node_type: NodeType,
-        name: str,
-        tenant_id: str,
-        properties: dict[str, Any] | None = None,
-    ) -> LineageNode:
-        """Add a node to the graph."""
         if node_id in self._nodes:
             # Update existing node
             node = self._nodes[node_id]
@@ -182,7 +148,6 @@ class LineageGraph:
         return edge
 
     def get_node(self, node_id: str) -> LineageNode | None:
-        """Get a node by ID."""
         return self._nodes.get(node_id)
 
     def get_upstream(
@@ -242,7 +207,6 @@ class LineageGraph:
         return list(result)
 
     def get_edges_for_node(self, node_id: str) -> list[LineageEdge]:
-        """Get all edges involving a node."""
         return [
             e for e in self._edges if e.source_id == node_id or e.target_id == node_id
         ]
@@ -374,7 +338,6 @@ _lineage_graph: LineageGraph | None = None
 
 
 def get_lineage_graph() -> LineageGraph:
-    """Get or create the global lineage graph instance."""
     global _lineage_graph
     if _lineage_graph is None:
         _lineage_graph = LineageGraph()

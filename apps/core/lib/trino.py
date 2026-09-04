@@ -1,14 +1,7 @@
 """
-Trino Client for Voyant Distributed SQL Queries.
+Trino client with read-only query enforcement.
 
-This module provides a dedicated client for connecting to and executing queries
-against a Trino cluster. It serves as the primary interface for all SQL-based
-data analysis within the Voyant platform, federating queries across various
-datastores like Iceberg, PostgreSQL, and Druid.
-
-The client includes a critical security layer to ensure that only safe,
-read-only queries are executed, preventing accidental or malicious data
-modification or destruction.
+All SQL is validated against a denylist of destructive keywords before execution.
 """
 
 from __future__ import annotations
@@ -26,17 +19,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class QueryResult:
-    """
-    A structured representation of the results from a Trino SQL query.
-
-    Attributes:
-        columns: A list of column names in the order they were returned.
-        rows: A list of lists, where each inner list represents a data row.
-        row_count: The number of rows in the result set.
-        truncated: A boolean indicating if the result set was truncated by a LIMIT clause.
-        execution_time_ms: The total time taken for the query in milliseconds.
-        query_id: The unique ID assigned by Trino to this query, for debugging and tracing.
-    """
+    """Trino SQL query result."""
 
     columns: list[str]
     rows: list[list[Any]]
@@ -47,21 +30,9 @@ class QueryResult:
 
 
 class TrinoClient:
-    """
-    A client for executing validated, read-only SQL queries against Trino.
-
-    This client abstracts the connection details and provides helper methods for
-    common database metadata operations. It enforces query safety by validating
-    all SQL statements against a denylist of destructive commands.
-
-    Performance Note:
-        This client maintains a single connection per instance. In highly concurrent
-        scenarios, this could become a bottleneck. Future enhancements may include
-        a connection pool to manage multiple concurrent connections.
-    """
+    """Validated, read-only Trino SQL client."""
 
     def __init__(self):
-        """Initializes the Trino client with configuration from settings."""
         settings = get_settings()
         self.host = settings.trino_host
         self.port = settings.trino_port
@@ -72,20 +43,6 @@ class TrinoClient:
         self._connection = None
 
     def _get_connection(self):
-        """
-        Lazily establishes and returns a connection to the Trino cluster.
-
-        If a connection has not yet been established, it will be created and
-        cached. If the `trino` package is not installed, this will raise a
-        RuntimeError.
-
-        Returns:
-            A `trino.dbapi.Connection` object.
-
-        Raises:
-            RuntimeError: If the `trino` library is not installed.
-            Exception: Any exception raised by the Trino DBAPI during connection.
-        """
         if self._connection is None:
             try:
                 import trino
@@ -113,20 +70,6 @@ class TrinoClient:
         limit: int | None = None,
         parameters: dict[str, Any] | None = None,
     ) -> QueryResult:
-        """
-        Execute a validated, read-only SQL query.
-
-        Args:
-            sql: The SQL query string to execute.
-            limit: An optional row limit to apply. If not provided, the default
-                   from settings is used.
-
-        Returns:
-            A QueryResult object containing the query's results.
-
-        Raises:
-            ValueError: If the SQL contains forbidden keywords (e.g., DROP, DELETE).
-        """
         start_time = time.time()
         # Enforce the maximum allowed row limit.
         limit = min(limit or self.max_rows, self.max_rows)
@@ -153,35 +96,27 @@ class TrinoClient:
             query_id=getattr(cursor, "query_id", None),
         )
 
+    @staticmethod
+    def _validate_identifier(name: str) -> str:
+        """Reject identifiers that contain injection-viable characters."""
+        if not re.match(r'^[A-Za-z_][A-Za-z0-9_]*$', name):
+            raise ValueError(
+                f"Invalid identifier: {name!r}. "
+                "Only alphanumeric characters and underscores are allowed."
+            )
+        return name
+
     def get_tables(self, schema: str | None = None) -> list[str]:
-        """
-        List all tables within a given schema.
-
-        Args:
-            schema: The schema to query. If None, the client's default schema is used.
-
-        Returns:
-            A list of table names.
-        """
-        target_schema = schema or self.schema
+        target_schema = self._validate_identifier(schema or self.schema)
         result = self.execute(f"SHOW TABLES FROM {target_schema}")
         return [row[0] for row in result.rows]
 
     def get_columns(
         self, table: str, schema: str | None = None
     ) -> list[dict[str, Any]]:
-        """
-        Describe the columns of a given table.
-
-        Args:
-            table: The name of the table to describe.
-            schema: The schema of the table. If None, the client's default is used.
-
-        Returns:
-            A list of dictionaries, where each describes a column (e.g., `{'name': ..., 'type': ...}`).
-        """
-        target_schema = schema or self.schema
-        result = self.execute(f"DESCRIBE {target_schema}.{table}")
+        target_schema = self._validate_identifier(schema or self.schema)
+        safe_table = self._validate_identifier(table)
+        result = self.execute(f"DESCRIBE {target_schema}.{safe_table}")
         columns = []
         for row in result.rows:
             if not row:
@@ -195,6 +130,7 @@ class TrinoClient:
 
         Enforces read-only query policy using prefix allowlist and keyword denylist.
         Strips SQL comments before validation to prevent bypass.
+        Blocks multi-statement injection via semicolons.
 
         Args:
             sql: The SQL string to validate.
@@ -202,6 +138,14 @@ class TrinoClient:
         Raises:
             ValueError: If the query is not a read-only query or contains forbidden keywords.
         """
+        # Block multi-statement injection — semicolons only allowed at the very end
+        # (Trailing semicolon is harmless and commonly added by tools)
+        semicolon_body = sql.rstrip().rstrip(";")
+        if ";" in semicolon_body:
+            raise ValueError(
+                "Multi-statement queries are not allowed (semicolon detected)."
+            )
+
         # Strip single-line comments (-- ...) and multi-line comments before validating
         stripped = re.sub(r'--[^\n]*', '', sql)
         stripped = re.sub(r'/\*.*?\*/', '', stripped, flags=re.DOTALL)
@@ -214,41 +158,45 @@ class TrinoClient:
             )
 
         forbidden_keywords = [
+            # DDL — schema mutation
             "DROP ",
-            "DELETE ",
+            "CREATE ",
+            "ALTER ",
             "TRUNCATE ",
+            "RENAME ",
+            # DML — data mutation
+            "DELETE ",
             "INSERT ",
             "UPDATE ",
-            "ALTER ",
-            "CREATE TABLE",
+            "MERGE ",
+            "UPSERT ",
+            # Privilege escalation
             "GRANT ",
             "REVOKE ",
-            "UNION SELECT",
+            # Session / procedural manipulation
+            "SET ",
+            "RESET ",
+            "CALL ",
+            "EXECUTE ",
+            "PREPARE ",
+            "DEALLOCATE ",
+            # UNION-based exfiltration (covers UNION SELECT and UNION ALL SELECT)
+            "UNION ",
+            # Exfiltration / injection vectors
             "INTO OUTFILE",
             "INTO DUMPFILE",
             "LOAD_FILE(",
             "BENCHMARK(",
             "SLEEP(",
             "WAITFOR DELAY",
+            "PG_SLEEP(",
+            "DBMS_PIPE.RECEIVE_MESSAGE(",
         ]
         for kw in forbidden_keywords:
             if kw in sql_upper:
                 raise ValueError(f"Forbidden SQL keyword detected: '{kw.strip()}'")
 
     def _apply_limit(self, sql: str, limit: int) -> str:
-        """
-        Ensure a LIMIT clause is applied to a SQL query.
-
-        If the query does not already contain a LIMIT clause, this method wraps
-        it in a subquery and applies the specified limit to prevent runaway queries.
-
-        Args:
-            sql: The SQL string.
-            limit: The row limit to apply.
-
-        Returns:
-            The modified SQL string with a LIMIT clause.
-        """
         # Do not modify the query if a LIMIT clause already exists.
         if " LIMIT " in sql.upper():
             return sql
@@ -256,7 +204,6 @@ class TrinoClient:
         return f"SELECT * FROM ({sql}) AS _q LIMIT {limit}"
 
     def close(self):
-        """Close the underlying database connection, if it exists."""
         if self._connection:
             self._connection.close()
             self._connection = None
@@ -268,12 +215,6 @@ _client: TrinoClient | None = None
 
 
 def get_trino_client() -> TrinoClient:
-    """
-    Get the singleton instance of the TrinoClient.
-
-    This factory function ensures that only one TrinoClient is instantiated per
-    application process, promoting reuse of the underlying connection.
-    """
     global _client
     if _client is None:
         _client = TrinoClient()

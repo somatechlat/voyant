@@ -142,6 +142,7 @@ MIDDLEWARE = [
     "apps.core.middleware.TenantMiddleware",  # Identifies the tenant for the request.
     "apps.core.middleware.RBACMiddleware",  # Injects user for realm+tenant ORM filtering.
     "apps.core.middleware.SomaContextMiddleware",  # Injects agent context if available.
+    "apps.governance.middleware.GovernancePolicyMiddleware",  # Enforces active governance policies.
     "apps.core.middleware.APIVersionMiddleware",  # Handles API versioning.
 ]
 

@@ -1,9 +1,5 @@
 """
-Voyant MCP — Core Operational Tools.
-
-Primary agent-facing tools for the main Voyant data pipeline:
-discover, connect, ingest, profile, quality, analyze, kpi, status, artifact,
-sql, and search. These are the highest-frequency tool calls in normal operation.
+Voyant MCP — core operational tools.
 
 Extracted from mcp/tools.py (Rule 245 compliance — 723-line split).
 """
@@ -60,7 +56,6 @@ def tool_connect(
     sync_schedule=None,
     tenant_id=None,
 ):
-    """Register a new data source. Returns source_id and initial status."""
     source = Source.objects.create(
         tenant_id=_tenant(tenant_id),
         name=name,
@@ -75,7 +70,6 @@ def tool_connect(
 
 @mcp_app.tool(name="voyant.ingest")
 def tool_ingest(source_id: str, mode: str = "full", tables=None, tenant_id=None):
-    """Start a data ingestion job for the given source. Returns job_id."""
     job = dispatch_workflow(
         workflow_cls=IngestDataWorkflow,
         job_type="ingest",
@@ -88,7 +82,6 @@ def tool_ingest(source_id: str, mode: str = "full", tables=None, tenant_id=None)
 
 @mcp_app.tool(name="voyant.profile")
 def tool_profile(source_id: str, table=None, sample_size: int = 10000, tenant_id=None):
-    """Start a data profiling job. Returns job_id."""
     job = dispatch_workflow(
         workflow_cls=ProfileWorkflow,
         job_type="profile",
@@ -101,7 +94,6 @@ def tool_profile(source_id: str, table=None, sample_size: int = 10000, tenant_id
 
 @mcp_app.tool(name="voyant.quality")
 def tool_quality(source_id: str, table=None, checks=None, tenant_id=None):
-    """Start a data quality check job. Returns job_id."""
     job = dispatch_workflow(
         workflow_cls=QualityWorkflow,
         job_type="quality",
@@ -120,7 +112,6 @@ def tool_analyze(
     sample_size: int = 10000,
     tenant_id=None,
 ):
-    """Start an analysis job (stats, correlation, outlier detection). Returns job_id."""
     job = dispatch_workflow(
         workflow_cls=AnalyzeWorkflow,
         job_type="analyze",
@@ -137,7 +128,6 @@ def tool_analyze(
 
 @mcp_app.tool(name="voyant.kpi")
 def tool_kpi(kpis, limit: int = 1000):
-    """Execute a list of KPI SQL queries against Trino. Returns combined results."""
     client = get_trino_client()
     results = []
     for item in kpis:
@@ -158,7 +148,6 @@ def tool_kpi(kpis, limit: int = 1000):
 
 @mcp_app.tool(name="voyant.status")
 def tool_status(job_id: str, tenant_id=None):
-    """Get the current status, progress, and result summary of a job."""
     job = Job.objects.filter(id=job_id, tenant_id=_tenant(tenant_id)).first()
     if not job:
         raise ValueError("Job not found")
@@ -173,7 +162,6 @@ def tool_status(job_id: str, tenant_id=None):
 
 @mcp_app.tool(name="voyant.artifact")
 def tool_artifact(artifact_id: str, tenant_id=None):
-    """Retrieve artifact metadata and storage path by artifact_id."""
     artifact = Artifact.objects.filter(
         artifact_id=artifact_id, tenant_id=_tenant(tenant_id)
     ).first()
@@ -191,7 +179,6 @@ def tool_artifact(artifact_id: str, tenant_id=None):
 
 @mcp_app.tool(name="voyant.sql")
 def tool_sql(sql: str, limit: int = 1000):
-    """Execute raw SQL against the Trino analytical engine. Returns columns + rows."""
     res = get_trino_client().execute(sql, limit=limit)
     return {
         "columns": res.columns,
@@ -204,7 +191,6 @@ def tool_sql(sql: str, limit: int = 1000):
 
 @mcp_app.tool(name="voyant.search")
 def tool_search(query: str, limit: int = 5, tenant_id=None):
-    """Semantic vector search over indexed tenant data. Returns ranked results."""
     store = get_vector_store()
     extractor = get_embedding_extractor(model="tfidf", dimensions=128)
     vec = extractor.embed([query]).embeddings[0]

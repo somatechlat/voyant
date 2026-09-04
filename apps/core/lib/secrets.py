@@ -75,30 +75,25 @@ class SecretMetadata:
 
 class SecretsBackend(ABC):
     """
-    Abstract base class for secrets backends.
+    Abstract base for secrets backends.
 
-    All providers must implement this interface.
     Security: Never log secret values, only keys.
     """
 
     @abstractmethod
     async def get(self, key: str) -> str | None:
-        """Get a secret value by key."""
         pass
 
     @abstractmethod
     async def set(self, key: str, value: str, expires_in: int | None = None) -> bool:
-        """Set a secret value. expires_in is seconds."""
         pass
 
     @abstractmethod
     async def delete(self, key: str) -> bool:
-        """Delete a secret."""
         pass
 
     @abstractmethod
     async def list_keys(self) -> list[str]:
-        """List all secret keys (not values)."""
         pass
 
     @abstractmethod
@@ -109,7 +104,6 @@ class SecretsBackend(ABC):
     @property
     @abstractmethod
     def provider_name(self) -> str:
-        """Return the provider name."""
         pass
 
 
@@ -584,22 +578,18 @@ def get_secrets_backend() -> SecretsBackend:
 
 
 async def get_secret(key: str) -> str | None:
-    """Get a secret value."""
     return await get_secrets_backend().get(key)
 
 
 async def set_secret(key: str, value: str, expires_in: int | None = None) -> bool:
-    """Set a secret value."""
     return await get_secrets_backend().set(key, value, expires_in)
 
 
 async def delete_secret(key: str) -> bool:
-    """Delete a secret."""
     return await get_secrets_backend().delete(key)
 
 
 async def list_secret_keys() -> list[str]:
-    """List all secret keys."""
     return await get_secrets_backend().list_keys()
 
 

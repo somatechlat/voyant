@@ -1,11 +1,4 @@
-"""
-Profiling Activities: Building Blocks for Data Profiling Workflows.
-
-This module defines Temporal activities responsible for generating statistical
-profiles of datasets. It employs adaptive sampling techniques and leverages
-DuckDB for efficient data access, ensuring that profiling can be performed
-effectively even on large datasets.
-"""
+"""Temporal activities for data profiling."""
 
 import logging
 from typing import Any
@@ -22,41 +15,12 @@ logger = logging.getLogger(__name__)
 
 
 class ProfileActivities:
-    """
-    A collection of Temporal activities related to data profiling processes.
-
-    These activities encapsulate the logic for sampling data, calculating
-    descriptive statistics, and generating data profiles.
-    """
 
     def __init__(self):
-        """Initializes the ProfileActivities with application settings."""
         self.settings = get_settings()
 
     @activity.defn(name="profile_data")
     def profile_data(self, params: dict[str, Any]) -> dict[str, Any]:
-        """
-        Profiles a dataset, optionally using adaptive sampling for large volumes.
-
-        This activity fetches data (potentially sampled), calculates key descriptive
-        statistics, and returns a structured profile summary.
-
-        It emphasizes the use of adaptive sampling techniques to ensure
-        representative samples while efficiently handling large datasets.
-
-        Args:
-            params: A dictionary containing profiling parameters:
-                - `source_id` (str): The identifier of the data source.
-                - `table` (str, optional): The specific table to profile. Defaults to `source_id`.
-                - `sample_size` (int, optional): The target number of rows for the sample. Defaults to 10000.
-
-        Returns:
-            A dictionary containing the profile summary, including column statistics,
-            row counts, and sampling details.
-
-        Raises:
-            ApplicationError: If an error occurs during data fetching or profiling.
-        """
         source_id = params.get("source_id")
         table_name = params.get("table") or source_id
         requested_sample_size = params.get("sample_size", 10000)

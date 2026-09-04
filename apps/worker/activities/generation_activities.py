@@ -1,11 +1,4 @@
-"""
-Generation Activities: Building Blocks for Artifact Generation Workflows.
-
-This module defines Temporal activities responsible for dynamically executing
-registered artifact generator plugins. These activities transform analysis
-results into user-consumable formats, such as charts, reports, or narrative
-summaries, based on the specific context and generator capabilities.
-"""
+"""Temporal activities for artifact generation."""
 
 import logging
 import os
@@ -20,15 +13,8 @@ logger = logging.getLogger(__name__)
 
 
 class GenerationActivities:
-    """
-    A collection of Temporal activities related to artifact generation processes.
-
-    These activities encapsulate the logic for dynamically loading and executing
-    registered generator plugins based on a given context.
-    """
 
     def __init__(self):
-        """Initializes the GenerationActivities."""
         pass
 
     @staticmethod
@@ -38,25 +24,6 @@ class GenerationActivities:
 
     @activity.defn(name="run_generators")
     async def run_generators(self, params: dict[str, Any]) -> dict[str, Any]:
-        """
-        Dynamically runs all active artifact generator plugins based on the provided context.
-
-        Args:
-            params: A dictionary containing the context required by generators, which typically includes:
-                - `table_name` (str): The name of the table being analyzed.
-                - `job_id` (str): The ID of the analysis job.
-                - `tenant_id` (str): The ID of the tenant.
-                - `profile` (Dict[str, Any], optional): The data profile summary.
-                - `kpis` (List[Dict[str, Any]], optional): List of calculated KPI results.
-                - `analyzers` (Dict[str, Any], optional): Results from analyzer plugins.
-
-        Returns:
-            A dictionary where keys are generator names and values are their respective
-            generated artifact results. Includes an "_errors" key if any generators failed.
-
-        Raises:
-            ApplicationError: If a 'core' generator fails, halting the artifact generation process.
-        """
         results = {}
         errors = []
 

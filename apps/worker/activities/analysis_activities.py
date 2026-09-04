@@ -1,11 +1,4 @@
-"""
-Analysis Activities: Building Blocks for Data Analysis Workflows.
-
-This module defines Temporal activities that perform core data analysis tasks,
-including fetching data samples for in-memory processing and dynamically
-executing registered analyzer plugins. These activities are designed to be
-flexible and extensible, supporting a wide range of analytical operations.
-"""
+"""Temporal activities for data analysis."""
 
 import logging
 import os
@@ -21,15 +14,8 @@ logger = logging.getLogger(__name__)
 
 
 class AnalysisActivities:
-    """
-    A collection of Temporal activities related to data analysis processes.
-
-    These activities encapsulate the logic for preparing data for analysis and
-    executing various analytical plugins against that data.
-    """
 
     def __init__(self):
-        """Initializes the AnalysisActivities with application settings."""
         self.settings = get_settings()
 
     @staticmethod
@@ -39,20 +25,6 @@ class AnalysisActivities:
 
     @activity.defn(name="fetch_sample")
     def fetch_sample(self, params: dict[str, Any]) -> list[dict[str, Any]]:
-        """
-        Fetches a data sample from DuckDB for in-memory analysis.
-
-        Args:
-            params: A dictionary containing parameters for fetching the sample:
-                - `table` (str): The name of the table to fetch the sample from.
-                - `sample_size` (int, optional): The maximum number of rows to fetch. Defaults to 10000.
-
-        Returns:
-            A list of dictionaries, where each dictionary represents a row of the sampled data.
-
-        Raises:
-            ApplicationError: If the table name is missing or if data fetching fails.
-        """
         table = params.get("table")
         sample_size = params.get("sample_size", 10000)
 
@@ -82,28 +54,6 @@ class AnalysisActivities:
 
     @activity.defn(name="run_analyzers")
     def run_analyzers(self, params: dict[str, Any]) -> dict[str, Any]:
-        """
-        Dynamically runs a set of registered analyzer plugins against provided data.
-
-        Analyzers are loaded from the plugin registry and executed based on their
-        configuration and any provided feature flags.
-
-        Args:
-            params: A dictionary containing parameters for running analyzers:
-                - `data` (Any): The data to be analyzed (e.g., a list of dicts or a Pandas DataFrame).
-                - `analyzers` (Optional[List[str]]): A list of specific analyzer plugin names to run.
-                                                   If None, all active analyzer plugins will be considered.
-                - `context` (Dict[str, Any], optional): A dictionary of shared context
-                                                      (e.g., specific columns, parameters)
-                                                      to pass to the analyzers.
-
-        Returns:
-            A dictionary where keys are analyzer names and values are their respective
-            analysis results. Includes an "_errors" key if any analyzers failed.
-
-        Raises:
-            ApplicationError: If a 'core' analyzer fails, halting the analysis.
-        """
         results = {}
         errors = []
 
