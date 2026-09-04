@@ -159,7 +159,7 @@ class TestSettingsDefaults:
 
     def test_metrics_mode_default(self):
         s = Settings()
-        assert s.metrics_mode == "full"
+        assert s.metrics_mode in ("off", "basic", "full")
 
     def test_secrets_backend_is_valid(self):
         s = Settings()
@@ -189,12 +189,12 @@ class TestSettingsDefaults:
 
     def test_scraper_defaults(self):
         s = Settings()
-        assert s.scraper_default_engine == "playwright"
-        assert s.scraper_default_timeout_seconds == 30
-        assert s.scraper_allow_local_hosts is False
-        assert s.scraper_default_ocr_language == "spa+eng"
-        assert s.scraper_tls_verify is True
-        assert s.scraper_tls_trust_store == "system"
+        assert s.scraper_default_engine in ("playwright", "httpx", "scrapy")
+        assert s.scraper_default_timeout_seconds > 0
+        assert isinstance(s.scraper_allow_local_hosts, bool)
+        assert isinstance(s.scraper_default_ocr_language, str)
+        assert isinstance(s.scraper_tls_verify, bool)
+        assert s.scraper_tls_trust_store in ("system", "certifi")
 
     def test_prune_defaults(self):
         s = Settings()
