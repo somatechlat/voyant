@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import asdict, dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
 from typing import Any
@@ -166,7 +166,7 @@ class DataContract:
 
     def __post_init__(self):
         """Set default timestamps after initialization."""
-        timestamp = datetime.utcnow().isoformat()
+        timestamp = datetime.now(UTC).isoformat()
         if not self.created_at:
             self.created_at = timestamp
         if not self.updated_at:

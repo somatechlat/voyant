@@ -222,15 +222,13 @@ SECURE_BROWSER_XSS_FILTER = security_settings.security_enabled
 SECURE_REFERRER_POLICY = security_settings.referrer_policy
 
 # --- Cross-Origin Resource Sharing (CORS) Settings ---
-# CORS configuration is now managed by security_settings
-CORS_ALLOW_ALL_ORIGINS = False  # Always false for security
+# CORS configuration is managed by security_settings.
+# CORS_ALLOW_ALL_ORIGINS is always False — explicit origin lists only.
+CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = security_settings.cors_allow_credentials
-if security_settings.cors_allow_origins != ["*"]:
-    CORS_ALLOWED_ORIGINS = security_settings.cors_allow_origins
-if security_settings.cors_allow_methods != ["*"]:
-    CORS_ALLOWED_METHODS = security_settings.cors_allow_methods
-if security_settings.cors_allow_headers != ["*"]:
-    CORS_ALLOWED_HEADERS = security_settings.cors_allow_headers
+CORS_ALLOWED_ORIGINS = security_settings.cors_allow_origins
+CORS_ALLOWED_METHODS = security_settings.cors_allow_methods
+CORS_ALLOWED_HEADERS = security_settings.cors_allow_headers
 CORS_MAX_AGE = security_settings.cors_max_age
 
 # --- Cross-Site Request Forgery (CSRF) Settings ---

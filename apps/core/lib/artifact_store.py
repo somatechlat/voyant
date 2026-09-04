@@ -12,7 +12,7 @@ import json
 import logging
 import threading
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
 from typing import Any
@@ -98,7 +98,7 @@ class ArtifactRef:
 
     def __post_init__(self):
         if not self.created_at:
-            self.created_at = datetime.utcnow().isoformat() + "Z"
+            self.created_at = datetime.now(UTC).isoformat() + "Z"
 
     @property
     def algorithm(self) -> str:

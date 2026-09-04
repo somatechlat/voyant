@@ -23,7 +23,7 @@ import logging
 import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -111,16 +111,16 @@ class InMemorySecretsBackend(SecretsBackend):
     async def get(self, key: str) -> str | None:
         meta = self._metadata.get(key)
         if meta and meta.expires_at:
-            if datetime.utcnow().isoformat() > meta.expires_at:
+            if datetime.now(UTC).isoformat() > meta.expires_at:
                 await self.delete(key)
                 return None
         return self._secrets.get(key)
 
     async def set(self, key: str, value: str, expires_in: int | None = None) -> bool:
-        now = datetime.utcnow().isoformat() + "Z"
+        now = datetime.now(UTC).isoformat() + "Z"
         expires_at = None
         if expires_in:
-            expires_at = (datetime.utcnow() + timedelta(seconds=expires_in)).isoformat() + "Z"
+            expires_at = (datetime.now(UTC) + timedelta(seconds=expires_in)).isoformat() + "Z"
 
         existing = self._metadata.get(key)
         version = (existing.version + 1) if existing else 1
@@ -184,7 +184,7 @@ class EnvSecretsBackend(SecretsBackend):
     async def get_metadata(self, key: str) -> SecretMetadata | None:
         if await self.get(key) is None:
             return None
-        now = datetime.utcnow().isoformat() + "Z"
+        now = datetime.now(UTC).isoformat() + "Z"
         return SecretMetadata(key=key, created_at=now, updated_at=now, version=1)
 
 
@@ -298,7 +298,7 @@ class FileSecretsBackend(SecretsBackend):
         meta_dict = data.get("metadata", {}).get(key)
 
         if meta_dict and meta_dict.get("expires_at"):
-            if datetime.utcnow().isoformat() > meta_dict["expires_at"]:
+            if datetime.now(UTC).isoformat() > meta_dict["expires_at"]:
                 await self.delete(key)
                 return None
 
@@ -309,10 +309,10 @@ class FileSecretsBackend(SecretsBackend):
         secrets = data.get("secrets", {})
         metadata = data.get("metadata", {})
 
-        now = datetime.utcnow().isoformat() + "Z"
+        now = datetime.now(UTC).isoformat() + "Z"
         expires_at = None
         if expires_in:
-            expires_at = (datetime.utcnow() + timedelta(seconds=expires_in)).isoformat() + "Z"
+            expires_at = (datetime.now(UTC) + timedelta(seconds=expires_in)).isoformat() + "Z"
 
         existing = metadata.get(key)
         version = (existing["version"] + 1) if existing else 1

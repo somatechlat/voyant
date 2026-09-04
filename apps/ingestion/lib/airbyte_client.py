@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
@@ -447,7 +447,7 @@ class AirbyteClient:
             "job_id": job_id,
             "connection_id": connection_id,
             "status": AirbyteJobStatus.PENDING.value,
-            "triggered_at": datetime.utcnow().isoformat(),
+            "triggered_at": datetime.now(UTC).isoformat(),
         }
 
     async def get_job_status(self, job_id: str) -> dict[str, Any]:

@@ -1,7 +1,7 @@
 """Temporal activities for structured data extraction."""
 
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from temporalio import activity
@@ -53,7 +53,7 @@ class ParseActivities:
 
         result: dict[str, Any] = {
             "url": url,
-            "extracted_at": datetime.utcnow().isoformat(),
+            "extracted_at": datetime.now(UTC).isoformat(),
         }
 
         for field, selector in selectors.items():

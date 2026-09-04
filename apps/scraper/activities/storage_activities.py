@@ -2,7 +2,7 @@
 
 import hashlib
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from temporalio import activity
@@ -125,7 +125,7 @@ class StorageActivities:
             bytes_processed=bytes_processed,
             artifact_count=artifact_count,
             error_count=error_count,
-            finished_at=datetime.utcnow(),
+            finished_at=datetime.now(UTC),
         )
 
         return {
@@ -135,5 +135,5 @@ class StorageActivities:
             "bytes_processed": bytes_processed,
             "artifact_count": artifact_count,
             "error_count": error_count,
-            "finished_at": datetime.utcnow().isoformat(),
+            "finished_at": datetime.now(UTC).isoformat(),
         }

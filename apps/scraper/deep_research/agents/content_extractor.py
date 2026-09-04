@@ -159,6 +159,8 @@ class ContentExtractor:
             if result:
                 result["success"] = True
                 result["url"] = url
+                if len(result.get("text", "")) > 50000:
+                    result["text"] = result["text"][:50000]
                 logger.debug(f"[ContentExtractor] used {name} for {url}")
                 return result
 

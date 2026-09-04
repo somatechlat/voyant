@@ -122,3 +122,6 @@ config_overrides.yaml
 # Runtime artifacts
 voyant.duckdb
 voyant.duckdb.wal
+
+# Backups (contain secrets — see scripts/ops/voyant.sh)
+backups/

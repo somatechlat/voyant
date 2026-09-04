@@ -10,7 +10,7 @@ import json
 import logging
 import uuid
 from dataclasses import asdict, dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from apps.core.config import get_settings
@@ -207,7 +207,7 @@ def emit_job_event(
     event = VoyantEvent(
         event_type=event_type,
         event_id=str(uuid.uuid4()),
-        timestamp=datetime.utcnow().isoformat(),
+        timestamp=datetime.now(UTC).isoformat(),
         tenant_id=tenant_id,
         payload={
             "job_id": job_id,
@@ -240,7 +240,7 @@ def emit_quality_alert(
     event = VoyantEvent(
         event_type="quality.alert",
         event_id=str(uuid.uuid4()),
-        timestamp=datetime.utcnow().isoformat(),
+        timestamp=datetime.now(UTC).isoformat(),
         tenant_id=tenant_id,
         payload={
             "source_id": source_id,

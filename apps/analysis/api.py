@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from ninja import Field, Router, Schema
@@ -92,7 +92,7 @@ def analyze(request, payload: AnalyzeRequest):
     job_id = str(job.job_id)
 
     job.status = "running"
-    job.started_at = datetime.utcnow()
+    job.started_at = datetime.now(UTC)
     job.save(update_fields=["status", "started_at"])
 
     artifacts: dict[str, Any] = {}
@@ -118,7 +118,7 @@ def analyze(request, payload: AnalyzeRequest):
         )
         summary = workflow_result.get("summary", {})
         job.status = "completed"
-        job.completed_at = datetime.utcnow()
+        job.completed_at = datetime.now(UTC)
         job.result_summary = summary
         job.save()
 

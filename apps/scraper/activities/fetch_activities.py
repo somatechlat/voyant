@@ -4,7 +4,7 @@ import asyncio
 import json
 import logging
 import typing
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from temporalio import activity
@@ -256,7 +256,7 @@ class FetchActivities:
                 "html": html,
                 "url": url,
                 "status_code": response.status if response else 0,
-                "fetched_at": datetime.utcnow().isoformat(),
+                "fetched_at": datetime.now(UTC).isoformat(),
             }
             if capture_json:
                 result["captured_json"] = captured_json
@@ -431,7 +431,7 @@ class FetchActivities:
                 "url": str(response.url),
                 "status_code": response.status_code,
                 "headers": dict(response.headers),
-                "fetched_at": datetime.utcnow().isoformat(),
+                "fetched_at": datetime.now(UTC).isoformat(),
             }
 
     async def _fetch_scrapy(self, url: str, timeout: int = 30) -> dict[str, Any]:

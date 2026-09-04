@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 import httpx
@@ -100,7 +100,7 @@ class DataHubClient:
                             "upstreams": [
                                 {
                                     "auditStamp": {
-                                        "time": int(datetime.utcnow().timestamp() * 1000),
+                                        "time": int(datetime.now(UTC).timestamp() * 1000),
                                         "actor": "urn:li:corpuser:voyant",  # Identity of the actor emitting lineage.
                                     },
                                     "dataset": upstream,
@@ -152,7 +152,7 @@ class DataHubClient:
                         "description": description or "",
                         "customProperties": {
                             "registered_by": "voyant",
-                            "registered_at": datetime.utcnow().isoformat() + "Z",
+                            "registered_at": datetime.now(UTC).isoformat() + "Z",
                         },
                     },
                     "changeType": "UPSERT",

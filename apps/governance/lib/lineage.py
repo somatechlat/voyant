@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
@@ -46,7 +46,7 @@ class LineageNode:
 
     def __post_init__(self):
         if self.created_at == 0:
-            self.created_at = datetime.utcnow().timestamp()
+            self.created_at = datetime.now(UTC).timestamp()
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -71,7 +71,7 @@ class LineageEdge:
 
     def __post_init__(self):
         if self.created_at == 0:
-            self.created_at = datetime.utcnow().timestamp()
+            self.created_at = datetime.now(UTC).timestamp()
 
     def to_dict(self) -> dict[str, Any]:
         return {

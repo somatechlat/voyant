@@ -83,16 +83,18 @@ class TestSettingsDefaults:
         assert s.temporal_task_queue == "voyant-tasks"
 
     def test_trino_port_default(self):
-        s = Settings()
-        assert s.trino_port == 45090
+        # Check the class-level field default (env vars may override in Docker)
+        field = Settings.model_fields["trino_port"]
+        assert field.default == 45090
 
     def test_trino_catalog_default(self):
         s = Settings()
         assert s.trino_catalog == "iceberg"
 
     def test_milvus_host_default(self):
-        s = Settings()
-        assert s.milvus_host == "localhost"
+        # Check the class-level field default (env vars may override in Docker)
+        field = Settings.model_fields["milvus_host"]
+        assert field.default == "localhost"
 
     def test_milvus_port_default(self):
         s = Settings()

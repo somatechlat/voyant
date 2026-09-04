@@ -13,96 +13,50 @@ from apps.core.lib.python_sandbox import PythonSandboxNode
 class TestNetworkImportDetection:
     """Test the security check that blocks network imports in sandbox scripts."""
 
-    @pytest.mark.asyncio
-    async def test_socket_import_blocked(self):
+    def test_socket_import_blocked(self):
         with pytest.raises(ValueError, match="Network imports strictly forbidden"):
-            await PythonSandboxNode.execute_script(
-                "from socket import gethostbyname", {}, "tenant-1"
-            )
+            PythonSandboxNode.validate_script("from socket import gethostbyname", "t1")
 
-    @pytest.mark.asyncio
-    async def test_import_socket_blocked(self):
+    def test_import_socket_blocked(self):
         with pytest.raises(ValueError, match="Network imports strictly forbidden"):
-            await PythonSandboxNode.execute_script(
-                "import socket", {}, "tenant-1"
-            )
+            PythonSandboxNode.validate_script("import socket", "t1")
 
-    @pytest.mark.asyncio
-    async def test_urllib_import_blocked(self):
+    def test_urllib_import_blocked(self):
         with pytest.raises(ValueError, match="Network imports strictly forbidden"):
-            await PythonSandboxNode.execute_script(
-                "import urllib.request", {}, "tenant-1"
-            )
+            PythonSandboxNode.validate_script("import urllib.request", "t1")
 
-    @pytest.mark.asyncio
-    async def test_from_urllib_blocked(self):
+    def test_from_urllib_blocked(self):
         with pytest.raises(ValueError, match="Network imports strictly forbidden"):
-            await PythonSandboxNode.execute_script(
-                "from urllib.request import urlopen", {}, "tenant-1"
-            )
+            PythonSandboxNode.validate_script("from urllib.request import urlopen", "t1")
 
-    @pytest.mark.asyncio
-    async def test_requests_import_blocked(self):
+    def test_requests_import_blocked(self):
         with pytest.raises(ValueError, match="Network imports strictly forbidden"):
-            await PythonSandboxNode.execute_script(
-                "import requests", {}, "tenant-1"
-            )
+            PythonSandboxNode.validate_script("import requests", "t1")
 
-    @pytest.mark.asyncio
-    async def test_from_requests_blocked(self):
+    def test_from_requests_blocked(self):
         with pytest.raises(ValueError, match="Network imports strictly forbidden"):
-            await PythonSandboxNode.execute_script(
-                "from requests import get", {}, "tenant-1"
-            )
+            PythonSandboxNode.validate_script("from requests import get", "t1")
 
 
 class TestSafeScriptsPassValidation:
     """Test that safe scripts pass the network import check."""
 
-    @pytest.mark.asyncio
-    async def test_pure_math_script_passes(self):
+    def test_pure_math_script_passes(self):
         script = "import math\nresult = math.sqrt(144)\nprint(result)"
-        try:
-            await PythonSandboxNode.execute_script(script, {"x": "10"}, "tenant-1")
-        except ValueError as e:
-            if "Network imports" in str(e):
-                pytest.fail("Pure math script should not be blocked")
-        except (RuntimeError, AttributeError):
-            pass
+        PythonSandboxNode.validate_script(script, "t1")
 
-    @pytest.mark.asyncio
-    async def test_socket_in_string_literal_passes(self):
+    def test_socket_in_string_literal_passes(self):
         """String containing 'socket' without import should pass."""
         script = 'x = "socket is a module"'
-        try:
-            await PythonSandboxNode.execute_script(script, {}, "tenant-1")
-        except ValueError as e:
-            if "Network imports" in str(e):
-                pytest.fail("String literal containing 'socket' should not be blocked")
-        except (RuntimeError, AttributeError):
-            pass
+        PythonSandboxNode.validate_script(script, "t1")
 
-    @pytest.mark.asyncio
-    async def test_urllib_in_comment_passes(self):
+    def test_urllib_in_comment_passes(self):
         """Comment containing 'urllib' without import should pass."""
         script = "# urllib is used for HTTP\nimport math"
-        try:
-            await PythonSandboxNode.execute_script(script, {}, "tenant-1")
-        except ValueError as e:
-            if "Network imports" in str(e):
-                pytest.fail("Comment containing 'urllib' should not be blocked")
-        except (RuntimeError, AttributeError):
-            pass
+        PythonSandboxNode.validate_script(script, "t1")
 
-    @pytest.mark.asyncio
-    async def test_empty_script_passes(self):
-        try:
-            await PythonSandboxNode.execute_script("", {}, "tenant-1")
-        except ValueError as e:
-            if "Network imports" in str(e):
-                pytest.fail("Empty script should not be blocked")
-        except (RuntimeError, AttributeError):
-            pass
+    def test_empty_script_passes(self):
+        PythonSandboxNode.validate_script("", "t1")
 
 
 class TestParameterMapping:
