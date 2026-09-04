@@ -2145,6 +2145,72 @@
           "capsules"
         ]
       }
+    },
+    "/v1/ingestion/connect": {
+      "post": {
+        "operationId": "apps_ingestion_api_connect_source",
+        "summary": "Connect Source",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectSourceResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Provision an Airbyte source (and optionally a destination) for a Voyant source.\n\nThis endpoint wires the Airbyte connect/provision flow:\n1. Validates the source exists and belongs to the tenant.\n2. Provisions the Airbyte source connector.\n3. Optionally provisions a destination and creates a connection.\n4. Updates the Source status to 'connected'.",
+        "tags": [
+          "ingestion"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectSourceRequest"
+              }
+            }
+          },
+          "required": true
+        }
+      }
+    },
+    "/v1/ingestion/provision-destination": {
+      "post": {
+        "operationId": "apps_ingestion_api_provision_destination",
+        "summary": "Provision Destination",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisionDestinationResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Provision a standalone Airbyte destination connector.\n\nCreates a destination in Airbyte (e.g. DuckDB, Postgres) that can be\nused as a target for data synchronization connections.",
+        "tags": [
+          "ingestion"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProvisionDestinationRequest"
+              }
+            }
+          },
+          "required": true
+        }
+      }
     }
   },
   "components": {
@@ -4376,6 +4442,173 @@
           }
         },
         "title": "StepRetryPolicy",
+        "type": "object"
+      },
+      "ConnectSourceResponse": {
+        "description": "Response after provisioning an Airbyte source.",
+        "properties": {
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          },
+          "airbyte_source_id": {
+            "title": "Airbyte Source Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "airbyte_destination_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Airbyte Destination Id"
+          },
+          "destination_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Destination Status"
+          }
+        },
+        "required": [
+          "source_id",
+          "airbyte_source_id",
+          "status"
+        ],
+        "title": "ConnectSourceResponse",
+        "type": "object"
+      },
+      "ConnectSourceRequest": {
+        "description": "Request to provision an Airbyte source connector.",
+        "properties": {
+          "source_id": {
+            "description": "Voyant source ID from discovery",
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_definition_id": {
+            "description": "Airbyte source definition (connector) ID",
+            "title": "Source Definition Id",
+            "type": "string"
+          },
+          "connection_config": {
+            "additionalProperties": true,
+            "description": "Source-specific configuration (host, port, auth, etc.)",
+            "title": "Connection Config",
+            "type": "object"
+          },
+          "destination_definition_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional Airbyte destination definition ID",
+            "title": "Destination Definition Id"
+          },
+          "destination_config": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional destination-specific configuration",
+            "title": "Destination Config"
+          }
+        },
+        "required": [
+          "source_id",
+          "source_definition_id",
+          "connection_config"
+        ],
+        "title": "ConnectSourceRequest",
+        "type": "object"
+      },
+      "ProvisionDestinationResponse": {
+        "description": "Response after provisioning an Airbyte destination.",
+        "properties": {
+          "destination_id": {
+            "title": "Destination Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "workspace_id": {
+            "title": "Workspace Id",
+            "type": "string"
+          },
+          "destination_definition_id": {
+            "title": "Destination Definition Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "destination_id",
+          "name",
+          "workspace_id",
+          "destination_definition_id",
+          "status"
+        ],
+        "title": "ProvisionDestinationResponse",
+        "type": "object"
+      },
+      "ProvisionDestinationRequest": {
+        "description": "Request to provision an Airbyte destination connector.",
+        "properties": {
+          "workspace_id": {
+            "default": "default",
+            "description": "Airbyte workspace / tenant ID",
+            "title": "Workspace Id",
+            "type": "string"
+          },
+          "destination_definition_id": {
+            "description": "Airbyte destination definition ID",
+            "title": "Destination Definition Id",
+            "type": "string"
+          },
+          "name": {
+            "description": "Human-readable destination name",
+            "title": "Name",
+            "type": "string"
+          },
+          "connection_config": {
+            "additionalProperties": true,
+            "description": "Destination-specific configuration",
+            "title": "Connection Config",
+            "type": "object"
+          }
+        },
+        "required": [
+          "destination_definition_id",
+          "name",
+          "connection_config"
+        ],
+        "title": "ProvisionDestinationRequest",
         "type": "object"
       }
     }

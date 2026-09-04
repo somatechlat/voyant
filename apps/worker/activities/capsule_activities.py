@@ -23,11 +23,9 @@ _MAX_INLINE_RESULT_BYTES = 100_000
 
 
 class CapsuleActivities:
-    """Activity implementations for CapsuleWorkflow."""
 
     @activity.defn(name="capsule.load_capsule")
     async def load_capsule(self, capsule_id: str, tenant_id: str) -> dict[str, Any]:
-        """Load capsule definition from DB."""
         try:
             capsule = load_capsule_by_id(capsule_id, tenant_id)
             return {
@@ -66,12 +64,6 @@ class CapsuleActivities:
 
     @activity.defn(name="capsule.substitute_params")
     async def substitute_params(
-        self,
-        params: dict[str, Any],
-        parameter_values: dict[str, Any],
-        step_results: dict[str, Any],
-    ) -> dict[str, Any]:
-        """Substitute Jinja2 templates in params dict."""
         from jinja2.sandbox import SandboxedEnvironment
 
         env = SandboxedEnvironment()
@@ -98,14 +90,6 @@ class CapsuleActivities:
 
     @activity.defn(name="capsule.execute_step")
     async def execute_step(
-        self,
-        action: str,
-        params: dict[str, Any],
-        tenant_id: str,
-        instance_id: str,
-        capabilities_whitelist: list[str],
-    ) -> dict[str, Any]:
-        """Route step action to existing Voyant services."""
         # --- Capability whitelist enforcement ---
         if capabilities_whitelist and action not in capabilities_whitelist:
             raise PermissionError(
@@ -306,7 +290,6 @@ class CapsuleActivities:
 
     @activity.defn(name="capsule.cross_validate")
     async def cross_validate(self, instance_id: str, tenant_id: str) -> dict[str, Any]:
-        """Cross-validate findings across multiple steps by loading from DB."""
         try:
             instance = CapsuleInstance.objects.get(id=instance_id)
             state = instance.state or {}
@@ -336,7 +319,6 @@ class CapsuleActivities:
         instance_id: str,
         tenant_id: str,
     ) -> list[dict[str, Any]]:
-        """Generate output artifacts (reports, plots, exports)."""
         try:
             instance = CapsuleInstance.objects.get(id=instance_id)
             state = instance.state or {}
@@ -371,7 +353,6 @@ class CapsuleActivities:
         artifacts: list[dict[str, Any]],
         tenant_id: str,
     ) -> None:
-        """Persist final report to storage."""
         try:
             instance = CapsuleInstance.objects.get(id=instance_id)
             instance.status = "completed"

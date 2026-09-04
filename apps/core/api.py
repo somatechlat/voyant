@@ -9,6 +9,7 @@ from apps.analysis.api import analyze_router
 from apps.capsules.api import capsules_router
 from apps.discovery.api import discovery_router, sources_router
 from apps.governance.api import governance_router
+from apps.ingestion.api import ingestion_router
 from apps.scraper.api import scrape_router
 from apps.search.api import router as search_router
 from apps.sql.api import sql_router
@@ -42,3 +43,4 @@ api.add_router("/discovery", discovery_router, tags=["discovery"])
 api.add_router("/search", search_router, tags=["search"])
 api.add_router("/scrape", scrape_router, tags=["scrape"])
 api.add_router("/capsules", capsules_router, tags=["capsules"])
+api.add_router("/ingestion", ingestion_router, tags=["ingestion"])

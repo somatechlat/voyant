@@ -1,18 +1,7 @@
 """
-Schema Evolution Module: Persistent Schema Management and Versioning.
-
-This module provides the core functionality for tracking, versioning, and comparing
-table schemas over time. It uses a persistent DuckDB backend to store a complete
-history of schema changes, which is fundamental to the platform's data governance,
-lineage, and auditability features.
+Schema evolution tracking with DuckDB persistence.
 
 Reference: STATUS.md Gap #3 - Schema Evolution Handling
-
-Features:
-- Persistent storage of schema versions in a local DuckDB database.
-- Automatic detection of schema changes (added, removed, modified columns).
-- Classification of changes as "breaking" or "non-breaking".
-- Support for semantic versioning of schemas.
 """
 
 from __future__ import annotations
@@ -33,7 +22,6 @@ logger = logging.getLogger(__name__)
 
 
 class CompatibilityLevel(StrEnum):
-    """Enumeration of schema compatibility levels between two versions."""
 
     FULL = "full"  # Fully compatible in both directions.
     BACKWARD = (
@@ -44,7 +32,6 @@ class CompatibilityLevel(StrEnum):
 
 
 class ChangeType(StrEnum):
-    """Enumeration for the different types of schema changes that can be detected."""
 
     COLUMN_ADDED = "column_added"
     COLUMN_REMOVED = "column_removed"
@@ -58,16 +45,7 @@ class ChangeType(StrEnum):
 
 @dataclass
 class SchemaChange:
-    """
-    Represents a single, atomic change between two schema versions.
-
-    Attributes:
-        change_type: The type of change, from the ChangeType enum.
-        column_name: The name of the column that was changed.
-        old_value: The previous value of the changed attribute (e.g., old data type).
-        new_value: The new value of the changed attribute.
-        is_breaking: A boolean indicating if this change is considered breaking.
-    """
+    """Atomic change between two schema versions."""
 
     change_type: ChangeType
     column_name: str
@@ -76,7 +54,6 @@ class SchemaChange:
     is_breaking: bool = False
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert the change object to a dictionary."""
         return {
             "change_type": self.change_type.value,
             "column_name": self.column_name,
@@ -87,7 +64,6 @@ class SchemaChange:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> SchemaChange:
-        """Create a SchemaChange instance from a dictionary."""
         return cls(
             change_type=ChangeType(data["change_type"]),
             column_name=data["column_name"],
@@ -99,16 +75,7 @@ class SchemaChange:
 
 @dataclass
 class ColumnSchema:
-    """
-    Represents the schema definition for a single table column.
-
-    Attributes:
-        name: The name of the column.
-        data_type: The string representation of the column's data type (e.g., "VARCHAR").
-        nullable: Whether the column allows NULL values.
-        default: The default value of the column, if any.
-        constraints: A list of constraints applied to the column (e.g., "PRIMARY KEY").
-    """
+    """Schema definition for a single table column."""
 
     name: str
     data_type: str
@@ -117,32 +84,22 @@ class ColumnSchema:
     constraints: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert the column schema to a dictionary."""
         return asdict(self)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> ColumnSchema:
-        """Create a ColumnSchema instance from a dictionary."""
         return cls(**data)
 
 
 @dataclass
 class TableSchema:
-    """
-    Represents the full schema for a table, including all its columns.
-
-    Attributes:
-        name: The name of the table.
-        columns: A list of ColumnSchema objects.
-        primary_key: An optional list of column names that form the primary key.
-    """
+    """Full schema for a table."""
 
     name: str
     columns: list[ColumnSchema]
     primary_key: list[str] | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert the table schema to a dictionary."""
         return {
             "name": self.name,
             "columns": [c.to_dict() for c in self.columns],
@@ -151,7 +108,6 @@ class TableSchema:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> TableSchema:
-        """Create a TableSchema instance from a dictionary."""
         return cls(
             name=data["name"],
             columns=[ColumnSchema.from_dict(c) for c in data.get("columns", [])],
@@ -159,7 +115,6 @@ class TableSchema:
         )
 
     def get_column(self, name: str) -> ColumnSchema | None:
-        """Retrieve a column's schema by its name."""
         for col in self.columns:
             if col.name == name:
                 return col
@@ -167,24 +122,12 @@ class TableSchema:
 
     @property
     def column_names(self) -> set[str]:
-        """Return a set of all column names in the table."""
         return {c.name for c in self.columns}
 
 
 @dataclass
 class SchemaVersion:
-    """
-    Represents a single, versioned snapshot of a table's schema at a point in time.
-
-    Attributes:
-        version: The semantic version string (e.g., "1.0.0").
-        schema: The TableSchema object for this version.
-        created_at: The UNIX timestamp when this version was recorded.
-        created_by: The user or process that created this version.
-        description: A human-readable description of the changes in this version.
-        changes_from_previous: A list of SchemaChange objects detailing what changed
-                               from the prior version.
-    """
+    """Versioned snapshot of a table's schema."""
 
     version: str
     schema: TableSchema
@@ -194,12 +137,10 @@ class SchemaVersion:
     changes_from_previous: list[SchemaChange] = field(default_factory=list)
 
     def __post_init__(self):
-        """Set the creation timestamp if not provided."""
         if self.created_at == 0:
             self.created_at = time.time()
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert the schema version to a dictionary."""
         return {
             "version": self.version,
             "schema": self.schema.to_dict(),
@@ -212,7 +153,6 @@ class SchemaVersion:
 
 @dataclass
 class CompatibilityReport:
-    """A report detailing the compatibility between two schema versions."""
 
     source_version: str
     target_version: str
@@ -222,11 +162,9 @@ class CompatibilityReport:
 
     @property
     def is_compatible(self) -> bool:
-        """Return True if there are no breaking changes."""
         return len(self.breaking_changes) == 0
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert the compatibility report to a dictionary."""
         return {
             "source_version": self.source_version,
             "target_version": self.target_version,
@@ -248,16 +186,6 @@ def compare_schemas(
     old_schema: TableSchema,
     new_schema: TableSchema,
 ) -> list[SchemaChange]:
-    """
-    Compare two table schemas and generate a list of changes.
-
-    Args:
-        old_schema: The previous version of the schema.
-        new_schema: The new version of the schema.
-
-    Returns:
-        A list of SchemaChange objects detailing the differences.
-    """
     changes = []
     old_columns = {c.name: c for c in old_schema.columns}
     new_columns = {c.name: c for c in new_schema.columns}
@@ -367,16 +295,13 @@ def _is_type_widening(old_type: str, new_type: str) -> bool:
 
 
 class SchemaEvolutionRegistry:
-    """A persistent registry for tracking schema versions using DuckDB."""
 
     def __init__(self):
-        """Initializes the registry and connects to the DuckDB database."""
         self.settings = get_settings()
         self._conn = duckdb.connect(database=self.settings.duckdb_path, read_only=False)
         self._init_db()
 
     def _init_db(self):
-        """Initializes the `schema_versions` table in the database if it doesn't exist."""
         try:
             self._conn.execute("""
                 CREATE TABLE IF NOT EXISTS schema_versions (
@@ -402,22 +327,6 @@ class SchemaEvolutionRegistry:
         description: str = "",
         created_by: str = "",
     ) -> SchemaVersion:
-        """
-        Register a new version of a table's schema.
-
-        This method compares the new schema to the previous latest version,
-        calculates the changes, and persists the new version to the database.
-
-        Args:
-            table_name: The name of the table whose schema is being registered.
-            schema: The `TableSchema` object representing the new schema.
-            version: The new semantic version string.
-            description: A description of the changes in this version.
-            created_by: The user or process creating this version.
-
-        Returns:
-            A `SchemaVersion` object representing the newly registered version.
-        """
         try:
             latest_version = self.get_version(table_name)
             changes = []
@@ -472,16 +381,6 @@ class SchemaEvolutionRegistry:
         table_name: str,
         version: str | None = None,
     ) -> SchemaVersion | None:
-        """
-        Retrieve a schema version from the registry.
-
-        Args:
-            table_name: The name of the table.
-            version: The specific version to retrieve. If None, the latest version is returned.
-
-        Returns:
-            A `SchemaVersion` object or None if not found.
-        """
         if version:
             query = (
                 "SELECT * FROM schema_versions WHERE table_name = ? AND version = ?;"
@@ -495,15 +394,6 @@ class SchemaEvolutionRegistry:
         return self._row_to_version(result) if result else None
 
     def get_history(self, table_name: str) -> list[dict[str, Any]]:
-        """
-        Retrieve the full version history for a given table.
-
-        Args:
-            table_name: The name of the table.
-
-        Returns:
-            A list of dictionaries, each summarizing a version.
-        """
         rows = self._conn.execute(
             "SELECT * FROM schema_versions WHERE table_name = ? ORDER BY created_at ASC;",
             (table_name,),
@@ -526,7 +416,6 @@ class SchemaEvolutionRegistry:
         return history
 
     def _row_to_version(self, row: tuple) -> SchemaVersion:
-        """Convert a database row tuple into a SchemaVersion object."""
         _, version_str, schema_str, created_at, created_by, description, changes_str = (
             row
         )
@@ -542,7 +431,6 @@ class SchemaEvolutionRegistry:
         )
 
     def list_tables(self) -> list[str]:
-        """List all tables with a tracked schema history."""
         result = self._conn.execute(
             "SELECT DISTINCT table_name FROM schema_versions;"
         ).fetchall()
@@ -553,7 +441,6 @@ class SchemaEvolutionRegistry:
         self._conn.execute("DELETE FROM schema_versions;")
 
     def close(self):
-        """Close the connection to the DuckDB database."""
         if hasattr(self, "_conn") and self._conn:
             try:
                 self._conn.close()
@@ -561,7 +448,6 @@ class SchemaEvolutionRegistry:
                 logger.warning(f"Error closing DuckDB connection: {e}")
 
     def __del__(self):
-        """Ensure the connection is closed when the object is garbage collected."""
         self.close()
 
 
@@ -573,7 +459,6 @@ _registry: SchemaEvolutionRegistry | None = None
 
 
 def get_registry() -> SchemaEvolutionRegistry:
-    """Get the singleton instance of the SchemaEvolutionRegistry."""
     global _registry
     if _registry is None:
         _registry = SchemaEvolutionRegistry()
@@ -583,17 +468,17 @@ def get_registry() -> SchemaEvolutionRegistry:
 def track_schema(
     table_name: str, schema: TableSchema, version: str, description: str = ""
 ) -> SchemaVersion:
-    """A convenience function to register a new schema version in the global registry."""
+    """Register a new schema version in the global registry."""
     return get_registry().register(table_name, schema, version, description)
 
 
 def get_schema_history(table_name: str) -> list[dict[str, Any]]:
-    """A convenience function to get the version history of a table."""
+    """Get the version history of a table."""
     return get_registry().get_history(table_name)
 
 
 def get_latest_schema(table_name: str) -> TableSchema | None:
-    """A convenience function to get the latest schema for a table."""
+    """Get the latest schema for a table."""
     version_obj = get_registry().get_version(table_name)
     return version_obj.schema if version_obj else None
 
@@ -601,7 +486,7 @@ def get_latest_schema(table_name: str) -> TableSchema | None:
 def check_schema_compatibility(
     table_name: str, source_version: str, target_version: str
 ) -> dict[str, Any] | None:
-    """A convenience function to generate a compatibility report between two versions."""
+    """Generate a compatibility report between two versions."""
     registry = get_registry()
     source = registry.get_version(table_name, source_version)
     target = registry.get_version(table_name, target_version)
