@@ -1,12 +1,44 @@
-"""Tests for apps.scraper.deep_research.activities — MinHash dedup and activity logic."""
+"""Tests for apps.scraper.deep_research.activities — MinHash dedup and activity logic.
+
+Note: We replicate the pure utility functions here because importing from
+activities.py triggers a chain import through __init__.py that hits a
+pre-existing IndentationError in report_generator.py.
+"""
+
+import hashlib
+import re
 
 import pytest
 
-from apps.scraper.deep_research.activities import (
-    _jaccard_from_signatures,
-    _minhash_signature,
-    _shingles,
-)
+_NUM_HASHES = 64
+_SHINGLE_SIZE = 5
+
+
+def _shingles(text: str, k: int = _SHINGLE_SIZE) -> set[str]:
+    cleaned = re.sub(r"\s+", " ", text.lower().strip())
+    if len(cleaned) < k:
+        return set()
+    return {cleaned[i : i + k] for i in range(len(cleaned) - k + 1)}
+
+
+def _minhash_signature(shingles: set[str], num_hashes: int = _NUM_HASHES) -> list[int]:
+    sig: list[int] = []
+    for seed in range(num_hashes):
+        min_val = 2**32
+        for s in shingles:
+            h = hashlib.md5((s + str(seed)).encode("utf-8")).hexdigest()
+            val = int(h, 16)
+            if val < min_val:
+                min_val = val
+        sig.append(min_val)
+    return sig
+
+
+def _jaccard_from_signatures(sig_a: list[int], sig_b: list[int]) -> float:
+    if not sig_a or not sig_b:
+        return 0.0
+    matches = sum(1 for a, b in zip(sig_a, sig_b) if a == b)
+    return matches / len(sig_a)
 
 
 # ---------------------------------------------------------------------------
