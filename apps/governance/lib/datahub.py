@@ -51,7 +51,6 @@ class LineageEdge:
 
 
 class DataHubClient:
-
     def __init__(self):
         self.gms_url = settings.datahub_gms_url
         self._client: httpx.AsyncClient | None = None
@@ -101,9 +100,7 @@ class DataHubClient:
                             "upstreams": [
                                 {
                                     "auditStamp": {
-                                        "time": int(
-                                            datetime.utcnow().timestamp() * 1000
-                                        ),
+                                        "time": int(datetime.utcnow().timestamp() * 1000),
                                         "actor": "urn:li:corpuser:voyant",  # Identity of the actor emitting lineage.
                                     },
                                     "dataset": upstream,
@@ -212,9 +209,7 @@ class DataHubClient:
             return True
 
         except Exception as e:
-            logger.error(
-                f"Failed to register dataset '{name}' (URN: {urn}) in DataHub: {e}"
-            )
+            logger.error(f"Failed to register dataset '{name}' (URN: {urn}) in DataHub: {e}")
             return False
 
     # =========================================================================

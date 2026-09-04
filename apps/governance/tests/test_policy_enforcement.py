@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import json
-from unittest.mock import MagicMock, patch, PropertyMock
 from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.http import HttpRequest, JsonResponse
@@ -13,7 +13,6 @@ from apps.governance.lib.policy_enforcer import (
     EnforcementLevel,
     PolicyDecision,
     PolicyEnforcer,
-    PolicyEvaluationResult,
     PolicyEvaluator,
     _evaluate_rules,
     _scope_matches,
@@ -21,16 +20,15 @@ from apps.governance.lib.policy_enforcer import (
 from apps.governance.middleware import (
     GovernancePolicyMiddleware,
     _build_context,
-    _check_data_contracts,
     _extract_dataset_urn,
     _infer_operation,
     _validate_request_against_contract,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_policy(
     *,
@@ -82,6 +80,7 @@ def _make_request(
 # Scope matching
 # ===========================================================================
 
+
 class TestScopeMatching:
     """Test _scope_matches helper."""
 
@@ -118,6 +117,7 @@ class TestScopeMatching:
 # ===========================================================================
 # Rule evaluation
 # ===========================================================================
+
 
 class TestRuleEvaluation:
     """Test _evaluate_rules helper."""
@@ -184,6 +184,7 @@ class TestRuleEvaluation:
 # PolicyEvaluator (real implementation)
 # ===========================================================================
 
+
 class TestPolicyEvaluator:
     """Test the real PolicyEvaluator logic."""
 
@@ -246,6 +247,7 @@ class TestPolicyEvaluator:
 # ===========================================================================
 # PolicyEnforcer (real implementation)
 # ===========================================================================
+
 
 class TestPolicyEnforcer:
     """Test the real PolicyEnforcer aggregation logic."""
@@ -333,6 +335,7 @@ class TestPolicyEnforcer:
 # Middleware helpers
 # ===========================================================================
 
+
 class TestMiddlewareHelpers:
     """Test standalone helper functions in the middleware module."""
 
@@ -412,6 +415,7 @@ class TestMiddlewareHelpers:
 # ===========================================================================
 # GovernancePolicyMiddleware
 # ===========================================================================
+
 
 class TestGovernancePolicyMiddleware:
     """Test the middleware as a Django middleware callable."""

@@ -26,9 +26,7 @@ settings = get_settings()
 async def _fetch_media(url: str) -> str:
     """Download media to a temporary file and return its path."""
     validate_url(url)
-    async with httpx.AsyncClient(
-        timeout=settings.scraper_default_timeout_seconds
-    ) as client:
+    async with httpx.AsyncClient(timeout=settings.scraper_default_timeout_seconds) as client:
         resp = await client.get(url)
         resp.raise_for_status()
         ct = resp.headers.get("content-type", "")
@@ -67,9 +65,7 @@ def _format_transcription(result: dict[str, Any], fmt: str) -> str:
             end_sec = seg.get("end", 0)
             text_seg = seg.get("text", "").strip()
             lines.append(str(i))
-            lines.append(
-                f"{_srt_time(start_sec)} --> {_srt_time(end_sec)}"
-            )
+            lines.append(f"{_srt_time(start_sec)} --> {_srt_time(end_sec)}")
             lines.append(text_seg)
             lines.append("")
         return "\n".join(lines)
@@ -99,9 +95,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
         else:
             temp_path = request.url
             if not Path(temp_path).exists():
-                raise FileNotFoundError(
-                    f"Media file not found: {temp_path}"
-                )
+                raise FileNotFoundError(f"Media file not found: {temp_path}")
     except Exception as exc:
         logger.exception("Media fetch failed for %s", request.url)
         return OctopusResult(
@@ -110,9 +104,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
             tenant_id=request.tenant_id,
             job_id=request.job_id,
             success=False,
-            duration_ms=int(
-                (datetime.now(UTC) - start).total_seconds() * 1000
-            ),
+            duration_ms=int((datetime.now(UTC) - start).total_seconds() * 1000),
             fetched_at=start.isoformat(),
             error_code="TRANSCRIBE_FETCH_ERROR",
             error_message=str(exc),
@@ -122,9 +114,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
         import whisper  # type: ignore[reportMissingImports]
 
         model = whisper.load_model(request.whisper_model)
-        result = model.transcribe(
-            temp_path, language=request.language
-        )
+        result = model.transcribe(temp_path, language=request.language)
     except Exception as exc:
         logger.exception("Whisper transcription failed for %s", request.url)
         return OctopusResult(
@@ -133,9 +123,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
             tenant_id=request.tenant_id,
             job_id=request.job_id,
             success=False,
-            duration_ms=int(
-                (datetime.now(UTC) - start).total_seconds() * 1000
-            ),
+            duration_ms=int((datetime.now(UTC) - start).total_seconds() * 1000),
             fetched_at=start.isoformat(),
             error_code="TRANSCRIBE_ERROR",
             error_message=str(exc),
@@ -147,17 +135,13 @@ async def execute(request: OctopusRequest) -> OctopusResult:
             except Exception:
                 pass
 
-    transcription_text = _format_transcription(
-        result, request.transcription_format
-    )
+    transcription_text = _format_transcription(result, request.transcription_format)
     segments: list[dict[str, Any]] = []
     raw_segments = result.get("segments", [])
     if isinstance(raw_segments, list):
         segments = raw_segments
 
-    duration_ms = int(
-        (datetime.now(UTC) - start).total_seconds() * 1000
-    )
+    duration_ms = int((datetime.now(UTC) - start).total_seconds() * 1000)
     return OctopusResult(
         arm=request.arm.value,
         url=request.url,

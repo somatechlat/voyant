@@ -1,7 +1,5 @@
 """Tests for schema evolution module."""
 
-
-
 from apps.governance.lib.schema_evolution import (
     ChangeType,
     ColumnSchema,

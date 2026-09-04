@@ -7,7 +7,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
@@ -90,9 +89,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "progress",
-                    models.FloatField(
-                        default=0.0, help_text="Job progress (0.0 to 1.0)"
-                    ),
+                    models.FloatField(default=0.0, help_text="Job progress (0.0 to 1.0)"),
                 ),
                 (
                     "stage",
@@ -102,21 +99,15 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "params",
-                    models.JSONField(
-                        default=dict, help_text="Job parameters and configuration"
-                    ),
+                    models.JSONField(default=dict, help_text="Job parameters and configuration"),
                 ),
                 (
                     "result",
-                    models.JSONField(
-                        blank=True, help_text="Job result data", null=True
-                    ),
+                    models.JSONField(blank=True, help_text="Job result data", null=True),
                 ),
                 (
                     "error_message",
-                    models.TextField(
-                        blank=True, help_text="Error message if job failed"
-                    ),
+                    models.TextField(blank=True, help_text="Error message if job failed"),
                 ),
                 (
                     "rows_ingested",
@@ -126,9 +117,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "bytes_processed",
-                    models.BigIntegerField(
-                        default=0, help_text="Number of bytes processed"
-                    ),
+                    models.BigIntegerField(default=0, help_text="Number of bytes processed"),
                 ),
                 (
                     "started_at",

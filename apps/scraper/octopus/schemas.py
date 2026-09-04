@@ -18,15 +18,15 @@ from pydantic import BaseModel, ConfigDict, Field
 class OctopusARM(StrEnum):
     """The eight scraping arms of the OCTOPUS engine."""
 
-    STATIC = "static"            # ARM-1: httpx + parsel — fast static pages
-    DYNAMIC = "dynamic"          # ARM-2: Playwright + Chromium — JS rendering
-    EVASION = "evasion"          # ARM-3: curl-cffi + camoufox — anti-bot bypass
-    CRAWL = "crawl"              # ARM-4: Scrapy — large-scale site crawl
+    STATIC = "static"  # ARM-1: httpx + parsel — fast static pages
+    DYNAMIC = "dynamic"  # ARM-2: Playwright + Chromium — JS rendering
+    EVASION = "evasion"  # ARM-3: curl-cffi + camoufox — anti-bot bypass
+    CRAWL = "crawl"  # ARM-4: Scrapy — large-scale site crawl
     API_INTERCEPT = "api_intercept"  # ARM-5: Playwright XHR/JSON capture
-    DOCUMENT = "document"        # ARM-6: pdfplumber + unstructured
-    OCR = "ocr"                  # ARM-7a: Tesseract image OCR
-    TRANSCRIBE = "transcribe"    # ARM-7b: Whisper audio/video transcription
-    ARCHIVE = "archive"          # ARM-8: Playwright interactive deep archiving
+    DOCUMENT = "document"  # ARM-6: pdfplumber + unstructured
+    OCR = "ocr"  # ARM-7a: Tesseract image OCR
+    TRANSCRIBE = "transcribe"  # ARM-7b: Whisper audio/video transcription
+    ARCHIVE = "archive"  # ARM-8: Playwright interactive deep archiving
 
 
 class BrowserAction(BaseModel):
@@ -88,7 +88,7 @@ class OctopusRequest(BaseModel):
 
     # ── ARM-3: Evasion ─────────────────────────────────────────────────
     evasion_mode: str = "curl_cffi"  # "curl_cffi" | "camoufox"
-    impersonate: str = "chrome124"   # curl-cffi browser target
+    impersonate: str = "chrome124"  # curl-cffi browser target
     proxy_url: str | None = None  # "http://user:pass@host:port" — never logged
 
     # ── ARM-4: Crawl ───────────────────────────────────────────────────
@@ -104,7 +104,7 @@ class OctopusRequest(BaseModel):
     # ── ARM-5: API Interception ────────────────────────────────────────
     capture_json: bool = True
     capture_url_contains: list[str] = Field(default_factory=list)
-    capture_max_bytes: int = 524288   # 512KB per response
+    capture_max_bytes: int = 524288  # 512KB per response
     capture_max_items: int = 25
 
     # ── ARM-6: Document ────────────────────────────────────────────────
@@ -113,8 +113,8 @@ class OctopusRequest(BaseModel):
     output_format: str = "json"  # "text" | "json" | "markdown"
 
     # ── ARM-7: OCR / Transcription ─────────────────────────────────────
-    language: str = "eng"            # Tesseract lang or Whisper language code
-    whisper_model: str = "base"      # "tiny"|"base"|"small"|"medium"|"large"
+    language: str = "eng"  # Tesseract lang or Whisper language code
+    whisper_model: str = "base"  # "tiny"|"base"|"small"|"medium"|"large"
     transcription_format: str = "text"  # "text" | "json" | "srt"
     ocr_confidence_threshold: int = 60
 

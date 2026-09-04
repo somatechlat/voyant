@@ -16,7 +16,6 @@ logger = logging.getLogger(__name__)
 
 
 class ErrorCategory(StrEnum):
-
     VALIDATION = "validation"  # Input validation failures
     AUTHENTICATION = "authentication"  # Auth failures
     AUTHORIZATION = "authorization"  # Permission failures
@@ -28,7 +27,6 @@ class ErrorCategory(StrEnum):
 
 
 class ErrorSeverity(StrEnum):
-
     INFO = "info"  # Informational (e.g., deprecated)
     WARNING = "warning"  # Degraded but functional
     ERROR = "error"  # Operation failed
@@ -572,9 +570,7 @@ def get_error_catalog() -> dict[str, dict[str, Any]]:
 
 def get_errors_by_category(category: ErrorCategory) -> list[dict[str, Any]]:
     """Get all errors in a category."""
-    return [
-        defn.to_dict() for defn in ERROR_CATALOG.values() if defn.category == category
-    ]
+    return [defn.to_dict() for defn in ERROR_CATALOG.values() if defn.category == category]
 
 
 def list_error_codes() -> list[str]:

@@ -18,7 +18,6 @@ logger = logging.getLogger(__name__)
 
 
 class SensitivityLevel(StrEnum):
-
     PUBLIC = "public"  # No restrictions on access.
     INTERNAL = "internal"  # For internal company use only.
     CONFIDENTIAL = "confidential"  # Restricted to specific teams or roles.

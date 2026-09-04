@@ -122,9 +122,7 @@ class KeycloakAuth:
 
     def _update_urls(self):
         # Vibe Rule: No placeholders. Use real settings.
-        self._jwks_url = (
-            f"{self._server_url}/realms/{self._realm}/protocol/openid-connect/certs"
-        )
+        self._jwks_url = f"{self._server_url}/realms/{self._realm}/protocol/openid-connect/certs"
         self._issuer = f"{self._server_url}/realms/{self._realm}"
 
     def _get_jwks(self) -> dict[str, Any]:
@@ -146,9 +144,7 @@ class KeycloakAuth:
                     self._jwks = response.json()
             except httpx.HTTPError as exc:
                 logger.error("Failed to fetch JWKS from Keycloak: %s", exc)
-                raise HttpError(
-                    503, get_message("ERR_AUTH_KEYCLOAK_UNAVAILABLE")
-                ) from exc
+                raise HttpError(503, get_message("ERR_AUTH_KEYCLOAK_UNAVAILABLE")) from exc
         return self._jwks  # type: ignore[return-type]
 
     def validate_token(self, token: str) -> User:
@@ -217,9 +213,7 @@ class KeycloakAuth:
                 )
                 raise HttpError(401, get_message("ERR_AUTH_CROSS_REALM"))
 
-            tenant_id = payload.get(
-                "tenant_id", "default"
-            )  # Custom claim for multi-tenancy.
+            tenant_id = payload.get("tenant_id", "default")  # Custom claim for multi-tenancy.
             permissions = self._derive_permissions(roles)
 
             return User(
@@ -238,9 +232,7 @@ class KeycloakAuth:
             raise HttpError(401, get_message("ERR_AUTH_EXPIRED")) from exc
         except JWTError as exc:  # type: ignore[possiblyUnbound]
             logger.error("JWT validation error: %s", exc)
-            raise HttpError(
-                401, get_message("ERR_AUTH_INVALID", error=str(exc))
-            ) from exc
+            raise HttpError(401, get_message("ERR_AUTH_INVALID", error=str(exc))) from exc
         except HttpError:  # Re-raise HttpErrors from _get_jwks
             raise
         except Exception as exc:
@@ -443,9 +435,7 @@ def require_role(required_role: str):
                 f"User {user.username} (tenant: {user.tenant_id}) attempted to access "
                 f"resource requiring role '{required_role}' without permission."
             )
-            raise HttpError(
-                403, get_message("ERR_AUTH_DENIED_ROLE", role=required_role)
-            )
+            raise HttpError(403, get_message("ERR_AUTH_DENIED_ROLE", role=required_role))
         return user
 
     return role_checker
@@ -491,9 +481,7 @@ def require_permission(required_permission: str):
             )
             raise HttpError(
                 403,
-                get_message(
-                    "ERR_AUTH_DENIED_PERMISSION", permission=required_permission
-                ),
+                get_message("ERR_AUTH_DENIED_PERMISSION", permission=required_permission),
             )
         return user
 
@@ -540,9 +528,7 @@ def require_realm(required_realm: str):
             )
             raise HttpError(
                 403,
-                get_message(
-                    "ERR_AUTH_DENIED_REALM", realm=required_realm
-                ),
+                get_message("ERR_AUTH_DENIED_REALM", realm=required_realm),
             )
         return user
 

@@ -157,9 +157,7 @@ def get_optimal_sample_size(
     return sample_size
 
 
-def calculate_margin_of_error(
-    sample_size: int, total_rows: int, confidence: float = 0.95
-) -> float:
+def calculate_margin_of_error(sample_size: int, total_rows: int, confidence: float = 0.95) -> float:
     """Calculate actual margin of error for a given sample size."""
     z_scores = {0.90: 1.645, 0.95: 1.96, 0.99: 2.576}
     z = z_scores.get(confidence, 1.96)
@@ -168,11 +166,7 @@ def calculate_margin_of_error(
     p = 0.5
 
     # Standard error with finite population correction
-    fpc = (
-        math.sqrt((total_rows - sample_size) / (total_rows - 1))
-        if total_rows > 1
-        else 1
-    )
+    fpc = math.sqrt((total_rows - sample_size) / (total_rows - 1)) if total_rows > 1 else 1
     se = math.sqrt((p * (1 - p)) / sample_size) * fpc
 
     return z * se
@@ -185,9 +179,7 @@ def calculate_margin_of_error(
 T = TypeVar("T")
 
 
-def random_sample(
-    data: list[T], sample_size: int, seed: int | None = None
-) -> list[T]:
+def random_sample(data: list[T], sample_size: int, seed: int | None = None) -> list[T]:
     """Simple random sampling using the Fisher-Yates approach."""
     if sample_size >= len(data):
         return data.copy()
@@ -196,9 +188,7 @@ def random_sample(
     return rng.sample(data, sample_size)
 
 
-def systematic_sample(
-    data: list[T], sample_size: int, seed: int | None = None
-) -> list[T]:
+def systematic_sample(data: list[T], sample_size: int, seed: int | None = None) -> list[T]:
     """Systematic (every-nth) sampling starting at a random offset within the first interval."""
     if sample_size >= len(data):
         return data.copy()
@@ -249,9 +239,7 @@ def stratified_sample(
     return result[:sample_size], strata_info
 
 
-def reservoir_sample(
-    data: list[T], sample_size: int, seed: int | None = None
-) -> list[T]:
+def reservoir_sample(data: list[T], sample_size: int, seed: int | None = None) -> list[T]:
     """Reservoir sampling — single-pass algorithm, O(n) time, O(k) space."""
     rng = random.Random(seed)
     reservoir = []
@@ -382,9 +370,7 @@ def sample_table(
         sampled = systematic_sample(data, sample_size, seed)
     elif strategy == SamplingStrategy.STRATIFIED:
         if strata_column:
-            sampled, strata_info = stratified_sample(
-                data, sample_size, strata_column, seed
-            )
+            sampled, strata_info = stratified_sample(data, sample_size, strata_column, seed)
         else:
             sampled = random_sample(data, sample_size, seed)
     elif strategy == SamplingStrategy.RESERVOIR:
@@ -427,9 +413,7 @@ def sample_table(
 # =============================================================================
 
 
-def quick_sample(
-    data: list[dict[str, Any]], max_rows: int = 10000
-) -> list[dict[str, Any]]:
+def quick_sample(data: list[dict[str, Any]], max_rows: int = 10000) -> list[dict[str, Any]]:
     """
     Quick sampling with sensible defaults.
 

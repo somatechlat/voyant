@@ -64,6 +64,7 @@ class PolicyEvaluationResult:
 # Scope matching helpers
 # ---------------------------------------------------------------------------
 
+
 def _match_pattern(value: str, pattern: str) -> bool:
     """Return True if *value* matches a glob-style *pattern*."""
     return fnmatch.fnmatch(value, pattern)
@@ -126,6 +127,7 @@ def _scope_matches(scope: dict[str, Any], context: dict[str, Any]) -> bool:
 # ---------------------------------------------------------------------------
 # Rule evaluation helpers
 # ---------------------------------------------------------------------------
+
 
 def _evaluate_rules(rules: dict[str, Any], context: dict[str, Any]) -> tuple[bool, str | None]:
     """Evaluate policy rules against the request context.
@@ -227,6 +229,7 @@ def _evaluate_rules(rules: dict[str, Any], context: dict[str, Any]) -> tuple[boo
 # ---------------------------------------------------------------------------
 # Core classes
 # ---------------------------------------------------------------------------
+
 
 class PolicyEvaluator:
     """Evaluates a single policy against a request context."""

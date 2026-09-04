@@ -52,9 +52,7 @@ class SemanticSearchResult(Schema):
     """Response schema for a single search result."""
 
     id: str = Field(..., description="Unique identifier of the indexed item")
-    score: float = Field(
-        ..., description="Similarity score (0.0 to 1.0, higher is more similar)"
-    )
+    score: float = Field(..., description="Similarity score (0.0 to 1.0, higher is more similar)")
     metadata: dict[str, Any] = Field(
         default_factory=dict,
         description="Metadata associated with the indexed item",
@@ -83,13 +81,9 @@ class IndexRequest(Schema):
 class IndexResponse(Schema):
     """Response schema after indexing an item."""
 
-    id: str = Field(
-        ..., description="The unique identifier assigned to the indexed item"
-    )
+    id: str = Field(..., description="The unique identifier assigned to the indexed item")
     status: str = Field(..., description="Status of the indexing operation")
-    dimensions: int = Field(
-        ..., description="Dimensionality of the generated embedding vector"
-    )
+    dimensions: int = Field(..., description="Dimensionality of the generated embedding vector")
 
 
 # =============================================================================
@@ -97,9 +91,7 @@ class IndexResponse(Schema):
 # =============================================================================
 
 
-@router.post(
-    "/query", response=list[SemanticSearchResult], summary="Semantic Search Query"
-)
+@router.post("/query", response=list[SemanticSearchResult], summary="Semantic Search Query")
 def search(request: HttpRequest, payload: SearchQuery) -> list[SemanticSearchResult]:
     """
     Execute a semantic search query to find similar indexed items.
@@ -171,7 +163,12 @@ def search(request: HttpRequest, payload: SearchQuery) -> list[SemanticSearchRes
         raise HttpError(500, get_message("ERR_SEARCH_FAILED", error=str(exc))) from exc
 
 
-@router.post("/index", response=IndexResponse, summary="Index New Item", auth=require_permission("write:documents"))
+@router.post(
+    "/index",
+    response=IndexResponse,
+    summary="Index New Item",
+    auth=require_permission("write:documents"),
+)
 def index_item(request: HttpRequest, payload: IndexRequest) -> IndexResponse:
     """
     Index a new text item for semantic search.
@@ -227,8 +224,7 @@ def index_item(request: HttpRequest, payload: IndexRequest) -> IndexResponse:
         )
 
         logger.info(
-            f"Indexed item {item_id} for tenant {tenant_id} "
-            f"(dimensions={dense_result.dimensions})"
+            f"Indexed item {item_id} for tenant {tenant_id} (dimensions={dense_result.dimensions})"
         )
 
         return IndexResponse(
@@ -248,7 +244,9 @@ def index_item(request: HttpRequest, payload: IndexRequest) -> IndexResponse:
 
 
 @router.delete(
-    "/{item_id}", response={200: dict[str, str]}, summary="Delete Indexed Item",
+    "/{item_id}",
+    response={200: dict[str, str]},
+    summary="Delete Indexed Item",
     auth=require_permission("write:documents"),
 )
 def delete_item(request: HttpRequest, item_id: str) -> dict[str, str]:
@@ -344,6 +342,4 @@ def get_item(request: HttpRequest, item_id: str) -> SemanticSearchResult:
         raise
     except Exception as exc:
         logger.exception(f"Failed to retrieve item {item_id}")
-        raise HttpError(
-            500, get_message("ERR_RETRIEVAL_FAILED", error=str(exc))
-        ) from exc
+        raise HttpError(500, get_message("ERR_RETRIEVAL_FAILED", error=str(exc))) from exc

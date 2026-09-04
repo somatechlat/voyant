@@ -167,9 +167,7 @@ async def enforce_policy(
     endpoint = _ensure_suffix(settings.soma_policy_url, "/v1/evaluate")
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.post(
-                endpoint, json=payload, headers=context.headers()
-            )
+            response = await client.post(endpoint, json=payload, headers=context.headers())
     except httpx.RequestError as exc:
         raise SomaPolicyUnavailable(f"Policy Engine unreachable: {exc}") from exc
 

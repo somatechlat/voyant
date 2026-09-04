@@ -132,25 +132,15 @@ class OctopusDispatcher:
             validate_url(request.url)
         except (SSRFError, URLValidationError) as exc:
             logger.warning("SSRF blocked for %s: %s", request.url, exc)
-            return self._error_result(
-                request, start, "SSRF_BLOCKED", str(exc)
-            )
+            return self._error_result(request, start, "SSRF_BLOCKED", str(exc))
 
         # Tenant quota check
         try:
-            require_quota(
-                request.tenant_id, ResourceType.JOBS_PER_DAY, amount=1.0
-            )
-            require_quota(
-                request.tenant_id, ResourceType.JOBS_CONCURRENT, amount=1.0
-            )
+            require_quota(request.tenant_id, ResourceType.JOBS_PER_DAY, amount=1.0)
+            require_quota(request.tenant_id, ResourceType.JOBS_CONCURRENT, amount=1.0)
         except QuotaExceededException as exc:
-            logger.warning(
-                "Quota exceeded for tenant %s: %s", request.tenant_id, exc
-            )
-            return self._error_result(
-                request, start, "QUOTA_EXCEEDED", exc.result.message
-            )
+            logger.warning("Quota exceeded for tenant %s: %s", request.tenant_id, exc)
+            return self._error_result(request, start, "QUOTA_EXCEEDED", exc.result.message)
 
         # Record usage before execution
         record_usage(
@@ -185,9 +175,7 @@ class OctopusDispatcher:
         try:
             result = await self._run_with_breaker(cb, executor, request)
         except CircuitBreakerOpenError as exc:
-            return self._error_result(
-                request, start, "CIRCUIT_BREAKER_OPEN", str(exc)
-            )
+            return self._error_result(request, start, "CIRCUIT_BREAKER_OPEN", str(exc))
         except TimeoutError:
             return self._error_result(
                 request,
@@ -201,9 +189,7 @@ class OctopusDispatcher:
                 request.arm.value,
                 request.url,
             )
-            return self._error_result(
-                request, start, "EXECUTION_ERROR", str(exc)
-            )
+            return self._error_result(request, start, "EXECUTION_ERROR", str(exc))
 
         # Store artifact on success
         if result.success:
@@ -223,29 +209,21 @@ class OctopusDispatcher:
                 result.artifact_uri = ref.hash
                 result.artifact_size_bytes = ref.size_bytes
             except Exception:
-                logger.exception(
-                    "Artifact storage failed for job %s", request.job_id
-                )
+                logger.exception("Artifact storage failed for job %s", request.job_id)
 
         return result
 
     async def _run_with_breaker(
         self,
         cb: CircuitBreaker,
-        executor: Callable[
-            [OctopusRequest], Coroutine[Any, Any, OctopusResult]
-        ],
+        executor: Callable[[OctopusRequest], Coroutine[Any, Any, OctopusResult]],
         request: OctopusRequest,
     ) -> OctopusResult:
         """Run executor under circuit breaker protection with timeout."""
         if cb.get_state() == CircuitState.OPEN:
-            raise CircuitBreakerOpenError(
-                f"Circuit breaker '{cb.name}' is OPEN"
-            )
+            raise CircuitBreakerOpenError(f"Circuit breaker '{cb.name}' is OPEN")
         try:
-            result = await asyncio.wait_for(
-                executor(request), timeout=request.timeout_seconds
-            )
+            result = await asyncio.wait_for(executor(request), timeout=request.timeout_seconds)
             cb._on_success()
             return result
         except Exception:
@@ -260,9 +238,7 @@ class OctopusDispatcher:
         error_message: str,
     ) -> OctopusResult:
         """Construct a standardized failure result."""
-        duration_ms = int(
-            (datetime.now(UTC) - start).total_seconds() * 1000
-        )
+        duration_ms = int((datetime.now(UTC) - start).total_seconds() * 1000)
         return OctopusResult(
             arm=request.arm.value,
             url=request.url,

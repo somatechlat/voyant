@@ -37,7 +37,6 @@ async def _download_to_temp(url: str, suffix: str) -> str:
 
 
 async def execute(request: OctopusRequest) -> OctopusResult:
-    """
     start = datetime.now(UTC)
     file_path = request.url
     is_remote = file_path.startswith(("http://", "https://"))
@@ -56,9 +55,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
             tenant_id=request.tenant_id,
             job_id=request.job_id,
             success=False,
-            duration_ms=int(
-                (datetime.now(UTC) - start).total_seconds() * 1000
-            ),
+            duration_ms=int((datetime.now(UTC) - start).total_seconds() * 1000),
             fetched_at=start.isoformat(),
             error_code="DOCUMENT_FETCH_ERROR",
             error_message=str(exc),
@@ -66,9 +63,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
 
     try:
         parser = PDFParser()
-        pdf_result = parser.parse(
-            file_path, extract_tables=request.extract_tables
-        )
+        pdf_result = parser.parse(file_path, extract_tables=request.extract_tables)
 
         text = pdf_result.get("text", "")
         metadata = pdf_result.get("metadata", {})
@@ -93,9 +88,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
             tenant_id=request.tenant_id,
             job_id=request.job_id,
             success=False,
-            duration_ms=int(
-                (datetime.now(UTC) - start).total_seconds() * 1000
-            ),
+            duration_ms=int((datetime.now(UTC) - start).total_seconds() * 1000),
             fetched_at=start.isoformat(),
             error_code="DOCUMENT_PARSE_ERROR",
             error_message=str(exc),
@@ -107,9 +100,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
             except Exception:
                 pass
 
-    duration_ms = int(
-        (datetime.now(UTC) - start).total_seconds() * 1000
-    )
+    duration_ms = int((datetime.now(UTC) - start).total_seconds() * 1000)
     return OctopusResult(
         arm=request.arm.value,
         url=request.url,

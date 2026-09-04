@@ -88,9 +88,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
                 try:
                     task = asyncio.create_task(_maybe_capture(response))
                     capture_tasks.add(task)
-                    task.add_done_callback(
-                        lambda t: capture_tasks.discard(t)
-                    )
+                    task.add_done_callback(lambda t: capture_tasks.discard(t))
                 except RuntimeError:
                     return
 
@@ -110,9 +108,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
                 )
 
             if request.scroll:
-                await page.evaluate(
-                    "window.scrollTo(0, document.body.scrollHeight)"
-                )
+                await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
                 await page.wait_for_timeout(1000)
 
             if request.settle_ms and request.settle_ms > 0:
@@ -122,9 +118,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
 
             capturing_enabled = False
             if capture_tasks:
-                await asyncio.gather(
-                    *list(capture_tasks), return_exceptions=True
-                )
+                await asyncio.gather(*list(capture_tasks), return_exceptions=True)
 
             await browser.close()
     except Exception as exc:
@@ -135,17 +129,13 @@ async def execute(request: OctopusRequest) -> OctopusResult:
             tenant_id=request.tenant_id,
             job_id=request.job_id,
             success=False,
-            duration_ms=int(
-                (datetime.now(UTC) - start).total_seconds() * 1000
-            ),
+            duration_ms=int((datetime.now(UTC) - start).total_seconds() * 1000),
             fetched_at=start.isoformat(),
             error_code="API_INTERCEPT_ERROR",
             error_message=str(exc),
         )
 
-    duration_ms = int(
-        (datetime.now(UTC) - start).total_seconds() * 1000
-    )
+    duration_ms = int((datetime.now(UTC) - start).total_seconds() * 1000)
     return OctopusResult(
         arm=request.arm.value,
         url=request.url,

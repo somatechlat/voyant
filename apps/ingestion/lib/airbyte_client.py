@@ -136,9 +136,7 @@ class AirbyteClient:
             auth = None
             # Configure basic authentication if credentials are provided.
             if self.config.basic_auth_user and self.config.basic_auth_password:
-                auth = httpx.BasicAuth(
-                    self.config.basic_auth_user, self.config.basic_auth_password
-                )
+                auth = httpx.BasicAuth(self.config.basic_auth_user, self.config.basic_auth_password)
 
             self._client = httpx.AsyncClient(
                 base_url=self.config.base_url,
@@ -334,9 +332,7 @@ class AirbyteClient:
 
         destination_id = response.get("destinationId", "")
 
-        logger.info(
-            f"Airbyte destination provisioned: destination_id={destination_id}"
-        )
+        logger.info(f"Airbyte destination provisioned: destination_id={destination_id}")
 
         return {
             "destination_id": destination_id,
@@ -420,9 +416,7 @@ class AirbyteClient:
             "connectionId", ""
         )
 
-        logger.info(
-            f"Dynamic Airbyte connection created: connection_id={connection_id}"
-        )
+        logger.info(f"Dynamic Airbyte connection created: connection_id={connection_id}")
 
         return connection_id
 
@@ -447,9 +441,7 @@ class AirbyteClient:
 
         job_id = response.get("job", {}).get("id", response.get("jobId"))
 
-        logger.info(
-            f"Airbyte sync triggered: job_id={job_id} for connection {connection_id}."
-        )
+        logger.info(f"Airbyte sync triggered: job_id={job_id} for connection {connection_id}.")
 
         return {
             "job_id": job_id,
@@ -528,14 +520,10 @@ class AirbyteClient:
             job_status = status.get("status", "unknown").lower()
 
             if job_status in ("succeeded", "failed", "cancelled"):
-                logger.info(
-                    f"Airbyte job {job_id} completed with status: {job_status}."
-                )
+                logger.info(f"Airbyte job {job_id} completed with status: {job_status}.")
                 return status
 
-            logger.debug(
-                f"Airbyte job {job_id} status: {job_status}, waiting for completion..."
-            )
+            logger.debug(f"Airbyte job {job_id} status: {job_status}, waiting for completion...")
             await asyncio.sleep(poll_interval)
 
     # =========================================================================
@@ -644,9 +632,7 @@ async def connect_airbyte_source(
         Dict[str, Any]: Details of the provisioned source.
     """
     client = get_airbyte_client()
-    return await client.connect_source(
-        workspace_id, source_definition_id, name, connection_config
-    )
+    return await client.connect_source(workspace_id, source_definition_id, name, connection_config)
 
 
 async def provision_airbyte_destination(

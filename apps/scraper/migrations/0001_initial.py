@@ -7,7 +7,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = []
@@ -133,8 +132,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="scrapejob",
-            index=models.Index(
-                fields=["created_at"], name="voyant_scra_created_7c2346_idx"
-            ),
+            index=models.Index(fields=["created_at"], name="voyant_scra_created_7c2346_idx"),
         ),
     ]

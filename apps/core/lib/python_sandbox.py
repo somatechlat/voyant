@@ -19,14 +19,11 @@ logger = logging.getLogger(__name__)
 
 
 class PythonSandboxNode:
-
     @classmethod
     async def execute_script(
         cls, script_content: str, parameters: dict[str, Any], tenant_id: str
     ) -> dict[str, Any]:
-        logger.info(
-            f"Dispatching real sandboxed Python execution for tenant {tenant_id}"
-        )
+        logger.info(f"Dispatching real sandboxed Python execution for tenant {tenant_id}")
         execution_id = str(uuid.uuid4())
 
         # Security: Enforce that the script does not contain clear network imports
@@ -38,24 +35,16 @@ class PythonSandboxNode:
             or "import requests" in script_content
             or "from requests" in script_content
         ):
-            logger.error(
-                f"[SANDBOX {execution_id}] Network import detected. Execution halted."
-            )
-            raise ValueError(
-                "Security Violation: Network imports strictly forbidden in sandbox."
-            )
+            logger.error(f"[SANDBOX {execution_id}] Network import detected. Execution halted.")
+            raise ValueError("Security Violation: Network imports strictly forbidden in sandbox.")
 
-        logger.info(
-            f"Sandbox {execution_id} evaluating parameters: {list(parameters.keys())}"
-        )
+        logger.info(f"Sandbox {execution_id} evaluating parameters: {list(parameters.keys())}")
 
         # --- Physical Docker Execution ---
         client = docker.from_env()
 
         # Map parameters to environment securely
-        environment = {
-            f"SANDBOX_PARAM_{k.upper()}": str(v) for k, v in parameters.items()
-        }
+        environment = {f"SANDBOX_PARAM_{k.upper()}": str(v) for k, v in parameters.items()}
         environment["TENANT_ID"] = tenant_id
 
         # Real container spawning with strict constraints (No network)
@@ -87,9 +76,7 @@ class PythonSandboxNode:
 
             container.remove(force=True)
 
-            logger.info(
-                f"Sandbox {execution_id} completed. Output firmly written to {output_uri}"
-            )
+            logger.info(f"Sandbox {execution_id} completed. Output firmly written to {output_uri}")
 
             return {
                 "execution_id": execution_id,

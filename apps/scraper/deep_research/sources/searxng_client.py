@@ -22,6 +22,7 @@ class SearXNGClient:
 
     def __init__(self, base_url: str = "") -> None:
         from apps.core.config import get_settings
+
         self.base_url = (base_url or get_settings().searxng_url).rstrip("/")
 
     async def search(

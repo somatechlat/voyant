@@ -146,9 +146,7 @@ class InMemoryJobQueue:
             queue.insert(insert_pos, job)
             self._all_jobs[job_id] = job
 
-            logger.debug(
-                f"Enqueued job {job_id} for tenant {tenant_id} at position {insert_pos}"
-            )
+            logger.debug(f"Enqueued job {job_id} for tenant {tenant_id} at position {insert_pos}")
             return insert_pos
 
     async def acquire_next(
@@ -252,9 +250,7 @@ class InMemoryJobQueue:
             "tenant_id": tenant_id,
             "queued_count": len(queue),
             "running_count": len(running),
-            "oldest_queued_age_seconds": (
-                time.time() - queue[0].created_at if queue else 0
-            ),
+            "oldest_queued_age_seconds": (time.time() - queue[0].created_at if queue else 0),
             "running_job_ids": [j.job_id for j in running],
         }
 
@@ -325,9 +321,7 @@ class InMemoryJobQueue:
 
             # Clear running
             to_remove = [
-                job_id
-                for job_id, job in self._running.items()
-                if job.tenant_id == tenant_id
+                job_id for job_id, job in self._running.items() if job.tenant_id == tenant_id
             ]
             for job_id in to_remove:
                 del self._running[job_id]
@@ -498,9 +492,7 @@ class RedisJobQueue(InMemoryJobQueue):
             job_dict["metadata"]["result"] = result
 
         # We might keep completed jobs for a while or expire them
-        await client.set(
-            job_key, json.dumps(job_dict), ex=3600 * 24
-        )  # Expire after 24h
+        await client.set(job_key, json.dumps(job_dict), ex=3600 * 24)  # Expire after 24h
 
         return True
 

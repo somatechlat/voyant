@@ -300,9 +300,7 @@ def validate_url(url: str) -> str:
 
     # Enforce a maximum URL length to prevent buffer overflows or overly long requests.
     if len(url) > 2048:
-        raise URLValidationError(
-            "URL exceeds maximum allowed length of 2048 characters."
-        )
+        raise URLValidationError("URL exceeds maximum allowed length of 2048 characters.")
 
     # Perform SSRF-specific validation.
     is_safe, reason = validate_url_ssrf(url)
@@ -332,9 +330,7 @@ def validate_urls(urls: list[str]) -> list[str]:
 
     # Enforce a reasonable limit on the number of URLs per request.
     if len(urls) > 1000:
-        raise URLValidationError(
-            "Maximum 1000 URLs allowed per request for batch validation."
-        )
+        raise URLValidationError("Maximum 1000 URLs allowed per request for batch validation.")
 
     validated = []
     for i, url in enumerate(urls):

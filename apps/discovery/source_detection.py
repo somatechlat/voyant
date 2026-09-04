@@ -12,9 +12,7 @@ def detect_source_type(hint: str) -> dict[str, Any]:
         return {
             "source_type": "postgresql",
             "connector": "airbyte/source-postgres",
-            "properties": {
-                "host": hint.split("@")[-1].split("/")[0] if "@" in hint else "unknown"
-            },
+            "properties": {"host": hint.split("@")[-1].split("/")[0] if "@" in hint else "unknown"},
             "confidence": 0.95,
         }
     if hint_lower.startswith("mysql://"):
@@ -63,15 +61,10 @@ def detect_source_type(hint: str) -> dict[str, Any]:
         return {
             "source_type": "s3",
             "connector": "airbyte/source-s3",
-            "properties": {
-                "bucket": hint.split("/")[2] if len(hint.split("/")) > 2 else ""
-            },
+            "properties": {"bucket": hint.split("/")[2] if len(hint.split("/")) > 2 else ""},
             "confidence": 0.9,
         }
-    if (
-        "sheets.google.com" in hint_lower
-        or "docs.google.com/spreadsheets" in hint_lower
-    ):
+    if "sheets.google.com" in hint_lower or "docs.google.com/spreadsheets" in hint_lower:
         return {
             "source_type": "google_sheets",
             "connector": "airbyte/source-google-sheets",

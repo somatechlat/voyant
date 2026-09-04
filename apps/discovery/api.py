@@ -28,9 +28,7 @@ _spec_parser = SpecParser()
 
 
 class DiscoverRequest(Schema):
-    hint: str = Field(
-        ..., description="A string that provides a hint about the data source."
-    )
+    hint: str = Field(..., description="A string that provides a hint about the data source.")
 
 
 class DiscoverResponse(Schema):
@@ -129,7 +127,9 @@ def get_source(request, source_id: str):
     )
 
 
-@sources_router.delete("/{source_id}", response={200: dict[str, str]}, auth=require_permission("write:sources"))
+@sources_router.delete(
+    "/{source_id}", response={200: dict[str, str]}, auth=require_permission("write:sources")
+)
 def delete_source(request, source_id: str):
     source = Source.objects.filter(id=source_id).first()
     if not source:
@@ -182,9 +182,7 @@ def register_service(request, payload: ServiceRegisterRequest):
         return service
     except Exception as exc:
         logger.exception("Failed to register service")
-        raise HttpError(
-            500, get_message("ERR_SERVICE_REGISTER_FAILED", error=str(exc))
-        ) from exc
+        raise HttpError(500, get_message("ERR_SERVICE_REGISTER_FAILED", error=str(exc))) from exc
 
 
 @discovery_router.get("/services", response=list[ServiceDef])
@@ -194,9 +192,7 @@ def list_services(request, tag: str | None = None):
             return _discovery_repo.search(tag)
         return _discovery_repo.list_services()
     except Exception as exc:
-        raise HttpError(
-            500, get_message("ERR_SERVICE_LIST_FAILED", error=str(exc))
-        ) from exc
+        raise HttpError(500, get_message("ERR_SERVICE_LIST_FAILED", error=str(exc))) from exc
 
 
 @discovery_router.get("/services/{name}", response=ServiceDef)
@@ -209,9 +205,7 @@ def get_service(request, name: str):
     except HttpError:
         raise
     except Exception as exc:
-        raise HttpError(
-            500, get_message("ERR_SERVICE_RETR_FAILED", error=str(exc))
-        ) from exc
+        raise HttpError(500, get_message("ERR_SERVICE_RETR_FAILED", error=str(exc))) from exc
 
 
 @discovery_router.post("/scan", response=dict[str, Any], auth=require_permission("write:sources"))

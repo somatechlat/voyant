@@ -39,9 +39,7 @@ class HTMLParser:
 
         return result
 
-    def _extract_single(
-        self, tree: lxml_html.HtmlElement, selector: str
-    ) -> list[str] | str | None:
+    def _extract_single(self, tree: lxml_html.HtmlElement, selector: str) -> list[str] | str | None:
         if selector.startswith("//"):
             # XPath selector. lxml's xpath method returns a list.
             return tree.xpath(selector)
@@ -105,9 +103,7 @@ class HTMLParser:
                     # For nested fields, usually only the first value is desired.
                     row[field_name] = values[0] if values else None
                 except Exception as e:
-                    logger.warning(
-                        f"Nested selector '{field_name}' failed for an item: {e}"
-                    )
+                    logger.warning(f"Nested selector '{field_name}' failed for an item: {e}")
                     row[field_name] = None
             results.append(row)
 

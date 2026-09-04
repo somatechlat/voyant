@@ -121,5 +121,7 @@ class CapsuleWorkflow:
             start_to_close_timeout=timedelta(seconds=60),
         )
 
-        job_urn = f"urn:voyant:job:{tenant_id}:{capsule.get('name', 'unknown')}:{workflow.info().run_id}"
+        job_urn = (
+            f"urn:voyant:job:{tenant_id}:{capsule.get('name', 'unknown')}:{workflow.info().run_id}"
+        )
         return {"job_urn": job_urn, "artifacts": artifacts, "status": "completed"}

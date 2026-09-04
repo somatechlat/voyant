@@ -247,9 +247,7 @@ def record_duration(job_type: str, duration_seconds: float):
         duration_seconds: The duration of the job in seconds.
     """
     if "job_duration_seconds" in BASIC_METRICS:
-        BASIC_METRICS["job_duration_seconds"].labels(type=job_type).observe(
-            duration_seconds
-        )
+        BASIC_METRICS["job_duration_seconds"].labels(type=job_type).observe(duration_seconds)
 
 
 def record_dependency(component: str, is_up: bool):
@@ -260,9 +258,7 @@ def record_dependency(component: str, is_up: bool):
         is_up: True if the dependency is up, False otherwise.
     """
     if "dependency_up" in BASIC_METRICS:
-        BASIC_METRICS["dependency_up"].labels(component=component).set(
-            1 if is_up else 0
-        )
+        BASIC_METRICS["dependency_up"].labels(component=component).set(1 if is_up else 0)
 
 
 def record_sufficiency(score: float):

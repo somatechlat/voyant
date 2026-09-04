@@ -14,7 +14,6 @@ logger = logging.getLogger(__name__)
 
 
 class AnalysisActivities:
-
     def __init__(self):
         self.settings = get_settings()
 
@@ -33,9 +32,7 @@ class AnalysisActivities:
                 "table is required for sample fetch activity.", non_retryable=True
             )
 
-        activity.logger.info(
-            f"Fetching sample from table '{table}' (size: {sample_size})."
-        )
+        activity.logger.info(f"Fetching sample from table '{table}' (size: {sample_size}).")
 
         try:
             import duckdb
@@ -58,9 +55,7 @@ class AnalysisActivities:
         errors = []
 
         data = params.get("data")
-        target_analyzers = params.get(
-            "analyzers"
-        )  # If None, attempt to run all active analyzers.
+        target_analyzers = params.get("analyzers")  # If None, attempt to run all active analyzers.
         shared_context = params.get("context", {})
 
         # Retrieve all available analyzer plugins from the registry.

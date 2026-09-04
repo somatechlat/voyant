@@ -64,9 +64,7 @@ class FetchActivities:
         block_resources = params.get("block_resources")
         if block_resources is None:
             block_resources = settings.scraper_playwright_block_resources_default
-        capture_json = params.get(
-            "capture_json", settings.scraper_playwright_capture_json_default
-        )
+        capture_json = params.get("capture_json", settings.scraper_playwright_capture_json_default)
         capture_url_contains = params.get("capture_url_contains") or None
         capture_max_bytes = params.get("capture_max_bytes")
         if capture_max_bytes is None:
@@ -90,7 +88,7 @@ class FetchActivities:
                     wait_for=wait_for,
                     scroll=scroll,
                     timeout=timeout,
-                    wait_until=typing.cast(Any, wait_until), # type: ignore
+                    wait_until=typing.cast(Any, wait_until),  # type: ignore
                     settle_ms=int(settle_ms),
                     block_resources=bool(block_resources),
                     capture_json=bool(capture_json),
@@ -215,9 +213,7 @@ class FetchActivities:
                         if not capturing_enabled:
                             return
                         try:
-                            task = asyncio.create_task(
-                                _maybe_capture_response(response)
-                            )
+                            task = asyncio.create_task(_maybe_capture_response(response))
                         except RuntimeError:
                             return
                         capture_tasks.add(task)
@@ -235,9 +231,7 @@ class FetchActivities:
                     await page.wait_for_selector(wait_for, timeout=timeout * 1000)
 
                 if scroll:
-                    await page.evaluate(
-                        "window.scrollTo(0, document.body.scrollHeight)"
-                    )
+                    await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
                     await page.wait_for_timeout(1000)
 
                 if settle_ms and settle_ms > 0:
@@ -248,9 +242,7 @@ class FetchActivities:
                 capturing_enabled = False
                 if capture_tasks:
                     try:
-                        await asyncio.gather(
-                            *list(capture_tasks), return_exceptions=True
-                        )
+                        await asyncio.gather(*list(capture_tasks), return_exceptions=True)
                     except Exception:
                         pass
                 for obj in [page, context, browser]:
@@ -349,9 +341,7 @@ class FetchActivities:
                         if element:
                             await element.click()
                             await page.wait_for_timeout(wait_settle_ms)
-                            extracted_data["interaction_states"][
-                                selector
-                            ] = await page.content()
+                            extracted_data["interaction_states"][selector] = await page.content()
                     except Exception as e:
                         logger.warning(f"Failed to interact with {selector}: {e}")
 
@@ -363,16 +353,19 @@ class FetchActivities:
                         if not href:
                             continue
                         matched = any(
-                            pattern.lower() in href.lower()
-                            for pattern in download_patterns
+                            pattern.lower() in href.lower() for pattern in download_patterns
                         )
                         if matched:
                             full_url = urljoin(page.url, href)
-                            safe_name = f"artifact_{len(extracted_data['files_downloaded'])}.download"
+                            safe_name = (
+                                f"artifact_{len(extracted_data['files_downloaded'])}.download"
+                            )
                             if "archivo=" in href.lower():
                                 safe_name = href.split("=")[-1].split("&")[0][:50]
                             elif href.split("?")[0].endswith(".pdf"):
-                                safe_name = f"artifact_{len(extracted_data['files_downloaded'])}.pdf"
+                                safe_name = (
+                                    f"artifact_{len(extracted_data['files_downloaded'])}.pdf"
+                                )
                             extracted_data["files_downloaded"].append(
                                 {"url": full_url, "filename": safe_name}
                             )
@@ -387,9 +380,7 @@ class FetchActivities:
                                 full_url = urljoin(page.url, extracted_path)
                                 safe_name = f"js_artifact_{len(extracted_data['files_downloaded'])}.download"
                                 if "archivo=" in extracted_path.lower():
-                                    safe_name = extracted_path.split("=")[-1].split(
-                                        "&"
-                                    )[0][:50]
+                                    safe_name = extracted_path.split("=")[-1].split("&")[0][:50]
                                 extracted_data["files_downloaded"].append(
                                     {"url": full_url, "filename": safe_name}
                                 )

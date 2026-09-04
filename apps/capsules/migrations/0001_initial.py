@@ -7,7 +7,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = []
@@ -366,12 +365,8 @@ class Migration(migrations.Migration):
                 "db_table": "constitutions",
                 "ordering": ["-created_at"],
                 "indexes": [
-                    models.Index(
-                        fields=["is_active"], name="constitutio_is_acti_3b6f83_idx"
-                    ),
-                    models.Index(
-                        fields=["content_hash"], name="constitutio_content_431263_idx"
-                    ),
+                    models.Index(fields=["is_active"], name="constitutio_is_acti_3b6f83_idx"),
+                    models.Index(fields=["content_hash"], name="constitutio_content_431263_idx"),
                 ],
             },
         ),
@@ -411,15 +406,11 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="capsuleinstance",
-            index=models.Index(
-                fields=["job_urn"], name="capsule_ins_job_urn_f8c787_idx"
-            ),
+            index=models.Index(fields=["job_urn"], name="capsule_ins_job_urn_f8c787_idx"),
         ),
         migrations.AddIndex(
             model_name="capsule",
-            index=models.Index(
-                fields=["tenant_id", "status"], name="capsules_tenant__fb8024_idx"
-            ),
+            index=models.Index(fields=["tenant_id", "status"], name="capsules_tenant__fb8024_idx"),
         ),
         migrations.AddIndex(
             model_name="capsule",

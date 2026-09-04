@@ -77,9 +77,7 @@ def _create_job(request, job_type: str, source_id: str, params: dict[str, Any]) 
 def analyze(request, payload: AnalyzeRequest):
     table = _resolve_table(payload)
     if not table:
-        raise HttpError(
-            400, get_message("ERR_VALIDATION", error="table or source_id is required")
-        )
+        raise HttpError(400, get_message("ERR_VALIDATION", error="table or source_id is required"))
 
     tenant_id = get_tenant_id(request)
     try:
@@ -110,9 +108,7 @@ def analyze(request, payload: AnalyzeRequest):
                 "table": table,
                 "tables": payload.tables,
                 "sample_size": payload.sample_size,
-                "kpis": (
-                    [kpi.model_dump() for kpi in payload.kpis] if payload.kpis else None
-                ),
+                "kpis": ([kpi.model_dump() for kpi in payload.kpis] if payload.kpis else None),
                 "analyzers": payload.analyzers,
                 "job_id": job_id,
                 "tenant_id": tenant_id,

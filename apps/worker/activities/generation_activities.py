@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 
 
 class GenerationActivities:
-
     def __init__(self):
         pass
 

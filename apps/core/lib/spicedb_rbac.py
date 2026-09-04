@@ -87,10 +87,7 @@ class SpiceRBAC:
                 ),
                 metadata=self._metadata(),
             )
-            return (
-                resp.permissionship
-                == CheckPermissionResponse.PERMISSIONSHIP_HAS_PERMISSION
-            )
+            return resp.permissionship == CheckPermissionResponse.PERMISSIONSHIP_HAS_PERMISSION
         except Exception as exc:
             logger.error("SpiceDB check_permission failed: %s", exc)
             return False

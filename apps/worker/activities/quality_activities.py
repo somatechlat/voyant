@@ -88,9 +88,7 @@ class QualityActivities:
         """
         if not checks:
             # Default: null check for every column (20% threshold) and unique check for id-like columns
-            rules: list[QualityRule] = [
-                NullCheck(col, max_null_pct=0.2) for col in df.columns
-            ]
+            rules: list[QualityRule] = [NullCheck(col, max_null_pct=0.2) for col in df.columns]
             for col in df.columns:
                 if col.lower().endswith("id") or col.lower() == "id":
                     rules.append(UniqueCheck(col))
@@ -105,15 +103,11 @@ class QualityActivities:
             rule_type = spec.get("type")
             column = spec.get("column")
             if not rule_type or not column:
-                logger.warning(
-                    "Skipping invalid check spec (missing type/column): %s", spec
-                )
+                logger.warning("Skipping invalid check spec (missing type/column): %s", spec)
                 continue
 
             if rule_type == "null":
-                rules.append(
-                    NullCheck(column, max_null_pct=float(spec.get("max_null_pct", 0.0)))
-                )
+                rules.append(NullCheck(column, max_null_pct=float(spec.get("max_null_pct", 0.0))))
             elif rule_type == "range":
                 rules.append(
                     RangeCheck(

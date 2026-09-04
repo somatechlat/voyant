@@ -90,17 +90,18 @@ class DeepResearchWorkflow:
             if html and url:
                 extraction = extractor.extract(html, url)
                 if extraction.get("success"):
-                    extracted_contents.append({
-                        "url": url,
-                        "text": extraction.get("text", ""),
-                        "title": extraction.get("title", ""),
-                        "method": extraction.get("method", ""),
-                    })
+                    extracted_contents.append(
+                        {
+                            "url": url,
+                            "text": extraction.get("text", ""),
+                            "title": extraction.get("title", ""),
+                            "method": extraction.get("method", ""),
+                        }
+                    )
 
         # Build a combined text corpus for downstream consumption
         combined_text = "\n\n".join(
-            f"[{item['title'] or item['url']}]\n{item['text']}"
-            for item in extracted_contents
+            f"[{item['title'] or item['url']}]\n{item['text']}" for item in extracted_contents
         )
 
         workflow.logger.info(

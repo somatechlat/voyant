@@ -62,9 +62,7 @@ class DiscoveryActivities:
         query = params.get("query", "")
         limit = params.get("limit", 5)
 
-        activity.logger.info(
-            f"Searching for APIs matching query: '{query}' (limit: {limit})."
-        )
+        activity.logger.info(f"Searching for APIs matching query: '{query}' (limit: {limit}).")
         return self.search.search_apis(query, limit)
 
     @activity.defn(name="scan_spec_url")
@@ -104,13 +102,9 @@ class DiscoveryActivities:
                     for e in spec.endpoints[:5]
                 ],
             }
-            activity.logger.info(
-                f"Successfully scanned spec for '{spec.title}' v{spec.version}."
-            )
+            activity.logger.info(f"Successfully scanned spec for '{spec.title}' v{spec.version}.")
             return result
 
         except Exception as e:
             activity.logger.error(f"API specification scan failed for URL '{url}': {e}")
-            raise ApplicationError(
-                f"API specification scan failed: {e}", non_retryable=True
-            ) from e
+            raise ApplicationError(f"API specification scan failed: {e}", non_retryable=True) from e

@@ -115,9 +115,7 @@ class Settings(BaseSettings):
     # --------------------------------------------------------------------------
     # Core Application Environment
     # --------------------------------------------------------------------------
-    env: str = Field(
-        default="local", description="Environment: local, staging, production"
-    )
+    env: str = Field(default="local", description="Environment: local, staging, production")
     deployment_mode: str = Field(
         default="integrated",
         description="Deployment mode: integrated or standalone.",
@@ -273,17 +271,11 @@ class Settings(BaseSettings):
     minio_bucket_name: str = Field(
         default="voyant-artifacts", description="MinIO bucket name for artifact storage."
     )
-    minio_secure: bool = Field(
-        default=False, description="Use HTTPS for MinIO connection."
-    )
-    trino_host: str = Field(
-        default="", description="Hostname for the Trino SQL query engine."
-    )
+    minio_secure: bool = Field(default=False, description="Use HTTPS for MinIO connection.")
+    trino_host: str = Field(default="", description="Hostname for the Trino SQL query engine.")
     trino_port: int = Field(default=45090, description="Port for Trino.")
     trino_user: str = Field(default="", description="Username for Trino.")
-    trino_catalog: str = Field(
-        default="iceberg", description="Default Trino catalog to query."
-    )
+    trino_catalog: str = Field(default="iceberg", description="Default Trino catalog to query.")
     trino_schema: str = Field(default="", description="Default Trino schema to query.")
 
     # --------------------------------------------------------------------------
@@ -323,9 +315,7 @@ class Settings(BaseSettings):
         description="Automatically create Milvus collections on first use.",
     )
 
-    r_engine_host: str = Field(
-        default="", description="Hostname for the R-Engine (pyRserve)."
-    )
+    r_engine_host: str = Field(default="", description="Hostname for the R-Engine (pyRserve).")
     r_engine_port: int = Field(default=45311, description="Port for the R-Engine.")
     datahub_gms_url: str = Field(
         default="",
@@ -597,9 +587,7 @@ class Settings(BaseSettings):
     enable_mfa: bool = Field(
         default=False, description="Enable Multi-Factor Authentication requirements."
     )
-    enable_charts: bool = Field(
-        default=True, description="Enable chart generation capabilities."
-    )
+    enable_charts: bool = Field(default=True, description="Enable chart generation capabilities.")
     enable_narrative: bool = Field(
         default=True, description="Enable narrative generation capabilities."
     )
@@ -638,12 +626,8 @@ class Settings(BaseSettings):
     max_upload_size_mb: int = Field(
         default=100, description="Maximum size for file uploads in megabytes."
     )
-    session_ttl_hours: int = Field(
-        default=8, description="Maximum session lifetime in hours."
-    )
-    session_idle_minutes: int = Field(
-        default=30, description="Session idle timeout in minutes."
-    )
+    session_ttl_hours: int = Field(default=8, description="Maximum session lifetime in hours.")
+    session_idle_minutes: int = Field(default=30, description="Session idle timeout in minutes.")
     default_tenant_id: str = Field(
         default="default",
         alias="DEFAULT_TENANT_ID",

@@ -35,9 +35,7 @@ class SqlRequest(Schema):
 class SqlResponse(Schema):
     """Response schema for the result of an executed SQL query."""
 
-    columns: list[str] = Field(
-        ..., description="A list of column names returned by the query."
-    )
+    columns: list[str] = Field(..., description="A list of column names returned by the query.")
     rows: list[list[Any]] = Field(
         ...,
         description="A list of lists, where each inner list represents a row of data.",
@@ -121,6 +119,4 @@ def get_columns(request, table: str, schema: str | None = None):
         return {"table": table, "columns": columns}
     except Exception as exc:
         logger.exception("Failed to get columns for table '%s'", table)
-        raise HttpError(
-            500, get_message("ERR_SQL_COLUMNS", table=table, error=str(exc))
-        ) from exc
+        raise HttpError(500, get_message("ERR_SQL_COLUMNS", table=table, error=str(exc))) from exc

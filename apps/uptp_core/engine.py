@@ -19,6 +19,7 @@ _temporal_dispatch_pool = ThreadPoolExecutor(max_workers=10, thread_name_prefix=
 
 def _dispatch_workflow(workflow_cls, args: dict, execution_urn: str) -> None:
     """Fire-and-forget Temporal workflow dispatch (runs in background thread)."""
+
     def _run():
         try:
             client = run_async(get_temporal_client)
@@ -59,14 +60,10 @@ class UPTPExecutionEngine:
         )
 
         if not request.template_id:
-            raise ValidationError(
-                "A valid template_id must be provided to the UPTP Engine."
-            )
+            raise ValidationError("A valid template_id must be provided to the UPTP Engine.")
 
         job_uuid = uuid.uuid4().hex
-        execution_urn = (
-            f"urn:voyant:job:{request.tenant_id}:{request.template_id}:{job_uuid}"
-        )
+        execution_urn = f"urn:voyant:job:{request.tenant_id}:{request.template_id}:{job_uuid}"
 
         if request.category == "ingestion":
             if request.template_id == "ingest.web.deep_research":
@@ -184,9 +181,7 @@ class UPTPExecutionEngine:
                         tenant_id=request.tenant_id,
                     )
                 else:
-                    raise ValueError(
-                        f"Unsupported chart template: {request.template_id}"
-                    )
+                    raise ValueError(f"Unsupported chart template: {request.template_id}")
 
                 return {
                     "status": "success",

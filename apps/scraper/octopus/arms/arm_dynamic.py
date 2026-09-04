@@ -40,9 +40,7 @@ async def _perform_actions(page, actions: list[BrowserAction]) -> None:
         elif atype == "fill" and selector:
             await page.fill(selector, value or "", timeout=timeout)
         elif atype == "scroll":
-            await page.evaluate(
-                "window.scrollTo(0, document.body.scrollHeight)"
-            )
+            await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
             await page.wait_for_timeout(1000)
         elif atype == "wait":
             await page.wait_for_timeout(timeout)
@@ -51,15 +49,11 @@ async def _perform_actions(page, actions: list[BrowserAction]) -> None:
         elif atype == "hover" and selector:
             await page.hover(selector, timeout=timeout)
         elif atype == "select" and selector:
-            await page.select_option(
-                selector, value or "", timeout=timeout
-            )
+            await page.select_option(selector, value or "", timeout=timeout)
         elif atype == "keyboard" and value:
             await page.keyboard.press(value)
         else:
-            logger.warning(
-                "Unknown or incomplete action: %s", action.model_dump()
-            )
+            logger.warning("Unknown or incomplete action: %s", action.model_dump())
 
 
 async def execute(request: OctopusRequest) -> OctopusResult:
@@ -91,9 +85,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
             if stealth_async is not None:
                 await stealth_async(page)
             else:
-                logger.warning(
-                    "playwright-stealth unavailable; skipping stealth"
-                )
+                logger.warning("playwright-stealth unavailable; skipping stealth")
 
             if request.block_resources:
 
@@ -125,9 +117,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
                 )
 
             if request.scroll:
-                await page.evaluate(
-                    "window.scrollTo(0, document.body.scrollHeight)"
-                )
+                await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
                 await page.wait_for_timeout(1000)
 
             if request.settle_ms and request.settle_ms > 0:
@@ -146,9 +136,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
             tenant_id=request.tenant_id,
             job_id=request.job_id,
             success=False,
-            duration_ms=int(
-                (datetime.now(UTC) - start).total_seconds() * 1000
-            ),
+            duration_ms=int((datetime.now(UTC) - start).total_seconds() * 1000),
             fetched_at=start.isoformat(),
             error_code="DYNAMIC_ERROR",
             error_message=str(exc),
@@ -172,9 +160,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
     if request.extract_links:
         links = parser.get_all_links(html)
 
-    duration_ms = int(
-        (datetime.now(UTC) - start).total_seconds() * 1000
-    )
+    duration_ms = int((datetime.now(UTC) - start).total_seconds() * 1000)
     return OctopusResult(
         arm=request.arm.value,
         url=request.url,

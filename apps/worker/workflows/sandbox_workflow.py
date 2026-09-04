@@ -34,9 +34,7 @@ class SandboxWorkflow:
         if not script:
             raise ValueError("SandboxWorkflow requires a 'script' payload to evaluate.")
 
-        workflow.logger.info(
-            f"Sandbox Workflow initialized for {tenant_id}, Job: {job_id}"
-        )
+        workflow.logger.info(f"Sandbox Workflow initialized for {tenant_id}, Job: {job_id}")
 
         # Real physical execution block via Temporal Activities
         start_to_close_timeout = timedelta(hours=1)

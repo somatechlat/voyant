@@ -63,9 +63,7 @@ class TimeForecaster(AnalyzerPlugin):
             Dict containing forecast data and visualization spec.
         """
         if not SKLEARN_AVAILABLE:
-            raise AnalysisError(
-                "VYNT-ML-001", "scikit-learn is required for forecasting"
-            )
+            raise AnalysisError("VYNT-ML-001", "scikit-learn is required for forecasting")
 
         # 1. Data Prep
         df = self._to_dataframe(data)

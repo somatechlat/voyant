@@ -128,9 +128,7 @@ class SupersetClient:
         chart.id = resp.json().get("id")
         return chart
 
-    def create_dashboard(
-        self, dashboard: SupersetDashboard
-    ) -> SupersetDashboard:
+    def create_dashboard(self, dashboard: SupersetDashboard) -> SupersetDashboard:
         """Create a new dashboard in Superset."""
         payload = {
             "dashboard_title": dashboard.title,

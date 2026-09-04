@@ -41,9 +41,7 @@ class SpiceDBClient:
             if self._tls_enabled:
                 from grpc import ssl_channel_credentials
 
-                self._channel = grpc.secure_channel(
-                    self.endpoint, ssl_channel_credentials()
-                )
+                self._channel = grpc.secure_channel(self.endpoint, ssl_channel_credentials())
             else:
                 self._channel = grpc.insecure_channel(self.endpoint)
         return self._channel
@@ -95,10 +93,7 @@ class SpiceDBClient:
                 ),
                 metadata=metadata,
             )
-            return (
-                resp.permissionship
-                == CheckPermissionResponse.PERMISSIONSHIP_HAS_PERMISSION
-            )
+            return resp.permissionship == CheckPermissionResponse.PERMISSIONSHIP_HAS_PERMISSION
         except Exception as e:
             logger.error(f"SpiceDB check failed: {e}")
             return False

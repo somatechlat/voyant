@@ -17,7 +17,6 @@ logger = logging.getLogger(__name__)
 
 
 class ForecastMethod(StrEnum):
-
     NAIVE = "naive"  # Last value repeated
     SMA = "sma"  # Simple Moving Average
     EMA = "ema"  # Exponential Moving Average
@@ -26,7 +25,6 @@ class ForecastMethod(StrEnum):
 
 @dataclass
 class ForecastPoint:
-
     period: int  # Periods ahead (1 = next)
     value: float
     lower_bound: float  # Lower confidence interval
@@ -60,7 +58,9 @@ class ForecastResult:
             "method": self.method,
             "periods": self.periods,
             "confidence_level": self.confidence_level,
-            "stats": {k: round(v, 4) if isinstance(v, (int, float)) else v for k, v in self.stats.items()},
+            "stats": {
+                k: round(v, 4) if isinstance(v, (int, float)) else v for k, v in self.stats.items()
+            },
             "predictions": [p.to_dict() for p in self.predictions],
         }
 
@@ -402,9 +402,7 @@ def forecast(
         ForecastResult with predictions and statistics
     """
     if method not in _FORECASTERS:
-        raise ValueError(
-            f"Unknown method: {method}. Available: {list(_FORECASTERS.keys())}"
-        )
+        raise ValueError(f"Unknown method: {method}. Available: {list(_FORECASTERS.keys())}")
 
     forecaster_cls = _FORECASTERS[method]
     forecaster = forecaster_cls(confidence_level=confidence_level, **kwargs)

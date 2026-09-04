@@ -167,9 +167,7 @@ class AuditLog(TenantModel, UUIDModel):
         ]
 
     def __str__(self) -> str:
-        return (
-            f"{self.action} by {self.actor} on {self.resource_type}:{self.resource_id}"
-        )
+        return f"{self.action} by {self.actor} on {self.resource_type}:{self.resource_id}"
 
 
 class SystemSetting(models.Model):

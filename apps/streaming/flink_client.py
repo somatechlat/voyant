@@ -16,7 +16,6 @@ class FlinkClientError(Exception):
 
 
 class FlinkClient:
-
     def __init__(self, jobmanager_url: str | None = None):
         settings = get_settings()
         resolved_url = jobmanager_url or settings.flink_jobmanager_url
@@ -83,9 +82,7 @@ class FlinkClient:
             with path.open("rb") as file_obj:
                 response = httpx.post(
                     url,
-                    files={
-                        "jarfile": (path.name, file_obj, "application/java-archive")
-                    },
+                    files={"jarfile": (path.name, file_obj, "application/java-archive")},
                     timeout=60.0,
                 )
             response.raise_for_status()

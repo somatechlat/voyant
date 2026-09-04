@@ -21,8 +21,7 @@ from typing import Any
 
 from django.http import JsonResponse
 
-from apps.core.middleware import get_tenant_id, get_soma_user_id
-
+from apps.core.middleware import get_soma_user_id, get_tenant_id
 from apps.governance.lib.policy_enforcer import (
     EnforcementLevel,
     PolicyDecision,
@@ -61,9 +60,7 @@ def _build_context(request: Any) -> dict[str, Any]:
         roles = list(getattr(user, "roles", []))
 
     # Collect headers (lower-cased keys for consistent lookups).
-    headers: dict[str, str] = {
-        k.lower(): v for k, v in request.headers.items()
-    }
+    headers: dict[str, str] = {k.lower(): v for k, v in request.headers.items()}
 
     return {
         "method": request.method or "",
@@ -256,6 +253,7 @@ def _validate_request_against_contract(request: Any, contract: Any) -> str | Non
 # ---------------------------------------------------------------------------
 # Middleware class
 # ---------------------------------------------------------------------------
+
 
 class GovernancePolicyMiddleware:
     """Django middleware that enforces active governance policies.

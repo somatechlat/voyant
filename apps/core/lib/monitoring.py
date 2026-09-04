@@ -8,7 +8,6 @@ logger = logging.getLogger(__name__)
 
 
 class MetricsRegistry:
-
     _instance = None
 
     def __new__(cls):

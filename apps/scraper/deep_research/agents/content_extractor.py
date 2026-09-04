@@ -47,6 +47,7 @@ except ImportError:
 
 try:
     import importlib.util
+
     _CRAWL4AI_AVAILABLE = importlib.util.find_spec("crawl4ai") is not None
 except ImportError:
     pass
@@ -174,9 +175,7 @@ class ContentExtractor:
             "url": url,
         }
 
-    def bulk_extract(
-        self, items: list[tuple[str, str]]
-    ) -> list[dict[str, Any]]:
+    def bulk_extract(self, items: list[tuple[str, str]]) -> list[dict[str, Any]]:
         """
         Extract content from multiple (url, html) pairs.
 

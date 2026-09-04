@@ -23,7 +23,6 @@ _MAX_INLINE_RESULT_BYTES = 100_000
 
 
 class CapsuleActivities:
-
     @activity.defn(name="capsule.load_capsule")
     async def load_capsule(self, capsule_id: str, tenant_id: str) -> dict[str, Any]:
         try:
@@ -131,9 +130,15 @@ class CapsuleActivities:
         # Persist result to DB to avoid Temporal event history bloat
         await self._persist_step_result(instance_id, action, result)
 
-        return {"step_id": action, "stored": True, "size_bytes": len(json.dumps(result, default=str))}
+        return {
+            "step_id": action,
+            "stored": True,
+            "size_bytes": len(json.dumps(result, default=str)),
+        }
 
-    async def _persist_step_result(self, instance_id: str, step_id: str, result: dict[str, Any]) -> None:
+    async def _persist_step_result(
+        self, instance_id: str, step_id: str, result: dict[str, Any]
+    ) -> None:
         """Write step result to CapsuleInstance.state to keep workflow history small."""
         try:
             instance = CapsuleInstance.objects.get(id=instance_id)
@@ -176,7 +181,9 @@ class CapsuleActivities:
 
         client = await get_temporal_client()
         url = params.get("url", "")
-        job_id = f"urn:voyant:job:{tenant_id}:scrape:{hashlib.sha256(url.encode()).hexdigest()[:16]}"
+        job_id = (
+            f"urn:voyant:job:{tenant_id}:scrape:{hashlib.sha256(url.encode()).hexdigest()[:16]}"
+        )
         handle = await client.start_workflow(
             ScrapeWorkflow.run,
             {
@@ -196,7 +203,9 @@ class CapsuleActivities:
 
         client = await get_temporal_client()
         uri = params.get("generic_uri", "")
-        job_id = f"urn:voyant:job:{tenant_id}:ingest:{hashlib.sha256(uri.encode()).hexdigest()[:16]}"
+        job_id = (
+            f"urn:voyant:job:{tenant_id}:ingest:{hashlib.sha256(uri.encode()).hexdigest()[:16]}"
+        )
         handle = await client.start_workflow(
             IngestDataWorkflow.run,
             {
@@ -251,7 +260,12 @@ class CapsuleActivities:
         try:
             result = client.execute(sql, limit=limit)
             rows = result.rows if hasattr(result, "rows") else []
-            return {"status": "completed", "action": "sql_query", "rows": rows, "row_count": len(rows)}
+            return {
+                "status": "completed",
+                "action": "sql_query",
+                "rows": rows,
+                "row_count": len(rows),
+            }
         except Exception as exc:
             logger.error("SQL query failed: %s", exc)
             return {"error": str(exc), "action": "sql_query"}
@@ -266,11 +280,17 @@ class CapsuleActivities:
 
         if chart_type == "bar":
             uri = PlotlyRenderer.render_bar_comparison(
-                df, x_col=params.get("x_col") or "", y_col=params.get("y_col") or "", tenant_id=tenant_id
+                df,
+                x_col=params.get("x_col") or "",
+                y_col=params.get("y_col") or "",
+                tenant_id=tenant_id,
             )
         elif chart_type == "time_series":
             uri = PlotlyRenderer.render_time_series(
-                df, date_col=params.get("date_col") or "", value_col=params.get("value_col") or "", tenant_id=tenant_id
+                df,
+                date_col=params.get("date_col") or "",
+                value_col=params.get("value_col") or "",
+                tenant_id=tenant_id,
             )
         else:
             return {"error": f"Unsupported chart type: {chart_type}"}
@@ -352,8 +372,12 @@ class CapsuleActivities:
         }
         artifacts.append(summary)
 
-        content_hash = hashlib.sha256(json.dumps(steps, sort_keys=True, default=str).encode()).hexdigest()
-        artifacts.append({"artifact_id": f"{instance_id}-checksum", "type": "checksum", "sha256": content_hash})
+        content_hash = hashlib.sha256(
+            json.dumps(steps, sort_keys=True, default=str).encode()
+        ).hexdigest()
+        artifacts.append(
+            {"artifact_id": f"{instance_id}-checksum", "type": "checksum", "sha256": content_hash}
+        )
 
         return artifacts
 

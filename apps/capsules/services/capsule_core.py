@@ -118,9 +118,7 @@ def inject_capsule(capsule_id: UUID) -> Capsule:
     Invariant: inject(c) implies verify(c) is True.
     """
     try:
-        capsule = Capsule.objects.get(
-            id=capsule_id, status=Capsule.STATUS_ACTIVE, is_active=True
-        )
+        capsule = Capsule.objects.get(id=capsule_id, status=Capsule.STATUS_ACTIVE, is_active=True)
     except Capsule.DoesNotExist:
         raise ValueError(f"Active capsule {capsule_id} not found")
 

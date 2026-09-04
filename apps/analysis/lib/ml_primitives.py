@@ -71,9 +71,7 @@ class MLPrimitives:
             df_numeric = df.select_dtypes(include=[np.number])
 
             if df_numeric.empty:
-                raise AnalysisError(
-                    "VYNT-7006", "No numeric data found for anomaly detection"
-                )
+                raise AnalysisError("VYNT-7006", "No numeric data found for anomaly detection")
 
             # Handle NaN
             imputer = SimpleImputer(strategy="median")  # type: ignore[reportPossiblyUnbound]
@@ -102,9 +100,7 @@ class MLPrimitives:
             )
             raise AnalysisError("VYNT-7007", f"Anomaly Detection Error: {e}")
 
-    def cluster_kmeans(
-        self, data: list[dict[str, float]], n_clusters: int = 3
-    ) -> dict[str, Any]:
+    def cluster_kmeans(self, data: list[dict[str, float]], n_clusters: int = 3) -> dict[str, Any]:
         """
         Perform K-Means clustering.
         """
@@ -182,9 +178,7 @@ class MLPrimitives:
 
             return {
                 "model_type": "RandomForestClassifier",
-                "accuracy": float(
-                    clf.score(X_imputed, y)
-                ),  # In-sample accuracy (training set).
+                "accuracy": float(clf.score(X_imputed, y)),  # In-sample accuracy (training set).
                 "feature_importance": importances,
                 "classes": le.classes_.tolist() if le else "numeric",  # type: ignore[reportAttributeAccessIssue]
             }
@@ -249,8 +243,7 @@ class MLPrimitives:
                 "r2_score": float(r2),
                 "rmse": float(rmse),
                 "feature_importance": {
-                    feature_cols[i]: abs(model.coef_[i])
-                    for i in range(len(feature_cols))
+                    feature_cols[i]: abs(model.coef_[i]) for i in range(len(feature_cols))
                 },
             }
 

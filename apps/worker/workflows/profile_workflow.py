@@ -56,9 +56,7 @@ class ProfileWorkflow:
         profile_result = await workflow.execute_activity(
             "profile_data",
             params,
-            start_to_close_timeout=timedelta(
-                minutes=15
-            ),  # Allow sufficient time for profiling.
+            start_to_close_timeout=timedelta(minutes=15),  # Allow sufficient time for profiling.
             retry_policy=EXTERNAL_SERVICE_RETRY,
         )
 

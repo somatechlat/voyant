@@ -59,9 +59,7 @@ class IcebergClient:
 
     def __init__(self, catalog_url: str | None = None):
         settings = get_settings()
-        self.catalog_url = catalog_url or getattr(
-            settings, "iceberg_catalog_url", ""
-        )
+        self.catalog_url = catalog_url or getattr(settings, "iceberg_catalog_url", "")
         self.warehouse = getattr(settings, "iceberg_warehouse", "voyant-warehouse")
         self._client: httpx.Client | None = None
 
@@ -83,18 +81,14 @@ class IcebergClient:
 
     def list_tables(self, namespace: str) -> list[str]:
         """List all tables in a namespace."""
-        resp = self._get_client().get(
-            f"/v1/namespaces/{namespace}/tables"
-        )
+        resp = self._get_client().get(f"/v1/namespaces/{namespace}/tables")
         resp.raise_for_status()
         data = resp.json()
         return [t.get("name", "") for t in data.get("identifiers", [])]
 
     def get_table(self, namespace: str, table_name: str) -> IcebergTable:
         """Get full table metadata including schema, partitions, and snapshots."""
-        resp = self._get_client().get(
-            f"/v1/namespaces/{namespace}/tables/{table_name}"
-        )
+        resp = self._get_client().get(f"/v1/namespaces/{namespace}/tables/{table_name}")
         resp.raise_for_status()
         data = resp.json()
 
@@ -145,13 +139,9 @@ class IcebergClient:
             snapshot_count=len(snapshots),
         )
 
-    def get_snapshots(
-        self, namespace: str, table_name: str
-    ) -> list[IcebergSnapshot]:
+    def get_snapshots(self, namespace: str, table_name: str) -> list[IcebergSnapshot]:
         """Get all snapshots for a table."""
-        resp = self._get_client().get(
-            f"/v1/namespaces/{namespace}/tables/{table_name}"
-        )
+        resp = self._get_client().get(f"/v1/namespaces/{namespace}/tables/{table_name}")
         resp.raise_for_status()
         metadata = resp.json().get("metadata", {})
 
@@ -178,9 +168,7 @@ class IcebergClient:
         resp.raise_for_status()
         return resp.json()
 
-    def drop_table(
-        self, namespace: str, table_name: str, purge: bool = False
-    ) -> None:
+    def drop_table(self, namespace: str, table_name: str, purge: bool = False) -> None:
         """Drop an Iceberg table. If purge=True, delete all data files."""
         url = f"/v1/namespaces/{namespace}/tables/{table_name}"
         if purge:
