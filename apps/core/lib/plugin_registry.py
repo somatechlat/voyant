@@ -1,9 +1,9 @@
 """
 Plugin Registry for Extensible Voyant Capabilities.
 
-This module implements the "Platform of Platforms" design pattern for Voyant,
+This module implements a plugin registry for Voyant,
 allowing for dynamic registration and execution of various plugins, such as
-artifact generators and data analyzers. It provides a centralized, singleton
+artifact generators and data analyzers. It provides a singleton
 registry that decouples the core application from its extensions.
 
 Usage:
@@ -27,13 +27,13 @@ from __future__ import annotations
 import abc
 import logging
 from dataclasses import dataclass
-from enum import Enum
-from typing import Any, Dict, List, Optional, Type
+from enum import StrEnum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
-class PluginCategory(str, Enum):
+class PluginCategory(StrEnum):
     """Defines the category of a plugin for UI grouping and filtering during execution."""
 
     VISUALIZATION = "visualization"
@@ -64,7 +64,7 @@ class PluginMetadata:
     version: str
     description: str
     is_core: bool
-    feature_flag: Optional[str] = None
+    feature_flag: str | None = None
     order: int = 100
 
 
@@ -85,7 +85,7 @@ class GeneratorPlugin(VoyantPlugin):
     """
 
     @abc.abstractmethod
-    def generate(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    def generate(self, context: dict[str, Any]) -> dict[str, Any]:
         """
         Generate an artifact.
 
@@ -107,7 +107,7 @@ class AnalyzerPlugin(VoyantPlugin):
     """
 
     @abc.abstractmethod
-    def analyze(self, data: Any, context: Dict[str, Any]) -> Dict[str, Any]:
+    def analyze(self, data: Any, context: dict[str, Any]) -> dict[str, Any]:
         """
         Analyze data and return insights.
 
@@ -130,16 +130,16 @@ class PluginRegistry:
     to ensure they are only created when first requested.
     """
 
-    _instance: Optional[PluginRegistry] = None
+    _instance: PluginRegistry | None = None
 
     def __init__(self):
         if PluginRegistry._instance is not None:
             raise RuntimeError(
                 "PluginRegistry is a singleton and should not be re-instantiated."
             )
-        self._plugins: Dict[str, Type[VoyantPlugin]] = {}
-        self._metadata: Dict[str, PluginMetadata] = {}
-        self._instances: Dict[str, VoyantPlugin] = {}
+        self._plugins: dict[str, type[VoyantPlugin]] = {}
+        self._metadata: dict[str, PluginMetadata] = {}
+        self._instances: dict[str, VoyantPlugin] = {}
 
     @classmethod
     def get_instance(cls) -> PluginRegistry:
@@ -150,13 +150,13 @@ class PluginRegistry:
 
     def register(
         self,
-        cls_obj: Type[VoyantPlugin],
+        cls_obj: type[VoyantPlugin],
         name: str,
         category: PluginCategory,
         version: str = "1.0.0",
         description: str = "",
         is_core: bool = False,
-        feature_flag: Optional[str] = None,
+        feature_flag: str | None = None,
         order: int = 100,
     ):
         """
@@ -183,7 +183,7 @@ class PluginRegistry:
 
         logger.debug(f"Registered plugin: {name} ({category.value})")
 
-    def get_plugin_instance(self, name: str) -> Optional[VoyantPlugin]:
+    def get_plugin_instance(self, name: str) -> VoyantPlugin | None:
         """
         Get a singleton instance of a plugin by name, creating it if it doesn't exist.
 
@@ -203,12 +203,12 @@ class PluginRegistry:
 
         return self._instances[name]
 
-    def get_all_metadata(self) -> List[PluginMetadata]:
+    def get_all_metadata(self) -> list[PluginMetadata]:
         """Get metadata for all registered plugins, sorted by execution order."""
         meta_list = list(self._metadata.values())
         return sorted(meta_list, key=lambda m: m.order)
 
-    def get_plugins_by_category(self, category: PluginCategory) -> List[PluginMetadata]:
+    def get_plugins_by_category(self, category: PluginCategory) -> list[PluginMetadata]:
         """Get metadata for all plugins belonging to a specific category."""
         return [m for m in self.get_all_metadata() if m.category == category]
 
@@ -230,7 +230,7 @@ def register_plugin(
     version: str = "1.0.0",
     description: str = "",
     is_core: bool = False,
-    feature_flag: Optional[str] = None,
+    feature_flag: str | None = None,
     order: int = 100,
 ):
     """
@@ -262,7 +262,7 @@ def register_plugin(
     return wrapper
 
 
-def get_generators() -> List[PluginMetadata]:
+def get_generators() -> list[PluginMetadata]:
     """Retrieve metadata for all registered plugins that are of type GeneratorPlugin."""
     registry = PluginRegistry.get_instance()
     all_meta = registry.get_all_metadata()
@@ -277,7 +277,7 @@ def get_generators() -> List[PluginMetadata]:
     return generators
 
 
-def get_analyzers() -> List[PluginMetadata]:
+def get_analyzers() -> list[PluginMetadata]:
     """Retrieve metadata for all registered plugins that are of type AnalyzerPlugin."""
     registry = PluginRegistry.get_instance()
     all_meta = registry.get_all_metadata()
@@ -290,7 +290,7 @@ def get_analyzers() -> List[PluginMetadata]:
     return analyzers
 
 
-def get_plugin(name: str) -> Optional[VoyantPlugin]:
+def get_plugin(name: str) -> VoyantPlugin | None:
     """
     Retrieve an instantiated plugin by its unique name.
 

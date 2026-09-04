@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from asgiref.sync import async_to_sync
 from ninja.errors import HttpError
@@ -41,7 +41,7 @@ def auth_guard(request):
     return get_current_user(request)
 
 
-def apply_policy(action: str, prompt: str, metadata: Dict[str, Any]) -> None:
+def apply_policy(action: str, prompt: str, metadata: dict[str, Any]) -> None:
     """
     A wrapper to enforce policy checks for an action.
 
@@ -54,7 +54,7 @@ def apply_policy(action: str, prompt: str, metadata: Dict[str, Any]) -> None:
         raise HttpError(400, get_message("ERR_POLICY_INVALID", error=str(exc))) from exc
     except SomaPolicyDenied as exc:
         raise HttpError(
-            403, exc.details or {"reason": get_message("ERR_POLICY_DENIED")}
+            403, exc.details or {"reason": get_message("ERR_POLICY_DENIED")}  # type: ignore[arg-type]
         ) from exc
     except SomaPolicyUnavailable as exc:
         raise HttpError(

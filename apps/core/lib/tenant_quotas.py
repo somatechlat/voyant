@@ -28,8 +28,8 @@ import threading
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from enum import Enum
-from typing import Any, Dict, List, Optional
+from enum import StrEnum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 
-class ResourceType(str, Enum):
+class ResourceType(StrEnum):
     """Types of resources that can be quota-limited."""
 
     JOBS_PER_DAY = "jobs_per_day"
@@ -52,7 +52,7 @@ class ResourceType(str, Enum):
     WORKFLOWS_PER_DAY = "workflows_per_day"
 
 
-class QuotaTier(str, Enum):
+class QuotaTier(StrEnum):
     """Tenant quota tiers."""
 
     FREE = "free"
@@ -74,7 +74,7 @@ class QuotaLimit:
     resource: ResourceType
     limit: int
     period_seconds: int = 86400  # Daily by default
-    burst_limit: Optional[int] = None  # Allow short bursts
+    burst_limit: int | None = None  # Allow short bursts
 
 
 @dataclass
@@ -86,15 +86,15 @@ class QuotaPolicy:
     """
 
     tier: QuotaTier
-    limits: Dict[ResourceType, QuotaLimit] = field(default_factory=dict)
+    limits: dict[ResourceType, QuotaLimit] = field(default_factory=dict)
     description: str = ""
 
-    def get_limit(self, resource: ResourceType) -> Optional[QuotaLimit]:
+    def get_limit(self, resource: ResourceType) -> QuotaLimit | None:
         return self.limits.get(resource)
 
 
 # Default policies
-DEFAULT_POLICIES: Dict[QuotaTier, QuotaPolicy] = {
+DEFAULT_POLICIES: dict[QuotaTier, QuotaPolicy] = {
     QuotaTier.FREE: QuotaPolicy(
         tier=QuotaTier.FREE,
         description="Free tier with limited resources",
@@ -216,7 +216,7 @@ class UsageRecord:
     resource: ResourceType
     amount: float
     timestamp: float
-    job_id: Optional[str] = None
+    job_id: str | None = None
 
 
 @dataclass
@@ -231,7 +231,7 @@ class UsageSummary:
     utilization_percent: float
     remaining: float
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "resource": self.resource.value,
             "current_usage": round(self.current_usage, 2),
@@ -253,7 +253,7 @@ class QuotaCheckResult:
     limit: float
     message: str = ""
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "allowed": self.allowed,
             "resource": self.resource.value,
@@ -275,10 +275,10 @@ class QuotaManager:
     Performance Engineer: Efficient in-memory tracking with periodic cleanup
     """
 
-    def __init__(self, policies: Optional[Dict[QuotaTier, QuotaPolicy]] = None):
+    def __init__(self, policies: dict[QuotaTier, QuotaPolicy] | None = None):
         self.policies = policies or DEFAULT_POLICIES
-        self._tenant_tiers: Dict[str, QuotaTier] = {}
-        self._usage: Dict[str, List[UsageRecord]] = {}
+        self._tenant_tiers: dict[str, QuotaTier] = {}
+        self._usage: dict[str, list[UsageRecord]] = {}
         self._lock = threading.RLock()
 
         logger.info("Quota manager initialized")
@@ -362,7 +362,7 @@ class QuotaManager:
         tenant_id: str,
         resource: ResourceType,
         amount: float,
-        job_id: Optional[str] = None,
+        job_id: str | None = None,
     ):
         """
         Record resource usage.
@@ -422,8 +422,8 @@ class QuotaManager:
             )
 
     def get_usage_summary(
-        self, tenant_id: str, resource: Optional[ResourceType] = None
-    ) -> List[UsageSummary]:
+        self, tenant_id: str, resource: ResourceType | None = None
+    ) -> list[UsageSummary]:
         """
         Get usage summary for a tenant.
 
@@ -492,7 +492,7 @@ class QuotaManager:
         if removed > 0:
             logger.info(f"Cleaned up {removed} old usage records")
 
-    def get_all_tenant_stats(self) -> Dict[str, Dict[str, Any]]:
+    def get_all_tenant_stats(self) -> dict[str, dict[str, Any]]:
         """Get usage stats for all tenants."""
         stats = {}
 
@@ -541,7 +541,7 @@ class CostMetrics:
         self.end_time = time.time()
         self.duration_seconds = self.end_time - self.start_time
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "job_id": self.job_id,
             "tenant_id": self.tenant_id,
@@ -557,7 +557,7 @@ class CostMetrics:
 # Global Instance
 # =============================================================================
 
-_quota_manager: Optional[QuotaManager] = None
+_quota_manager: QuotaManager | None = None
 _manager_lock = threading.Lock()
 
 
@@ -601,13 +601,13 @@ def check_quota(
 
 
 def record_usage(
-    tenant_id: str, resource: ResourceType, amount: float, job_id: Optional[str] = None
+    tenant_id: str, resource: ResourceType, amount: float, job_id: str | None = None
 ):
     """Record resource usage."""
     get_quota_manager().record_usage(tenant_id, resource, amount, job_id)
 
 
-def get_usage_stats(tenant_id: str) -> List[UsageSummary]:
+def get_usage_stats(tenant_id: str) -> list[UsageSummary]:
     """Get usage statistics for a tenant."""
     return get_quota_manager().get_usage_summary(tenant_id)
 

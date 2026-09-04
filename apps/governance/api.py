@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import httpx
 from ninja import Field, Router, Schema
@@ -11,7 +11,6 @@ from ninja.errors import HttpError
 
 from admin.common.messages import get_message
 from apps.core.api_utils import auth_guard
-from apps.core.security.auth import require_permission
 from apps.core.config import get_settings
 from apps.core.lib.tenant_quotas import (
     QuotaTier,
@@ -21,6 +20,7 @@ from apps.core.lib.tenant_quotas import (
     set_tenant_tier,
 )
 from apps.core.middleware import get_tenant_id
+from apps.core.security.auth import require_permission
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -31,13 +31,13 @@ class GovernanceSearchResult(Schema):
     urn: str
     name: str
     type: str
-    description: Optional[str] = None
-    platform: Optional[str] = None
-    tags: List[str] = Field(default_factory=list)
+    description: str | None = None
+    platform: str | None = None
+    tags: list[str] = Field(default_factory=list)
 
 
 class SearchResponse(Schema):
-    results: List[GovernanceSearchResult]
+    results: list[GovernanceSearchResult]
     total: int
 
 
@@ -45,7 +45,7 @@ class LineageNode(Schema):
     urn: str
     name: str
     type: str
-    platform: Optional[str] = None
+    platform: str | None = None
 
 
 class LineageEdge(Schema):
@@ -55,20 +55,20 @@ class LineageEdge(Schema):
 
 
 class LineageResponse(Schema):
-    nodes: List[LineageNode]
-    edges: List[LineageEdge]
+    nodes: list[LineageNode]
+    edges: list[LineageEdge]
 
 
 class SchemaField(Schema):
     name: str
     type: str
     nullable: bool = True
-    description: Optional[str] = None
+    description: str | None = None
 
 
 class SchemaResponse(Schema):
     urn: str
-    fields: List[SchemaField]
+    fields: list[SchemaField]
 
 
 class QuotaTierInfo(Schema):
@@ -141,9 +141,9 @@ query lineage($urn: String!, $direction: LineageDirection!, $depth: Int!) {
 """
 
 
-def _datahub_graphql(query: str, variables: Dict[str, Any]) -> Dict[str, Any]:
-    with httpx.Client(timeout=30.0) as client:
-        response = client.post(
+async def _datahub_graphql(query: str, variables: dict[str, Any]) -> dict[str, Any]:
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        response = await client.post(
             f"{settings.datahub_gms_url}/api/graphql",
             json={"query": query, "variables": variables},
         )
@@ -205,14 +205,14 @@ def _policy_limit(policy, resource: ResourceType) -> float:
 
 
 @governance_router.get("/search", response=SearchResponse, auth=auth_guard)
-def search_metadata(request, query: str, types: Optional[str] = None, limit: int = 10):
+async def search_metadata(request, query: str, types: str | None = None, limit: int = 10):
     try:
-        data = _datahub_graphql(
+        data = await _datahub_graphql(
             DATAHUB_SEARCH_QUERY,
             {"input": {"type": "DATASET", "query": query, "start": 0, "count": limit}},
         )
         search_data = data.get("search", {})
-        results: List[GovernanceSearchResult] = []
+        results: list[GovernanceSearchResult] = []
 
         for item in search_data.get("searchResults", []):
             entity = item.get("entity", {})
@@ -237,20 +237,20 @@ def search_metadata(request, query: str, types: Optional[str] = None, limit: int
 
 
 @governance_router.get("/lineage/{urn}", response=LineageResponse, auth=auth_guard)
-def get_lineage(request, urn: str, direction: str = "both", depth: int = 3):
+async def get_lineage(request, urn: str, direction: str = "both", depth: int = 3):
     try:
         nodes = [
             LineageNode(
                 urn=urn, name=urn.split(",")[1] if "," in urn else urn, type="dataset"
             )
         ]
-        edges: List[LineageEdge] = []
+        edges: list[LineageEdge] = []
         directions = (
             ["UPSTREAM", "DOWNSTREAM"] if direction == "both" else [direction.upper()]
         )
 
         for dir_enum in directions:
-            data = _datahub_graphql(
+            data = await _datahub_graphql(
                 DATAHUB_LINEAGE_QUERY,
                 {"urn": urn, "direction": dir_enum, "depth": min(depth, 10)},
             )
@@ -282,7 +282,7 @@ def get_lineage(request, urn: str, direction: str = "both", depth: int = 3):
                         )
                     )
 
-        unique_nodes: List[LineageNode] = []
+        unique_nodes: list[LineageNode] = []
         seen = set()
         for node in nodes:
             if node.urn not in seen:
@@ -298,10 +298,10 @@ def get_lineage(request, urn: str, direction: str = "both", depth: int = 3):
 
 
 @governance_router.get("/schema/{urn}", response=SchemaResponse, auth=auth_guard)
-def get_schema(request, urn: str):
+async def get_schema(request, urn: str):
     try:
-        with httpx.Client(timeout=30.0) as client:
-            response = client.get(
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(
                 f"{settings.datahub_gms_url}/aspects/{urn}?aspect=schemaMetadata"
             )
         if response.status_code == 404:
@@ -326,10 +326,10 @@ def get_schema(request, urn: str):
         raise HttpError(503, get_message("ERR_DATAHUB_UNAVAILABLE")) from exc
 
 
-@governance_router.get("/quotas/tiers", response=List[QuotaTierInfo], auth=auth_guard)
+@governance_router.get("/quotas/tiers", response=list[QuotaTierInfo], auth=auth_guard)
 def list_quota_tiers(request):
     manager = get_quota_manager()
-    tiers: List[QuotaTierInfo] = []
+    tiers: list[QuotaTierInfo] = []
     for tier in QuotaTier:
         policy = manager.policies.get(tier)
         if not policy:
@@ -361,7 +361,7 @@ def get_quota_limits(request):
     return _quota_usage_for_tenant(get_tenant_id(request))
 
 
-@governance_router.post("/quotas/set-tier", response=Dict[str, str], auth=auth_guard)
+@governance_router.post("/quotas/set-tier", response=dict[str, str], auth=auth_guard)
 def update_quota_tier(request, payload: SetTierRequest):
     tenant_id = get_tenant_id(request)
     try:

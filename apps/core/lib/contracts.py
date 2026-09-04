@@ -1,9 +1,9 @@
 """
 Data Contracts Module for Schema Validation and Governance.
 
-This module provides a comprehensive system for defining, managing, and enforcing
+This module provides a system for defining, managing, and enforcing
 schema-based data contracts. It is a cornerstone of the platform's data governance
-capabilities, ensuring that data conforms to expected quality, format, and
+capabilities, so data conforms to expected quality, format, and
 sensitivity standards before it is used in analysis.
 
 Reference: docs/CANONICAL_ROADMAP.md - P5 Governance & Contracts
@@ -34,14 +34,14 @@ import json
 import logging
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
-class SensitivityLevel(str, Enum):
+class SensitivityLevel(StrEnum):
     """
     Enumeration for data sensitivity classification.
     """
@@ -53,7 +53,7 @@ class SensitivityLevel(str, Enum):
     SECRET = "secret"  # Highly restricted, mission-critical business secrets.
 
 
-class DataType(str, Enum):
+class DataType(StrEnum):
     """Enumeration of standard, abstract data types used in contracts."""
 
     STRING = "string"
@@ -99,18 +99,18 @@ class ColumnSpec:
     sensitivity: SensitivityLevel = SensitivityLevel.INTERNAL
 
     # Validation rules
-    min_value: Optional[float] = None
-    max_value: Optional[float] = None
-    min_length: Optional[int] = None
-    max_length: Optional[int] = None
-    pattern: Optional[str] = None
-    enum_values: Optional[List[str]] = None
+    min_value: float | None = None
+    max_value: float | None = None
+    min_length: int | None = None
+    max_length: int | None = None
+    pattern: str | None = None
+    enum_values: list[str] | None = None
 
     # Quality expectations
     max_null_rate: float = 1.0
     unique: bool = False
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the column specification to a dictionary."""
         result = {
             "name": self.name,
@@ -139,7 +139,7 @@ class ColumnSpec:
         return result
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ColumnSpec":
+    def from_dict(cls, data: dict[str, Any]) -> ColumnSpec:
         """Create a ColumnSpec instance from a dictionary."""
         return cls(
             name=data["name"],
@@ -181,16 +181,16 @@ class DataContract:
     version: str
     description: str = ""
     owner: str = ""
-    columns: List[ColumnSpec] = field(default_factory=list)
+    columns: list[ColumnSpec] = field(default_factory=list)
 
     # Metadata
     created_at: str = ""
     updated_at: str = ""
-    tags: List[str] = field(default_factory=list)
+    tags: list[str] = field(default_factory=list)
 
     # Quality SLAs
-    sla_freshness_hours: Optional[int] = None
-    sla_completeness_pct: Optional[float] = None
+    sla_freshness_hours: int | None = None
+    sla_completeness_pct: float | None = None
 
     def __post_init__(self):
         """Set default timestamps after initialization."""
@@ -200,12 +200,12 @@ class DataContract:
         if not self.updated_at:
             self.updated_at = self.created_at
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the DataContract to a dictionary."""
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "DataContract":
+    def from_dict(cls, data: dict[str, Any]) -> DataContract:
         """Create a DataContract instance from a dictionary."""
         columns = [ColumnSpec.from_dict(c) for c in data.get("columns", [])]
         return cls(
@@ -221,13 +221,13 @@ class DataContract:
             sla_completeness_pct=data.get("sla_completeness_pct"),
         )
 
-    def to_json_schema(self) -> Dict[str, Any]:
+    def to_json_schema(self) -> dict[str, Any]:
         """Convert the data contract into a standard JSON Schema document."""
         properties = {}
         required = []
 
         for col in self.columns:
-            prop: Dict[str, Any] = {"description": col.description}
+            prop: dict[str, Any] = {"description": col.description}
 
             type_mapping = {
                 DataType.STRING: {"type": "string"},
@@ -271,11 +271,11 @@ class DataContract:
             "required": required,
         }
 
-    def get_pii_columns(self) -> List[str]:
+    def get_pii_columns(self) -> list[str]:
         """Get a list of all column names marked as PII."""
         return [c.name for c in self.columns if c.sensitivity == SensitivityLevel.PII]
 
-    def get_sensitive_columns(self) -> List[str]:
+    def get_sensitive_columns(self) -> list[str]:
         """Get a list of all sensitive columns (PII, Secret, Confidential)."""
         sensitive_levels = {
             SensitivityLevel.PII,
@@ -297,7 +297,7 @@ class ValidationError:
     column: str
     error_type: str
     message: str
-    details: Dict[str, Any] = field(default_factory=dict)
+    details: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -305,11 +305,11 @@ class ValidationResult:
     """Represents the complete result of validating data against a contract."""
 
     valid: bool
-    errors: List[ValidationError] = field(default_factory=list)
-    warnings: List[str] = field(default_factory=list)
-    stats: Dict[str, Any] = field(default_factory=dict)
+    errors: list[ValidationError] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    stats: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the validation result to a dictionary."""
         return {
             "valid": self.valid,
@@ -322,7 +322,7 @@ class ValidationResult:
 
 def validate_schema(
     contract: DataContract,
-    columns: List[Dict[str, Any]],
+    columns: list[dict[str, Any]],
 ) -> ValidationResult:
     """
     Validate that a given physical schema matches the contract's logical schema.
@@ -414,7 +414,7 @@ def _types_compatible(expected: str, actual: str) -> bool:
 # =============================================================================
 
 
-def load_contract(path: Union[str, Path]) -> DataContract:
+def load_contract(path: str | Path) -> DataContract:
     """
     Load a DataContract from a YAML or JSON file.
 
@@ -447,7 +447,7 @@ def load_contract(path: Union[str, Path]) -> DataContract:
     return DataContract.from_dict(data)
 
 
-def save_contract(contract: DataContract, path: Union[str, Path]):
+def save_contract(contract: DataContract, path: str | Path):
     """
     Save a DataContract to a JSON file.
 
@@ -460,7 +460,7 @@ def save_contract(contract: DataContract, path: Union[str, Path]):
         json.dump(contract.to_dict(), f, indent=2)
 
 
-def save_json_schema(contract: DataContract, path: Union[str, Path]):
+def save_json_schema(contract: DataContract, path: str | Path):
     """
     Save a DataContract's representation as a JSON Schema document.
 
@@ -475,7 +475,7 @@ def save_json_schema(contract: DataContract, path: Union[str, Path]):
 
 # --- In-Memory Contract Registry ---
 
-_contract_registry: Dict[str, Dict[str, DataContract]] = {}
+_contract_registry: dict[str, dict[str, DataContract]] = {}
 
 
 def register_contract(contract: DataContract):
@@ -492,7 +492,7 @@ def register_contract(contract: DataContract):
     logger.info(f"Registered contract: {contract.name} v{contract.version}")
 
 
-def get_contract(name: str, version: Optional[str] = None) -> Optional[DataContract]:
+def get_contract(name: str, version: str | None = None) -> DataContract | None:
     """
     Get a contract from the registry by name and optional version.
 
@@ -513,7 +513,7 @@ def get_contract(name: str, version: Optional[str] = None) -> Optional[DataContr
     if version:
         return versions.get(version)
 
-    # Return latest version by sorting keys semantically (if possible)
+    # Sort by semver
     try:
         sorted_versions = sorted(
             versions.keys(), key=lambda v: [int(p) for p in v.split(".")], reverse=True
@@ -524,7 +524,7 @@ def get_contract(name: str, version: Optional[str] = None) -> Optional[DataContr
     return versions[sorted_versions[0]] if sorted_versions else None
 
 
-def list_contracts() -> List[Dict[str, Any]]:
+def list_contracts() -> list[dict[str, Any]]:
     """
     List metadata for all contracts currently in the registry.
 

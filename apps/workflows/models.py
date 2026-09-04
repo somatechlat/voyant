@@ -24,7 +24,7 @@ class Job(TenantModel, UUIDModel):
     result_summary = models.JSONField(null=True, blank=True)
     error_message = models.TextField(null=True, blank=True)
 
-    class Meta:
+    class Meta:  # type: ignore[reportIncompatibleVariableOverride]
         db_table = "voyant_job"
         ordering = ["-created_at"]
 
@@ -47,7 +47,7 @@ class Artifact(TenantModel):
     storage_path = models.CharField(max_length=512)
     size_bytes = models.IntegerField(null=True, blank=True)
 
-    class Meta:
+    class Meta:  # type: ignore[reportIncompatibleVariableOverride]
         db_table = "voyant_artifact"
 
 
@@ -61,7 +61,7 @@ class PresetJob(TenantModel, UUIDModel):
     parameters = models.JSONField(default=dict)
     status = models.CharField(max_length=64, default="queued")
 
-    class Meta:
+    class Meta:  # type: ignore[reportIncompatibleVariableOverride]
         db_table = "voyant_preset_job"
 
     @property

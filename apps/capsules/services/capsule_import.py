@@ -7,8 +7,7 @@ Imports Capsule bundles from backup or transfer. Cross-compatible with somaAgent
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 from django.db import transaction
 
@@ -24,9 +23,9 @@ class ImportResult:
     def __init__(
         self,
         success: bool,
-        capsule: Optional[Capsule] = None,
-        error: Optional[str] = None,
-        warnings: Optional[list] = None,
+        capsule: Capsule | None = None,
+        error: str | None = None,
+        warnings: list | None = None,
     ):
         self.success = success
         self.capsule = capsule
@@ -41,7 +40,7 @@ class ImportResult:
 
 def import_capsule(
     export_data: dict,
-    target_tenant_id: Optional[str] = None,
+    target_tenant_id: str | None = None,
     target_realm: str = "default",
     version_suffix: str = ".imported",
     skip_checksum: bool = False,
@@ -81,7 +80,7 @@ def import_capsule(
                 tenant_id=tenant_id,
             ).exists():
                 new_version = (
-                    f"{new_version}.{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
+                    f"{new_version}.{datetime.now(UTC).strftime('%Y%m%d%H%M%S')}"
                 )
                 warnings.append(f"Version conflict resolved: using {new_version}")
 
@@ -134,7 +133,7 @@ def import_capsule(
 
 def import_tenant_capsules(
     export_data: dict,
-    target_tenant_id: Optional[str] = None,
+    target_tenant_id: str | None = None,
     target_realm: str = "default",
 ) -> dict:
     """Import all capsules from a tenant export bundle."""

@@ -6,7 +6,7 @@ Registered as an AnalyzerPlugin in the Voyant platform.
 """
 
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 class AnomalyDetector(AnalyzerPlugin):
     """Detects anomalies in numerical data using Isolation Forest."""
 
-    def analyze(self, data: Any, context: Dict[str, Any]) -> Dict[str, Any]:
+    def analyze(self, data: Any, context: dict[str, Any]) -> dict[str, Any]:
         """
         Analyze numerical data for anomalies.
 
@@ -81,7 +81,7 @@ class AnomalyDetector(AnalyzerPlugin):
         # 2. Model Training
         # Contamination: 'auto' or float (0.0 to 0.5)
         contamination = context.get("contamination", "auto")
-        model = IsolationForest(contamination=contamination, random_state=42, n_jobs=-1)
+        model = IsolationForest(contamination=contamination, random_state=42, n_jobs=-1)  # type: ignore[reportPossiblyUnbound]
 
         model.fit(X)
 
@@ -98,7 +98,7 @@ class AnomalyDetector(AnalyzerPlugin):
         anomalies = X[X["is_anomaly"]]
 
         # Sort by severity (lowest score)
-        anomalies = anomalies.sort_values("anomaly_score", ascending=True)
+        anomalies = anomalies.sort_values("anomaly_score", ascending=True)  # type: ignore[reportCallIssue, reportAttributeAccessIssue]
 
         result = {
             "status": "success",
@@ -108,7 +108,7 @@ class AnomalyDetector(AnalyzerPlugin):
             "anomaly_percentage": float(len(anomalies) / len(X)),
             "features_used": features,
             "top_anomalies": anomalies.head(20).to_dict(orient="records"),
-            "visualization": self._generate_plot_spec(X, features),
+            "visualization": self._generate_plot_spec(X, features),  # type: ignore[reportArgumentType]
         }
 
         return result
@@ -125,8 +125,8 @@ class AnomalyDetector(AnalyzerPlugin):
         raise AnalysisError("VYNT-DATA-002", f"Unsupported data type: {type(data)}")
 
     def _generate_plot_spec(
-        self, df: pd.DataFrame, features: List[str]
-    ) -> Dict[str, Any]:
+        self, df: pd.DataFrame, features: list[str]
+    ) -> dict[str, Any]:
         """Generate a Scatter plot metadata for outliers."""
         # Simple scatter of first 2 features (or Index vs Feature if 1 dim)
         if len(features) >= 2:
@@ -141,8 +141,8 @@ class AnomalyDetector(AnalyzerPlugin):
             "x": x_col,
             "y": y_col,
             "data": {
-                "inliers": df[~df["is_anomaly"]][[x_col, y_col]].to_dict(orient="list"),
-                "outliers": df[df["is_anomaly"]][[x_col, y_col]].to_dict(orient="list"),
+                "inliers": df[~df["is_anomaly"]][[x_col, y_col]].to_dict(orient="list"),  # type: ignore[reportCallIssue, reportAttributeAccessIssue]
+                "outliers": df[df["is_anomaly"]][[x_col, y_col]].to_dict(orient="list"),  # type: ignore[reportCallIssue, reportAttributeAccessIssue]
             },
             "title": f"Anomaly Usage: {y_col} vs {x_col}",
         }

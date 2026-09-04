@@ -1,7 +1,7 @@
 """
 Capsule Activities — Temporal activities for capsule workflow execution.
 
-Production-grade: all action handlers wire to real Voyant services.
+All action handlers wire to real Voyant services.
 Step results are persisted to the database to avoid Temporal event
 history size limits; only lightweight metadata flows through workflow state.
 """
@@ -9,7 +9,7 @@ history size limits; only lightweight metadata flows through workflow state.
 import hashlib
 import json
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 from temporalio import activity
 
@@ -26,7 +26,7 @@ class CapsuleActivities:
     """Activity implementations for CapsuleWorkflow."""
 
     @activity.defn(name="capsule.load_capsule")
-    async def load_capsule(self, capsule_id: str, tenant_id: str) -> Dict[str, Any]:
+    async def load_capsule(self, capsule_id: str, tenant_id: str) -> dict[str, Any]:
         """Load capsule definition from DB."""
         try:
             capsule = load_capsule_by_id(capsule_id, tenant_id)
@@ -45,7 +45,7 @@ class CapsuleActivities:
             raise
 
     @activity.defn(name="capsule.eval_condition")
-    async def eval_condition(self, condition: str, steps: Dict[str, Any]) -> bool:
+    async def eval_condition(self, condition: str, steps: dict[str, Any]) -> bool:
         """Evaluate a step condition against previous step results."""
         try:
             resolved = _resolve_template(condition, {"steps": steps})
@@ -67,10 +67,10 @@ class CapsuleActivities:
     @activity.defn(name="capsule.substitute_params")
     async def substitute_params(
         self,
-        params: Dict[str, Any],
-        parameter_values: Dict[str, Any],
-        step_results: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        params: dict[str, Any],
+        parameter_values: dict[str, Any],
+        step_results: dict[str, Any],
+    ) -> dict[str, Any]:
         """Substitute Jinja2 templates in params dict."""
         from jinja2.sandbox import SandboxedEnvironment
 
@@ -100,11 +100,11 @@ class CapsuleActivities:
     async def execute_step(
         self,
         action: str,
-        params: Dict[str, Any],
+        params: dict[str, Any],
         tenant_id: str,
         instance_id: str,
-        capabilities_whitelist: List[str],
-    ) -> Dict[str, Any]:
+        capabilities_whitelist: list[str],
+    ) -> dict[str, Any]:
         """Route step action to existing Voyant services."""
         # --- Capability whitelist enforcement ---
         if capabilities_whitelist and action not in capabilities_whitelist:
@@ -137,7 +137,7 @@ class CapsuleActivities:
 
         return {"step_id": action, "stored": True, "size_bytes": len(json.dumps(result, default=str))}
 
-    async def _persist_step_result(self, instance_id: str, step_id: str, result: Dict[str, Any]) -> None:
+    async def _persist_step_result(self, instance_id: str, step_id: str, result: dict[str, Any]) -> None:
         """Write step result to CapsuleInstance.state to keep workflow history small."""
         try:
             instance = CapsuleInstance.objects.get(id=instance_id)
@@ -153,7 +153,7 @@ class CapsuleActivities:
             logger.error("Failed to persist step result: %s", exc)
             raise
 
-    async def _run_deep_research(self, params: Dict[str, Any], tenant_id: str) -> Dict[str, Any]:
+    async def _run_deep_research(self, params: dict[str, Any], tenant_id: str) -> dict[str, Any]:
         from apps.core.config import get_settings
         from apps.core.lib.temporal_client import get_temporal_client
         from apps.scraper.deep_research_workflow import DeepResearchWorkflow
@@ -173,7 +173,7 @@ class CapsuleActivities:
         )
         return {"status": "started", "workflow_id": handle.id, "action": "deep_research"}
 
-    async def _run_scrape(self, params: Dict[str, Any], tenant_id: str) -> Dict[str, Any]:
+    async def _run_scrape(self, params: dict[str, Any], tenant_id: str) -> dict[str, Any]:
         from apps.core.config import get_settings
         from apps.core.lib.temporal_client import get_temporal_client
         from apps.scraper.workflow import ScrapeWorkflow
@@ -193,7 +193,7 @@ class CapsuleActivities:
         )
         return {"status": "started", "workflow_id": handle.id, "action": "scrape", "url": url}
 
-    async def _run_ingest(self, params: Dict[str, Any], tenant_id: str) -> Dict[str, Any]:
+    async def _run_ingest(self, params: dict[str, Any], tenant_id: str) -> dict[str, Any]:
         from apps.core.config import get_settings
         from apps.core.lib.temporal_client import get_temporal_client
         from apps.worker.workflows.ingest_workflow import IngestDataWorkflow
@@ -213,7 +213,7 @@ class CapsuleActivities:
         )
         return {"status": "started", "workflow_id": handle.id, "action": "ingest"}
 
-    async def _run_analyze(self, params: Dict[str, Any], tenant_id: str) -> Dict[str, Any]:
+    async def _run_analyze(self, params: dict[str, Any], tenant_id: str) -> dict[str, Any]:
         from apps.analysis.lib.anomaly import detect_anomalies
         from apps.analysis.lib.ml_primitives import MLPrimitives
 
@@ -233,7 +233,7 @@ class CapsuleActivities:
 
         return {"status": "completed", "action": "analyze", "result": result}
 
-    async def _run_search(self, params: Dict[str, Any], tenant_id: str) -> Dict[str, Any]:
+    async def _run_search(self, params: dict[str, Any], tenant_id: str) -> dict[str, Any]:
         from apps.search.lib.milvus_store import get_vector_store
 
         limit = params.get("limit", 5)
@@ -242,7 +242,7 @@ class CapsuleActivities:
         results = store.search(query_vector=[], k=limit)
         return {"status": "completed", "action": "search", "results": results}
 
-    async def _run_sql_query(self, params: Dict[str, Any], tenant_id: str) -> Dict[str, Any]:
+    async def _run_sql_query(self, params: dict[str, Any], tenant_id: str) -> dict[str, Any]:
         from apps.core.lib.trino import get_trino_client
 
         sql = params.get("sql", "")
@@ -260,7 +260,7 @@ class CapsuleActivities:
             logger.error("SQL query failed: %s", exc)
             return {"error": str(exc), "action": "sql_query"}
 
-    async def _run_render_plotly(self, params: Dict[str, Any], tenant_id: str) -> Dict[str, Any]:
+    async def _run_render_plotly(self, params: dict[str, Any], tenant_id: str) -> dict[str, Any]:
         import pandas as pd
 
         from apps.core.lib.plotly_engine import PlotlyRenderer
@@ -281,20 +281,20 @@ class CapsuleActivities:
 
         return {"status": "completed", "action": "render_plotly", "artifact_uri": uri}
 
-    async def _run_render_pdf(self, params: Dict[str, Any], tenant_id: str) -> Dict[str, Any]:
+    async def _run_render_pdf(self, params: dict[str, Any], tenant_id: str) -> dict[str, Any]:
         from apps.core.lib.pdf_engine import PDFAssembler
 
         template = params.get("template", "default")
         uri = PDFAssembler.compile_pdf(template_name=template, params=params, tenant_id=tenant_id)
         return {"status": "completed", "action": "render_pdf", "artifact_uri": uri}
 
-    async def _run_notify(self, params: Dict[str, Any], tenant_id: str) -> Dict[str, Any]:
+    async def _run_notify(self, params: dict[str, Any], tenant_id: str) -> dict[str, Any]:
         message = params.get("message", "")
         level = params.get("level", "info")
         logger.log(getattr(logging, level.upper(), logging.INFO), "[notify] %s", message)
         return {"status": "completed", "action": "notify", "message": message}
 
-    async def _run_audit_log(self, params: Dict[str, Any], tenant_id: str) -> Dict[str, Any]:
+    async def _run_audit_log(self, params: dict[str, Any], tenant_id: str) -> dict[str, Any]:
         event_type = params.get("event_type", "capsule.audit")
         logger.info(
             "AUDIT: tenant=%s event=%s params=%s",
@@ -305,7 +305,7 @@ class CapsuleActivities:
         return {"status": "completed", "action": "audit_log", "event_type": event_type}
 
     @activity.defn(name="capsule.cross_validate")
-    async def cross_validate(self, instance_id: str, tenant_id: str) -> Dict[str, Any]:
+    async def cross_validate(self, instance_id: str, tenant_id: str) -> dict[str, Any]:
         """Cross-validate findings across multiple steps by loading from DB."""
         try:
             instance = CapsuleInstance.objects.get(id=instance_id)
@@ -335,7 +335,7 @@ class CapsuleActivities:
         capsule_id: str,
         instance_id: str,
         tenant_id: str,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Generate output artifacts (reports, plots, exports)."""
         try:
             instance = CapsuleInstance.objects.get(id=instance_id)
@@ -344,7 +344,7 @@ class CapsuleActivities:
         except CapsuleInstance.DoesNotExist:
             steps = {}
 
-        artifacts: List[Dict[str, Any]] = []
+        artifacts: list[dict[str, Any]] = []
 
         summary = {
             "artifact_id": f"{instance_id}-summary",
@@ -368,7 +368,7 @@ class CapsuleActivities:
         self,
         capsule_id: str,
         instance_id: str,
-        artifacts: List[Dict[str, Any]],
+        artifacts: list[dict[str, Any]],
         tenant_id: str,
     ) -> None:
         """Persist final report to storage."""
@@ -384,7 +384,7 @@ class CapsuleActivities:
             raise
 
 
-def _resolve_template(template: str, context: Dict[str, Any]) -> str:
+def _resolve_template(template: str, context: dict[str, Any]) -> str:
     from jinja2.sandbox import SandboxedEnvironment
 
     env = SandboxedEnvironment()

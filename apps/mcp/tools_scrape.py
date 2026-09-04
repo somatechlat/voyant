@@ -76,8 +76,8 @@ def tool_scrape_fetch(
 @mcp_app.tool(name="scrape.deep_archive")
 async def tool_scrape_deep_archive(
     url: str,
-    interaction_selectors: list[str] = None,
-    download_patterns: list[str] = None,
+    interaction_selectors: list[str] | None = None,
+    download_patterns: list[str] | None = None,
     target_dir: str = "scrapes/unknown",
     wait_settle_ms: int = 2000,
     timeout_ms: int = 60000,
@@ -166,7 +166,7 @@ def tool_scrape_transcribe(media_urls, language: str = "es"):
 
 @mcp_app.tool(name="voyant.templates.execute")
 def tool_execute_template(
-    template_id: str, category: str, tenant_id: str, params: dict, job_name: str = None
+    template_id: str, category: str, tenant_id: str, params: dict, job_name: str | None = None
 ):
     """
     [UPTP Core Router] Universal Data Box execution entry point.
@@ -184,7 +184,7 @@ def tool_execute_template(
     """
     request_payload = TemplateExecutionRequest(
         template_id=template_id,
-        category=category,
+        category=category,  # type: ignore[reportArgumentType]
         tenant_id=tenant_id,
         params=params,
         job_name=job_name,

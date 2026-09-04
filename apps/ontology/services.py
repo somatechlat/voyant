@@ -18,8 +18,9 @@ ONT-F-033: Filtered traversal
 
 from __future__ import annotations
 
+import builtins
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from django.db import transaction
 from django.db.models import Q, QuerySet
@@ -68,7 +69,7 @@ class ObjectTypeService:
         *,
         name: str,
         description: str = "",
-        properties: List[Dict[str, Any]],
+        properties: builtins.list[dict[str, Any]],
         created_by: str = "",
     ) -> ObjectType:
         """ONT-F-001 + ONT-F-008: Create object type with properties.
@@ -102,9 +103,9 @@ class ObjectTypeService:
         tenant_id: str,
         type_id: str,
         *,
-        name: Optional[str] = None,
-        description: Optional[str] = None,
-        properties: Optional[List[Dict[str, Any]]] = None,
+        name: str | None = None,
+        description: str | None = None,
+        properties: builtins.list[dict[str, Any]] | None = None,
     ) -> ObjectType:
         """ONT-F-006: Update with backward-compatibility checks + version bump."""
         ot = ObjectTypeService.get(tenant_id, type_id)
@@ -117,7 +118,7 @@ class ObjectTypeService:
         if properties is not None:
             # Backward-compatibility: only allow additions and required changes,
             # not removals or type changes of existing required fields.
-            existing = {p.name: p for p in ot.properties.all()}
+            existing = {p.name: p for p in ot.properties.all()}  # type: ignore[attr-defined]
             for prop in properties:
                 if prop["name"] in existing:
                     old = existing[prop["name"]]
@@ -165,7 +166,7 @@ class ObjectTypeService:
         """ONT-F-007: Soft-delete."""
         ot = ObjectTypeService.get(tenant_id, type_id)
         # Refuse if instances exist
-        if ot.instances.filter(deleted_at__isnull=True).exists():
+        if ot.instances.filter(deleted_at__isnull=True).exists():  # type: ignore[attr-defined]
             raise ValidationError(
                 [
                     {
@@ -189,7 +190,7 @@ class ObjectService:
     """ONT-F-010 to ONT-F-017: Object instance CRUD + batch + upsert + versioning."""
 
     @staticmethod
-    def list(tenant_id: str, object_type_id: Optional[str] = None) -> QuerySet[Object]:
+    def list(tenant_id: str, object_type_id: str | None = None) -> QuerySet[Object]:
         qs = Object.objects.filter(tenant_id=tenant_id, deleted_at__isnull=True)
         if object_type_id:
             qs = qs.filter(object_type_id=object_type_id)
@@ -208,13 +209,13 @@ class ObjectService:
     def create(
         tenant_id: str,
         object_type_id: str,
-        properties: Dict[str, Any],
+        properties: dict[str, Any],
         *,
         created_by: str = "",
     ) -> Object:
         """ONT-F-010/011: Create with schema validation."""
         ot = ObjectTypeService.get(tenant_id, object_type_id)
-        prop_defs = list(ot.properties.all())
+        prop_defs = list(ot.properties.all())  # type: ignore[attr-defined]
 
         normalised, errors = validate_properties(properties, prop_defs)
         if errors:
@@ -234,9 +235,9 @@ class ObjectService:
     def update(
         tenant_id: str,
         object_id: str,
-        properties: Dict[str, Any],
+        properties: dict[str, Any],
         *,
-        version: Optional[int] = None,
+        version: int | None = None,
     ) -> Object:
         """ONT-F-011/017: Update with validation + optimistic concurrency."""
         obj = ObjectService.get(tenant_id, object_id)
@@ -294,11 +295,11 @@ class ObjectService:
     def batch_create(
         tenant_id: str,
         object_type_id: str,
-        items: List[Dict[str, Any]],
-    ) -> List[Object]:
+        items: builtins.list[dict[str, Any]],
+    ) -> builtins.list[Object]:
         """ONT-F-013: Batch create 1000+ objects."""
         ot = ObjectTypeService.get(tenant_id, object_type_id)
-        prop_defs = list(ot.properties.all())
+        prop_defs = list(ot.properties.all())  # type: ignore[attr-defined]
         created = []
 
         for item in items:
@@ -321,8 +322,8 @@ class ObjectService:
         tenant_id: str,
         object_type_id: str,
         key_property: str,
-        items: List[Dict[str, Any]],
-    ) -> List[Object]:
+        items: builtins.list[dict[str, Any]],
+    ) -> builtins.list[Object]:
         """ONT-F-014: Upsert by a unique key property."""
         results = []
         for item in items:
@@ -377,7 +378,7 @@ class LinkTypeService:
         target_object_type_id: str,
         cardinality: str = Cardinality.ONE_TO_MANY,
         description: str = "",
-        properties_schema: Optional[Dict] = None,
+        properties_schema: dict | None = None,
         inverse_name: str = "",
     ) -> LinkType:
         """ONT-F-020/021: Create link type with referential integrity."""
@@ -401,7 +402,7 @@ class LinkTypeService:
     @staticmethod
     def soft_delete(tenant_id: str, lt_id: str) -> None:
         lt = LinkTypeService.get(tenant_id, lt_id)
-        if lt.instances.filter(deleted_at__isnull=True).exists():
+        if lt.instances.filter(deleted_at__isnull=True).exists():  # type: ignore[attr-defined]
             raise ValidationError(
                 [
                     {
@@ -430,7 +431,7 @@ class LinkService:
         link_type_id: str,
         source_object_id: str,
         target_object_id: str,
-        properties: Optional[Dict[str, Any]] = None,
+        properties: dict[str, Any] | None = None,
     ) -> Link:
         """ONT-F-030/023: Create with referential integrity check."""
         lt = LinkTypeService.get(tenant_id, link_type_id)
@@ -438,7 +439,7 @@ class LinkService:
         tgt = ObjectService.get(tenant_id, target_object_id)
 
         # Verify types match
-        if str(src.object_type_id) != str(lt.source_object_type_id):
+        if str(src.object_type_id) != str(lt.source_object_type_id):  # type: ignore[attr-defined]
             raise ValidationError(
                 [
                     {
@@ -450,7 +451,7 @@ class LinkService:
                     }
                 ]
             )
-        if str(tgt.object_type_id) != str(lt.target_object_type_id):
+        if str(tgt.object_type_id) != str(lt.target_object_type_id):  # type: ignore[attr-defined]
             raise ValidationError(
                 [
                     {
@@ -502,11 +503,11 @@ class LinkService:
         tenant_id: str,
         object_id: str,
         *,
-        link_type_name: Optional[str] = None,
+        link_type_name: str | None = None,
         direction: str = "outgoing",
         max_depth: int = 1,
-        filters: Optional[Dict[str, Any]] = None,
-    ) -> List[Dict[str, Any]]:
+        filters: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
         """
         ONT-F-031/032/033: Traverse links from a starting object.
 
@@ -515,7 +516,7 @@ class LinkService:
         filters: reserved for future property-based filtering on intermediate objects
         """
         visited = set()
-        results: List[Dict[str, Any]] = []
+        results: list[dict[str, Any]] = []
 
         def _traverse(obj_id: str, depth: int):
             if depth > max_depth or obj_id in visited:

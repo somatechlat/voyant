@@ -2,20 +2,20 @@
 
 This module defines the REST API endpoints for the web scraping service,
 built using Django Ninja. The API exposes "pure execution" tools that
-are controlled by an external intelligent agent, following an Agent-Tool Architecture.
+are controlled by an external agent, following an Agent-Tool Architecture.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from asgiref.sync import async_to_sync
-
-logger = logging.getLogger(__name__)
 from django.shortcuts import get_object_or_404
 from ninja import Router, Schema
 
 from apps.core.config import get_settings
 from apps.core.security.auth import require_permission
+
+logger = logging.getLogger(__name__)
 
 # Lazy imports - avoid importing Django models at module level
 # This prevents AppRegistryNotReady errors when module is loaded
@@ -33,16 +33,16 @@ scrape_router = Router(tags=["scrape"], auth=require_permission("read:*"))
 class ScrapeStartSchema(Schema):
     """Request schema for starting a scrape job."""
 
-    urls: List[str]
-    selectors: Optional[Dict[str, Any]] = None  # Agent-provided selectors
-    options: Optional[Dict[str, Any]] = None
+    urls: list[str]
+    selectors: dict[str, Any] | None = None  # Agent-provided selectors
+    options: dict[str, Any] | None = None
 
 
 class ScrapeExtractSchema(Schema):
     """Request schema for extracting data from HTML."""
 
     html: str
-    selectors: Dict[str, Any]  # Agent-provided CSS/XPath
+    selectors: dict[str, Any]  # Agent-provided CSS/XPath
 
 
 class ScrapeOcrSchema(Schema):
@@ -71,24 +71,24 @@ class ScrapeFetchSchema(Schema):
 
     url: str
     engine: str = settings.scraper_default_engine
-    wait_for: Optional[str] = None
+    wait_for: str | None = None
     scroll: bool = False
     timeout: int = settings.scraper_default_timeout_seconds
-    wait_until: Optional[str] = None
-    settle_ms: Optional[int] = None
-    block_resources: Optional[bool] = None
+    wait_until: str | None = None
+    settle_ms: int | None = None
+    block_resources: bool | None = None
     capture_json: bool = False
-    capture_url_contains: Optional[List[str]] = None
-    capture_max_bytes: Optional[int] = None
-    capture_max_items: Optional[int] = None
+    capture_url_contains: list[str] | None = None
+    capture_max_bytes: int | None = None
+    capture_max_items: int | None = None
 
 
 class ScrapeDeepArchiveSchema(Schema):
     """Request schema for generic deep archival scraping."""
 
     url: str
-    interaction_selectors: List[str] = []
-    download_patterns: List[str] = []
+    interaction_selectors: list[str] = []
+    download_patterns: list[str] = []
     target_dir: str
     wait_settle_ms: int = 2000
     timeout_ms: int = 60000
@@ -104,9 +104,9 @@ class ScrapeJobSchema(Schema):
     artifact_count: int
     error_count: int
     created_at: str
-    started_at: Optional[str] = None
-    finished_at: Optional[str] = None
-    error_message: Optional[str] = None
+    started_at: str | None = None
+    finished_at: str | None = None
+    error_message: str | None = None
 
 
 class ScrapeArtifactSchema(Schema):
@@ -116,8 +116,8 @@ class ScrapeArtifactSchema(Schema):
     artifact_type: str
     format: str
     storage_path: str
-    size_bytes: Optional[int] = None
-    content_hash: Optional[str] = None
+    size_bytes: int | None = None
+    content_hash: str | None = None
 
 
 class ScrapeResultSchema(Schema):
@@ -125,7 +125,7 @@ class ScrapeResultSchema(Schema):
 
     job_id: str
     status: str
-    artifacts: List[ScrapeArtifactSchema]
+    artifacts: list[ScrapeArtifactSchema]
 
 
 # ============================================================================
@@ -154,8 +154,8 @@ def _run_async(func, *args, **kwargs):
 
 def _start_scrape_workflow(
     job_id: str,
-    urls: List[str],
-    selectors: Optional[Dict],
+    urls: list[str],
+    selectors: dict | None,
     options: dict,
     tenant_id: str,
 ):

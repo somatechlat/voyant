@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ninja import Field, Router, Schema
 from ninja.errors import HttpError
@@ -26,7 +26,7 @@ class SqlRequest(Schema):
         le=10000,
         description="The maximum number of rows to return from the query.",
     )
-    parameters: Optional[Dict[str, Any]] = Field(
+    parameters: dict[str, Any] | None = Field(
         None,
         description="Optional parameters to pass to the SQL query (e.g., for parameterized queries).",
     )
@@ -35,10 +35,10 @@ class SqlRequest(Schema):
 class SqlResponse(Schema):
     """Response schema for the result of an executed SQL query."""
 
-    columns: List[str] = Field(
+    columns: list[str] = Field(
         ..., description="A list of column names returned by the query."
     )
-    rows: List[List[Any]] = Field(
+    rows: list[list[Any]] = Field(
         ...,
         description="A list of lists, where each inner list represents a row of data.",
     )
@@ -50,7 +50,7 @@ class SqlResponse(Schema):
     execution_time_ms: int = Field(
         ..., description="The time taken to execute the query in milliseconds."
     )
-    query_id: Optional[str] = Field(
+    query_id: str | None = Field(
         None, description="The unique ID assigned to the query by the Trino engine."
     )
 
@@ -68,7 +68,7 @@ def execute_sql(request, payload: SqlRequest):
     # Security: Tenant validation and SQL query safety are handled by underlying TrinoClient.
     try:
         client = get_trino_client()
-        result = client.execute(payload.sql, limit=payload.limit)
+        result = client.execute(payload.sql, limit=payload.limit, parameters=payload.parameters)
         return SqlResponse(
             columns=result.columns,
             rows=result.rows,
@@ -88,11 +88,11 @@ def execute_sql(request, payload: SqlRequest):
 
 @sql_router.get(
     "/tables",
-    response=Dict[str, Any],
+    response=dict[str, Any],
     summary="List Available Tables",
     auth=auth_guard,
 )
-def list_tables(request, schema: Optional[str] = None):
+def list_tables(request, schema: str | None = None):
     """
     Retrieves a list of all tables accessible via the Trino engine for the current tenant.
     """
@@ -107,11 +107,11 @@ def list_tables(request, schema: Optional[str] = None):
 
 @sql_router.get(
     "/tables/{table}/columns",
-    response=Dict[str, Any],
+    response=dict[str, Any],
     summary="Get Table Columns",
     auth=auth_guard,
 )
-def get_columns(request, table: str, schema: Optional[str] = None):
+def get_columns(request, table: str, schema: str | None = None):
     """
     Retrieves the column details for a specific table accessible via the Trino engine.
     """

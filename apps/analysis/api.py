@@ -1,13 +1,12 @@
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ninja import Field, Router, Schema
 from ninja.errors import HttpError
 
 from admin.common.messages import get_message
 from apps.core.api_utils import apply_policy, run_async
-from apps.core.security.auth import require_permission
 from apps.core.config import get_settings
 from apps.core.lib.namespace_analyzer import (
     NamespaceViolationError,
@@ -15,6 +14,7 @@ from apps.core.lib.namespace_analyzer import (
 )
 from apps.core.lib.temporal_client import get_temporal_client
 from apps.core.middleware import get_tenant_id
+from apps.core.security.auth import require_permission
 from apps.worker.workflows.analyze_workflow import AnalyzeWorkflow
 from apps.workflows.models import Job
 
@@ -29,13 +29,13 @@ class KPIQuery(Schema):
 
 
 class AnalyzeRequest(Schema):
-    source_id: Optional[str] = None
-    table: Optional[str] = None
-    tables: Optional[List[str]] = None
+    source_id: str | None = None
+    table: str | None = None
+    tables: list[str] | None = None
     sample_size: int = Field(default=10000, ge=100, le=1000000)
-    kpis: Optional[List[KPIQuery]] = None
-    analyzers: Optional[List[str]] = None
-    analyzer_context: Optional[Dict[str, Any]] = None
+    kpis: list[KPIQuery] | None = None
+    analyzers: list[str] | None = None
+    analyzer_context: dict[str, Any] | None = None
     profile: bool = True
     run_analyzers: bool = True
     generate_artifacts: bool = True
@@ -45,12 +45,12 @@ class AnalyzeResponse(Schema):
     job_id: str
     tenant_id: str
     status: str
-    summary: Dict[str, Any]
-    artifacts: Dict[str, Any]
-    manifest: List[Dict[str, Any]]
+    summary: dict[str, Any]
+    artifacts: dict[str, Any]
+    manifest: list[dict[str, Any]]
 
 
-def _resolve_table(payload: AnalyzeRequest) -> Optional[str]:
+def _resolve_table(payload: AnalyzeRequest) -> str | None:
     if payload.table:
         return payload.table
     if payload.source_id:
@@ -60,7 +60,7 @@ def _resolve_table(payload: AnalyzeRequest) -> Optional[str]:
     return None
 
 
-def _create_job(request, job_type: str, source_id: str, params: Dict[str, Any]) -> Job:
+def _create_job(request, job_type: str, source_id: str, params: dict[str, Any]) -> Job:
     tenant_id = get_tenant_id(request)
     job = Job.objects.create(
         tenant_id=tenant_id,
@@ -97,8 +97,8 @@ def analyze(request, payload: AnalyzeRequest):
     job.started_at = datetime.utcnow()
     job.save(update_fields=["status", "started_at"])
 
-    artifacts: Dict[str, Any] = {}
-    manifest: List[Dict[str, Any]] = []
+    artifacts: dict[str, Any] = {}
+    manifest: list[dict[str, Any]] = []
 
     try:
         client = run_async(get_temporal_client)

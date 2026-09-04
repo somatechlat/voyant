@@ -22,9 +22,10 @@ async def test_infinite_data_journey_e2e():
     # STEP 1: Route Ingestion (Layer 1)
     ingest_req = TemplateExecutionRequest(
         template_id="ingest.db.generic",
-        category="ingestion",
+        category="ingestion",  # type: ignore[arg-type]
         tenant_id=tenant_id,
         params={"generic_uri": "postgresql://user:pass@db:5432/sales"},
+        job_name=None,
     )
     res_ingest = UPTPExecutionEngine.dispatch_execution(ingest_req)
     assert res_ingest["status"] == "accepted"

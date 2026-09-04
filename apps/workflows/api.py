@@ -4,14 +4,13 @@ from __future__ import annotations
 
 import io
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from django.http import StreamingHttpResponse
 from ninja import Field, Router, Schema
 from ninja.errors import HttpError
 
 from admin.common.messages import get_message
-from apps.core.security.auth import require_permission
 from apps.analysis.lib.kpi_templates import (
     get_categories as get_kpi_categories,
 )
@@ -32,6 +31,7 @@ from apps.core.lib.namespace_analyzer import (
 )
 from apps.core.lib.temporal_client import get_temporal_client
 from apps.core.middleware import get_soma_session_id, get_tenant_id
+from apps.core.security.auth import require_permission
 from apps.worker.workflows.ingest_workflow import IngestDataWorkflow
 from apps.worker.workflows.profile_workflow import ProfileWorkflow
 from apps.worker.workflows.quality_workflow import QualityWorkflow
@@ -70,19 +70,19 @@ def get_minio_client():
 class IngestRequest(Schema):
     source_id: str
     mode: str = "full"
-    tables: Optional[List[str]] = None
+    tables: list[str] | None = None
 
 
 class ProfileRequest(Schema):
     source_id: str
-    table: Optional[str] = None
+    table: str | None = None
     sample_size: int = Field(10000, ge=100, le=1_000_000)
 
 
 class QualityRequest(Schema):
     source_id: str
-    table: Optional[str] = None
-    checks: Optional[List[str]] = None
+    table: str | None = None
+    checks: list[str] | None = None
 
 
 class JobResponse(Schema):
@@ -92,10 +92,10 @@ class JobResponse(Schema):
     status: str
     progress: int
     created_at: str
-    started_at: Optional[str] = None
-    completed_at: Optional[str] = None
-    result_summary: Optional[Dict[str, Any]] = None
-    error_message: Optional[str] = None
+    started_at: str | None = None
+    completed_at: str | None = None
+    result_summary: dict[str, Any] | None = None
+    error_message: str | None = None
 
 
 class ArtifactInfo(Schema):
@@ -104,7 +104,7 @@ class ArtifactInfo(Schema):
     artifact_type: str
     format: str
     storage_path: str
-    size_bytes: Optional[int] = None
+    size_bytes: int | None = None
     created_at: str
 
 
@@ -112,19 +112,19 @@ class PresetInfo(Schema):
     name: str
     category: str
     description: str
-    parameters: List[str]
-    output_artifacts: List[str]
+    parameters: list[str]
+    output_artifacts: list[str]
 
 
 class KPITemplateInfo(Schema):
     name: str
     category: str
     description: str
-    required_columns: List[str]
+    required_columns: list[str]
 
 
 class RenderKPIRequest(Schema):
-    params: Dict[str, str]
+    params: dict[str, str]
 
 
 def _to_job_response(job: Job) -> JobResponse:
@@ -142,7 +142,7 @@ def _to_job_response(job: Job) -> JobResponse:
     )
 
 
-def _create_job(request, job_type: str, source_id: str, params: Dict[str, Any]) -> Job:
+def _create_job(request, job_type: str, source_id: str, params: dict[str, Any]) -> Job:
     tenant_id = get_tenant_id(request)
     soma_session_id = get_soma_session_id() or None
     job = Job.objects.create(
@@ -157,7 +157,7 @@ def _create_job(request, job_type: str, source_id: str, params: Dict[str, Any]) 
     return job
 
 
-def _validate_table_scope(tenant_id: str, tables: Optional[List[str]]) -> None:
+def _validate_table_scope(tenant_id: str, tables: list[str] | None) -> None:
     if not tables:
         return
     for table in tables:
@@ -302,11 +302,11 @@ def trigger_quality(request, payload: QualityRequest):
     return _to_job_response(job)
 
 
-@jobs_router.get("", response=List[JobResponse])
+@jobs_router.get("", response=list[JobResponse])
 def list_jobs(
     request,
-    status: Optional[str] = None,
-    job_type: Optional[str] = None,
+    status: str | None = None,
+    job_type: str | None = None,
     limit: int = 50,
 ):
     tenant_id = get_tenant_id(request)
@@ -328,7 +328,7 @@ def get_job(request, job_id: str):
     return _to_job_response(job)
 
 
-@jobs_router.post("/{job_id}/cancel", response=Dict[str, str], auth=require_permission("write:jobs"))
+@jobs_router.post("/{job_id}/cancel", response=dict[str, str], auth=require_permission("write:jobs"))
 def cancel_job(request, job_id: str):
     tenant_id = get_tenant_id(request)
     job = Job.objects.filter(id=job_id, tenant_id=tenant_id).first()
@@ -337,7 +337,12 @@ def cancel_job(request, job_id: str):
 
     try:
         client = run_async(get_temporal_client)
-        for prefix in ("ingest", "profile", "quality", "analyze"):
+        for prefix in (
+            "ingest", "profile", "quality", "analyze",
+            "capsule", "sandbox", "streaming", "scrape",
+            "research", "benchmark", "anomaly", "sentiment",
+            "forecast", "segment", "regression",
+        ):
             try:
                 handle = client.get_workflow_handle(f"{prefix}-{job_id}")
                 run_async(handle.cancel)
@@ -352,7 +357,7 @@ def cancel_job(request, job_id: str):
     return {"status": "cancelled", "job_id": str(job.job_id)}
 
 
-@artifacts_router.get("/{job_id}", response=Dict[str, List[ArtifactInfo]])
+@artifacts_router.get("/{job_id}", response=dict[str, list[ArtifactInfo]])
 def list_artifacts(request, job_id: str):
     tenant_id = get_tenant_id(request)
     apply_policy(
@@ -409,7 +414,7 @@ def download_artifact(request, job_id: str, artifact_type: str, format: str = "j
         ) from exc
 
 
-PRESETS: Dict[str, Dict[str, Any]] = {
+PRESETS: dict[str, dict[str, Any]] = {
     "quality.data_profiling": {
         "name": "Data Profiling",
         "category": "quality",
@@ -429,9 +434,9 @@ PRESETS: Dict[str, Dict[str, Any]] = {
 }
 
 
-@presets_router.get("", response=Dict[str, List[PresetInfo]])
-def list_presets(request, category: Optional[str] = None):
-    grouped: Dict[str, List[PresetInfo]] = {}
+@presets_router.get("", response=dict[str, list[PresetInfo]])
+def list_presets(request, category: str | None = None):
+    grouped: dict[str, list[PresetInfo]] = {}
     for preset in PRESETS.values():
         if category and preset["category"] != category:
             continue
@@ -463,8 +468,8 @@ def get_preset(request, preset_name: str):
     )
 
 
-@presets_router.post("/{preset_name}/execute", response=Dict[str, str], auth=require_permission("execute:presets"))
-def execute_preset(request, preset_name: str, payload: Dict[str, Any]):
+@presets_router.post("/{preset_name}/execute", response=dict[str, str], auth=require_permission("execute:presets"))
+def execute_preset(request, preset_name: str, payload: dict[str, Any]):
     preset = PRESETS.get(preset_name)
     if not preset:
         raise HttpError(404, get_message("ERR_PRESET_NOT_FOUND"))
@@ -514,7 +519,7 @@ def execute_preset(request, preset_name: str, payload: Dict[str, Any]):
     return {"job_id": str(job.job_id), "status": job.status}
 
 
-@presets_router.get("/kpi-templates", response=List[KPITemplateInfo])
+@presets_router.get("/kpi-templates", response=list[KPITemplateInfo])
 def list_kpi_templates_endpoint(request):
     return [
         KPITemplateInfo(
@@ -527,12 +532,12 @@ def list_kpi_templates_endpoint(request):
     ]
 
 
-@presets_router.get("/kpi-templates/categories", response=List[str])
+@presets_router.get("/kpi-templates/categories", response=list[str])
 def list_kpi_template_categories(request):
     return get_kpi_categories()
 
 
-@presets_router.get("/kpi-templates/{template_name}", response=Dict[str, Any])
+@presets_router.get("/kpi-templates/{template_name}", response=dict[str, Any])
 def get_kpi_template_endpoint(request, template_name: str):
     template = get_kpi_template(template_name)
     if not template:
@@ -548,7 +553,11 @@ def get_kpi_template_endpoint(request, template_name: str):
     }
 
 
-@presets_router.post("/kpi-templates/{template_name}/render", response=Dict[str, str], auth=require_permission("execute:presets"))
+@presets_router.post(
+    "/kpi-templates/{template_name}/render",
+    response=dict[str, str],
+    auth=require_permission("execute:presets"),
+)
 def render_kpi_template_endpoint(
     request, template_name: str, payload: RenderKPIRequest
 ):

@@ -8,7 +8,7 @@ All endpoints enforce RBAC via require_permission / require_role.
 from __future__ import annotations
 
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ninja import Router
 from ninja.errors import HttpError
@@ -51,10 +51,10 @@ router = capsules_router  # backward compat
 # ── Registry / Discovery ────────────────────────────────────────────────────
 
 
-@router.get("/registry", response=List[Dict[str, Any]])
+@router.get("/registry", response=list[dict[str, Any]])
 def list_registry(
     request,
-    category: Optional[str] = None,
+    category: str | None = None,
     include_public: bool = True,
 ):
     """List all discoverable capsules for the tenant."""
@@ -64,7 +64,7 @@ def list_registry(
     return discover_capsules(tenant_id, realm, category, include_public)
 
 
-@router.get("/registry/{capsule_id}", response=Dict[str, Any])
+@router.get("/registry/{capsule_id}", response=dict[str, Any])
 def get_capsule_definition(request, capsule_id: str):
     """Get a single capsule definition."""
     user = getattr(request, "auth", None)
@@ -125,7 +125,7 @@ def install_capsule_endpoint(request, payload: CapsuleInstallRequest):
         raise HttpError(400, str(exc))
 
 
-@router.get("/installed", response=List[Dict[str, Any]])
+@router.get("/installed", response=list[dict[str, Any]])
 def list_installed(request):
     """List all capsules installed for this tenant."""
     user = getattr(request, "auth", None)
@@ -192,7 +192,7 @@ def run_capsule(request, payload: CapsuleRunRequest):
     return result
 
 
-@router.get("/instances/{instance_id}", response=Dict[str, Any])
+@router.get("/instances/{instance_id}", response=dict[str, Any])
 def get_instance(request, instance_id: str):
     """Get status of a running capsule instance."""
     user = getattr(request, "auth", None)

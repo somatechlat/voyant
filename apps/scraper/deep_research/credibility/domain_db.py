@@ -8,7 +8,6 @@ No LLM is used — all scores are deterministic constants or rule-based lookups.
 from __future__ import annotations
 
 import logging
-from typing import Dict, Optional
 from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
@@ -30,7 +29,7 @@ TIER_LOW_QUALITY = 0.10
 # Domains mapped to explicit scores.
 # This list is intentionally conservative and can be extended via Django ORM
 # in future iterations without changing the deterministic fallback rules.
-_EXPLICIT_SCORES: Dict[str, float] = {
+_EXPLICIT_SCORES: dict[str, float] = {
     # Academic
     "arxiv.org": TIER_ACADEMIC,
     "pubmed.ncbi.nlm.nih.gov": TIER_ACADEMIC,
@@ -94,7 +93,7 @@ _EXPLICIT_SCORES: Dict[str, float] = {
 }
 
 # TLD-based heuristics for domains not in the explicit list.
-_TLD_SCORES: Dict[str, float] = {
+_TLD_SCORES: dict[str, float] = {
     ".edu": TIER_ACADEMIC,
     ".ac.uk": TIER_ACADEMIC,
     ".ac.jp": TIER_ACADEMIC,
@@ -118,8 +117,8 @@ class DomainCredibilityDB:
 
     def __init__(
         self,
-        explicit_scores: Optional[Dict[str, float]] = None,
-        tld_scores: Optional[Dict[str, float]] = None,
+        explicit_scores: dict[str, float] | None = None,
+        tld_scores: dict[str, float] | None = None,
     ) -> None:
         self._explicit = explicit_scores or _EXPLICIT_SCORES.copy()
         self._tld = tld_scores or _TLD_SCORES.copy()
@@ -158,13 +157,13 @@ class DomainCredibilityDB:
 
         return TIER_UNKNOWN
 
-    def bulk_score(self, urls: list[str]) -> Dict[str, float]:
+    def bulk_score(self, urls: list[str]) -> dict[str, float]:
         """Score many URLs at once."""
         return {url: self.score(url) for url in urls}
 
 
 # Global singleton
-_db_instance: Optional[DomainCredibilityDB] = None
+_db_instance: DomainCredibilityDB | None = None
 
 
 def get_domain_credibility_db() -> DomainCredibilityDB:

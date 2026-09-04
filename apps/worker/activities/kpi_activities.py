@@ -8,9 +8,10 @@ structured results for analytical insights.
 """
 
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 from temporalio import activity
+from temporalio.exceptions import ApplicationError
 
 from apps.core.lib.trino import get_trino_client
 
@@ -26,11 +27,10 @@ class KPIActivities:
     """
 
     def __init__(self):
-        """Initializes the KPIActivities."""
         pass
 
     @activity.defn(name="run_kpis")
-    def run_kpis(self, params: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def run_kpis(self, params: dict[str, Any]) -> list[dict[str, Any]]:
         """
         Executes a list of KPI SQL queries and returns their results.
 
@@ -50,7 +50,7 @@ class KPIActivities:
             for a single KPI, including its name, column headers, and data rows.
 
         Raises:
-            activity.ApplicationError: If a KPI definition is missing SQL, or if
+            ApplicationError: If a KPI definition is missing SQL, or if
                                      any of the underlying Trino queries fail.
         """
         kpis = params.get("kpis", [])
@@ -59,14 +59,14 @@ class KPIActivities:
             return []
 
         trino = get_trino_client()
-        results: List[Dict[str, Any]] = []
+        results: list[dict[str, Any]] = []
 
         for kpi in kpis:
             sql = kpi.get("sql")
             name = kpi.get("name", "kpi_unnamed")
             if not sql:
                 activity.logger.error(f"KPI '{name}' is missing a SQL query. Skipping.")
-                raise activity.ApplicationError(
+                raise ApplicationError(
                     f"KPI '{name}' is missing a SQL query. Cannot execute.",
                     non_retryable=True,
                 )
@@ -84,7 +84,7 @@ class KPIActivities:
                 )
             except Exception as e:
                 logger.error(f"KPI execution failed for '{name}': {e}")
-                raise activity.ApplicationError(
+                raise ApplicationError(
                     f"KPI execution failed for '{name}': {e}", non_retryable=False
                 ) from e
 

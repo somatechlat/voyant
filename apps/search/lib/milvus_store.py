@@ -12,7 +12,7 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from pymilvus import (
     CollectionSchema,
@@ -37,8 +37,8 @@ class VectorItem:
     """A single document in the vector store."""
 
     id: str
-    vector: List[float]
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    vector: list[float]
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------------
@@ -78,11 +78,11 @@ class _MilvusConnection:
     """Lazy, resilient Milvus connection manager."""
 
     def __init__(self) -> None:
-        self._client: Optional[MilvusClient] = None
+        self._client: MilvusClient | None = None
         self._last_fail: float = 0.0
         self._backoff: float = 1.0
 
-    def _settings(self) -> Dict[str, Any]:
+    def _settings(self) -> dict[str, Any]:
         # Delayed import so Django settings are ready.
         from apps.core.config import get_settings
 
@@ -188,13 +188,13 @@ class VectorStore:
     def add(
         self,
         id: str,
-        vector: List[float],
-        metadata: Optional[Dict[str, Any]] = None,
-        sparse_vector: Optional[Dict[int, float]] = None,
+        vector: list[float],
+        metadata: dict[str, Any] | None = None,
+        sparse_vector: dict[int, float] | None = None,
     ) -> None:
         """Insert or upsert a document."""
         meta = metadata or {}
-        row: Dict[str, Any] = {
+        row: dict[str, Any] = {
             "doc_id": id,
             "tenant_id": str(meta.get("tenant_id", "default")),
             "realm": str(meta.get("realm", "default")),
@@ -212,7 +212,7 @@ class VectorStore:
             logger.warning("Upsert failed, retrying with insert: %s", exc)
             client.insert(collection_name=_COLLECTION_NAME, data=[row])
 
-    def get(self, id: str) -> Optional[VectorItem]:
+    def get(self, id: str) -> VectorItem | None:
         """Retrieve a document by doc_id."""
         client = _CONN.client()
         results = client.query(
@@ -230,7 +230,7 @@ class VectorStore:
             metadata=r.get("metadata", {}),
         )
 
-    def delete(self, id: str, tenant_id: Optional[str] = None) -> None:
+    def delete(self, id: str, tenant_id: str | None = None) -> None:
         """Delete by doc_id with optional tenant verification."""
         expr_parts = [f'doc_id == "{id}"']
         if tenant_id:
@@ -242,11 +242,11 @@ class VectorStore:
 
     def search(
         self,
-        query_vector: List[float],
+        query_vector: list[float],
         k: int = 5,
-        filter_metadata: Optional[Dict[str, Any]] = None,
-        query_sparse_vector: Optional[Dict[int, float]] = None,
-    ) -> List[Tuple[VectorItem, float]]:
+        filter_metadata: dict[str, Any] | None = None,
+        query_sparse_vector: dict[int, float] | None = None,
+    ) -> list[tuple[VectorItem, float]]:
         """
         Hybrid search using dense + sparse vectors with weighted RRF merge.
         """
@@ -262,8 +262,8 @@ class VectorStore:
         client = _CONN.client()
 
         def _search(
-            data: Any, anns_field: str, metric_type: str, search_params: Dict[str, Any]
-        ) -> Dict[str, Tuple[VectorItem, float]]:
+            data: Any, anns_field: str, metric_type: str, search_params: dict[str, Any]
+        ) -> dict[str, tuple[VectorItem, float]]:
             raw = client.search(
                 collection_name=_COLLECTION_NAME,
                 data=[data],
@@ -273,7 +273,7 @@ class VectorStore:
                 filter=expr,
                 output_fields=["doc_id", "embedding", "metadata"],
             )
-            out: Dict[str, Tuple[VectorItem, float]] = {}
+            out: dict[str, tuple[VectorItem, float]] = {}
             for query_result in raw:
                 for hit in query_result:
                     entity_data = hit.get("entity", hit)
@@ -299,7 +299,7 @@ class VectorStore:
             search_params={"metric_type": "COSINE", "params": {"ef": 64}},
         )
 
-        sparse_results: Dict[str, Tuple[VectorItem, float]] = {}
+        sparse_results: dict[str, tuple[VectorItem, float]] = {}
         if query_sparse_vector:
             sparse_results = _search(
                 data=query_sparse_vector,
@@ -309,7 +309,7 @@ class VectorStore:
             )
 
         # Weighted RRF merge
-        merged: Dict[str, float] = {}
+        merged: dict[str, float] = {}
         DENSE_WEIGHT = 0.7
         SPARSE_WEIGHT = 0.3
         RRF_K = 60
@@ -322,7 +322,7 @@ class VectorStore:
         all_items = {**dense_results, **sparse_results}
         sorted_ids = sorted(merged.keys(), key=lambda d: merged[d], reverse=True)
 
-        output: List[Tuple[VectorItem, float]] = []
+        output: list[tuple[VectorItem, float]] = []
         for doc_id in sorted_ids[:k]:
             item, _ = all_items[doc_id]
             output.append((item, merged[doc_id]))
@@ -333,7 +333,7 @@ class VectorStore:
 # Global singleton
 # ---------------------------------------------------------------------------
 
-_store: Optional[VectorStore] = None
+_store: VectorStore | None = None
 
 
 def get_vector_store() -> VectorStore:

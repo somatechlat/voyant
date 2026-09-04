@@ -14,9 +14,10 @@ modification or destruction.
 from __future__ import annotations
 
 import logging
+import re
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from apps.core.config import get_settings
 
@@ -37,12 +38,12 @@ class QueryResult:
         query_id: The unique ID assigned by Trino to this query, for debugging and tracing.
     """
 
-    columns: List[str]
-    rows: List[List[Any]]
+    columns: list[str]
+    rows: list[list[Any]]
     row_count: int
     truncated: bool
     execution_time_ms: int
-    query_id: Optional[str] = None
+    query_id: str | None = None
 
 
 class TrinoClient:
@@ -106,7 +107,12 @@ class TrinoClient:
                 raise
         return self._connection
 
-    def execute(self, sql: str, limit: Optional[int] = None) -> QueryResult:
+    def execute(
+        self,
+        sql: str,
+        limit: int | None = None,
+        parameters: dict[str, Any] | None = None,
+    ) -> QueryResult:
         """
         Execute a validated, read-only SQL query.
 
@@ -130,7 +136,10 @@ class TrinoClient:
 
         conn = self._get_connection()
         cursor = conn.cursor()
-        cursor.execute(sql_with_limit)
+        if parameters:
+            cursor.execute(sql_with_limit, parameters)
+        else:
+            cursor.execute(sql_with_limit)
 
         columns = [desc[0] for desc in cursor.description] if cursor.description else []
         rows = cursor.fetchall()
@@ -144,7 +153,7 @@ class TrinoClient:
             query_id=getattr(cursor, "query_id", None),
         )
 
-    def get_tables(self, schema: Optional[str] = None) -> List[str]:
+    def get_tables(self, schema: str | None = None) -> list[str]:
         """
         List all tables within a given schema.
 
@@ -159,8 +168,8 @@ class TrinoClient:
         return [row[0] for row in result.rows]
 
     def get_columns(
-        self, table: str, schema: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+        self, table: str, schema: str | None = None
+    ) -> list[dict[str, Any]]:
         """
         Describe the columns of a given table.
 
@@ -184,9 +193,8 @@ class TrinoClient:
         """
         Perform security validation on a SQL string to prevent destructive queries.
 
-        This method acts as a safeguard against SQL injection and unintended data
-        modification by enforcing a read-only query policy. It uses a denylist
-        of keywords to prevent destructive commands.
+        Enforces read-only query policy using prefix allowlist and keyword denylist.
+        Strips SQL comments before validation to prevent bypass.
 
         Args:
             sql: The SQL string to validate.
@@ -194,7 +202,10 @@ class TrinoClient:
         Raises:
             ValueError: If the query is not a read-only query or contains forbidden keywords.
         """
-        sql_upper = sql.strip().upper()
+        # Strip single-line comments (-- ...) and multi-line comments before validating
+        stripped = re.sub(r'--[^\n]*', '', sql)
+        stripped = re.sub(r'/\*.*?\*/', '', stripped, flags=re.DOTALL)
+        sql_upper = stripped.strip().upper()
 
         allowed_prefixes = ("SELECT", "WITH", "SHOW", "DESCRIBE", "EXPLAIN")
         if not sql_upper.startswith(allowed_prefixes):
@@ -212,6 +223,13 @@ class TrinoClient:
             "CREATE TABLE",
             "GRANT ",
             "REVOKE ",
+            "UNION SELECT",
+            "INTO OUTFILE",
+            "INTO DUMPFILE",
+            "LOAD_FILE(",
+            "BENCHMARK(",
+            "SLEEP(",
+            "WAITFOR DELAY",
         ]
         for kw in forbidden_keywords:
             if kw in sql_upper:
@@ -246,7 +264,7 @@ class TrinoClient:
 
 
 # Singleton client instance for application-wide use.
-_client: Optional[TrinoClient] = None
+_client: TrinoClient | None = None
 
 
 def get_trino_client() -> TrinoClient:

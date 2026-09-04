@@ -3,7 +3,7 @@ import logging
 import sys
 from pathlib import Path
 
-from authzed.api.v1 import WriteSchemaRequest
+from authzed.api.v1 import WriteSchemaRequest  # type: ignore[reportMissingImports]
 
 from apps.core.security.policy import spicedb
 

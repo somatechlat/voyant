@@ -15,13 +15,13 @@ import logging
 import math
 from collections import defaultdict
 from dataclasses import dataclass, field
-from enum import Enum
-from typing import Any, Dict, List, Optional
+from enum import StrEnum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
-class SegmentType(str, Enum):
+class SegmentType(StrEnum):
     """Types of segments."""
 
     CATEGORICAL = "categorical"  # Based on categorical values
@@ -39,15 +39,15 @@ class SegmentStats:
     row_count: int
 
     # Numeric column stats (column -> stats)
-    numeric_stats: Dict[str, Dict[str, float]] = field(default_factory=dict)
+    numeric_stats: dict[str, dict[str, float]] = field(default_factory=dict)
 
     # Categorical column distributions
-    categorical_distributions: Dict[str, Dict[str, int]] = field(default_factory=dict)
+    categorical_distributions: dict[str, dict[str, int]] = field(default_factory=dict)
 
     # Percentage of total
     percentage_of_total: float = 0.0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "segment_name": self.segment_name,
             "segment_value": self.segment_value,
@@ -69,15 +69,15 @@ class SegmentComparison:
     segment_b: str
 
     # Column-level comparisons
-    numeric_differences: Dict[str, Dict[str, float]] = field(default_factory=dict)
+    numeric_differences: dict[str, dict[str, float]] = field(default_factory=dict)
 
     # Statistical significance (p-values from t-test)
-    significance: Dict[str, float] = field(default_factory=dict)
+    significance: dict[str, float] = field(default_factory=dict)
 
     # Size comparison
     size_ratio: float = 0.0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "segment_a": self.segment_a,
             "segment_b": self.segment_b,
@@ -96,9 +96,9 @@ class SegmentProfileResult:
 
     segment_column: str
     total_rows: int
-    segments: List[SegmentStats]
+    segments: list[SegmentStats]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "segment_column": self.segment_column,
             "total_rows": self.total_rows,
@@ -125,10 +125,10 @@ class SegmentProfiler:
 
     def profile(
         self,
-        data: List[Dict[str, Any]],
+        data: list[dict[str, Any]],
         segment_column: str,
-        numeric_columns: Optional[List[str]] = None,
-        categorical_columns: Optional[List[str]] = None,
+        numeric_columns: list[str] | None = None,
+        categorical_columns: list[str] | None = None,
     ) -> SegmentProfileResult:
         """
         Profile data by segment column.
@@ -158,7 +158,7 @@ class SegmentProfiler:
             numeric_columns = self._detect_numeric_columns(data[0])
 
         # Group data by segment
-        segments: Dict[Any, List[Dict]] = defaultdict(list)
+        segments: dict[Any, list[dict]] = defaultdict(list)
         for row in data:
             seg_value = row.get(segment_column)
             if seg_value is not None:
@@ -193,7 +193,7 @@ class SegmentProfiler:
             segments=segment_stats,
         )
 
-    def _detect_numeric_columns(self, sample: Dict[str, Any]) -> List[str]:
+    def _detect_numeric_columns(self, sample: dict[str, Any]) -> list[str]:
         """Detect numeric columns from a sample row."""
         numeric = []
         for key, value in sample.items():
@@ -205,9 +205,9 @@ class SegmentProfiler:
         self,
         segment_name: str,
         segment_value: Any,
-        data: List[Dict[str, Any]],
-        numeric_columns: List[str],
-        categorical_columns: List[str],
+        data: list[dict[str, Any]],
+        numeric_columns: list[str],
+        categorical_columns: list[str],
     ) -> SegmentStats:
         """Profile a single segment."""
         stats = SegmentStats(
@@ -224,7 +224,7 @@ class SegmentProfiler:
 
         # Categorical distributions
         for col in categorical_columns:
-            dist: Dict[str, int] = defaultdict(int)
+            dist: dict[str, int] = defaultdict(int)
             for row in data:
                 val = row.get(col)
                 if val is not None:
@@ -234,7 +234,7 @@ class SegmentProfiler:
 
         return stats
 
-    def _calculate_numeric_stats(self, values: List[float]) -> Dict[str, float]:
+    def _calculate_numeric_stats(self, values: list[float]) -> dict[str, float]:
         """Calculate statistics for numeric values."""
         n = len(values)
         if n == 0:
@@ -269,11 +269,11 @@ class SegmentProfiler:
 
     def compare(
         self,
-        data: List[Dict[str, Any]],
+        data: list[dict[str, Any]],
         segment_column: str,
         value_a: Any,
         value_b: Any,
-        numeric_columns: Optional[List[str]] = None,
+        numeric_columns: list[str] | None = None,
     ) -> SegmentComparison:
         """
         Compare two segments statistically.
@@ -320,7 +320,7 @@ class SegmentProfiler:
 
         return comparison
 
-    def _welch_t_test(self, a: List[float], b: List[float]) -> float:
+    def _welch_t_test(self, a: list[float], b: list[float]) -> float:
         """
         Compute Welch's t-test p-value for two unpaired samples with potentially unequal variances.
 
@@ -364,9 +364,9 @@ class SegmentProfiler:
 
 
 def profile_segments(
-    data: List[Dict[str, Any]],
+    data: list[dict[str, Any]],
     segment_column: str,
-    numeric_columns: Optional[List[str]] = None,
+    numeric_columns: list[str] | None = None,
     max_segments: int = 100,
 ) -> SegmentProfileResult:
     """
@@ -386,7 +386,7 @@ def profile_segments(
 
 
 def compare_segments(
-    data: List[Dict[str, Any]],
+    data: list[dict[str, Any]],
     segment_column: str,
     value_a: Any,
     value_b: Any,
@@ -401,10 +401,10 @@ def compare_segments(
 
 
 def detect_segment_drift(
-    old_data: List[Dict[str, Any]],
-    new_data: List[Dict[str, Any]],
+    old_data: list[dict[str, Any]],
+    new_data: list[dict[str, Any]],
     segment_column: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Detect drift in segment distributions.
 

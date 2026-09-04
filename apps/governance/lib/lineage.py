@@ -32,13 +32,13 @@ import logging
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
-from typing import Any, Dict, List, Optional, Set
+from enum import StrEnum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
-class NodeType(str, Enum):
+class NodeType(StrEnum):
     """Types of nodes in the lineage graph."""
 
     SOURCE = "source"  # External data source
@@ -50,7 +50,7 @@ class NodeType(str, Enum):
     CONTRACT = "contract"  # Data contract
 
 
-class EdgeType(str, Enum):
+class EdgeType(StrEnum):
     """Types of edges in the lineage graph."""
 
     DERIVES_FROM = "derives_from"  # Downstream derives from upstream
@@ -69,14 +69,14 @@ class LineageNode:
     tenant_id: str
 
     # Metadata
-    properties: Dict[str, Any] = field(default_factory=dict)
+    properties: dict[str, Any] = field(default_factory=dict)
     created_at: float = 0
 
     def __post_init__(self):
         if self.created_at == 0:
             self.created_at = datetime.utcnow().timestamp()
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "node_id": self.node_id,
             "node_type": self.node_type.value,
@@ -95,15 +95,15 @@ class LineageEdge:
     edge_type: EdgeType
 
     # Metadata
-    job_id: Optional[str] = None
-    properties: Dict[str, Any] = field(default_factory=dict)
+    job_id: str | None = None
+    properties: dict[str, Any] = field(default_factory=dict)
     created_at: float = 0
 
     def __post_init__(self):
         if self.created_at == 0:
             self.created_at = datetime.utcnow().timestamp()
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "source_id": self.source_id,
             "target_id": self.target_id,
@@ -114,18 +114,18 @@ class LineageEdge:
 
 
 class LineageGraph:
-    """
-    In-memory lineage graph implementation.
+    """In-memory lineage graph implementation.
 
+    # STUB: DataHub integration not implemented — currently in-memory only.
     For production, use a graph database (Neo4j, Neptune) or
-    DataHub's lineage capabilities.
+    DataHub's lineage capabilities. See docs/PHASE_A_STATUS.md.
     """
 
     def __init__(self):
-        self._nodes: Dict[str, LineageNode] = {}
-        self._edges: List[LineageEdge] = []
-        self._upstream: Dict[str, Set[str]] = defaultdict(set)  # node -> upstream nodes
-        self._downstream: Dict[str, Set[str]] = defaultdict(
+        self._nodes: dict[str, LineageNode] = {}
+        self._edges: list[LineageEdge] = []
+        self._upstream: dict[str, set[str]] = defaultdict(set)  # node -> upstream nodes
+        self._downstream: dict[str, set[str]] = defaultdict(
             set
         )  # node -> downstream nodes
 
@@ -135,7 +135,7 @@ class LineageGraph:
         node_type: NodeType,
         name: str,
         tenant_id: str,
-        properties: Optional[Dict[str, Any]] = None,
+        properties: dict[str, Any] | None = None,
     ) -> LineageNode:
         """Add a node to the graph."""
         if node_id in self._nodes:
@@ -159,8 +159,8 @@ class LineageGraph:
         source_id: str,
         target_id: str,
         edge_type: EdgeType = EdgeType.DERIVES_FROM,
-        job_id: Optional[str] = None,
-        properties: Optional[Dict[str, Any]] = None,
+        job_id: str | None = None,
+        properties: dict[str, Any] | None = None,
     ) -> LineageEdge:
         """
         Add an edge between two nodes.
@@ -181,7 +181,7 @@ class LineageGraph:
 
         return edge
 
-    def get_node(self, node_id: str) -> Optional[LineageNode]:
+    def get_node(self, node_id: str) -> LineageNode | None:
         """Get a node by ID."""
         return self._nodes.get(node_id)
 
@@ -189,7 +189,7 @@ class LineageGraph:
         self,
         node_id: str,
         depth: int = 1,
-    ) -> List[str]:
+    ) -> list[str]:
         """
         Get upstream nodes (dependencies).
 
@@ -217,7 +217,7 @@ class LineageGraph:
         self,
         node_id: str,
         depth: int = 1,
-    ) -> List[str]:
+    ) -> list[str]:
         """
         Get downstream nodes (dependents).
 
@@ -241,7 +241,7 @@ class LineageGraph:
 
         return list(result)
 
-    def get_edges_for_node(self, node_id: str) -> List[LineageEdge]:
+    def get_edges_for_node(self, node_id: str) -> list[LineageEdge]:
         """Get all edges involving a node."""
         return [
             e for e in self._edges if e.source_id == node_id or e.target_id == node_id
@@ -250,7 +250,7 @@ class LineageGraph:
     def get_impact_analysis(
         self,
         node_id: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Analyze impact of changes to a node.
 
@@ -259,7 +259,7 @@ class LineageGraph:
         downstream = self.get_downstream(node_id, depth=-1)
 
         # Group by type
-        by_type: Dict[str, List[str]] = defaultdict(list)
+        by_type: dict[str, list[str]] = defaultdict(list)
         for node_id in downstream:
             node = self._nodes.get(node_id)
             if node:
@@ -274,9 +274,9 @@ class LineageGraph:
 
     def to_json(
         self,
-        tenant_id: Optional[str] = None,
+        tenant_id: str | None = None,
         include_properties: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Export graph as JSON.
 
@@ -324,8 +324,8 @@ class LineageGraph:
         self,
         job_id: str,
         tenant_id: str,
-        source_tables: List[str],
-        output_artifacts: List[str],
+        source_tables: list[str],
+        output_artifacts: list[str],
     ) -> None:
         """
         Record lineage for a job execution.
@@ -370,7 +370,7 @@ class LineageGraph:
 # Singleton
 # =============================================================================
 
-_lineage_graph: Optional[LineageGraph] = None
+_lineage_graph: LineageGraph | None = None
 
 
 def get_lineage_graph() -> LineageGraph:

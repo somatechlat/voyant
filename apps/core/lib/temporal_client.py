@@ -1,14 +1,13 @@
 """
 Temporal Client Management Module.
 
-This module provides a standardized, singleton client for connecting to the
+This module provides a singleton client for connecting to the
 Temporal cluster. It ensures that only one connection to the Temporal frontend
 is established and reused throughout the application's lifecycle, which is
-critical for performance and resource management.
+for performance and resource management.
 """
 
 import logging
-from typing import Optional
 
 from temporalio.client import Client
 
@@ -18,7 +17,7 @@ from apps.core.lib.errors import ExternalServiceError
 logger = logging.getLogger(__name__)
 
 # Global singleton instance of the Temporal client.
-_client: Optional[Client] = None
+_client: Client | None = None
 
 
 async def get_temporal_client() -> Client:

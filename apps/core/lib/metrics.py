@@ -22,7 +22,7 @@ Usage:
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 
 from prometheus_client import REGISTRY, Counter, Gauge, Histogram
 
@@ -33,10 +33,10 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 # Basic metrics (registered in basic and full modes)
-BASIC_METRICS: Dict[str, Any] = {}
+BASIC_METRICS: dict[str, Any] = {}
 
 # Full metrics (registered only in full mode)
-FULL_METRICS: Dict[str, Any] = {}
+FULL_METRICS: dict[str, Any] = {}
 
 # Initialization flag
 _initialized = False
@@ -165,7 +165,7 @@ def _create_full_metrics():
     )
 
 
-def init_metrics(mode: Optional[str] = None):
+def init_metrics(mode: str | None = None):
     """
     Initialize and register metrics based on the specified mode.
     This function is idempotent and will only initialize the metrics once.

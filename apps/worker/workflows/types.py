@@ -3,12 +3,11 @@ Workflow Types: Data Structures for Temporal Workflow Parameters and Results.
 
 This module defines common data structures (dataclasses) used as parameters
 for initiating Temporal workflows and activities, as well as for structuring
-their return values. Centralizing these types ensures consistency, type safety,
+their return values. Centralizing these types provides consistency, type safety,
 and clear contracts across the workflow definitions.
 """
 
 from dataclasses import dataclass
-from typing import List, Optional
 
 
 @dataclass
@@ -26,7 +25,7 @@ class IngestParams:
     job_id: str
     source_id: str
     mode: str = "full"
-    tables: Optional[List[str]] = None
+    tables: list[str] | None = None
 
 
 @dataclass
@@ -47,5 +46,5 @@ class IngestResult:
     source_id: str
     status: str
     rows_ingested: int
-    tables_synced: List[str]
+    tables_synced: list[str]
     completed_at: str

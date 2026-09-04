@@ -7,8 +7,8 @@ Extracts text and bounding-box blocks from images.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
-from typing import Any, Dict, List
+from datetime import UTC, datetime
+from typing import Any
 
 import httpx
 
@@ -45,7 +45,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
     Returns:
         An OctopusResult with OCR text and word blocks.
     """
-    start = datetime.now(timezone.utc)
+    start = datetime.now(UTC)
 
     try:
         if request.url.startswith(("http://", "https://")):
@@ -62,7 +62,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
             job_id=request.job_id,
             success=False,
             duration_ms=int(
-                (datetime.now(timezone.utc) - start).total_seconds() * 1000
+                (datetime.now(UTC) - start).total_seconds() * 1000
             ),
             fetched_at=start.isoformat(),
             error_code="OCR_FETCH_ERROR",
@@ -81,7 +81,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
             job_id=request.job_id,
             success=False,
             duration_ms=int(
-                (datetime.now(timezone.utc) - start).total_seconds() * 1000
+                (datetime.now(UTC) - start).total_seconds() * 1000
             ),
             fetched_at=start.isoformat(),
             error_code="OCR_PROCESS_ERROR",
@@ -90,14 +90,14 @@ async def execute(request: OctopusRequest) -> OctopusResult:
 
     words = result.get("words", [])
     full_text = result.get("full_text", "")
-    filtered_blocks: List[Dict[str, Any]] = []
+    filtered_blocks: list[dict[str, Any]] = []
     for word in words:
         conf = word.get("confidence", 0)
         if conf >= request.ocr_confidence_threshold:
             filtered_blocks.append(word)
 
     duration_ms = int(
-        (datetime.now(timezone.utc) - start).total_seconds() * 1000
+        (datetime.now(UTC) - start).total_seconds() * 1000
     )
     return OctopusResult(
         arm=request.arm.value,

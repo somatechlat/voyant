@@ -20,13 +20,12 @@ from __future__ import annotations
 
 import asyncio
 from datetime import timedelta
-from typing import Any, Dict, List, Set
+from typing import Any
 
 from temporalio import workflow
 from temporalio.common import RetryPolicy
 
 with workflow.unsafe.imports_passed_through():
-    from apps.scraper.deep_research.activities import DeepResearchActivities
     from apps.scraper.deep_research.schemas import ResearchConfig
 
 
@@ -38,7 +37,7 @@ class DeepResearchWorkflowV2:
     """
 
     @workflow.run
-    async def run(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def run(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Execute the deep research pipeline.
 
@@ -85,7 +84,7 @@ class DeepResearchWorkflowV2:
         # STEP 1: Generate sub-queries
         # ------------------------------------------------------------------
         queries = await workflow.execute_activity(
-            DeepResearchActivities.generate_queries,  # type: ignore[arg-type]
+            "dr_generate_queries",
             {"query": config.query, "breadth": config.breadth},
             start_to_close_timeout=timedelta(minutes=1),
             retry_policy=retry_policy,
@@ -98,8 +97,8 @@ class DeepResearchWorkflowV2:
         # ------------------------------------------------------------------
         # STEP 2 + 3 + 4 + 5 + 6 + 7: Execute per-depth layer
         # ------------------------------------------------------------------
-        all_url_texts: Dict[str, str] = {}
-        all_search_results: List[Dict[str, Any]] = []
+        all_url_texts: dict[str, str] = {}
+        all_search_results: list[dict[str, Any]] = []
         total_urls_processed = 0
         total_deduplicated = 0
 
@@ -115,7 +114,7 @@ class DeepResearchWorkflowV2:
             for q in current_queries:
                 search_futures.append(
                     workflow.execute_activity(
-                        DeepResearchActivities.search_all_engines,  # type: ignore[arg-type]
+                        "dr_search_all_engines",
                         {
                             "query": q,
                             "max_results": config.max_urls_per_query,
@@ -126,13 +125,13 @@ class DeepResearchWorkflowV2:
                     )
                 )
 
-            per_query_results: List[List[Dict[str, Any]]] = await asyncio.gather(
+            per_query_results: list[list[dict[str, Any]]] = await asyncio.gather(
                 *search_futures
             )
 
             # Flatten and deduplicate by URL.
-            layer_results: List[Dict[str, Any]] = []
-            seen_urls: Set[str] = set()
+            layer_results: list[dict[str, Any]] = []
+            seen_urls: set[str] = set()
             for batch in per_query_results:
                 for item in batch:
                     url = item.get("url", "")
@@ -156,7 +155,7 @@ class DeepResearchWorkflowV2:
                     continue
                 fetch_futures.append(
                     workflow.execute_activity(
-                        DeepResearchActivities.fetch_octopus,  # type: ignore[arg-type]
+                        "dr_fetch_octopus",
                         {
                             "url": url,
                             "tenant_id": tenant_id,
@@ -168,7 +167,7 @@ class DeepResearchWorkflowV2:
                     )
                 )
 
-            fetched_pages: List[Dict[str, Any]] = []
+            fetched_pages: list[dict[str, Any]] = []
             if fetch_futures:
                 fetched_pages = await asyncio.gather(*fetch_futures)
 
@@ -181,20 +180,20 @@ class DeepResearchWorkflowV2:
                     continue
                 extract_futures.append(
                     workflow.execute_activity(
-                        DeepResearchActivities.extract_content,  # type: ignore[arg-type]
+                        "dr_extract_content",
                         {"url": url, "html": html},
                         start_to_close_timeout=timedelta(minutes=1),
                         retry_policy=retry_policy,
                     )
                 )
 
-            extracted_items: List[Dict[str, Any]] = []
+            extracted_items: list[dict[str, Any]] = []
             if extract_futures:
                 extracted_items = await asyncio.gather(*extract_futures)
 
             # Map URL -> extracted text.
-            url_texts: Dict[str, str] = {}
-            fetch_meta: Dict[str, Dict[str, Any]] = {}
+            url_texts: dict[str, str] = {}
+            fetch_meta: dict[str, dict[str, Any]] = {}
             for page in fetched_pages:
                 url = page.get("url", "")
                 if url:
@@ -217,7 +216,7 @@ class DeepResearchWorkflowV2:
 
             # 5. Source scoring.
             scored = await workflow.execute_activity(
-                DeepResearchActivities.score_sources,  # type: ignore[arg-type]
+                "dr_score_sources",
                 {
                     "url_texts": url_texts,
                     "min_score": config.min_source_score,
@@ -240,7 +239,7 @@ class DeepResearchWorkflowV2:
 
             # 6. Deduplication.
             dedup = await workflow.execute_activity(
-                DeepResearchActivities.deduplicate,  # type: ignore[arg-type]
+                "dr_deduplicate",
                 {
                     "url_texts": scored_url_texts,
                     "threshold": config.dedup_threshold,
@@ -260,7 +259,7 @@ class DeepResearchWorkflowV2:
 
             # 7. Synthesize.
             synthesis_raw = await workflow.execute_activity(
-                DeepResearchActivities.synthesize,  # type: ignore[arg-type]
+                "dr_synthesize",
                 {
                     "url_texts": deduped_texts,
                     "search_results": [
@@ -297,7 +296,7 @@ class DeepResearchWorkflowV2:
         # ------------------------------------------------------------------
         # Re-synthesize on the full merged corpus to get unified findings.
         full_synthesis_raw = await workflow.execute_activity(
-            DeepResearchActivities.synthesize,  # type: ignore[arg-type]
+            "dr_synthesize",
             {
                 "url_texts": all_url_texts,
                 "search_results": all_search_results,
@@ -307,7 +306,7 @@ class DeepResearchWorkflowV2:
         )
 
         validated_raw = await workflow.execute_activity(
-            DeepResearchActivities.cross_validate,  # type: ignore[arg-type]
+            "dr_cross_validate",
             {
                 "findings": full_synthesis_raw.get("findings", []),
                 "url_texts": all_url_texts,
@@ -323,7 +322,7 @@ class DeepResearchWorkflowV2:
         # STEP 10: Generate report
         # ------------------------------------------------------------------
         report_raw = await workflow.execute_activity(
-            DeepResearchActivities.generate_report,  # type: ignore[arg-type]
+            "dr_generate_report",
             {
                 "query": config.query,
                 "findings": validated_findings,
@@ -341,7 +340,7 @@ class DeepResearchWorkflowV2:
         # Store artifact
         # ------------------------------------------------------------------
         artifact_info = await workflow.execute_activity(
-            DeepResearchActivities.store_artifact,  # type: ignore[arg-type]
+            "dr_store_artifact",
             {
                 "job_id": job_id,
                 "tenant_id": tenant_id,
@@ -375,7 +374,7 @@ class DeepResearchWorkflowV2:
         }
 
     @staticmethod
-    def _error_result(job_id: str, reason: str) -> Dict[str, Any]:
+    def _error_result(job_id: str, reason: str) -> dict[str, Any]:
         return {
             "status": "failed",
             "job_id": job_id,

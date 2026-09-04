@@ -8,7 +8,7 @@ details.
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List
+from typing import Any
 
 
 @dataclass
@@ -28,10 +28,10 @@ class ApiEndpoint:
     path: str
     method: str
     summary: str
-    parameters: List[Dict[str, Any]] = field(default_factory=list)
+    parameters: list[dict[str, Any]] = field(default_factory=list)
     auth_required: bool = True
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """
         Converts the ApiEndpoint object into a dictionary for serialization.
         """
@@ -65,6 +65,6 @@ class ApiSpec:
     title: str
     version: str
     base_url: str
-    endpoints: List[ApiEndpoint] = field(default_factory=list)
+    endpoints: list[ApiEndpoint] = field(default_factory=list)
     auth_type: str = "unknown"
-    raw_spec: Dict[str, Any] = field(default_factory=dict)
+    raw_spec: dict[str, Any] = field(default_factory=dict)

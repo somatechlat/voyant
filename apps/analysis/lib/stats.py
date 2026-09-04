@@ -5,7 +5,7 @@ Provides high-level statistical analysis functions using the R backend.
 """
 
 import logging
-from typing import Any, Dict
+from typing import Any
 
 import pandas as pd
 
@@ -29,7 +29,7 @@ class StatisticalEngine:
         # Simple sanitization - ideally use backticks in R but Rserve usage might vary
         return col.replace(" ", "_").replace("-", "_")
 
-    def check_normality(self, df: pd.DataFrame, column: str) -> Dict[str, Any]:
+    def check_normality(self, df: pd.DataFrame, column: str) -> dict[str, Any]:
         """
         Run Shapiro-Wilk test for normality.
         H0: Data is normally distributed.
@@ -63,7 +63,7 @@ class StatisticalEngine:
             "is_normal": float(self.r.eval("res$p.value")) > 0.05,
         }
 
-    def anova(self, df: pd.DataFrame, value_col: str, group_col: str) -> Dict[str, Any]:
+    def anova(self, df: pd.DataFrame, value_col: str, group_col: str) -> dict[str, Any]:
         """
         Run One-way ANOVA.
         """
@@ -93,7 +93,7 @@ class StatisticalEngine:
 
     def t_test(
         self, df: pd.DataFrame, group_col: str, value_col: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Run Welch Two Sample t-test.
         """
@@ -133,4 +133,4 @@ class StatisticalEngine:
 
         # Reconstruct DataFrame (need column names)
         cols = list(df.select_dtypes(include=["number"]).columns)
-        return pd.DataFrame(res, columns=cols, index=cols)
+        return pd.DataFrame(res, columns=cols, index=cols)  # type: ignore[reportArgumentType]

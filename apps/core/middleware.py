@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 import uuid
 from contextvars import ContextVar
-from typing import Any, Optional
+from typing import Any
 
 from django.http import JsonResponse
 
@@ -21,7 +21,7 @@ soma_session_id_var: ContextVar[str] = ContextVar("soma_session_id", default="")
 soma_user_id_var: ContextVar[str] = ContextVar("soma_user_id", default="")
 traceparent_var: ContextVar[str] = ContextVar("traceparent", default="")
 authorization_var: ContextVar[str] = ContextVar("authorization", default="")
-current_user_var: ContextVar[Optional[Any]] = ContextVar("current_user", default=None)
+current_user_var: ContextVar[Any | None] = ContextVar("current_user", default=None)
 
 SUPPORTED_VERSIONS = ["v1"]
 DEFAULT_VERSION = "v1"
@@ -91,7 +91,7 @@ class APIVersionMiddleware:
         response["X-API-Version"] = api_version
         return response
 
-    def _extract_version(self, request) -> Optional[str]:
+    def _extract_version(self, request) -> str | None:
         if header_version := request.headers.get("X-API-Version"):
             return header_version.lstrip("v")
 
@@ -163,7 +163,7 @@ class RBACMiddleware:
         return response
 
     @staticmethod
-    def _resolve_user(request) -> Optional[Any]:
+    def _resolve_user(request) -> Any | None:
         auth_header = request.headers.get("Authorization", "")
         if not auth_header.startswith("Bearer "):
             return None
@@ -180,7 +180,7 @@ class RBACMiddleware:
             return None
 
 
-def get_current_user() -> Optional[Any]:
+def get_current_user() -> Any | None:
     """Retrieve the authenticated user for the current request context."""
     return current_user_var.get()
 

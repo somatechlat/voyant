@@ -33,7 +33,7 @@ class MetricsActivityInboundInterceptor(ActivityInboundInterceptor):
         self.metrics = MetricsRegistry()
 
     async def execute_activity(self, input: ExecuteActivityInput) -> Any:
-        activity_type = input.activity_type
+        activity_type = input.activity_type  # type: ignore[attr-defined]
         start_time = time.perf_counter()
         status = "success"
 

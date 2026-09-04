@@ -9,8 +9,8 @@ the native ArtifactStore.
 import logging
 
 import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
+import plotly.express as px  # type: ignore[reportMissingImports]
+import plotly.graph_objects as go  # type: ignore[reportMissingImports]
 
 from apps.core.lib.artifact_store import store_artifact
 

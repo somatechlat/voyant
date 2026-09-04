@@ -15,7 +15,7 @@ from __future__ import annotations
 import abc
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, cast
 
 import pandas as pd
 
@@ -28,9 +28,9 @@ class ValidationResult:
 
     rule_name: str
     passed: bool
-    details: Dict[str, Any] = field(default_factory=dict)
+    details: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """
         Convert the validation result to a dictionary.
         Returns:
@@ -122,8 +122,8 @@ class RangeCheck(QualityRule):
     def __init__(
         self,
         column: str,
-        min_val: Optional[float] = None,
-        max_val: Optional[float] = None,
+        min_val: float | None = None,
+        max_val: float | None = None,
     ):
         """
         Initialize the range check rule.
@@ -150,7 +150,8 @@ class RangeCheck(QualityRule):
             )
 
         # Filter for non-null numeric values
-        series = pd.to_numeric(df[self.column], errors="coerce").dropna()
+        numeric_col = cast(pd.Series, pd.to_numeric(df[self.column], errors="coerce"))
+        series = numeric_col.dropna()
         if series.empty:
             return ValidationResult(
                 self.get_name(), True, {"reason": "No numeric values"}
@@ -217,7 +218,7 @@ class UniqueCheck(QualityRule):
 class QualityEngine:
     """Executes a suite of rules."""
 
-    def __init__(self, rules: List[QualityRule]):
+    def __init__(self, rules: list[QualityRule]):
         """
         Initialize the quality engine with a list of rules.
         Args:
@@ -225,7 +226,7 @@ class QualityEngine:
         """
         self.rules = rules
 
-    def validate(self, df: pd.DataFrame) -> Dict[str, Any]:
+    def validate(self, df: pd.DataFrame) -> dict[str, Any]:
         """
         Run all quality checks against a DataFrame and return a summary.
         Args:

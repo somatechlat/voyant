@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import httpx
@@ -49,7 +49,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
     Returns:
         An OctopusResult with extracted document content.
     """
-    start = datetime.now(timezone.utc)
+    start = datetime.now(UTC)
     file_path = request.url
     is_remote = file_path.startswith(("http://", "https://"))
 
@@ -68,7 +68,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
             job_id=request.job_id,
             success=False,
             duration_ms=int(
-                (datetime.now(timezone.utc) - start).total_seconds() * 1000
+                (datetime.now(UTC) - start).total_seconds() * 1000
             ),
             fetched_at=start.isoformat(),
             error_code="DOCUMENT_FETCH_ERROR",
@@ -105,7 +105,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
             job_id=request.job_id,
             success=False,
             duration_ms=int(
-                (datetime.now(timezone.utc) - start).total_seconds() * 1000
+                (datetime.now(UTC) - start).total_seconds() * 1000
             ),
             fetched_at=start.isoformat(),
             error_code="DOCUMENT_PARSE_ERROR",
@@ -119,7 +119,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
                 pass
 
     duration_ms = int(
-        (datetime.now(timezone.utc) - start).total_seconds() * 1000
+        (datetime.now(UTC) - start).total_seconds() * 1000
     )
     return OctopusResult(
         arm=request.arm.value,

@@ -6,7 +6,7 @@ Adheres to Vibe Coding Rules: Uses Pandas for real data manipulation.
 """
 
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -20,8 +20,8 @@ class DataCleaningPrimitives:
     """
 
     def clean_dataset(
-        self, data: List[Dict[str, Any]], strategies: Dict[str, str] = None
-    ) -> Dict[str, Any]:
+        self, data: list[dict[str, Any]], strategies: dict[str, str] | None = None
+    ) -> dict[str, Any]:
         """
         Clean a dataset based on strategies.
 
@@ -104,7 +104,7 @@ class DataCleaningPrimitives:
                         df[col] = df[col].fillna(df[col].median())
                     elif missing_strat == "mode":
                         if not df[col].mode().empty:
-                            df[col] = df[col].fillna(df[col].mode()[0])
+                            df[col] = df[col].fillna(df[col].mode().iloc[0])  # type: ignore[reportArgumentType]
                     elif missing_strat == "ffill":
                         df[col] = df[col].fillna(method="ffill").fillna(method="bfill")
 
@@ -112,7 +112,7 @@ class DataCleaningPrimitives:
             for col in categorical_cols:
                 if col in df.columns:
                     if not df[col].mode().empty:
-                        df[col] = df[col].fillna(df[col].mode()[0])
+                        df[col] = df[col].fillna(df[col].mode().iloc[0])  # type: ignore[reportArgumentType]
 
         report["missing_values_after"] = int(df.isna().sum().sum())
 
@@ -150,8 +150,8 @@ class DataCleaningPrimitives:
                         elif outlier_strat == "cap":
                             mean = df[col].mean()
                             std = df[col].std()
-                            lower = mean - (outlier_thresh * std)
-                            upper = mean + (outlier_thresh * std)
+                            lower = mean - (outlier_thresh * std)  # type: ignore[reportOperatorIssue]
+                            upper = mean + (outlier_thresh * std)  # type: ignore[reportOperatorIssue]
                             df[col] = df[col].clip(lower=lower, upper=upper)
 
         report["outliers_treated"] = int(outliers_treated)

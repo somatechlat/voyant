@@ -6,13 +6,13 @@ ISO/IEC 29148 compliant input/output contracts.
 
 from __future__ import annotations
 
-from enum import Enum
-from typing import Any, Dict, List, Optional
+from enum import StrEnum
+from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
 
-class CapsuleStatus(str, Enum):
+class CapsuleStatus(StrEnum):
     DRAFT = "draft"
     CERTIFIED = "certified"
     ACTIVE = "active"
@@ -20,7 +20,7 @@ class CapsuleStatus(str, Enum):
     SUSPENDED = "suspended"
 
 
-class CapsuleInstanceStatus(str, Enum):
+class CapsuleInstanceStatus(StrEnum):
     RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
@@ -35,10 +35,10 @@ class StepRetryPolicy(BaseModel):
 class ExecutionStep(BaseModel):
     step_id: str = Field(..., min_length=1, max_length=128)
     action: str = Field(..., min_length=1, max_length=256)
-    condition: Optional[str] = None
-    params: Dict[str, Any] = Field(default_factory=dict)
-    inputs: Dict[str, str] = Field(default_factory=dict)
-    outputs: Dict[str, str] = Field(default_factory=dict)
+    condition: str | None = None
+    params: dict[str, Any] = Field(default_factory=dict)
+    inputs: dict[str, str] = Field(default_factory=dict)
+    outputs: dict[str, str] = Field(default_factory=dict)
     retry_policy: StepRetryPolicy = Field(default_factory=StepRetryPolicy)
     timeout_seconds: int = Field(default=60, ge=1, le=3600)
 
@@ -55,14 +55,14 @@ class ParameterSchema(BaseModel):
     required: bool = Field(default=False)
     default: Any = None
     description: str = Field(default="")
-    options: Optional[List[Any]] = None
+    options: list[Any] | None = None
 
 
 class RoleCaps(BaseModel):
-    max_breadth: Optional[int] = Field(default=None, ge=1, le=100)
-    max_depth: Optional[int] = Field(default=None, ge=1, le=10)
-    allowed_actions: Optional[List[str]] = None
-    blocked_actions: Optional[List[str]] = None
+    max_breadth: int | None = Field(default=None, ge=1, le=100)
+    max_depth: int | None = Field(default=None, ge=1, le=10)
+    allowed_actions: list[str] | None = None
+    blocked_actions: list[str] | None = None
 
 
 class AdminOverrideRule(BaseModel):
@@ -73,32 +73,32 @@ class AdminOverrideRule(BaseModel):
 class CapsuleRBAC(BaseModel):
     required_permission: str = Field(..., min_length=1)
     viewer_blocked: bool = True
-    analyst_caps: Optional[RoleCaps] = None
-    engineer_caps: Optional[RoleCaps] = None
-    admin_override: Optional[AdminOverrideRule] = None
+    analyst_caps: RoleCaps | None = None
+    engineer_caps: RoleCaps | None = None
+    admin_override: AdminOverrideRule | None = None
 
 
 class CapsuleSoul(BaseModel):
     system_prompt: str = Field(default="")
-    personality_traits: Dict[str, float] = Field(default_factory=dict)
-    neuromodulator_baseline: Dict[str, float] = Field(default_factory=dict)
+    personality_traits: dict[str, float] = Field(default_factory=dict)
+    neuromodulator_baseline: dict[str, float] = Field(default_factory=dict)
 
 
 class CapsuleBody(BaseModel):
     capsule_type: str = Field(default="voyant.intelligence_recipe")
-    capabilities_whitelist: List[str] = Field(default_factory=list)
-    resource_limits: Dict[str, Any] = Field(default_factory=dict)
-    json_schema: Dict[str, Any] = Field(default_factory=dict)
-    config: Dict[str, Any] = Field(default_factory=dict)
-    execution_graph: List[ExecutionStep] = Field(default_factory=list)
-    parameters: Dict[str, ParameterSchema] = Field(default_factory=dict)
+    capabilities_whitelist: list[str] = Field(default_factory=list)
+    resource_limits: dict[str, Any] = Field(default_factory=dict)
+    json_schema: dict[str, Any] = Field(default_factory=dict)
+    config: dict[str, Any] = Field(default_factory=dict)
+    execution_graph: list[ExecutionStep] = Field(default_factory=list)
+    parameters: dict[str, ParameterSchema] = Field(default_factory=dict)
     rbac: CapsuleRBAC = Field(default_factory=lambda: CapsuleRBAC(required_permission="execute:research"))
-    output_formats: List[str] = Field(default_factory=lambda: ["pdf", "markdown"])
-    triggers: List[Dict[str, Any]] = Field(default_factory=list)
+    output_formats: list[str] = Field(default_factory=lambda: ["pdf", "markdown"])
+    triggers: list[dict[str, Any]] = Field(default_factory=list)
 
     @field_validator("output_formats")
     @classmethod
-    def validate_output_formats(cls, v: List[str]) -> List[str]:
+    def validate_output_formats(cls, v: list[str]) -> list[str]:
         allowed = {"pdf", "xlsx", "csv", "markdown", "parquet", "json"}
         invalid = set(v) - allowed
         if invalid:
@@ -107,9 +107,9 @@ class CapsuleBody(BaseModel):
 
 
 class CapsuleGovernance(BaseModel):
-    constitution_ref: Dict[str, Any] = Field(default_factory=dict)
-    registry_signature: Optional[str] = None
-    certified_at: Optional[str] = None
+    constitution_ref: dict[str, Any] = Field(default_factory=dict)
+    registry_signature: str | None = None
+    certified_at: str | None = None
 
 
 class CapsuleCreateRequest(BaseModel):
@@ -124,9 +124,9 @@ class CapsuleCreateRequest(BaseModel):
 
 
 class CapsuleUpdateRequest(BaseModel):
-    description: Optional[str] = None
-    soul: Optional[CapsuleSoul] = None
-    body: Optional[CapsuleBody] = None
+    description: str | None = None
+    soul: CapsuleSoul | None = None
+    body: CapsuleBody | None = None
 
     class Config:
         extra = "forbid"
@@ -134,8 +134,8 @@ class CapsuleUpdateRequest(BaseModel):
 
 class CapsuleRunRequest(BaseModel):
     installation_id: str = Field(..., min_length=1)
-    parameter_values: Dict[str, Any] = Field(default_factory=dict)
-    tenant_id: Optional[str] = None
+    parameter_values: dict[str, Any] = Field(default_factory=dict)
+    tenant_id: str | None = None
 
     class Config:
         extra = "forbid"
@@ -143,8 +143,8 @@ class CapsuleRunRequest(BaseModel):
 
 class CapsuleInstallRequest(BaseModel):
     capsule_id: str = Field(..., min_length=1)
-    parameter_overrides: Dict[str, Any] = Field(default_factory=dict)
-    tenant_id: Optional[str] = None
+    parameter_overrides: dict[str, Any] = Field(default_factory=dict)
+    tenant_id: str | None = None
 
     class Config:
         extra = "forbid"
@@ -169,7 +169,7 @@ class CapsuleInstanceResponse(BaseModel):
     job_urn: str
     triggered_by: str
     started_at: str
-    completed_at: Optional[str] = None
+    completed_at: str | None = None
 
 
 class CapsuleExecutionResult(BaseModel):
@@ -185,13 +185,13 @@ class CapsuleDiscoverResponse(BaseModel):
     version: str
     description: str
     capsule_type: str
-    parameters: Dict[str, ParameterSchema]
+    parameters: dict[str, ParameterSchema]
     rbac: CapsuleRBAC
     install_count: int
 
 
 class ImportResult(BaseModel):
     success: bool
-    capsule_id: Optional[str] = None
-    error: Optional[str] = None
-    warnings: List[str] = Field(default_factory=list)
+    capsule_id: str | None = None
+    error: str | None = None
+    warnings: list[str] = Field(default_factory=list)

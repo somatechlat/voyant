@@ -6,7 +6,7 @@ K-Means clustering, Random Forest classification, and linear regression.
 """
 
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -48,8 +48,8 @@ class MLPrimitives:
             raise AnalysisError("VYNT-7001", "Scikit-learn is not installed.")
 
     def detect_anomalies(
-        self, data: List[Dict[str, float]], contamination: float = 0.1
-    ) -> Dict[str, Any]:
+        self, data: list[dict[str, float]], contamination: float = 0.1
+    ) -> dict[str, Any]:
         """
         Detect anomalies in the supplied numerical data using Isolation Forest.
 
@@ -76,11 +76,11 @@ class MLPrimitives:
                 )
 
             # Handle NaN
-            imputer = SimpleImputer(strategy="median")
+            imputer = SimpleImputer(strategy="median")  # type: ignore[reportPossiblyUnbound]
             X = imputer.fit_transform(df_numeric)
 
             # Fit Isolation Forest
-            clf = IsolationForest(contamination=contamination, random_state=42)
+            clf = IsolationForest(contamination=contamination, random_state=42)  # type: ignore[reportPossiblyUnboundVariable,reportArgumentType]
             preds = clf.fit_predict(X)
             # -1 is anomaly, 1 is normal
 
@@ -103,8 +103,8 @@ class MLPrimitives:
             raise AnalysisError("VYNT-7007", f"Anomaly Detection Error: {e}")
 
     def cluster_kmeans(
-        self, data: List[Dict[str, float]], n_clusters: int = 3
-    ) -> Dict[str, Any]:
+        self, data: list[dict[str, float]], n_clusters: int = 3
+    ) -> dict[str, Any]:
         """
         Perform K-Means clustering.
         """
@@ -115,17 +115,17 @@ class MLPrimitives:
 
         try:
             df = pd.DataFrame(data)
-            scaler = StandardScaler()
+            scaler = StandardScaler()  # type: ignore[reportPossiblyUnboundVariable]
             X_scaled = scaler.fit_transform(df)
 
             # Fit K-Means
-            kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init="auto")
+            kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init="auto")  # type: ignore[reportPossiblyUnboundVariable]
             labels = kmeans.fit_predict(X_scaled)
 
             # Metrics
             score = -1.0
             if len(data) > n_clusters:
-                score = silhouette_score(X_scaled, labels)
+                score = silhouette_score(X_scaled, labels)  # type: ignore[reportPossiblyUnboundVariable]
 
             df["cluster"] = labels.tolist()
 
@@ -141,8 +141,8 @@ class MLPrimitives:
             raise AnalysisError("VYNT-7003", f"Clustering Error: {e}")
 
     def train_classifier(
-        self, data: List[Dict[str, Any]], target_col: str, feature_cols: List[str]
-    ) -> Dict[str, Any]:
+        self, data: list[dict[str, Any]], target_col: str, feature_cols: list[str]
+    ) -> dict[str, Any]:
         """
         Train a Random Forest Classifier.
         """
@@ -160,22 +160,25 @@ class MLPrimitives:
 
             # Preprocessing
             # Simple numeric checks
-            X = X.select_dtypes(include=[np.number])
-            imputer = SimpleImputer(strategy="mean")  # Basic imputation
+            numeric_features = X.select_dtypes(include=[np.number]).columns.tolist()
+            if not numeric_features:
+                raise AnalysisError("VYNT-7010", "No numeric feature columns found")
+            X = X[numeric_features]
+            imputer = SimpleImputer(strategy="mean")  # type: ignore[reportPossiblyUnbound]
             X_imputed = imputer.fit_transform(X)
 
             # Encoder for target if needed
             le = None
             if y.dtype == "object":
-                le = LabelEncoder()
+                le = LabelEncoder()  # type: ignore[reportPossiblyUnboundVariable]
                 y = le.fit_transform(y)
 
             # Train
-            clf = RandomForestClassifier(n_estimators=100, random_state=42)
+            clf = RandomForestClassifier(n_estimators=100, random_state=42)  # type: ignore[reportPossiblyUnboundVariable]
             clf.fit(X_imputed, y)
 
-            # Feature Importance
-            importances = dict(zip(feature_cols, clf.feature_importances_.tolist()))
+            # Feature Importance - use numeric_features to match model's feature count
+            importances = dict(zip(numeric_features, clf.feature_importances_.tolist()))
 
             return {
                 "model_type": "RandomForestClassifier",
@@ -183,7 +186,7 @@ class MLPrimitives:
                     clf.score(X_imputed, y)
                 ),  # In-sample accuracy (training set).
                 "feature_importance": importances,
-                "classes": le.classes_.tolist() if le else "numeric",
+                "classes": le.classes_.tolist() if le else "numeric",  # type: ignore[reportAttributeAccessIssue]
             }
 
         except Exception as e:
@@ -194,8 +197,8 @@ class MLPrimitives:
             raise AnalysisError("VYNT-7004", f"Classification Error: {e}")
 
     def train_regression(
-        self, data: List[Dict[str, float]], target_col: str, feature_cols: List[str]
-    ) -> Dict[str, Any]:
+        self, data: list[dict[str, float]], target_col: str, feature_cols: list[str]
+    ) -> dict[str, Any]:
         """
         Train a linear regression model.
 
@@ -218,11 +221,11 @@ class MLPrimitives:
             y = df[target_col].values
 
             # Handle NaN
-            imputer = SimpleImputer(strategy="mean")
+            imputer = SimpleImputer(strategy="mean")  # type: ignore[reportPossiblyUnbound]
             X = imputer.fit_transform(X)
 
             # Train model
-            model = LinearRegression()
+            model = LinearRegression()  # type: ignore[reportPossiblyUnboundVariable]
             model.fit(X, y)
 
             # Predictions and metrics
@@ -230,7 +233,7 @@ class MLPrimitives:
 
             # Calculate R²
             ss_res = np.sum((y - y_pred) ** 2)
-            ss_tot = np.sum((y - np.mean(y)) ** 2)
+            ss_tot = np.sum((y - np.mean(y)) ** 2)  # type: ignore[reportArgumentType,reportCallIssue]
             r2 = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0
 
             # RMSE

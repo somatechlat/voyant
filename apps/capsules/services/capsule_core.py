@@ -13,7 +13,6 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-from typing import Optional
 from uuid import UUID
 
 from django.db import transaction
@@ -62,7 +61,7 @@ def verify_capsule(capsule: Capsule) -> bool:
     return True
 
 
-def certify_capsule(capsule: Capsule, constitution: Optional[Constitution] = None) -> Capsule:
+def certify_capsule(capsule: Capsule, constitution: Constitution | None = None) -> Capsule:
     """
     Sign capsule and bind to active Constitution.
 

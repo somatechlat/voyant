@@ -6,7 +6,7 @@ Enforces the Zero Custom Logic rule by eliminating Agent-led database driver pro
 """
 
 import logging
-from typing import Any, Dict
+from typing import Any
 from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ class URIParser:
     }
 
     @classmethod
-    def parse_uri(cls, uri: str) -> Dict[str, Any]:
+    def parse_uri(cls, uri: str) -> dict[str, Any]:
         """
         Parses a generic URI into discrete credential components matching
         the dynamic source schema.

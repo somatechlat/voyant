@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import logging
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from django.db import models
 
@@ -25,9 +25,9 @@ _REGISTRY_DIR = os.path.join(os.path.dirname(__file__), "..", "registry")
 def discover_capsules(
     tenant_id: str,
     realm: str = "default",
-    category: Optional[str] = None,
+    category: str | None = None,
     include_public: bool = True,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Discover all capsules available to a tenant."""
     q = Capsule.objects.filter(
         status=Capsule.STATUS_ACTIVE,
@@ -64,7 +64,7 @@ def discover_capsules(
     return results
 
 
-def list_installed_capsules(tenant_id: str) -> List[Dict[str, Any]]:
+def list_installed_capsules(tenant_id: str) -> list[dict[str, Any]]:
     """List all capsules installed for a tenant."""
     installations = (
         CapsuleInstallation.objects.filter(tenant_id=tenant_id, is_enabled=True)
@@ -90,7 +90,7 @@ def list_installed_capsules(tenant_id: str) -> List[Dict[str, Any]]:
     return results
 
 
-def load_system_capsules() -> List[Dict[str, Any]]:
+def load_system_capsules() -> list[dict[str, Any]]:
     """Load system capsule definitions from registry/ directory."""
     capsules = []
     reg_dir = os.path.abspath(_REGISTRY_DIR)
@@ -103,7 +103,7 @@ def load_system_capsules() -> List[Dict[str, Any]]:
             continue
         filepath = os.path.join(reg_dir, filename)
         try:
-            with open(filepath, "r", encoding="utf-8") as f:
+            with open(filepath, encoding="utf-8") as f:
                 data = json.load(f)
             capsules.append(data)
             logger.debug("Loaded system capsule: %s", filename)
@@ -113,7 +113,7 @@ def load_system_capsules() -> List[Dict[str, Any]]:
     return capsules
 
 
-def validate_capsule_definition(data: dict) -> tuple[bool, Optional[str]]:
+def validate_capsule_definition(data: dict) -> tuple[bool, str | None]:
     """Validate a capsule definition against the Pydantic schema."""
     try:
         CapsuleCreateRequest(**data)
@@ -126,7 +126,7 @@ def install_capsule(
     capsule_id: str,
     tenant_id: str,
     realm: str = "default",
-    parameter_overrides: Optional[dict] = None,
+    parameter_overrides: dict | None = None,
     installed_by: str = "",
 ) -> CapsuleInstallation:
     """Install a capsule for a tenant."""

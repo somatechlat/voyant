@@ -8,7 +8,7 @@ the lifecycle of streaming analytics pipelines.
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 import httpx
 
@@ -26,7 +26,7 @@ class FlinkClient:
     Client for interacting with the Apache Flink JobManager REST API.
     """
 
-    def __init__(self, jobmanager_url: Optional[str] = None):
+    def __init__(self, jobmanager_url: str | None = None):
         """
         Initialize the Flink client.
 
@@ -39,7 +39,7 @@ class FlinkClient:
             raise ValueError("FLINK_JOBMANAGER_URL must be configured")
         self.base_url = resolved_url.rstrip("/")
 
-    def get_overview(self) -> Dict[str, Any]:
+    def get_overview(self) -> dict[str, Any]:
         """Get cluster overview."""
         url = f"{self.base_url}/overview"
         try:
@@ -53,7 +53,7 @@ class FlinkClient:
             logger.error(f"Flink JobManager returned error: {e}")
             raise FlinkClientError(f"API error: {e}")
 
-    def list_jobs(self) -> Dict[str, Any]:
+    def list_jobs(self) -> dict[str, Any]:
         """List all jobs."""
         url = f"{self.base_url}/jobs/overview"
         try:
@@ -66,14 +66,14 @@ class FlinkClient:
     def submit_jar(
         self,
         jar_id: str,
-        entry_class: Optional[str] = None,
-        program_args: Optional[str] = None,
-        parallelism: Optional[int] = None,
+        entry_class: str | None = None,
+        program_args: str | None = None,
+        parallelism: int | None = None,
     ) -> str:
         """
         Submit a job from an uploaded JAR.
         """
-        payload: Dict[str, Any] = {}
+        payload: dict[str, Any] = {}
         if entry_class:
             payload["entryClass"] = entry_class
         if program_args:

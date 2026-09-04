@@ -14,16 +14,16 @@ The workflow coordinates a series of activities to:
 """
 
 from datetime import timedelta
-from typing import Any, Dict
+from typing import Any
 
 from temporalio import workflow
+from temporalio.exceptions import ApplicationError
 
 # This context manager is necessary to allow importing non-workflow/activity
 # modules within the workflow definition. It passes control to the Python
 # import system directly, bypassing Temporal's default import handling.
 with workflow.unsafe.imports_passed_through():
     from apps.core.config import get_settings
-    from apps.scraper.activities import ScrapeActivities
 
 
 @workflow.defn
@@ -38,7 +38,7 @@ class ScrapeWorkflow:
     """
 
     @workflow.run
-    async def run(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def run(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Executes the web scraping workflow based on parameters provided by an external agent.
 
@@ -63,11 +63,10 @@ class ScrapeWorkflow:
         settings = get_settings()
 
         if not urls:
-            raise workflow.ApplicationError(
+            raise ApplicationError(
                 "List of URLs is required for scraping.", non_retryable=True
             )
 
-        # Initialize tracking variables for the workflow's progress and results.
         pages_fetched = 0
         bytes_processed = 0
         artifacts = []
@@ -78,7 +77,7 @@ class ScrapeWorkflow:
             try:
                 # 1. Fetch Page Activity: Retrieves the content of the specified URL.
                 fetch_result = await workflow.execute_activity(
-                    ScrapeActivities.fetch_page,
+                    "fetch_page",
                     {
                         "url": url,
                         "engine": options.get(
@@ -96,10 +95,10 @@ class ScrapeWorkflow:
                 bytes_processed += len(html)
 
                 # 2. Extract Data Activity: Parses the fetched HTML using agent-provided selectors.
-                extract_result: Dict[str, Any]
+                extract_result: dict[str, Any]
                 if selectors:
                     extract_result = await workflow.execute_activity(
-                        ScrapeActivities.extract_data,
+                        "extract_data",
                         {
                             "html": html,
                             "selectors": selectors,
@@ -118,7 +117,7 @@ class ScrapeWorkflow:
                 # 3. Process OCR Activity (Optional): If OCR is enabled and images are found.
                 if options.get("ocr") and extract_result.get("images"):
                     ocr_result = await workflow.execute_activity(
-                        ScrapeActivities.process_ocr,
+                        "process_ocr",
                         {
                             "images": extract_result.get("images", []),
                             "language": options.get("ocr_language", "spa+eng"),
@@ -134,7 +133,7 @@ class ScrapeWorkflow:
                     and extract_result.get("media_urls")
                 ):
                     media_result = await workflow.execute_activity(
-                        ScrapeActivities.transcribe_media,
+                        "transcribe_media",
                         {
                             "media_urls": extract_result.get("media_urls", []),
                             "language": options.get("media_language", "es"),
@@ -147,7 +146,7 @@ class ScrapeWorkflow:
 
                 # 5. Store Artifact Activity: Persists the processed data/artifacts.
                 artifact = await workflow.execute_activity(
-                    ScrapeActivities.store_artifact,
+                    "store_artifact",
                     {
                         "job_id": job_id,
                         "tenant_id": tenant_id,
@@ -164,7 +163,7 @@ class ScrapeWorkflow:
 
         # 6. Finalize Job Activity: Updates the overall job status in the database.
         await workflow.execute_activity(
-            ScrapeActivities.finalize_job,
+            "finalize_job",
             {
                 "job_id": job_id,
                 "pages_fetched": pages_fetched,
@@ -175,7 +174,6 @@ class ScrapeWorkflow:
             start_to_close_timeout=timedelta(minutes=1),
         )
 
-        # Return a summary of the scraping job for the agent to interpret.
         return {
             "job_id": job_id,
             "pages_fetched": pages_fetched,

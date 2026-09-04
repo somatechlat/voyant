@@ -16,7 +16,7 @@ import ipaddress
 import logging
 import re
 import socket
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 from urllib.parse import urlparse
 
 from apps.core.config import get_settings
@@ -141,7 +141,7 @@ def is_ip_blocked(ip_str: str) -> bool:
         return False
 
 
-def resolve_hostname(hostname: str) -> Optional[str]:
+def resolve_hostname(hostname: str) -> str | None:
     """
     Resolves a hostname to its corresponding IP address for SSRF validation.
 
@@ -170,7 +170,7 @@ def resolve_hostname(hostname: str) -> Optional[str]:
     return None
 
 
-def validate_url_ssrf(url: str, resolve_dns: bool = True) -> Tuple[bool, str]:
+def validate_url_ssrf(url: str, resolve_dns: bool = True) -> tuple[bool, str]:
     """
     Performs comprehensive validation of a URL to prevent Server-Side Request Forgery (SSRF) vulnerabilities.
 
@@ -312,7 +312,7 @@ def validate_url(url: str) -> str:
     return url
 
 
-def validate_urls(urls: List[str]) -> List[str]:
+def validate_urls(urls: list[str]) -> list[str]:
     """
     Validates a list of URLs, ensuring each URL is safe for scraping.
 
@@ -425,7 +425,7 @@ class RateLimitExceeded(Exception):
         self.retry_after = retry_after
 
 
-def get_rate_limit(tenant_id: str, tier: str = "default") -> Dict[str, Any]:
+def get_rate_limit(tenant_id: str, tier: str = "default") -> dict[str, Any]:
     """
     Retrieves the rate limit configuration for a specific tenant based on their pricing tier.
 

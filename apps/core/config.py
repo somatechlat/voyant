@@ -280,6 +280,9 @@ class Settings(BaseSettings):
         alias="MINIO_SECRET_KEY",
         description="Secret key for MinIO.",
     )
+    minio_bucket_name: str = Field(
+        default="voyant-artifacts", description="MinIO bucket name for artifact storage."
+    )
     minio_secure: bool = Field(
         default=False, description="Use HTTPS for MinIO connection."
     )
@@ -528,7 +531,7 @@ class Settings(BaseSettings):
     )
 
     @model_validator(mode="after")
-    def validate_secrets_backend(self) -> "Settings":
+    def validate_secrets_backend(self) -> Settings:
         """
         Vibe Rule Mandate: ALL secrets go through Vault in non-local environments.
         'env' backend is ONLY permitted for local development.
@@ -544,7 +547,7 @@ class Settings(BaseSettings):
         return self
 
     @model_validator(mode="after")
-    def validate_required_external_config(self) -> "Settings":
+    def validate_required_external_config(self) -> Settings:
         """Fail fast when required external service settings are missing outside local env."""
         if self.env == "local":
             return self

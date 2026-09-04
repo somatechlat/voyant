@@ -4,6 +4,9 @@ import uuid
 from ninja import NinjaAPI
 
 from apps.analysis.api import analyze_router
+
+# Capsules router — imported lazily to avoid startup coupling
+from apps.capsules.api import capsules_router
 from apps.discovery.api import discovery_router, sources_router
 from apps.governance.api import governance_router
 from apps.scraper.api import scrape_router
@@ -11,14 +14,11 @@ from apps.search.api import router as search_router
 from apps.sql.api import sql_router
 from apps.workflows.api import artifacts_router, jobs_router, presets_router
 
-# Capsules router — imported lazily to avoid startup coupling
-from apps.capsules.api import capsules_router
-
 # Use a unique namespace during testing to avoid NinjaAPI registry collisions
 urls_namespace = "v1"
 if "pytest" in sys.modules:
     try:
-        NinjaAPI._registry.clear()
+        NinjaAPI._registry.clear()  # type: ignore[attr-defined]
     except Exception:
         pass
     urls_namespace = f"v1_{uuid.uuid4().hex}"

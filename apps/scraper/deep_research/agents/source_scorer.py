@@ -9,8 +9,7 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import datetime, timezone
-from typing import Dict, List, Optional
+from datetime import UTC, datetime
 
 from apps.scraper.deep_research.credibility.domain_db import (
     DomainCredibilityDB,
@@ -71,13 +70,13 @@ class SourceScorer:
     where freshness decays linearly with age (max 5 years).
     """
 
-    def __init__(self, db: Optional[DomainCredibilityDB] = None) -> None:
+    def __init__(self, db: DomainCredibilityDB | None = None) -> None:
         self._db = db or get_domain_credibility_db()
 
     @staticmethod
-    def _extract_years(text: str) -> List[int]:
+    def _extract_years(text: str) -> list[int]:
         """Extract plausible publication years from text."""
-        years: List[int] = []
+        years: list[int] = []
         for pat in _DATE_PATTERNS:
             for match in pat.finditer(text):
                 groups = match.groups()
@@ -86,20 +85,20 @@ class SourceScorer:
                 if year_str:
                     try:
                         y = int(year_str)
-                        if 1990 <= y <= datetime.now(timezone.utc).year + 1:
+                        if 1990 <= y <= datetime.now(UTC).year + 1:
                             years.append(y)
                     except ValueError:
                         continue
         return years
 
-    def freshness_score(self, text: str, fetched_at: Optional[str] = None) -> float:
+    def freshness_score(self, text: str, fetched_at: str | None = None) -> float:
         """
         Compute a freshness score in [0, 1].
 
         1.0  = published today
         0.0  = older than 5 years
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # Use fetched_at as a fallback anchor.
         anchor = now
@@ -116,7 +115,7 @@ class SourceScorer:
 
         most_recent = max(years)
         try:
-            pub_date = datetime(most_recent, 6, 15, tzinfo=timezone.utc)
+            pub_date = datetime(most_recent, 6, 15, tzinfo=UTC)
         except ValueError:
             return 0.5
 
@@ -132,8 +131,8 @@ class SourceScorer:
         self,
         url: str,
         text: str = "",
-        fetched_at: Optional[str] = None,
-    ) -> Dict[str, float]:
+        fetched_at: str | None = None,
+    ) -> dict[str, float]:
         """
         Return a dict with 'credibility', 'freshness', and 'total' scores.
 
@@ -157,10 +156,10 @@ class SourceScorer:
 
     def filter_sources(
         self,
-        url_texts: Dict[str, str],
+        url_texts: dict[str, str],
         min_score: float = 0.15,
-        fetched_at: Optional[str] = None,
-    ) -> Dict[str, Dict[str, float]]:
+        fetched_at: str | None = None,
+    ) -> dict[str, dict[str, float]]:
         """
         Score many sources and return only those above *min_score*.
 
@@ -172,7 +171,7 @@ class SourceScorer:
         Returns:
             Mapping of URL -> score dict for passing sources.
         """
-        results: Dict[str, Dict[str, float]] = {}
+        results: dict[str, dict[str, float]] = {}
         for url, text in url_texts.items():
             scores = self.score_source(url, text, fetched_at)
             if scores["total"] >= min_score:

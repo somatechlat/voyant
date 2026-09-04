@@ -9,7 +9,7 @@ formats like Excel, to enable fast and straightforward data loading for analysis
 
 import logging
 import os
-from typing import Any, Dict
+from typing import Any
 
 import duckdb
 import pandas as pd
@@ -37,7 +37,7 @@ class DirectFileIngester:
         """
         self.conn = duckdb.connect(db_path)
 
-    def ingest_file(self, file_path: str, table_name: str) -> Dict[str, Any]:
+    def ingest_file(self, file_path: str, table_name: str) -> dict[str, Any]:
         """
         Ingests a data file into a specified DuckDB table.
 
@@ -79,7 +79,7 @@ class DirectFileIngester:
                     f"CREATE TABLE IF NOT EXISTS {table_name} AS SELECT * FROM read_parquet('{file_path}')"
                 )
             elif ext in [".xlsx", ".xls"]:
-                # For Excel files, use pandas for robust parsing, then load into DuckDB.
+                # For Excel files, use pandas for parsing, then load into DuckDB.
                 pd.read_excel(
                     file_path
                 )  # noqa: F841 - DuckDB references this DataFrame directly
@@ -94,7 +94,7 @@ class DirectFileIngester:
                 )
 
             # Verify and return the count of rows ingested.
-            count = self.conn.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[
+            count = self.conn.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[  # type: ignore[index]
                 0
             ]
 

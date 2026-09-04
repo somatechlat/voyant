@@ -8,7 +8,7 @@ XPath selectors. It leverages `lxml` for high-performance parsing and
 """
 
 import logging
-from typing import Any, Dict, List, Union
+from typing import Any
 
 from lxml import html as lxml_html
 from lxml.cssselect import CSSSelector
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 class HTMLParser:
     """
-    A robust HTML parser for extracting content based on CSS and XPath selectors.
+    An HTML parser for extracting content based on CSS and XPath selectors.
 
     This parser operates as a pure execution tool: it takes HTML and a map of
     selectors and mechanically extracts the specified data, without any
@@ -29,7 +29,7 @@ class HTMLParser:
         """Initializes the HTMLParser."""
         pass
 
-    def extract(self, raw_html: str, selectors: Dict[str, Any]) -> Dict[str, Any]:
+    def extract(self, raw_html: str, selectors: dict[str, Any]) -> dict[str, Any]:
         """
         Extracts data from raw HTML content using a map of CSS or XPath selectors.
 
@@ -67,13 +67,13 @@ class HTMLParser:
                     result[field] = self._extract_nested(tree, selector)
             except Exception as e:
                 logger.warning(f"Selector '{field}' failed during extraction: {e}")
-                result[field] = None  # Assign None if extraction for a field fails.
+                result[field] = None
 
         return result
 
     def _extract_single(
         self, tree: lxml_html.HtmlElement, selector: str
-    ) -> Union[List[str], str, None]:
+    ) -> list[str] | str | None:
         """
         Internal method: Extracts a single value or a list of values using a CSS or XPath selector.
 
@@ -96,7 +96,7 @@ class HTMLParser:
             # Plain CSS selector. Default to extracting text content.
             return self._css_extract(tree, selector + "::text")
 
-    def _css_extract(self, tree: lxml_html.HtmlElement, selector: str) -> List[str]:
+    def _css_extract(self, tree: lxml_html.HtmlElement, selector: str) -> list[str]:
         """
         Internal method: Extracts content using a CSS selector, supporting pseudo-elements.
 
@@ -125,14 +125,14 @@ class HTMLParser:
             attr = pseudo[5:-1]  # Extract attribute name.
             return [el.get(attr) for el in elements if el.get(attr) is not None]
         elif pseudo == "html":
-            return [lxml_html.tostring(el, encoding="unicode") for el in elements]
+            return [lxml_html.tostring(el, encoding="unicode") for el in elements]  # type: ignore[return-value]
         else:
             # Fallback for unrecognized pseudo-elements, extract text content.
             return [el.text_content().strip() for el in elements if el.text_content()]
 
     def _extract_nested(
-        self, tree: lxml_html.HtmlElement, selector_config: Dict
-    ) -> List[Dict[str, Any]]:
+        self, tree: lxml_html.HtmlElement, selector_config: dict
+    ) -> list[dict[str, Any]]:
         """
         Internal method: Extracts nested data from a list of repeating elements.
 
@@ -182,7 +182,7 @@ class HTMLParser:
 
         return results
 
-    def get_all_links(self, raw_html: str) -> List[str]:
+    def get_all_links(self, raw_html: str) -> list[str]:
         """
         Extracts all `href` attributes from `<a>` tags in the HTML.
 
@@ -195,7 +195,7 @@ class HTMLParser:
         tree = lxml_html.fromstring(raw_html)
         return tree.xpath("//a/@href")
 
-    def get_all_images(self, raw_html: str) -> List[str]:
+    def get_all_images(self, raw_html: str) -> list[str]:
         """
         Extracts all `src` attributes from `<img>` tags in the HTML.
 
@@ -208,7 +208,7 @@ class HTMLParser:
         tree = lxml_html.fromstring(raw_html)
         return tree.xpath("//img/@src")
 
-    def get_all_media(self, raw_html: str) -> List[str]:
+    def get_all_media(self, raw_html: str) -> list[str]:
         """
         Extracts all `src` attributes from `<video>` and `<audio>` tags in the HTML.
 

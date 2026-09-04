@@ -109,10 +109,10 @@ async def run_worker():
 
     # Lazy imports — CapsuleActivities and DeepResearchActivities import Django
     # models at module level, so they must be imported after django.setup().
+    from apps.scraper.deep_research.activities import DeepResearchActivities
+    from apps.scraper.deep_research.workflow import DeepResearchWorkflowV2
     from apps.worker.activities.capsule_activities import CapsuleActivities
     from apps.worker.workflows.capsule_workflow import CapsuleWorkflow
-    from apps.scraper.deep_research.workflow import DeepResearchWorkflowV2
-    from apps.scraper.deep_research.activities import DeepResearchActivities
 
     # 0. Start Metrics Server for Prometheus exposition.
     metrics = MetricsRegistry()

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from apps.ontology.models import Property, PropertyType
 
@@ -18,7 +18,7 @@ from apps.ontology.models import Property, PropertyType
 class ValidationError(Exception):
     """Raised when property validation fails."""
 
-    def __init__(self, errors: List[Dict[str, str]]):
+    def __init__(self, errors: list[dict[str, str]]):
         self.errors = errors
         super().__init__(f"Validation failed: {len(errors)} error(s)")
 
@@ -76,11 +76,11 @@ _RULE_VALIDATORS = {
 
 
 def validate_properties(
-    properties: Dict[str, Any],
-    property_defs: List[Property],
+    properties: dict[str, Any],
+    property_defs: list[Property],
     *,
     partial: bool = False,
-) -> Tuple[Dict[str, Any], List[Dict[str, str]]]:
+) -> tuple[dict[str, Any], list[dict[str, str]]]:
     """
     Validate and normalise an instance's properties against its object type schema.
 
@@ -93,10 +93,10 @@ def validate_properties(
         (normalised_properties, list_of_errors)
         If errors is non-empty, the caller should reject the request.
     """
-    errors: List[Dict[str, str]] = []
-    normalised: Dict[str, Any] = {}
+    errors: list[dict[str, str]] = []
+    normalised: dict[str, Any] = {}
 
-    defs_by_name: Dict[str, Property] = {p.name: p for p in property_defs}
+    defs_by_name: dict[str, Property] = {p.name: p for p in property_defs}
 
     for prop_def in property_defs:
         value = properties.get(prop_def.name)

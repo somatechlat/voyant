@@ -5,8 +5,6 @@ from datetime import timedelta
 from temporalio import workflow
 
 with workflow.unsafe.imports_passed_through():
-    from apps.scraper.activities import ScrapeActivities
-    from apps.scraper.search_activities import SearchActivities
     from apps.scraper.deep_research.agents.content_extractor import ContentExtractor
 
 logger = logging.getLogger(__name__)
@@ -42,7 +40,7 @@ class DeepResearchWorkflow:
         }
 
         url_collection = await workflow.execute_activity(
-            SearchActivities.execute_searxng_query,
+            "execute_searxng_query",
             search_params,
             start_to_close_timeout=start_to_close_timeout,
         )
@@ -73,7 +71,7 @@ class DeepResearchWorkflow:
                 }
 
                 future = workflow.execute_activity(
-                    ScrapeActivities.fetch_page,
+                    "fetch_page",
                     scrape_params,
                     start_to_close_timeout=scrape_timeouts,
                     retry_policy=None,

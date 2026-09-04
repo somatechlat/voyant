@@ -15,7 +15,7 @@ import asyncio
 import logging
 import os
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from asgiref.sync import async_to_sync
 from django.http import JsonResponse
@@ -64,7 +64,7 @@ def health(_request) -> JsonResponse:
         {
             "status": "healthy",
             "version": "3.0.0",
-            "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            "timestamp": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
         }
     )
 
@@ -158,7 +158,7 @@ def ready(_request) -> JsonResponse:
     return JsonResponse(
         {
             "status": "ready" if overall_ready else "not_ready",
-            "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            "timestamp": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
             "checks": checks,
         },
         status=http_status,
@@ -178,7 +178,7 @@ def status_view(_request) -> JsonResponse:
     settings = get_settings()
     status_info: dict = {
         "version": "3.0.0",
-        "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "timestamp": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
         "environment": settings.env,
         "services": {},
         "circuit_breakers": {},

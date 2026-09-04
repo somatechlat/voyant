@@ -9,10 +9,9 @@ Zero LLM usage.
 from __future__ import annotations
 
 import re
-from typing import List, Set
 
 # A conservative English + Spanish stopword list.
-_STOPWORDS: Set[str] = {
+_STOPWORDS: set[str] = {
     "a",
     "about",
     "above",
@@ -295,7 +294,7 @@ _STOPWORDS: Set[str] = {
 }
 
 # Query templates for breadth expansion.
-_TEMPLATES: List[str] = [
+_TEMPLATES: list[str] = [
     "{query}",
     '"{query}"',
     "{query} overview",
@@ -323,11 +322,11 @@ class QueryGenerator:
       4. Returns unique sub-queries.
     """
 
-    def __init__(self, templates: List[str] | None = None) -> None:
+    def __init__(self, templates: list[str] | None = None) -> None:
         self._templates = templates or _TEMPLATES.copy()
 
     @staticmethod
-    def _tokenize(text: str) -> List[str]:
+    def _tokenize(text: str) -> list[str]:
         """Lower-case and split on non-alphanumeric characters."""
         return re.findall(r"[a-z0-9áéíóúñü]+", text.lower())
 
@@ -335,7 +334,7 @@ class QueryGenerator:
         self,
         query: str,
         breadth: int = 3,
-    ) -> List[str]:
+    ) -> list[str]:
         """
         Generate *breadth* unique sub-queries from *query*.
 
@@ -350,7 +349,7 @@ class QueryGenerator:
         keywords = [t for t in tokens if t not in _STOPWORDS]
         core = " ".join(keywords) if keywords else query
 
-        sub_queries: List[str] = []
+        sub_queries: list[str] = []
         for template in self._templates[:breadth]:
             sub = template.format(query=core)
             if sub not in sub_queries:
@@ -370,9 +369,9 @@ class QueryGenerator:
     def generate_follow_up(
         self,
         query: str,
-        findings: List[str],
+        findings: list[str],
         breadth: int = 3,
-    ) -> List[str]:
+    ) -> list[str]:
         """
         Generate follow-up queries based on prior findings.
 
@@ -384,7 +383,7 @@ class QueryGenerator:
         Returns:
             New sub-queries targeting gaps in the findings.
         """
-        follow_ups: List[str] = []
+        follow_ups: list[str] = []
         base_keywords = set(self._tokenize(query))
 
         for finding in findings:

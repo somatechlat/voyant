@@ -55,7 +55,7 @@ class PolicyDecision(Enum):
 @dataclass
 class PolicyEvaluationResult:
     """Result of policy evaluation.
-    
+
     Attributes:
         decision: The policy decision (ALLOW, DENY, or DEFER).
         policy_id: ID of the policy that made this decision (if applicable).
@@ -71,15 +71,14 @@ class PolicyEvaluationResult:
 
 class PolicyEvaluator:
     """Evaluates data against policy rules and scope.
-    
-    STUB: Full implementation planned for Phase A.2.
-    Currently returns placeholder result with logging.
+
+    # STUB: needs implementation — full evaluation planned for Phase A.2.
     See: docs/PHASE_A_STATUS.md
     """
 
-    def evaluate_policy(self, policy: Any, context: dict[str, Any]) -> PolicyEvaluationResult:
+    def evaluate_policy(self, policy: Any, context: dict[str, Any]) -> PolicyEvaluationResult:  # STUB: needs implementation
         """Evaluate if context violates policy rules.
-        
+
         Args:
             policy: Policy model instance with rules, scope, and enforcement_level.
             context: Evaluation context including:
@@ -90,15 +89,15 @@ class PolicyEvaluator:
 
         Returns:
             PolicyEvaluationResult with decision and reason.
-            
+
         Note:
-            STUB IMPLEMENTATION: This method returns a placeholder result.
+            STUB: This method returns a placeholder result.
             Full implementation planned for Phase A.2 with:
             1. Context matching against policy scope
             2. Conditional rule evaluation
             3. Allow/deny determination
             4. Reason generation
-            
+
             Integration points: apps/core/middleware.py, apps/core/security/auth.py
         """
         logger.warning(
@@ -113,41 +112,40 @@ class PolicyEvaluator:
 
 class PolicyEnforcer:
     """Enforces policies with configurable enforcement levels.
-    
-    STUB: Full implementation planned for Phase A.2.
-    Currently returns placeholder result with logging.
+
+    # STUB: needs implementation — full enforcement planned for Phase A.2.
     See: docs/PHASE_A_STATUS.md
     """
 
     def __init__(self, evaluator: PolicyEvaluator | None = None) -> None:
         """Initialize enforcer with optional custom evaluator.
-        
+
         Args:
             evaluator: Custom policy evaluator (default: PolicyEvaluator).
         """
         self.evaluator: PolicyEvaluator = evaluator or PolicyEvaluator()
 
-    def enforce(self, policies: list[Any], context: dict[str, Any]) -> PolicyEvaluationResult:
+    def enforce(self, policies: list[Any], context: dict[str, Any]) -> PolicyEvaluationResult:  # STUB: needs implementation
         """Enforce all applicable policies for the given context.
 
         Returns the most restrictive decision across all policies.
-        
+
         Args:
             policies: List of Policy model instances to evaluate.
             context: Evaluation context (user, operation, resource, etc.).
 
         Returns:
             PolicyEvaluationResult with aggregated decision.
-            
+
         Note:
-            STUB IMPLEMENTATION: This method returns a placeholder result.
+            STUB: This method returns a placeholder result.
             Full implementation planned for Phase A.2 with:
             1. Filter applicable policies
             2. Evaluate each against context
             3. Aggregate decisions (DENY overrides ALLOW)
             4. Emit audit trail event
             5. Return final decision
-            
+
             Integration points: apps/core/middleware.py, apps/core/security/auth.py
         """
         logger.warning(
@@ -160,9 +158,9 @@ class PolicyEnforcer:
 
     def check_access(self, policies: list[Any], context: dict[str, Any]) -> bool:
         """Check if access is allowed under policies.
-        
+
         Raises exception if STRICT enforcement denies access.
-        
+
         Args:
             policies: List of Policy model instances to evaluate.
             context: Evaluation context (user, operation, resource, etc.).

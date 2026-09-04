@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 import uuid
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Optional
+from typing import Any
 
 from jinja2.sandbox import SandboxedEnvironment
 
@@ -27,7 +27,7 @@ _capsule_dispatch_pool = ThreadPoolExecutor(max_workers=10, thread_name_prefix="
 _jinja_env = SandboxedEnvironment()
 
 
-def validate_parameters(capsule: Capsule, parameter_values: dict) -> tuple[bool, Optional[str]]:
+def validate_parameters(capsule: Capsule, parameter_values: dict) -> tuple[bool, str | None]:
     """Validate runtime parameters against the capsule's parameter schema."""
     schema = capsule.parameters_schema
     if not schema:
@@ -58,7 +58,7 @@ def validate_parameters(capsule: Capsule, parameter_values: dict) -> tuple[bool,
 
 def merge_parameters(
     capsule: Capsule,
-    installation: Optional[CapsuleInstallation],
+    installation: CapsuleInstallation | None,
     runtime_values: dict,
 ) -> dict:
     """Merge parameter defaults -> installation overrides -> runtime values."""
@@ -79,7 +79,7 @@ def merge_parameters(
 def substitute_parameters(
     template_dict: dict,
     parameters: dict,
-    step_results: Optional[dict] = None,
+    step_results: dict | None = None,
 ) -> dict:
     """Substitute {{var}} expressions in a dict using Jinja2 sandboxed."""
     step_results = step_results or {}
@@ -115,7 +115,7 @@ def execute_capsule_sync(
     capsule: Capsule,
     parameter_values: dict,
     tenant_id: str,
-    session_id: Optional[str] = None,
+    session_id: str | None = None,
 ) -> dict:
     """Execute a simple capsule synchronously via UPTP."""
     valid, error = validate_parameters(capsule, parameter_values)
@@ -159,7 +159,7 @@ def dispatch_capsule_workflow(
     capsule: Capsule,
     parameter_values: dict,
     tenant_id: str,
-    session_id: Optional[str] = None,
+    session_id: str | None = None,
 ) -> dict:
     """Dispatch a capsule to Temporal workflow for multi-step execution."""
     valid, error = validate_parameters(capsule, parameter_values)

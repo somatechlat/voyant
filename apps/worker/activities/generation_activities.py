@@ -9,7 +9,7 @@ summaries, based on the specific context and generator capabilities.
 
 import logging
 import os
-from typing import Any, Dict
+from typing import Any
 
 from temporalio import activity
 from temporalio.exceptions import ApplicationError
@@ -37,7 +37,7 @@ class GenerationActivities:
         return os.environ.get(env_key, "false").lower() in ("1", "true", "yes", "on")
 
     @activity.defn(name="run_generators")
-    async def run_generators(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def run_generators(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Dynamically runs all active artifact generator plugins based on the provided context.
 
@@ -94,7 +94,7 @@ class GenerationActivities:
                     f"Executing generator: '{info.name}' (Category: {info.category.value})."
                 )
                 # Execute the generator's main method, passing the workflow parameters as context.
-                result = generator.generate(params)
+                result = generator.generate(params)  # type: ignore[union-attr]
                 results[info.name] = result
 
             except Exception as e:

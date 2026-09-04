@@ -9,9 +9,10 @@ flexible and extensible, supporting a wide range of analytical operations.
 
 import logging
 import os
-from typing import Any, Dict, List
+from typing import Any
 
 from temporalio import activity
+from temporalio.exceptions import ApplicationError
 
 from apps.core.config import get_settings
 from apps.core.lib.plugin_registry import get_analyzers, get_plugin
@@ -37,7 +38,7 @@ class AnalysisActivities:
         return os.environ.get(env_key, "false").lower() in ("1", "true", "yes", "on")
 
     @activity.defn(name="fetch_sample")
-    def fetch_sample(self, params: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def fetch_sample(self, params: dict[str, Any]) -> list[dict[str, Any]]:
         """
         Fetches a data sample from DuckDB for in-memory analysis.
 
@@ -50,13 +51,13 @@ class AnalysisActivities:
             A list of dictionaries, where each dictionary represents a row of the sampled data.
 
         Raises:
-            activity.ApplicationError: If the table name is missing or if data fetching fails.
+            ApplicationError: If the table name is missing or if data fetching fails.
         """
         table = params.get("table")
         sample_size = params.get("sample_size", 10000)
 
         if not table:
-            raise activity.ApplicationError(
+            raise ApplicationError(
                 "table is required for sample fetch activity.", non_retryable=True
             )
 
@@ -75,12 +76,12 @@ class AnalysisActivities:
             return df.to_dict(orient="records")
         except Exception as e:
             activity.logger.error(f"Sample fetch from '{table}' failed: {e}")
-            raise activity.ApplicationError(
+            raise ApplicationError(
                 f"Failed to fetch sample from '{table}': {e}", non_retryable=False
             ) from e
 
     @activity.defn(name="run_analyzers")
-    def run_analyzers(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    def run_analyzers(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Dynamically runs a set of registered analyzer plugins against provided data.
 
@@ -101,7 +102,7 @@ class AnalysisActivities:
             analysis results. Includes an "_errors" key if any analyzers failed.
 
         Raises:
-            activity.ApplicationError: If a 'core' analyzer fails, halting the analysis.
+            ApplicationError: If a 'core' analyzer fails, halting the analysis.
         """
         results = {}
         errors = []
@@ -154,7 +155,7 @@ class AnalysisActivities:
                     plugin_context.update(shared_context[info.name])
 
                 # Execute the analyzer's main analysis method.
-                result = analyzer_instance.analyze(data, plugin_context)
+                result = analyzer_instance.analyze(data, plugin_context)  # type: ignore[union-attr]
                 results[info.name] = result
 
             except Exception as e:
@@ -168,7 +169,7 @@ class AnalysisActivities:
                     activity.logger.critical(
                         f"Core analyzer '{info.name}' failed. Halting analysis."
                     )
-                    raise activity.ApplicationError(
+                    raise ApplicationError(
                         f"Core analyzer failed: {error_msg}", non_retryable=False
                     ) from e
 

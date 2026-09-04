@@ -35,7 +35,7 @@ class REngine:
     def _ensure_dependency(self):
         """Ensure pyRserve is installed."""
         try:
-            import pyRserve  # noqa: F401 - Import check only
+            import pyRserve  # type: ignore[reportMissingImports]  # noqa: F401 - Import check only
         except ImportError:
             raise SystemError(
                 "VYNT-6010",
@@ -46,7 +46,7 @@ class REngine:
     def connect(self):
         """Establish connection to Rserve."""
         self._ensure_dependency()
-        import pyRserve
+        import pyRserve  # type: ignore[reportMissingImports]
 
         if self.conn and not self.conn.is_closed:
             return
@@ -83,12 +83,13 @@ class REngine:
 
         # Get circuit breaker for Rserve
         cb = get_circuit_breaker(
-            "rserve", CircuitBreakerConfig(failure_threshold=3, timeout_seconds=60)
+            "rserve", CircuitBreakerConfig(failure_threshold=3, recovery_timeout=60)
         )
 
         def _eval():
             """Inner function for circuit breaker."""
             self.connect()
+            assert self.conn is not None
             try:
                 return self.conn.eval(expression)
             except Exception as e:
@@ -112,6 +113,7 @@ class REngine:
         if not self.conn or self.conn.is_closed:
             self.connect()
 
+        assert self.conn is not None
         try:
             if isinstance(value, pd.DataFrame):
                 # Convert DataFrame to dict of lists (column-oriented)

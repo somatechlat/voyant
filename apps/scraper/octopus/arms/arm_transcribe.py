@@ -9,9 +9,9 @@ from __future__ import annotations
 import logging
 import os
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import httpx
 
@@ -53,15 +53,15 @@ def _srt_time(seconds: float) -> str:
     return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"
 
 
-def _format_transcription(result: Dict[str, Any], fmt: str) -> str:
+def _format_transcription(result: dict[str, Any], fmt: str) -> str:
     """Format a Whisper result into text, JSON, or SRT."""
     if fmt == "json":
         import json
 
         return json.dumps(result, ensure_ascii=False)
     if fmt == "srt":
-        segments: List[Dict[str, Any]] = result.get("segments", [])
-        lines: List[str] = []
+        segments: list[dict[str, Any]] = result.get("segments", [])
+        lines: list[str] = []
         for i, seg in enumerate(segments, start=1):
             start_sec = seg.get("start", 0)
             end_sec = seg.get("end", 0)
@@ -89,7 +89,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
     Returns:
         An OctopusResult with transcription text and segments.
     """
-    start = datetime.now(timezone.utc)
+    start = datetime.now(UTC)
     temp_path = ""
     is_remote = request.url.startswith(("http://", "https://"))
 
@@ -111,7 +111,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
             job_id=request.job_id,
             success=False,
             duration_ms=int(
-                (datetime.now(timezone.utc) - start).total_seconds() * 1000
+                (datetime.now(UTC) - start).total_seconds() * 1000
             ),
             fetched_at=start.isoformat(),
             error_code="TRANSCRIBE_FETCH_ERROR",
@@ -134,7 +134,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
             job_id=request.job_id,
             success=False,
             duration_ms=int(
-                (datetime.now(timezone.utc) - start).total_seconds() * 1000
+                (datetime.now(UTC) - start).total_seconds() * 1000
             ),
             fetched_at=start.isoformat(),
             error_code="TRANSCRIBE_ERROR",
@@ -150,13 +150,13 @@ async def execute(request: OctopusRequest) -> OctopusResult:
     transcription_text = _format_transcription(
         result, request.transcription_format
     )
-    segments: List[Dict[str, Any]] = []
+    segments: list[dict[str, Any]] = []
     raw_segments = result.get("segments", [])
     if isinstance(raw_segments, list):
         segments = raw_segments
 
     duration_ms = int(
-        (datetime.now(timezone.utc) - start).total_seconds() * 1000
+        (datetime.now(UTC) - start).total_seconds() * 1000
     )
     return OctopusResult(
         arm=request.arm.value,

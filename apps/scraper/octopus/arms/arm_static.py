@@ -8,8 +8,8 @@ XPath selectors.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
-from typing import Any, Dict, List
+from datetime import UTC, datetime
+from typing import Any
 
 import httpx
 from parsel import Selector
@@ -21,10 +21,10 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 
-def _extract_metadata(html: str) -> Dict[str, Any]:
+def _extract_metadata(html: str) -> dict[str, Any]:
     """Extract OpenGraph, Schema.org, and meta tags from HTML."""
     sel = Selector(text=html)
-    metadata: Dict[str, Any] = {}
+    metadata: dict[str, Any] = {}
 
     title = sel.css("title::text").get("")
     if title:
@@ -58,7 +58,7 @@ def _extract_metadata(html: str) -> Dict[str, Any]:
     schema_scripts = sel.css(
         'script[type="application/ld+json"]::text'
     ).getall()
-    schemas: List[Dict[str, Any]] = []
+    schemas: list[dict[str, Any]] = []
     for script in schema_scripts:
         try:
             import json
@@ -72,10 +72,10 @@ def _extract_metadata(html: str) -> Dict[str, Any]:
     return metadata
 
 
-def _extract_fields(html: str, request: OctopusRequest) -> Dict[str, Any]:
+def _extract_fields(html: str, request: OctopusRequest) -> dict[str, Any]:
     """Extract named fields via CSS and XPath selectors using parsel."""
     sel = Selector(text=html)
-    fields: Dict[str, Any] = {}
+    fields: dict[str, Any] = {}
 
     for name, selector in request.css_selectors.items():
         try:
@@ -108,7 +108,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
     Returns:
         An OctopusResult with HTML, extracted fields, and metadata.
     """
-    start = datetime.now(timezone.utc)
+    start = datetime.now(UTC)
     try:
         if not settings.scraper_tls_verify:
             verify = False
@@ -145,7 +145,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
             job_id=request.job_id,
             success=False,
             duration_ms=int(
-                (datetime.now(timezone.utc) - start).total_seconds() * 1000
+                (datetime.now(UTC) - start).total_seconds() * 1000
             ),
             fetched_at=start.isoformat(),
             error_code="FETCH_ERROR",
@@ -156,13 +156,13 @@ async def execute(request: OctopusRequest) -> OctopusResult:
     metadata = (
         _extract_metadata(html) if request.extract_metadata else {}
     )
-    links: List[str] = []
+    links: list[str] = []
     if request.extract_links:
         sel = Selector(text=html)
         links = sel.css("a::attr(href)").getall()
 
     duration_ms = int(
-        (datetime.now(timezone.utc) - start).total_seconds() * 1000
+        (datetime.now(UTC) - start).total_seconds() * 1000
     )
     return OctopusResult(
         arm=request.arm.value,

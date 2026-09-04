@@ -1,14 +1,14 @@
 """
 Profile Workflow: Orchestrates Data Profiling Jobs.
 
-This Temporal workflow defines the automated process for generating comprehensive
-profiles of datasets. It delegates the actual profiling work to specialized
+This Temporal workflow defines the automated process for generating profiles
+of datasets. It delegates the actual profiling work to specialized
 activities, ensuring that statistical summaries and insights about data quality
 and distribution are generated efficiently.
 """
 
 from datetime import timedelta
-from typing import Any, Dict
+from typing import Any
 
 from temporalio import workflow
 
@@ -18,7 +18,7 @@ from apps.core.lib.retry_config import EXTERNAL_SERVICE_RETRY
 # modules within the workflow definition. It passes control to the Python
 # import system directly, bypassing Temporal's default import handling.
 with workflow.unsafe.imports_passed_through():
-    from apps.worker.activities.profile_activities import ProfileActivities
+    pass
 
 
 @workflow.defn
@@ -28,7 +28,7 @@ class ProfileWorkflow:
     """
 
     @workflow.run
-    async def run(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def run(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Executes the data profiling workflow based on provided parameters.
 
@@ -54,7 +54,7 @@ class ProfileWorkflow:
         # and generating the profile summary. It uses a retry policy suitable
         # for external service calls, as data access can be flaky.
         profile_result = await workflow.execute_activity(
-            ProfileActivities.profile_data,
+            "profile_data",
             params,
             start_to_close_timeout=timedelta(
                 minutes=15

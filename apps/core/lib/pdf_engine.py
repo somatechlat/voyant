@@ -8,7 +8,7 @@ to secure, pixel-perfect PDFs via WeasyPrint.
 
 import logging
 import os
-from typing import Any, Dict
+from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from weasyprint import HTML
@@ -23,7 +23,7 @@ class PDFAssembler:
 
     @classmethod
     def compile_pdf(
-        cls, template_name: str, params: Dict[str, Any], tenant_id: str
+        cls, template_name: str, params: dict[str, Any], tenant_id: str
     ) -> str:
         """
         Binds parameters to a stored HTML layout and compiles to PDF.
@@ -50,7 +50,7 @@ class PDFAssembler:
 
         # Real storage: Content-addressable physical store
         ref = store_artifact(
-            content=pdf_bytes,
+            content=pdf_bytes,  # type: ignore[arg-type]
             artifact_type=f"document_pdf_{template_name}",
             metadata={"tenant_id": tenant_id, "source_engine": "weasyprint"},
         )

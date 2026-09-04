@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timezone
-from typing import Any, Dict, List
+from datetime import UTC, datetime
+from typing import Any
 
 from apps.scraper.browser.scrapy_client import ScrapyClient
 from apps.scraper.octopus.schemas import CrawledPage, OctopusRequest, OctopusResult
@@ -19,7 +19,7 @@ from apps.scraper.security import validate_url
 logger = logging.getLogger(__name__)
 
 
-def _run_scrapy_crawl(request: OctopusRequest) -> List[Dict[str, Any]]:
+def _run_scrapy_crawl(request: OctopusRequest) -> list[dict[str, Any]]:
     """
     Synchronously run a Scrapy crawl.
 
@@ -72,7 +72,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
     Returns:
         An OctopusResult with all crawled pages.
     """
-    start = datetime.now(timezone.utc)
+    start = datetime.now(UTC)
 
     try:
         results = await asyncio.to_thread(_run_scrapy_crawl, request)
@@ -85,14 +85,14 @@ async def execute(request: OctopusRequest) -> OctopusResult:
             job_id=request.job_id,
             success=False,
             duration_ms=int(
-                (datetime.now(timezone.utc) - start).total_seconds() * 1000
+                (datetime.now(UTC) - start).total_seconds() * 1000
             ),
             fetched_at=start.isoformat(),
             error_code="CRAWL_ERROR",
             error_message=str(exc),
         )
 
-    crawled_pages: List[CrawledPage] = []
+    crawled_pages: list[CrawledPage] = []
     for item in results:
         crawled_pages.append(
             CrawledPage(
@@ -104,7 +104,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
         )
 
     duration_ms = int(
-        (datetime.now(timezone.utc) - start).total_seconds() * 1000
+        (datetime.now(UTC) - start).total_seconds() * 1000
     )
     return OctopusResult(
         arm=request.arm.value,

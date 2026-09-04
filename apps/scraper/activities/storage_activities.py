@@ -10,7 +10,7 @@ Extracted from scraper/activities.py (Rule 245 compliance — 949-line split).
 import hashlib
 import logging
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any
 
 from temporalio import activity
 
@@ -45,7 +45,7 @@ class StorageActivities:
             return
 
     @activity.defn(name="store_artifact")
-    def store_artifact(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    def store_artifact(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Store extracted scrape data as a JSON artifact in MinIO.
 
@@ -104,7 +104,7 @@ class StorageActivities:
         }
 
     @activity.defn(name="finalize_job")
-    def finalize_job(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    def finalize_job(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Finalize a scrape job by updating its ORM status and recording metrics.
 

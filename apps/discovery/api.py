@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ninja import Field, Router, Schema
 from ninja.errors import HttpError
@@ -35,7 +35,7 @@ class DiscoverRequest(Schema):
 
 class DiscoverResponse(Schema):
     source_type: str
-    detected_properties: Dict[str, Any]
+    detected_properties: dict[str, Any]
     suggested_connector: str
     confidence: float
 
@@ -43,9 +43,9 @@ class DiscoverResponse(Schema):
 class CreateSourceRequest(Schema):
     name: str
     source_type: str
-    connection_config: Dict[str, Any]
-    credentials: Optional[Dict[str, Any]] = None
-    sync_schedule: Optional[str] = None
+    connection_config: dict[str, Any]
+    credentials: dict[str, Any] | None = None
+    sync_schedule: str | None = None
 
 
 class SourceResponse(Schema):
@@ -55,7 +55,7 @@ class SourceResponse(Schema):
     source_type: str
     status: str
     created_at: str
-    datahub_urn: Optional[str] = None
+    datahub_urn: str | None = None
 
 
 @sources_router.post("/discover", response=DiscoverResponse)
@@ -82,7 +82,7 @@ def create_source(request, payload: CreateSourceRequest):
         status="pending",
     )
     return 201, SourceResponse(
-        source_id=str(source.source_id),
+        source_id=str(source.id),
         tenant_id=tenant_id,
         name=source.name,
         source_type=source.source_type,
@@ -92,13 +92,13 @@ def create_source(request, payload: CreateSourceRequest):
     )
 
 
-@sources_router.get("", response=List[SourceResponse])
+@sources_router.get("", response=list[SourceResponse])
 def list_sources(request):
     tenant_id = get_tenant_id(request)
     sources = Source.objects.filter(tenant_id=tenant_id).order_by("-created_at")
     return [
         SourceResponse(
-            source_id=str(source.source_id),
+            source_id=str(source.id),
             tenant_id=source.tenant_id,
             name=source.name,
             source_type=source.source_type,
@@ -112,14 +112,14 @@ def list_sources(request):
 
 @sources_router.get("/{source_id}", response=SourceResponse)
 def get_source(request, source_id: str):
-    source = Source.objects.filter(source_id=source_id).first()
+    source = Source.objects.filter(id=source_id).first()
     if not source:
         raise HttpError(404, get_message("ERR_SOURCE_NOT_FOUND", source_id=source_id))
     tenant_id = get_tenant_id(request)
     if source.tenant_id != tenant_id:
         raise HttpError(403, get_message("ERR_ACCESS_DENIED"))
     return SourceResponse(
-        source_id=str(source.source_id),
+        source_id=str(source.id),
         tenant_id=source.tenant_id,
         name=source.name,
         source_type=source.source_type,
@@ -129,9 +129,9 @@ def get_source(request, source_id: str):
     )
 
 
-@sources_router.delete("/{source_id}", response={200: Dict[str, str]}, auth=require_permission("write:sources"))
+@sources_router.delete("/{source_id}", response={200: dict[str, str]}, auth=require_permission("write:sources"))
 def delete_source(request, source_id: str):
-    source = Source.objects.filter(source_id=source_id).first()
+    source = Source.objects.filter(id=source_id).first()
     if not source:
         raise HttpError(404, get_message("ERR_SOURCE_NOT_FOUND", source_id=source_id))
     tenant_id = get_tenant_id(request)
@@ -149,10 +149,10 @@ def delete_source(request, source_id: str):
 class ServiceRegisterRequest(Schema):
     name: str
     base_url: str
-    spec_url: Optional[str] = None
+    spec_url: str | None = None
     version: str = "1.0.0"
     owner: str = "unknown"
-    tags: List[str] = []
+    tags: list[str] = []
 
 
 class SpecScanRequest(Schema):
@@ -187,8 +187,8 @@ def register_service(request, payload: ServiceRegisterRequest):
         ) from exc
 
 
-@discovery_router.get("/services", response=List[ServiceDef])
-def list_services(request, tag: Optional[str] = None):
+@discovery_router.get("/services", response=list[ServiceDef])
+def list_services(request, tag: str | None = None):
     try:
         if tag:
             return _discovery_repo.search(tag)
@@ -214,7 +214,7 @@ def get_service(request, name: str):
         ) from exc
 
 
-@discovery_router.post("/scan", response=Dict[str, Any], auth=require_permission("write:sources"))
+@discovery_router.post("/scan", response=dict[str, Any], auth=require_permission("write:sources"))
 def scan_spec(request, payload: SpecScanRequest):
     try:
         spec = _spec_parser.parse_from_url(payload.url)

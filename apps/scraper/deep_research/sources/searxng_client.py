@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import logging
 import urllib.parse
-from typing import List
 
 import httpx
 
@@ -30,7 +29,7 @@ class SearXNGClient:
         query: str,
         max_results: int = 10,
         tenant_id: str = "default",
-    ) -> List[SearchResultItem]:
+    ) -> list[SearchResultItem]:
         """
         Execute a query against SearXNG and return normalized results.
 
@@ -67,7 +66,7 @@ class SearXNGClient:
             return []
 
         raw_results = data.get("results", [])
-        extracted: List[SearchResultItem] = []
+        extracted: list[SearchResultItem] = []
         for rank, item in enumerate(raw_results[:max_results], start=1):
             extracted.append(
                 SearchResultItem(

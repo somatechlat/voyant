@@ -8,7 +8,7 @@ to the Voyant discovery catalog.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import requests
 
@@ -32,7 +32,7 @@ class SearchClient:
     breaker pattern for resilience against external API failures.
     """
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: str | None = None):
         """
         Initializes the SearchClient.
 
@@ -43,7 +43,7 @@ class SearchClient:
         self.api_key = api_key or settings.serper_api_key
         self.base_url = settings.serper_search_url
 
-    def search_apis(self, query: str, limit: int = 10) -> List[Dict[str, str]]:
+    def search_apis(self, query: str, limit: int = 10) -> list[dict[str, str]]:
         """
         Searches for external API documentation matching a given query.
 
@@ -111,7 +111,7 @@ class SearchClient:
             )
             raise
 
-    def _parse_serper_results(self, data: Dict[str, Any]) -> List[Dict[str, str]]:
+    def _parse_serper_results(self, data: dict[str, Any]) -> list[dict[str, str]]:
         """
         Internal method: Parses the raw JSON response from the Serper API.
 

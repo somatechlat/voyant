@@ -7,11 +7,10 @@ KPI templates, service discovery, and vector indexing.
 Extracted from mcp/tools.py (Rule 245 compliance — 723-line split).
 """
 
-import httpx
 import logging
-from django_mcp import mcp_app
 
-logger = logging.getLogger(__name__)
+import httpx
+from django_mcp import mcp_app
 
 from apps.analysis.lib.kpi_templates import (
     get_categories as kpi_categories,
@@ -38,6 +37,8 @@ from apps.mcp.tools_core import _tenant
 from apps.search.lib.embeddings import get_embedding_extractor, get_sparse_embedder
 from apps.search.lib.milvus_store import get_vector_store
 from apps.workflows.models import Artifact, Job, PresetJob
+
+logger = logging.getLogger(__name__)
 
 settings = get_settings()
 

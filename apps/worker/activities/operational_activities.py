@@ -11,9 +11,10 @@ quality checks, anomaly monitoring, and predictive analytics.
 """
 
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 from temporalio import activity
+from temporalio.exceptions import ApplicationError
 
 from apps.analysis.lib.cleaning_primitives import DataCleaningPrimitives
 from apps.analysis.lib.forecast_primitives import PROPHET_AVAILABLE, ForecastPrimitives
@@ -43,7 +44,7 @@ class OperationalActivities:
         self.prophet = ForecastPrimitives()
 
     @activity.defn(name="clean_data")
-    def clean_data(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    def clean_data(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Performs data cleaning operations on a dataset.
 
@@ -66,7 +67,7 @@ class OperationalActivities:
         return self.cleaner.clean_dataset(data, strategies)
 
     @activity.defn(name="detect_anomalies")
-    def detect_anomalies(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    def detect_anomalies(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Detects anomalies within a given dataset.
 
@@ -89,7 +90,7 @@ class OperationalActivities:
         return self.ml.detect_anomalies(data, contamination)
 
     @activity.defn(name="analyze_sentiment_batch")
-    def analyze_sentiment_batch(self, params: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def analyze_sentiment_batch(self, params: dict[str, Any]) -> list[dict[str, Any]]:
         """
         Analyzes the sentiment of a batch of text inputs.
 
@@ -107,7 +108,7 @@ class OperationalActivities:
         return self.nlp.analyze_sentiment(texts)
 
     @activity.defn(name="fix_data_quality")
-    def fix_data_quality(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    def fix_data_quality(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Performs automatic fixes for common data quality issues in a dataset.
 
@@ -210,7 +211,7 @@ class OperationalActivities:
         }
 
     @activity.defn(name="forecast_time_series")
-    def forecast_time_series(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    def forecast_time_series(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Generates a time series forecast using various methods.
 
@@ -227,7 +228,7 @@ class OperationalActivities:
             and confidence intervals.
 
         Raises:
-            activity.ApplicationError: If no values are provided, or if Prophet is
+            ApplicationError: If no values are provided, or if Prophet is
                                      requested but not available, or forecasting fails.
         """
         values = params.get("values", [])
@@ -239,7 +240,7 @@ class OperationalActivities:
         activity.logger.info(f"Forecasting {periods} periods using method: '{method}'.")
 
         if not values:
-            raise activity.ApplicationError(
+            raise ApplicationError(
                 "No values provided for forecasting activity.", non_retryable=True
             )
 
@@ -274,6 +275,6 @@ class OperationalActivities:
             activity.logger.error(
                 f"Forecasting activity failed with method '{method}': {e}"
             )
-            raise activity.ApplicationError(
+            raise ApplicationError(
                 f"Forecasting failed: {e}", non_retryable=True
             ) from e

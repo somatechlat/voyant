@@ -11,7 +11,7 @@ steps to specialized activities.
 """
 
 from datetime import timedelta
-from typing import Any, Dict
+from typing import Any
 
 from temporalio import workflow
 
@@ -19,7 +19,7 @@ from temporalio import workflow
 # modules within the workflow definition. It passes control to the Python
 # import system directly, bypassing Temporal's default import handling.
 with workflow.unsafe.imports_passed_through():
-    from apps.worker.activities.operational_activities import OperationalActivities
+    pass
 
 
 @workflow.defn
@@ -29,7 +29,7 @@ class DetectAnomaliesWorkflow:
     """
 
     @workflow.run
-    async def run(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def run(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Executes the anomaly detection process.
 
@@ -49,7 +49,7 @@ class DetectAnomaliesWorkflow:
         # Execute the activity to perform the actual anomaly detection.
         # This activity uses algorithms (e.g., Isolation Forest) to identify outliers.
         result = await workflow.execute_activity(
-            OperationalActivities.detect_anomalies,
+            "detect_anomalies",
             {
                 "data": params.get("data", []),
                 "contamination": params.get("contamination", 0.1),
@@ -67,7 +67,7 @@ class AnalyzeSentimentWorkflow:
     """
 
     @workflow.run
-    async def run(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def run(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Executes the sentiment analysis process on a list of text inputs.
 
@@ -87,7 +87,7 @@ class AnalyzeSentimentWorkflow:
 
         # Execute the activity to perform batch sentiment analysis on the provided texts.
         results = await workflow.execute_activity(
-            OperationalActivities.analyze_sentiment_batch,
+            "analyze_sentiment_batch",
             {"texts": texts},
             start_to_close_timeout=timedelta(minutes=10),
         )
@@ -118,7 +118,7 @@ class FixDataQualityWorkflow:
     """
 
     @workflow.run
-    async def run(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def run(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Executes the data quality remediation process.
 
@@ -146,7 +146,7 @@ class FixDataQualityWorkflow:
 
         # Execute the activity that performs the data cleaning and quality fixes.
         result = await workflow.execute_activity(
-            OperationalActivities.fix_data_quality,
+            "fix_data_quality",
             {
                 "data": data,
                 "numeric_columns": numeric_columns,
@@ -168,7 +168,7 @@ class ForecastWorkflow:
     """
 
     @workflow.run
-    async def run(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def run(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Executes the time series forecasting process.
 
@@ -193,7 +193,7 @@ class ForecastWorkflow:
 
         # Execute the activity that performs the time series forecasting.
         result = await workflow.execute_activity(
-            OperationalActivities.forecast_time_series,
+            "forecast_time_series",
             {
                 "values": values,
                 "dates": dates,

@@ -13,9 +13,10 @@ Current functionality focuses on active discovery and parsing.
 """
 
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 from temporalio import activity
+from temporalio.exceptions import ApplicationError
 
 from apps.discovery.lib.search_utils import SearchClient
 from apps.discovery.lib.spec_parser import SpecParser
@@ -39,7 +40,7 @@ class DiscoveryActivities:
         self.parser = SpecParser()
 
     @activity.defn(name="search_for_apis")
-    def search_for_apis(self, params: Dict[str, Any]) -> List[Dict[str, str]]:
+    def search_for_apis(self, params: dict[str, Any]) -> list[dict[str, str]]:
         """
         Searches for external API documentation based on a given query.
 
@@ -67,7 +68,7 @@ class DiscoveryActivities:
         return self.search.search_apis(query, limit)
 
     @activity.defn(name="scan_spec_url")
-    def scan_spec_url(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    def scan_spec_url(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Scans and parses an OpenAPI specification from a given URL.
 
@@ -110,6 +111,6 @@ class DiscoveryActivities:
 
         except Exception as e:
             activity.logger.error(f"API specification scan failed for URL '{url}': {e}")
-            raise activity.ApplicationError(
+            raise ApplicationError(
                 f"API specification scan failed: {e}", non_retryable=True
             ) from e

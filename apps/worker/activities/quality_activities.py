@@ -5,11 +5,12 @@ Temporal activities for data quality validation using rule-based checks.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import duckdb
 import pandas as pd
 from temporalio import activity
+from temporalio.exceptions import ApplicationError
 
 from apps.core.config import get_settings
 from apps.ingestion.lib.quality_rules import (
@@ -30,7 +31,7 @@ class QualityActivities:
         self.settings = get_settings()
 
     @activity.defn(name="quality_fetch_sample")
-    def fetch_sample(self, params: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def fetch_sample(self, params: dict[str, Any]) -> list[dict[str, Any]]:
         """
         Fetch a sample from DuckDB for quality checks.
         """
@@ -38,7 +39,7 @@ class QualityActivities:
         sample_size = params.get("sample_size", 5000)
 
         if not table:
-            raise activity.ApplicationError(
+            raise ApplicationError(
                 "table or source_id is required for quality sampling",
                 non_retryable=True,
             )
@@ -50,12 +51,12 @@ class QualityActivities:
             return df.to_dict(orient="records")
         except Exception as exc:
             logger.error("Quality sampling failed for table %s: %s", table, exc)
-            raise activity.ApplicationError(
+            raise ApplicationError(
                 f"Failed to sample data for quality: {exc}", non_retryable=False
             ) from exc
 
     @activity.defn(name="run_quality_checks")
-    def run_quality_checks(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    def run_quality_checks(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Execute quality rules against sampled data.
         """
@@ -80,14 +81,14 @@ class QualityActivities:
         return summary
 
     def _build_rules(
-        self, df: pd.DataFrame, checks: Optional[List[Dict[str, Any]]]
-    ) -> List[QualityRule]:
+        self, df: pd.DataFrame, checks: list[dict[str, Any]] | None
+    ) -> list[QualityRule]:
         """
         Build a ruleset from user-provided checks or sensible defaults.
         """
         if not checks:
             # Default: null check for every column (20% threshold) and unique check for id-like columns
-            rules: List[QualityRule] = [
+            rules: list[QualityRule] = [
                 NullCheck(col, max_null_pct=0.2) for col in df.columns
             ]
             for col in df.columns:

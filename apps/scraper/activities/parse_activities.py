@@ -10,7 +10,7 @@ Extracted from scraper/activities.py (Rule 245 compliance — 949-line split).
 
 import logging
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any
 
 from temporalio import activity
 
@@ -38,7 +38,7 @@ class ParseActivities:
             return
 
     @activity.defn(name="extract_data")
-    async def extract_data(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def extract_data(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Extract structured data from HTML using CSS selectors or XPath.
 
@@ -65,7 +65,7 @@ class ParseActivities:
             logger.error(f"HTML parse error: {e}")
             return {"error": f"Parse failed: {e}", "url": url}
 
-        result: Dict[str, Any] = {
+        result: dict[str, Any] = {
             "url": url,
             "extracted_at": datetime.utcnow().isoformat(),
         }
@@ -156,7 +156,7 @@ class ParseActivities:
         return results
 
     @activity.defn(name="process_ocr")
-    async def process_ocr(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def process_ocr(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Process a list of images with Tesseract OCR to extract text.
 
@@ -211,7 +211,7 @@ class ParseActivities:
         }
 
     @activity.defn(name="transcribe_media")
-    async def transcribe_media(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def transcribe_media(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Transcribe audio or video files using Whisper.
 
@@ -286,7 +286,7 @@ class ParseActivities:
         }
 
     @activity.defn(name="parse_pdf")
-    async def parse_pdf(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def parse_pdf(self, params: dict[str, Any]) -> dict[str, Any]:
         """
         Parse a PDF document to extract text, metadata, and tables.
         Uses Apache Tika for text/metadata and pdfplumber for tables.
@@ -326,9 +326,9 @@ class ParseActivities:
 
             parsed = tika_parser.from_file(pdf_path)
 
-            result: Dict[str, Any] = {
-                "text": parsed.get("content", "").strip(),
-                "metadata": parsed.get("metadata", {}),
+            result: dict[str, Any] = {
+                "text": parsed.get("content", "").strip() if isinstance(parsed, dict) else "",  # type: ignore[union-attr]
+                "metadata": parsed.get("metadata", {}) if isinstance(parsed, dict) else {},  # type: ignore[union-attr]
             }
 
             if extract_tables:

@@ -7,7 +7,7 @@ IMPACT: High - Data quality and schema violations are not detected at ingestion/
 
 IMPLEMENTATION PLAN:
 1. Create DataContractValidator class
-2. Integrate with ingestion pipeline  
+2. Integrate with ingestion pipeline
 3. Add quality check activities to workflows
 4. Emit validation events
 
@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ValidationResult:
     """Result of a data contract validation.
-    
+
     Attributes:
         valid: Whether validation passed (True) or failed (False).
         errors: List of validation error messages.
@@ -75,24 +75,23 @@ class QualityRuleValidator(ABC):
 
 class JSONSchemaValidator(SchemaValidator):
     """Validates data using JSON Schema.
-    
-    STUB: Full implementation planned for Phase A.2.
-    Currently returns placeholder result with logging.
+
+    # STUB: needs implementation — full validation with jsonschema library planned for Phase A.2.
     See: docs/PHASE_A_STATUS.md
     """
 
-    def validate_schema(self, data: dict[str, Any], schema: dict) -> ValidationResult:
+    def validate_schema(self, data: dict[str, Any], schema: dict) -> ValidationResult:  # STUB: needs implementation
         """Validate data against JSON schema.
-        
+
         Args:
             data: Data record to validate.
             schema: JSON schema definition.
-            
+
         Returns:
-            ValidationResult with valid=True (stub behavior).
-            
+            ValidationResult with valid=True (placeholder).
+
         Note:
-            STUB IMPLEMENTATION: This method returns a placeholder result.
+            STUB: This method returns a placeholder result.
             Full implementation using jsonschema library is planned for Phase A.2.
             Integration points: apps/worker/workflows/, apps/ingestion/
         """
@@ -105,15 +104,14 @@ class JSONSchemaValidator(SchemaValidator):
 
 class DataQualityRuleValidator(QualityRuleValidator):
     """Validates data using quality rules (not null, unique, pattern, etc.).
-    
-    STUB: Full implementation planned for Phase A.2.
-    Currently returns placeholder result with logging.
+
+    # STUB: needs implementation — full rule evaluation planned for Phase A.2.
     See: docs/PHASE_A_STATUS.md
     """
 
-    def validate_quality_rules(self, data: list[dict[str, Any]], rules: list[dict]) -> ValidationResult:
+    def validate_quality_rules(self, data: list[dict[str, Any]], rules: list[dict]) -> ValidationResult:  # STUB: needs implementation
         """Validate data against quality rules.
-        
+
         Args:
             data: List of data records to validate.
             rules: List of quality rules to apply.
@@ -122,12 +120,12 @@ class DataQualityRuleValidator(QualityRuleValidator):
                    - {"type": "unique", "column": "email"}
                    - {"type": "pattern", "column": "email", "pattern": "^[\\w\\.-]+@..."}
                    - {"type": "range", "column": "age", "min": 0, "max": 150}
-                   
+
         Returns:
-            ValidationResult with valid=True (stub behavior).
-            
+            ValidationResult with valid=True (placeholder).
+
         Note:
-            STUB IMPLEMENTATION: This method returns a placeholder result.
+            STUB: This method returns a placeholder result.
             Full implementation with rule evaluation is planned for Phase A.2.
             Integration points: apps/worker/activities/quality_activities.py
         """
@@ -142,8 +140,8 @@ class DataQualityRuleValidator(QualityRuleValidator):
 
 class DataContractValidator:
     """Orchestrates validation of data against a DataContract.
-    
-    STUB: Full implementation planned for Phase A.2.
+
+    # STUB: needs implementation — full orchestration planned for Phase A.2.
     See: docs/PHASE_A_STATUS.md
     """
 
@@ -153,7 +151,7 @@ class DataContractValidator:
         quality_validator: QualityRuleValidator | None = None,
     ) -> None:
         """Initialize validator with optional custom validators.
-        
+
         Args:
             schema_validator: Custom schema validator (default: JSONSchemaValidator).
             quality_validator: Custom quality validator (default: DataQualityRuleValidator).
@@ -161,24 +159,24 @@ class DataContractValidator:
         self.schema_validator: SchemaValidator = schema_validator or JSONSchemaValidator()
         self.quality_validator: QualityRuleValidator = quality_validator or DataQualityRuleValidator()
 
-    def validate(self, data: list[dict[str, Any]], contract: Any) -> ValidationResult:
+    def validate(self, data: list[dict[str, Any]], contract: Any) -> ValidationResult:  # STUB: needs implementation
         """Validate data against all contract rules.
-        
+
         Args:
             data: List of data records to validate.
             contract: DataContract model instance with schema_definition and quality_rules.
-            
+
         Returns:
             ValidationResult combining schema and quality check results.
-            
+
         Note:
-            STUB IMPLEMENTATION: This method returns a placeholder result.
+            STUB: This method returns a placeholder result.
             Full implementation planned for Phase A.2 with:
             1. Schema validation against each record
             2. Quality rule evaluation across dataset
             3. Result aggregation
             4. Kafka event emission
-            
+
             Integration points (Phase A.2/3):
             - apps/worker/workflows/ingest_workflow.py
             - apps/worker/workflows/quality_workflow.py

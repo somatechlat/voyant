@@ -2,14 +2,14 @@
 Voyant Scraper - PDF Parser for Structured and Unstructured Data Extraction.
 
 This module provides functionalities for parsing PDF documents to extract
-text content, metadata, and structured tables. It intelligently leverages
-Apache Tika for comprehensive document analysis (especially for image-based
+text content, metadata, and structured tables. It uses
+Apache Tika for document analysis (especially for image-based
 or complex PDFs) and `pdfplumber` for precise native text and table extraction
 from machine-generated PDFs.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -18,12 +18,12 @@ class PDFParser:
     """
     A parser for extracting various forms of content from PDF documents.
 
-    This class offers a robust approach by combining the broad capabilities of
+    This class uses a fallback approach by combining the broad capabilities of
     Apache Tika with the precision of `pdfplumber`, allowing for effective
     processing of diverse PDF types.
     """
 
-    def __init__(self, tika_url: Optional[str] = None):
+    def __init__(self, tika_url: str | None = None):
         """
         Initializes the PDFParser.
 
@@ -34,12 +34,12 @@ class PDFParser:
         """
         self.tika_url = tika_url
 
-    def parse(self, pdf_path: str, extract_tables: bool = False) -> Dict[str, Any]:
+    def parse(self, pdf_path: str, extract_tables: bool = False) -> dict[str, Any]:
         """
         Parses a PDF file to extract its text content and metadata,
         with an option to extract tables.
 
-        This method attempts to use Apache Tika first for comprehensive extraction.
+        This method attempts to use Apache Tika first for extraction.
         If Tika fails or is not configured, it falls back to `pdfplumber` for
         native text extraction.
 
@@ -92,7 +92,7 @@ class PDFParser:
 
         return result
 
-    def _parse_with_tika(self, pdf_path: str) -> Dict[str, Any]:
+    def _parse_with_tika(self, pdf_path: str) -> dict[str, Any]:
         """
         Internal method: Parses a PDF file using the Apache Tika client.
 
@@ -110,12 +110,12 @@ class PDFParser:
 
         if self.tika_url:
             # Use a remote Tika server if URL is provided.
-            return tika_parser.from_file(pdf_path, serverEndpoint=self.tika_url)
+            return tika_parser.from_file(pdf_path, serverEndpoint=self.tika_url)  # type: ignore[reportReturnType]
         else:
             # Use a local Tika client (requires a Java Runtime Environment).
-            return tika_parser.from_file(pdf_path)
+            return tika_parser.from_file(pdf_path)  # type: ignore[reportReturnType]
 
-    def _parse_with_pdfplumber(self, pdf_path: str) -> Dict[str, Any]:
+    def _parse_with_pdfplumber(self, pdf_path: str) -> dict[str, Any]:
         """
         Internal method: Parses a PDF file using the `pdfplumber` library for native text extraction.
 
@@ -148,7 +148,7 @@ class PDFParser:
             "pages": page_count,
         }
 
-    def _extract_tables(self, pdf_path: str) -> List[Dict[str, Any]]:
+    def _extract_tables(self, pdf_path: str) -> list[dict[str, Any]]:
         """
         Internal method: Extracts structured tables from a PDF using `pdfplumber`.
 
@@ -182,7 +182,7 @@ class PDFParser:
                         )
         return tables
 
-    def get_metadata(self, pdf_path: str) -> Dict[str, Any]:
+    def get_metadata(self, pdf_path: str) -> dict[str, Any]:
         """
         Extracts metadata from a PDF file using Apache Tika.
 
@@ -200,7 +200,9 @@ class PDFParser:
             from tika import parser as tika_parser
 
             result = tika_parser.from_file(pdf_path)
-            return result.get("metadata", {})
+            if isinstance(result, dict):
+                return result.get("metadata", {})  # type: ignore[reportReturnType]
+            return {}
         except Exception as e:
             logger.warning(f"Metadata extraction failed for '{pdf_path}': {e}")
             return {}
