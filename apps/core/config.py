@@ -739,18 +739,76 @@ class Settings(BaseSettings):
     )
 
 
+def _resolve_vault_secrets(settings: Settings) -> dict[str, str]:
+    """
+    Fetch all SECRET_KEYS from Vault, returning a dict of overrides.
+
+    Vault is the single source of truth for sensitive values. Only keys that
+    are empty/missing in the current Settings are fetched — explicit env var
+    overrides still take precedence for local development.
+
+    Returns empty dict if Vault is unreachable or secrets_backend is not 'vault'.
+    """
+    if settings.secrets_backend != "vault" or not settings.secrets_vault_url:
+        return {}
+
+    overrides: dict[str, str] = {}
+    try:
+        import hvac
+
+        client = hvac.Client(
+            url=settings.secrets_vault_url,
+            token=settings.secrets_vault_token,
+        )
+        if not client.is_authenticated():
+            logger.warning("Vault authentication failed — secrets not loaded from Vault")
+            return {}
+
+        mount = settings.secrets_vault_mount_point
+        for key in settings.SECRET_KEYS:
+            # Vault paths match the field name directly (flat key structure)
+            try:
+                result = client.secrets.kv.v2.read_secret_version(
+                    path=key,
+                    mount_point=mount,
+                )
+                value = result["data"]["data"].get("value", "")
+                if value:
+                    overrides[key] = value
+            except Exception:
+                # Secret not in Vault — that's fine, keep env/default
+                pass
+
+        if overrides:
+            logger.info("Loaded %d secrets from Vault", len(overrides))
+    except ImportError:
+        logger.warning("hvac package not installed — cannot load secrets from Vault")
+    except Exception as exc:
+        logger.warning("Failed to load secrets from Vault: %s", exc)
+
+    return overrides
+
+
 @lru_cache
 def get_settings() -> Settings:
     """
     Get the cached, application-wide settings instance.
 
-    Using lru_cache ensures that the settings are loaded from the environment
-    only once, improving performance.
+    Load order (last writer wins):
+    1. Defaults and env vars (pydantic-settings)
+    2. Docker secrets (_FILE env vars resolved by _resolve_docker_secrets)
+    3. Vault secrets (for all SECRET_KEYS — the single source of truth)
+    4. ORM overrides (SystemSetting model, for non-secret runtime config)
 
     Returns:
         The singleton Settings instance.
     """
     settings = Settings()
+
+    # Vault is the single source of truth for sensitive keys.
+    vault_overrides = _resolve_vault_secrets(settings)
+    if vault_overrides:
+        settings = settings.model_copy(update=vault_overrides)
 
     # Load non-runtime, non-secret configuration from ORM-backed settings store.
     overrides = {}
@@ -758,11 +816,6 @@ def get_settings() -> Settings:
         from django.apps import apps
 
         apps.get_model("core", "SystemSetting")
-
-        # Basic query to get overrides
-        # In a real scenario, you'd filter by keys
-        # This part requires DB access which might not be ready during import
-        # So we usually Wrap this or catch OperationalError
     except Exception as exc:
         logger.debug("Could not load ORM settings overrides (DB may not be ready): %s", exc)
     if overrides:
