@@ -1,26 +1,7 @@
 """
-Secrets Backend Abstraction Module
+Pluggable secrets storage with Vault as single source of truth.
 
-Pluggable secrets storage with multiple provider support.
-Reference: STATUS.md Gap #2 - Secrets Backend Abstraction
-
-Features:
-- Provider abstraction interface
-- In-memory provider (testing)
-- File provider (development)
-- Fernet encryption support
-- Vault provider
-- AWS KMS provider (extensible)
-- Secret rotation support
-
-Personas Applied:
-- PhD Developer: Clean abstraction, SOLID principles
-- Analyst: Secret lifecycle tracking
-- QA: Provider isolation testing
-- ISO Documenter: Complete provider docs
-- Security: Encryption, no plaintext logging
-- Performance: Lazy loading, caching
-- UX: Simple provider configuration
+Providers: memory (test), env (local dev), k8s, file (Fernet-encrypted), vault (production).
 
 Usage:
     from apps.core.lib.secrets import (

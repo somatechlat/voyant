@@ -1,11 +1,6 @@
 """
-Sandboxed Python Execution Node
-
-Security Auditor Mandate: Scripts are executed inside an ephemeral, network-isolated
-Docker container. The script only has access to purely mathematical libraries.
-
-Data Scientist Mandate: Enables complex statistical modeling like ARIMA
-or RandomForest purely on numerical inputs, returning statistical structures.
+Sandboxed Python execution in ephemeral Docker containers.
+Network-isolated with strict resource limits.
 """
 
 import logging

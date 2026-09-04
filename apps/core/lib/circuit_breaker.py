@@ -180,8 +180,6 @@ class CircuitBreaker:
     def _transition_to(self, new_state: CircuitState):
         """
         Transition the circuit breaker to a new state and log the event.
-
-        ISO Documenter: All state transitions are logged for audibility and monitoring.
         """
         old_state = self._state.state
         if old_state != new_state:
