@@ -1,17 +1,5 @@
 """
-Event Schema Module for Defining and Validating Structured Event Contracts.
-
-This module provides an in-memory schema registry for defining and validating
-structured events, ensuring that all events produced within the Voyant ecosystem
-adhere to a clear, versioned contract.
-
-Reference: docs/CANONICAL_ROADMAP.md - P2 Operability
-
-Features:
-- A central registry for all event lifecycle schemas.
-- Support for semantic versioning and retrieval of the latest schema.
-- Schema validation against event data payloads.
-- Generation of standard JSON Schema for external tooling.
+In-memory event schema registry with semver support and JSON Schema generation.
 
 Personas Applied:
 - PhD Developer: Enforces strong contracts and correct schema versioning semantics.

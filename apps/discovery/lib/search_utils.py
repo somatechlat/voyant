@@ -1,11 +1,4 @@
-"""
-Search Utilities: Client for External API Documentation Discovery.
-
-This module provides utilities for searching the web for API documentation and
-specifications. It integrates with external search engine APIs (currently Serper)
-to discover and retrieve metadata about APIs, which can then be parsed and added
-to the Voyant discovery catalog.
-"""
+"""Serper-based web search for API documentation discovery."""
 
 import logging
 from typing import Any

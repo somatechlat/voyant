@@ -1,11 +1,4 @@
-"""
-Temporal Client Management Module.
-
-This module provides a singleton client for connecting to the
-Temporal cluster. It ensures that only one connection to the Temporal frontend
-is established and reused throughout the application's lifecycle, which is
-for performance and resource management.
-"""
+"""Singleton Temporal client connection manager."""
 
 import logging
 

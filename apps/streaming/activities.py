@@ -1,22 +1,4 @@
-"""
-Streaming Activities for Voyant Temporal Worker.
-
-This module provides Temporal activities for managing Apache Flink streaming jobs.
-Activities are the "side-effect" operations that interact with external systems.
-
-Architecture Note (PhD Developer):
-    These activities serve as the bridge between the Temporal orchestration layer
-    (the "Brain") and the Flink execution layer (the "Muscle"). They are designed
-    to be idempotent where possible and to fail fast with clear error messages.
-
-Security Note (Security Auditor):
-    No credentials are hardcoded. All configuration is sourced from `get_settings()`,
-    which reads from environment variables or secure backends.
-
-Testing Note (QA Engineer):
-    Integration tests should run against a live Flink cluster
-    (`voyant_flink_jobmanager`) to verify real behavior.
-"""
+"""Temporal activities for Apache Flink job submission and monitoring."""
 
 from __future__ import annotations
 

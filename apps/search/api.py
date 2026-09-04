@@ -1,15 +1,4 @@
-"""Semantic search REST API endpoints.
-
-This module provides semantic search capabilities using vector embeddings.
-It integrates with the Milvus vector store for persistent storage and retrieval
-of embeddings, enabling similarity-based search across indexed content.
-
-Architectural notes:
-- Vector store: Milvus for production-grade vector storage and retrieval.
-- Embeddings: Supports multiple embedding models (TF-IDF, character-based).
-- Multi-tenancy: All indexed items are isolated by tenant_id.
-- Security: Policy enforcement via OPA gates on search and indexing operations.
-"""
+"""Semantic search API — Milvus vector store with tenant-isolated embeddings."""
 
 from __future__ import annotations
 

@@ -1,18 +1,4 @@
-"""
-Voyant Scraper - Tesseract-based OCR Processor.
-
-This module provides a dedicated Optical Character Recognition (OCR) processor
-specifically designed to extract text from images using the Tesseract OCR engine.
-It includes functionalities for basic text extraction, structured extraction
-with bounding box data, and image preprocessing to enhance OCR accuracy.
-
-Architectural Note:
-This module (`apps/scraper/parsing/ocr_processor.py`) implements a Tesseract-specific
-OCR processor. There is an architectural redundancy with `apps/scraper/media/ocr.py`,
-which also defines an `OCRProcessor` class but acts as a higher-level orchestrator
-for different OCR engines (including Tesseract, pdfplumber, and Tika).
-For future refactoring, these two modules should be consolidated.
-"""
+"""Tesseract OCR — text extraction with bounding boxes and image preprocessing."""
 
 import io
 import logging

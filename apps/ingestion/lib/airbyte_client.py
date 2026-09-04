@@ -1,17 +1,4 @@
-"""
-Airbyte HTTP Client for Data Ingestion.
-
-This module provides an asynchronous, resilient client for interacting with the
-Airbyte API. It enables Voyant to programmatically manage data synchronization
-jobs, monitor their status, and orchestrate data ingestion from various sources.
-
-Key features include:
--   Asynchronous HTTP communication using `httpx`.
--   Integration with a circuit breaker pattern for enhanced fault tolerance.
--   Error handling with specific exception types.
--   Support for common Airbyte operations such as listing connections,
-    triggering syncs, and monitoring job status.
-"""
+"""Airbyte API client with circuit breaker protection for sync orchestration."""
 
 from __future__ import annotations
 
