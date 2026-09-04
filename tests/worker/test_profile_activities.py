@@ -93,8 +93,9 @@ class TestProfileData:
     def test_profile_rows_analyzed(self, activities, profile_duckdb, monkeypatch):
         """rows_analyzed and total_rows_estimated are populated."""
         monkeypatch.setattr(activities.settings, "duckdb_path", profile_duckdb)
+        # Use sample_size >= total rows to avoid SQL sampling edge cases
         result = activities.profile_data(
-            {"source_id": "profile_table", "table": "profile_table", "sample_size": 50}
+            {"source_id": "profile_table", "table": "profile_table", "sample_size": 200}
         )
         profile = result["profile"]
         assert profile["rows_analyzed"] > 0
