@@ -126,15 +126,12 @@ class TestInMemorySecretsBackend:
         assert meta.expires_at is not None
 
     @pytest.mark.asyncio
-    async def test_expired_secret_returns_none(self, backend):
-        # Set with 0 second expiry (expires immediately)
-        await backend.set("key", "value", expires_in=0)
-        # The expiry check compares ISO strings; a 0-second expiry
-        # means expires_at is essentially "now", which may or may not
-        # be strictly less than the current time depending on timing.
-        # We just verify the mechanism exists.
+    async def test_expiration_is_set(self, backend):
+        # Set with a short expiry
+        await backend.set("key", "value", expires_in=60)
         meta = await backend.get_metadata("key")
         assert meta.expires_at is not None
+        assert meta.expires_at.endswith("Z")
 
 
 # =============================================================================

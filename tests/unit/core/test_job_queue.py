@@ -90,11 +90,12 @@ class TestJobQueueEnqueueAcquire:
         await queue.enqueue("t1", "j_high", "analyze", priority=1)
         await queue.enqueue("t1", "j_mid", "analyze", priority=5)
 
-        job1 = await queue.acquire_next("t1")
+        # Use high concurrency to acquire all without releasing
+        job1 = await queue.acquire_next("t1", max_concurrent=10)
         assert job1.job_id == "j_high"
-        job2 = await queue.acquire_next("t1")
+        job2 = await queue.acquire_next("t1", max_concurrent=10)
         assert job2.job_id == "j_mid"
-        job3 = await queue.acquire_next("t1")
+        job3 = await queue.acquire_next("t1", max_concurrent=10)
         assert job3.job_id == "j_low"
 
     @pytest.mark.asyncio

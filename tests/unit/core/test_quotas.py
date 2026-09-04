@@ -269,11 +269,13 @@ class TestUsageStatus:
         assert "concurrent_jobs" in status
 
     def test_usage_status_after_jobs(self):
+        # Use a higher tier to allow multiple concurrent jobs
+        set_tenant_tier("t1", "starter")
         record_job_start("t1")
         record_job_start("t1")
         status = get_usage_status("t1")
         assert status["jobs_today"] == 2
-        assert status["jobs_remaining"] == 8
+        assert status["jobs_remaining"] == 98
 
 
 # =============================================================================
