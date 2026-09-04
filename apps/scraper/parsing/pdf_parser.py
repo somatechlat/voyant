@@ -1,12 +1,4 @@
-"""
-Voyant Scraper - PDF Parser for Structured and Unstructured Data Extraction.
-
-This module provides functionalities for parsing PDF documents to extract
-text content, metadata, and structured tables. It uses
-Apache Tika for document analysis (especially for image-based
-or complex PDFs) and `pdfplumber` for precise native text and table extraction
-from machine-generated PDFs.
-"""
+"""PDF parsing with pdfplumber (native text/tables) and Tika (scanned/image PDFs)."""
 
 import logging
 from typing import Any

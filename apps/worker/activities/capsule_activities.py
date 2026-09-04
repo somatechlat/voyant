@@ -95,6 +95,13 @@ class CapsuleActivities:
 
     @activity.defn(name="capsule.execute_step")
     async def execute_step(
+        self,
+        action: str,
+        params: dict[str, Any],
+        tenant_id: str,
+        instance_id: str,
+        capabilities_whitelist: list[str],
+    ) -> dict[str, Any]:
         # --- Capability whitelist enforcement ---
         if capabilities_whitelist and action not in capabilities_whitelist:
             raise PermissionError(

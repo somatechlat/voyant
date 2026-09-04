@@ -1,10 +1,4 @@
-"""
-Voyant Core — Policy Enforcement.
-
-This module provides request-level policy authorization against an external
-Policy Engine (if configured). When `soma_policy_url` is not configured, all
-policy checks are skipped and requests are allowed through.
-"""
+"""OPA-based external policy engine integration. No-op when soma_policy_url is unset."""
 
 from __future__ import annotations
 

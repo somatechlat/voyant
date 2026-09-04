@@ -1,11 +1,4 @@
-"""
-Direct Ingestion Utilities: Facilitating File Loading into DuckDB.
-
-This module provides utilities for directly ingesting structured files (CSV, JSON,
-Excel, Parquet) into a DuckDB database. It leverages DuckDB's efficient
-auto-detection and loading capabilities, along with Pandas for more complex
-formats like Excel, to enable fast and straightforward data loading for analysis.
-"""
+"""File-to-DuckDB ingestion (CSV, JSON, Parquet, Excel)."""
 
 import logging
 import os

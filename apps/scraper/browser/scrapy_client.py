@@ -1,11 +1,4 @@
-"""
-Voyant Scraper - Scrapy Client for High-Performance Web Crawling.
-
-This module provides an integration with the Scrapy framework, enabling
-large-scale, high-performance web scraping operations. It is designed for
-scenarios requiring efficient traversal of websites, adherence to `robots.txt`
-rules, and the ability to follow links for deeper data collection.
-"""
+"""Scrapy wrapper for large-scale site crawling with robots.txt compliance."""
 
 import logging
 from collections.abc import Callable, Generator

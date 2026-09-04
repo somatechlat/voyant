@@ -238,6 +238,7 @@ class OctopusDispatcher:
         request: OctopusRequest,
     ) -> OctopusResult:
         """Run executor under circuit breaker protection with timeout."""
+        if cb.get_state() == CircuitState.OPEN:
             raise CircuitBreakerOpenError(
                 f"Circuit breaker '{cb.name}' is OPEN"
             )
@@ -259,6 +260,7 @@ class OctopusDispatcher:
         error_message: str,
     ) -> OctopusResult:
         """Construct a standardized failure result."""
+        duration_ms = int(
             (datetime.now(UTC) - start).total_seconds() * 1000
         )
         return OctopusResult(
