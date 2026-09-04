@@ -121,6 +121,7 @@ INSTALLED_APPS = [
     "apps.uptp_core",  # Universal Parametric Template Pattern Core
     "apps.capsules",  # Installable intelligence capsules (cross-compatible with somaAgent01)
     "apps.ontology",  # Ontology Engine (Object Types, Properties, Links)
+    "apps.admin_panel",  # Admin Panel API (dashboard, management endpoints)
 ]
 
 # --- Middleware Configuration ---

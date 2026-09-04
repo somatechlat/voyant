@@ -13,6 +13,7 @@ from apps.ingestion.api import ingestion_router
 from apps.scraper.api import scrape_router
 from apps.search.api import router as search_router
 from apps.sql.api import sql_router
+from apps.admin_panel.api import admin_router
 from apps.workflows.api import artifacts_router, jobs_router, presets_router
 
 # Use a unique namespace during testing to avoid NinjaAPI registry collisions
@@ -44,3 +45,4 @@ api.add_router("/search", search_router, tags=["search"])
 api.add_router("/scrape", scrape_router, tags=["scrape"])
 api.add_router("/capsules", capsules_router, tags=["capsules"])
 api.add_router("/ingestion", ingestion_router, tags=["ingestion"])
+api.add_router("/admin", admin_router, tags=["admin"])
