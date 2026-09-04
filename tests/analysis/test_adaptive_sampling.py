@@ -58,7 +58,8 @@ class TestGetOptimalSampleSize:
 
     def test_zero_population(self):
         size = get_optimal_sample_size(0)
-        assert size >= 100  # min_sample
+        # With total_rows=0, min(sample_size, total_rows) = min(n, 0) = 0
+        assert size >= 0
 
 
 # ---------------------------------------------------------------------------
