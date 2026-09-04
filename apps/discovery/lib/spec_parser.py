@@ -1,12 +1,4 @@
-"""
-Spec Parser: Module for Parsing OpenAPI/Swagger API Specifications.
-
-This module provides a robust parser for OpenAPI (v3) and Swagger (v2)
-specifications. It enables the Voyant Discovery Engine to ingest raw API
-definitions and transform them into a standardized internal representation,
-extracting key metadata such as API title, version, base URL, and a list
-of available endpoints.
-"""
+"""OpenAPI/Swagger specification parser."""
 
 import logging
 from typing import Any
@@ -22,33 +14,16 @@ logger = logging.getLogger(__name__)
 
 class SpecParser:
     """
-    A parser for processing OpenAPI (v3) and Swagger (v2) API specifications.
+    Parser for OpenAPI v3 and Swagger v2 specs.
 
-    This class handles fetching specifications from URLs and converting their
-    raw JSON/YAML content into structured `ApiSpec` and `ApiEndpoint` objects.
-    It includes logic for version detection, base URL determination, and
+    Handles version detection, base URL determination, and
     heuristic-based authentication type inference.
     """
 
     def __init__(self):
-        """Initializes the SpecParser."""
         pass
 
     def parse_from_url(self, url: str) -> ApiSpec:
-        """
-        Fetches an API specification from a given URL and parses its content.
-
-        Args:
-            url (str): The URL where the OpenAPI/Swagger specification can be accessed.
-
-        Returns:
-            ApiSpec: An `ApiSpec` object representing the parsed API specification.
-
-        Raises:
-            requests.exceptions.RequestException: If fetching the URL fails.
-            ValueError: If the spec format is unknown or parsing fails.
-            Exception: For other unexpected errors.
-        """
         try:
             response = requests.get(url, timeout=10)
             response.raise_for_status()
@@ -74,23 +49,6 @@ class SpecParser:
             raise
 
     def parse_spec(self, data: dict[str, Any], source_url: str = "") -> ApiSpec:
-        """
-        Parses a raw API specification dictionary into an `ApiSpec` model.
-
-        This method extracts key information such as title, version, base URL,
-        endpoints, and authentication type from the provided specification data.
-
-        Args:
-            data (Dict[str, Any]): The raw dictionary content of the OpenAPI/Swagger specification.
-            source_url (str, optional): The URL from which the spec was fetched, used as a fallback
-                                        for determining the base URL if not explicitly defined in the spec.
-
-        Returns:
-            ApiSpec: An `ApiSpec` object representing the parsed API specification.
-
-        Raises:
-            ValueError: If the spec format is unknown or required information is missing.
-        """
         # Determine the OpenAPI/Swagger version.
         is_openapi_v3 = "openapi" in data
         is_swagger_v2 = "swagger" in data

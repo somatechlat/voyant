@@ -1,36 +1,7 @@
 """
-Error Catalog Module
+Structured error catalog with error codes and metadata.
 
-Structured failure catalog with error codes and metadata.
 Reference: docs/CANONICAL_ROADMAP.md - P2 Operability
-
-Features:
-- Canonical error codes (VYNT-XXXX format)
-- Error categories (validation, auth, resource, system)
-- Machine-readable error responses
-- Internationalization-ready messages
-- HTTP status code mapping
-
-Personas Applied:
-- PhD Developer: Proper exception hierarchy
-- Analyst: Error categorization for monitoring
-- QA: Comprehensive error coverage
-- ISO Documenter: Complete error documentation
-- Security: No sensitive data in errors
-- Performance: Lightweight error creation
-- UX: Clear, actionable error messages
-
-Usage:
-    from apps.core.lib.errors import (
-        VoyantError, ValidationError, ResourceNotFoundError,
-        error_response, get_error_catalog
-    )
-
-    # Raise typed error
-    raise ValidationError("VYNT-1001", "Invalid column name")
-
-    # Create error response for API
-    return error_response("VYNT-2001", details={"resource": "job", "id": job_id})
 """
 
 from __future__ import annotations
@@ -45,7 +16,6 @@ logger = logging.getLogger(__name__)
 
 
 class ErrorCategory(StrEnum):
-    """Error categories for classification."""
 
     VALIDATION = "validation"  # Input validation failures
     AUTHENTICATION = "authentication"  # Auth failures
@@ -58,7 +28,6 @@ class ErrorCategory(StrEnum):
 
 
 class ErrorSeverity(StrEnum):
-    """Error severity levels."""
 
     INFO = "info"  # Informational (e.g., deprecated)
     WARNING = "warning"  # Degraded but functional

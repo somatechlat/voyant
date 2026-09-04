@@ -1,11 +1,4 @@
-"""
-Voyant Scraper - HTML Parser for Structured Data Extraction.
-
-This module provides a pure execution HTML parsing utility, designed to
-extract structured data from raw HTML content using agent-provided CSS or
-XPath selectors. It leverages `lxml` for high-performance parsing and
-`cssselect` for flexible selector capabilities.
-"""
+"""HTML parser for structured data extraction using CSS/XPath selectors."""
 
 import logging
 from typing import Any
@@ -18,39 +11,14 @@ logger = logging.getLogger(__name__)
 
 class HTMLParser:
     """
-    An HTML parser for extracting content based on CSS and XPath selectors.
-
-    This parser operates as a pure execution tool: it takes HTML and a map of
-    selectors and mechanically extracts the specified data, without any
-    internal intelligence or LLM integration for selector generation.
+    Pure execution HTML parser — takes HTML and a map of selectors
+    and extracts specified data without any LLM integration.
     """
 
     def __init__(self):
-        """Initializes the HTMLParser."""
         pass
 
     def extract(self, raw_html: str, selectors: dict[str, Any]) -> dict[str, Any]:
-        """
-        Extracts data from raw HTML content using a map of CSS or XPath selectors.
-
-        Args:
-            raw_html (str): The raw HTML content as a string.
-            selectors (Dict[str, Any]): A dictionary defining the extraction rules.
-                                         Keys are the names of the fields to extract,
-                                         and values are CSS/XPath selectors.
-                                         Supports nested extraction for lists of items.
-                                         Example:
-                                         {
-                                             "title": "h1::text",
-                                             "links": "a::attr(href)",
-                                             "items": {"root": ".product", "fields": {"name": ".name::text"}}
-                                         }
-
-        Returns:
-            Dict[str, Any]: A dictionary containing the extracted data,
-                            structured according to the `selectors` map.
-                            Missing or failed extractions will result in `None` values.
-        """
         try:
             tree = lxml_html.fromstring(raw_html)
         except Exception as e:
@@ -74,16 +42,6 @@ class HTMLParser:
     def _extract_single(
         self, tree: lxml_html.HtmlElement, selector: str
     ) -> list[str] | str | None:
-        """
-        Internal method: Extracts a single value or a list of values using a CSS or XPath selector.
-
-        Args:
-            tree (lxml.html.HtmlElement): The lxml HTML element tree to search within.
-            selector (str): The CSS or XPath selector string.
-
-        Returns:
-            Union[List[str], str, None]: A list of extracted strings, a single string, or None if not found/error.
-        """
         if selector.startswith("//"):
             # XPath selector. lxml's xpath method returns a list.
             return tree.xpath(selector)
@@ -97,17 +55,6 @@ class HTMLParser:
             return self._css_extract(tree, selector + "::text")
 
     def _css_extract(self, tree: lxml_html.HtmlElement, selector: str) -> list[str]:
-        """
-        Internal method: Extracts content using a CSS selector, supporting pseudo-elements.
-
-        Args:
-            tree (lxml.html.HtmlElement): The lxml HTML element tree to search within.
-            selector (str): The CSS selector string, possibly with a pseudo-element
-                            like "::text" or "::attr(attribute_name)".
-
-        Returns:
-            List[str]: A list of extracted strings.
-        """
         parts = selector.rsplit("::", 1)
         css = parts[0]
         pseudo = parts[1] if len(parts) > 1 else "text"
@@ -133,22 +80,6 @@ class HTMLParser:
     def _extract_nested(
         self, tree: lxml_html.HtmlElement, selector_config: dict
     ) -> list[dict[str, Any]]:
-        """
-        Internal method: Extracts nested data from a list of repeating elements.
-
-        This is used for structures like product listings, where each product
-        has its own set of fields.
-
-        Args:
-            tree (lxml.html.HtmlElement): The lxml HTML element tree to search within.
-            selector_config (Dict): A dictionary defining the root selector for repeating items
-                                    and a map of selectors for fields within each item.
-                                    Example: `{"root": ".product", "fields": {"name": ".name::text"}}`.
-
-        Returns:
-            List[Dict[str, Any]]: A list of dictionaries, where each dictionary
-                                  represents an extracted item with its fields.
-        """
         root_selector = selector_config.get("root", "")
         fields_map = selector_config.get("fields", {})
 
@@ -183,40 +114,13 @@ class HTMLParser:
         return results
 
     def get_all_links(self, raw_html: str) -> list[str]:
-        """
-        Extracts all `href` attributes from `<a>` tags in the HTML.
-
-        Args:
-            raw_html (str): The raw HTML content.
-
-        Returns:
-            List[str]: A list of all link URLs found.
-        """
         tree = lxml_html.fromstring(raw_html)
         return tree.xpath("//a/@href")
 
     def get_all_images(self, raw_html: str) -> list[str]:
-        """
-        Extracts all `src` attributes from `<img>` tags in the HTML.
-
-        Args:
-            raw_html (str): The raw HTML content.
-
-        Returns:
-            List[str]: A list of all image source URLs found.
-        """
         tree = lxml_html.fromstring(raw_html)
         return tree.xpath("//img/@src")
 
     def get_all_media(self, raw_html: str) -> list[str]:
-        """
-        Extracts all `src` attributes from `<video>` and `<audio>` tags in the HTML.
-
-        Args:
-            raw_html (str): The raw HTML content.
-
-        Returns:
-            List[str]: A list of all media source URLs found.
-        """
         tree = lxml_html.fromstring(raw_html)
         return tree.xpath("//video/source/@src | //audio/source/@src")

@@ -167,7 +167,6 @@ _db_instance: DomainCredibilityDB | None = None
 
 
 def get_domain_credibility_db() -> DomainCredibilityDB:
-    """Return the singleton domain credibility database."""
     global _db_instance
     if _db_instance is None:
         _db_instance = DomainCredibilityDB()

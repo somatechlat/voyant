@@ -1,30 +1,7 @@
 """
-Content-Addressable Artifact Store
+Content-addressable artifact store.
 
-Efficient artifact storage using content hashing for deduplication.
 Reference: docs/CANONICAL_ROADMAP.md - Future Investigation Backlog
-
-Usage:
-    from apps.core.lib.artifact_store import (
-        ArtifactStore,
-        store_artifact,
-        retrieve_artifact,
-        verify_artifact
-    )
-
-    # Store an artifact
-    ref = store_artifact(
-        content=data_bytes,
-        artifact_type="profile",
-        metadata={"job_id": "123"}
-    )
-    print(ref.hash)  # "sha256:abc123..."
-
-    # Retrieve
-    content = retrieve_artifact(ref.hash)
-
-    # Verify integrity
-    is_valid = verify_artifact(ref.hash)
 """
 
 from __future__ import annotations

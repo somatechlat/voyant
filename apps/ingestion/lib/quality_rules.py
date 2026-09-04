@@ -31,11 +31,6 @@ class ValidationResult:
     details: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        """
-        Convert the validation result to a dictionary.
-        Returns:
-            A dictionary representation of the validation result.
-        """
         return {"rule": self.rule_name, "passed": self.passed, "details": self.details}
 
 
@@ -43,30 +38,13 @@ class QualityRule(abc.ABC):
     """Abstract base class for quality rules."""
 
     def __init__(self, column: str):
-        """
-        Initialize the quality rule.
-        Args:
-            column: The name of the column to be validated.
-        """
         self.column = column
 
     @abc.abstractmethod
     def check(self, df: pd.DataFrame) -> ValidationResult:
-        """
-        Run the quality check against a DataFrame.
-        Args:
-            df: The pandas DataFrame to validate.
-        Returns:
-            A ValidationResult object with the outcome of the check.
-        """
         pass
 
     def get_name(self) -> str:
-        """
-        Get the name of the rule, including the column being checked.
-        Returns:
-            A string representing the rule's name.
-        """
         return f"{self.__class__.__name__}({self.column})"
 
 
@@ -74,23 +52,10 @@ class NullCheck(QualityRule):
     """Fail if null percentage exceeds threshold (0.0 to 1.0)."""
 
     def __init__(self, column: str, max_null_pct: float = 0.0):
-        """
-        Initialize the null check rule.
-        Args:
-            column: The column to check for nulls.
-            max_null_pct: The maximum allowed percentage of nulls (0.0 to 1.0).
-        """
         super().__init__(column)
         self.max_null_pct = max_null_pct
 
     def check(self, df: pd.DataFrame) -> ValidationResult:
-        """
-        Check for null values in the specified column.
-        Args:
-            df: The DataFrame to validate.
-        Returns:
-            A ValidationResult indicating if the null percentage is within the threshold.
-        """
         if self.column not in df.columns:
             return ValidationResult(
                 self.get_name(), False, {"error": "Column not found"}
@@ -125,25 +90,11 @@ class RangeCheck(QualityRule):
         min_val: float | None = None,
         max_val: float | None = None,
     ):
-        """
-        Initialize the range check rule.
-        Args:
-            column: The column to check.
-            min_val: The minimum allowed value (inclusive).
-            max_val: The maximum allowed value (inclusive).
-        """
         super().__init__(column)
         self.min_val = min_val
         self.max_val = max_val
 
     def check(self, df: pd.DataFrame) -> ValidationResult:
-        """
-        Check if values in the column are within the specified range.
-        Args:
-            df: The DataFrame to validate.
-        Returns:
-            A ValidationResult indicating if all values are within range.
-        """
         if self.column not in df.columns:
             return ValidationResult(
                 self.get_name(), False, {"error": "Column not found"}
@@ -179,21 +130,9 @@ class UniqueCheck(QualityRule):
     """Fail if duplicates found."""
 
     def __init__(self, column: str):
-        """
-        Initialize the unique check rule.
-        Args:
-            column: The column to check for duplicates.
-        """
         super().__init__(column)
 
     def check(self, df: pd.DataFrame) -> ValidationResult:
-        """
-        Check for duplicate values in the specified column.
-        Args:
-            df: The DataFrame to validate.
-        Returns:
-            A ValidationResult indicating if the column has unique values.
-        """
         if self.column not in df.columns:
             return ValidationResult(
                 self.get_name(), False, {"error": "Column not found"}
@@ -216,25 +155,11 @@ class UniqueCheck(QualityRule):
 
 
 class QualityEngine:
-    """Executes a suite of rules."""
 
     def __init__(self, rules: list[QualityRule]):
-        """
-        Initialize the quality engine with a list of rules.
-        Args:
-            rules: A list of QualityRule objects to be executed.
-        """
         self.rules = rules
 
     def validate(self, df: pd.DataFrame) -> dict[str, Any]:
-        """
-        Run all quality checks against a DataFrame and return a summary.
-        Args:
-            df: The pandas DataFrame to validate.
-        Returns:
-            A dictionary summarizing the validation results, including an
-            overall status and individual rule outcomes.
-        """
         results = [rule.check(df) for rule in self.rules]
 
         passed_count = sum(1 for r in results if r.passed)

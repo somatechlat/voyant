@@ -80,7 +80,6 @@ class EmbeddingExtractor(ABC):
 
     @abstractmethod
     def embed(self, texts: list[str]) -> EmbeddingResult:
-        """Embed a list of texts."""
         pass
 
     @property
@@ -272,7 +271,6 @@ class DenseEmbedder(EmbeddingExtractor):
         )
 
     def _embed_text(self, text: str) -> list[float]:
-        """Embed a single text into a dense vector."""
         tokens = self._tokenize(text)
         vec = [0.0] * self.dimensions
         if not tokens:
@@ -327,11 +325,9 @@ class SparseEmbedder:
         return "sparse"
 
     def embed(self, texts: list[str]) -> list[dict[int, float]]:
-        """Embed a list of texts into sparse vectors."""
         return [self._embed_text(t) for t in texts]
 
     def _embed_text(self, text: str) -> dict[int, float]:
-        """Embed a single text into a sparse BM25 vector."""
         tokens = self._tokenize(text)
         if not tokens:
             return {}
@@ -370,7 +366,6 @@ class SparseEmbedder:
         return words
 
     def _term_to_index(self, term: str) -> int:
-        """Map a term to a deterministic uint32 index."""
         h = hashlib.sha256(term.encode("utf-8")).hexdigest()
         return int(h, 16) % (2**32 - 1)
 
@@ -521,7 +516,6 @@ def get_embedding_extractor(
 
 
 def get_sparse_embedder() -> SparseEmbedder:
-    """Get a sparse BM25 embedder instance."""
     return SparseEmbedder()
 
 

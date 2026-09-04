@@ -1,15 +1,7 @@
 """
-Kafka Event Producer for Voyant.
+Kafka event producer.
 
-This module provides an interface for emitting structured, schema-validated
-events to Kafka topics. It abstracts the underlying `confluent_kafka` producer,
-provides a singleton pattern for efficient connection management, and offers
-high-level helper functions for dispatching common business events.
-
-Key components:
-- Event Schema: Defines the contract for all emitted events.
-- KafkaProducer: A lazy-loading wrapper around the confluent_kafka producer.
-- Helper Functions: `emit_*` functions for easy, one-line event dispatch.
+Reference: docs/CANONICAL_ROADMAP.md
 """
 
 from __future__ import annotations
@@ -35,17 +27,7 @@ def _get_settings():
 
 @dataclass
 class VoyantEvent:
-    """
-    Represents a standard event structure for all Voyant messages.
-
-    Attributes:
-        event_type: The unique name of the event (e.g., "job.started").
-        event_id: A unique identifier (UUID) for this specific event instance.
-        timestamp: An ISO 8601 timestamp of when the event was created.
-        tenant_id: The identifier for the tenant associated with the event.
-        payload: A dictionary containing the event-specific data, which must
-                 conform to its registered EventSchema.
-    """
+    """Standard event structure for all Voyant messages."""
 
     event_type: str
     event_id: str

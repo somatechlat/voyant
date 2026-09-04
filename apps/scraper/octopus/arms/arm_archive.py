@@ -44,10 +44,6 @@ async def _download_file(target_url: str, dest: Path) -> bool:
 
 
 async def execute(request: OctopusRequest) -> OctopusResult:
-    """
-    Execute ARM-8 deep archive.
-
-    Navigates the target page, performs interactions, and downloads
     files that match the configured patterns.
 
     Args:

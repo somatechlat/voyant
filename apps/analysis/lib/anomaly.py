@@ -1,28 +1,7 @@
 """
-Anomaly Detection Module
+Anomaly detection for time series and tabular data.
 
-Statistical anomaly detection for time series and tabular data.
 Reference: docs/CANONICAL_ROADMAP.md - P6 Advanced Analytics
-
-Features:
-- Z-score detection (parametric)
-- IQR-based detection (resistant to outliers)
-- Modified Z-score (MAD-based)
-- Isolation Forest (ML-based)
-- Time series seasonality-aware detection
-
-Usage:
-    from apps.analysis.lib.anomaly import (
-        detect_anomalies, AnomalyDetector,
-        ZScoreDetector, IQRDetector, MADDetector
-    )
-
-    # Simple detection
-    anomalies = detect_anomalies(values, method="zscore", threshold=3.0)
-
-    # Using detector instance
-    detector = MADDetector(threshold=3.5)
-    result = detector.detect(values)
 """
 
 from __future__ import annotations
@@ -38,7 +17,6 @@ logger = logging.getLogger(__name__)
 
 
 class AnomalyMethod(StrEnum):
-    """Available anomaly detection methods."""
 
     ZSCORE = "zscore"  # Standard z-score
     IQR = "iqr"  # Interquartile range
@@ -48,7 +26,6 @@ class AnomalyMethod(StrEnum):
 
 @dataclass
 class Anomaly:
-    """A detected anomaly."""
 
     index: int
     value: float

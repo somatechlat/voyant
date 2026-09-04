@@ -34,7 +34,6 @@ logger = logging.getLogger(__name__)
 
 
 class PluginCategory(StrEnum):
-    """Defines the category of a plugin for UI grouping and filtering during execution."""
 
     VISUALIZATION = "visualization"
     REPORT = "report"
@@ -46,18 +45,7 @@ class PluginCategory(StrEnum):
 
 @dataclass
 class PluginMetadata:
-    """
-    Metadata for a registered plugin, making it self-describing.
-
-    Attributes:
-        name: The unique identifier for the plugin.
-        category: The category for grouping and filtering.
-        version: The version of the plugin.
-        description: A human-readable description of what the plugin does.
-        is_core: If True, indicates a critical plugin whose failure may halt a pipeline.
-        feature_flag: An optional feature flag name that can toggle this plugin's execution.
-        order: An integer used for sorting plugins for execution or display.
-    """
+    """Metadata for a registered plugin."""
 
     name: str
     category: PluginCategory
@@ -69,66 +57,27 @@ class PluginMetadata:
 
 
 class VoyantPlugin(abc.ABC):
-    """Abstract base class for all Voyant plugins, defining a common interface."""
 
     def get_name(self) -> str:
-        """Return the unique name of this plugin's class."""
         return self.__class__.__name__
 
 
 class GeneratorPlugin(VoyantPlugin):
-    """
-    Abstract base class for artifact generators.
-
-    Generator plugins are responsible for creating new artifacts, such as
-    visualizations or reports, based on provided context data.
-    """
 
     @abc.abstractmethod
     def generate(self, context: dict[str, Any]) -> dict[str, Any]:
-        """
-        Generate an artifact.
-
-        Args:
-            context: A dictionary containing data and metadata needed for generation.
-
-        Returns:
-            A dictionary representing the generated artifact.
-        """
         pass
 
 
 class AnalyzerPlugin(VoyantPlugin):
-    """
-    Abstract base class for data analyzers.
-
-    Analyzer plugins are responsible for running analyses on datasets and
-    returning structured insights.
-    """
 
     @abc.abstractmethod
     def analyze(self, data: Any, context: dict[str, Any]) -> dict[str, Any]:
-        """
-        Analyze data and return insights.
-
-        Args:
-            data: The primary data to be analyzed (e.g., a pandas DataFrame).
-            context: A dictionary containing additional metadata for the analysis.
-
-        Returns:
-            A dictionary containing the results of the analysis.
-        """
         pass
 
 
 class PluginRegistry:
-    """
-    A singleton registry for discovering, managing, and instantiating all plugins.
-
-    This central class holds the mappings of all registered plugin classes and
-    their associated metadata. It also manages the lazy instantiation of plugins
-    to ensure they are only created when first requested.
-    """
+    """Singleton registry for discovering, managing, and instantiating plugins."""
 
     _instance: PluginRegistry | None = None
 
@@ -143,7 +92,6 @@ class PluginRegistry:
 
     @classmethod
     def get_instance(cls) -> PluginRegistry:
-        """Get the singleton instance of the PluginRegistry."""
         if cls._instance is None:
             cls._instance = cls()
         return cls._instance
@@ -159,11 +107,6 @@ class PluginRegistry:
         feature_flag: str | None = None,
         order: int = 100,
     ):
-        """
-        Register a new plugin class and its metadata with the registry.
-
-        If a plugin with the same name already exists, it will be overwritten.
-        """
         if name in self._plugins:
             logger.warning(f"Overwriting existing plugin registration: {name}")
 
@@ -184,12 +127,6 @@ class PluginRegistry:
         logger.debug(f"Registered plugin: {name} ({category.value})")
 
     def get_plugin_instance(self, name: str) -> VoyantPlugin | None:
-        """
-        Get a singleton instance of a plugin by name, creating it if it doesn't exist.
-
-        This method implements lazy instantiation. The plugin is only instantiated
-        on its first retrieval.
-        """
         if name not in self._plugins:
             return None
 
@@ -204,12 +141,10 @@ class PluginRegistry:
         return self._instances[name]
 
     def get_all_metadata(self) -> list[PluginMetadata]:
-        """Get metadata for all registered plugins, sorted by execution order."""
         meta_list = list(self._metadata.values())
         return sorted(meta_list, key=lambda m: m.order)
 
     def get_plugins_by_category(self, category: PluginCategory) -> list[PluginMetadata]:
-        """Get metadata for all plugins belonging to a specific category."""
         return [m for m in self.get_all_metadata() if m.category == category]
 
     def clear(self):
@@ -263,7 +198,6 @@ def register_plugin(
 
 
 def get_generators() -> list[PluginMetadata]:
-    """Retrieve metadata for all registered plugins that are of type GeneratorPlugin."""
     registry = PluginRegistry.get_instance()
     all_meta = registry.get_all_metadata()
 
@@ -278,7 +212,6 @@ def get_generators() -> list[PluginMetadata]:
 
 
 def get_analyzers() -> list[PluginMetadata]:
-    """Retrieve metadata for all registered plugins that are of type AnalyzerPlugin."""
     registry = PluginRegistry.get_instance()
     all_meta = registry.get_all_metadata()
 
@@ -291,20 +224,8 @@ def get_analyzers() -> list[PluginMetadata]:
 
 
 def get_plugin(name: str) -> VoyantPlugin | None:
-    """
-    Retrieve an instantiated plugin by its unique name.
-
-    Returns:
-        An instance of the requested plugin, or None if not found.
-    """
     return PluginRegistry.get_instance().get_plugin_instance(name)
 
 
 def reset_registry():
-    """
-    Clear the entire plugin registry.
-
-    This is a convenience function intended for use in testing to ensure
-    a clean state between test runs.
-    """
     PluginRegistry.get_instance().clear()

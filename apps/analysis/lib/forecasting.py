@@ -1,28 +1,7 @@
 """
-Forecasting Engine
+Time series forecasting engine.
 
-Basic time series forecasting methods implemented natively in Python.
-Supports:
-- Naive forecast
-- Simple Moving Average (SMA)
-- Exponential Moving Average (EMA)
-- Linear trend extrapolation
-- Seasonal decomposition (extensible for Prophet)
-
-
-Note: Prophet implementation is in forecast_primitives.py
-
-Usage:
-    from apps.analysis.lib.forecasting import (
-        forecast, Forecaster,
-        MovingAverageForecaster, ExponentialSmoothingForecaster
-    )
-
-    # Simple forecast
-    predictions = forecast(values, periods=7, method="ema")
-
-    # With dates
-    result = forecast(values, dates, periods=30, method="linear")
+Reference: forecast_primitives.py for Prophet implementation.
 """
 
 from __future__ import annotations
@@ -38,7 +17,6 @@ logger = logging.getLogger(__name__)
 
 
 class ForecastMethod(StrEnum):
-    """Available forecasting methods."""
 
     NAIVE = "naive"  # Last value repeated
     SMA = "sma"  # Simple Moving Average
@@ -48,7 +26,6 @@ class ForecastMethod(StrEnum):
 
 @dataclass
 class ForecastPoint:
-    """A single forecast point."""
 
     period: int  # Periods ahead (1 = next)
     value: float

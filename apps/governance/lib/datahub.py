@@ -86,16 +86,6 @@ class DataHubClient:
         upstream_urns: list[str],
         downstream_urn: str,
     ) -> bool:
-        """
-        Emits a lineage relationship to DataHub, linking upstream data assets to a downstream asset.
-
-        Args:
-            upstream_urns (List[str]): A list of URNs of the upstream data assets.
-            downstream_urn (str): The URN of the downstream data asset.
-
-        Returns:
-            bool: True if the lineage relationship was successfully emitted, False otherwise.
-        """
         try:
             client = await self._get_client()
 
@@ -150,23 +140,6 @@ class DataHubClient:
         schema_fields: list[dict[str, Any]] | None = None,
         tags: list[str] | None = None,
     ) -> bool:
-        """
-        Registers or updates a dataset's metadata in DataHub.
-
-        This includes basic dataset properties and, optionally, its schema fields.
-
-        Args:
-            urn (str): The unique URN of the dataset to register.
-            name (str): The human-readable name of the dataset.
-            description (Optional[str]): A description of the dataset.
-            schema_fields (Optional[List[Dict[str, Any]]]): A list of dictionaries,
-                                                              each defining a schema field.
-                                                              Example: `{"name": "col1", "type": "string"}`.
-            tags (Optional[List[str]]): A list of tags to associate with the dataset.
-
-        Returns:
-            bool: True if the dataset was successfully registered/updated, False otherwise.
-        """
         try:
             client = await self._get_client()
 
@@ -254,19 +227,6 @@ class DataHubClient:
         entity_type: str = "DATASET",
         limit: int = 10,
     ) -> list[dict[str, Any]]:
-        """
-        Searches for entities within the DataHub metadata catalog.
-
-        Args:
-            query (str): The search query string.
-            entity_type (str, optional): The type of entity to search for (e.g., "DATASET", "DASHBOARD").
-                                         Defaults to "DATASET".
-            limit (int, optional): The maximum number of search results to return. Defaults to 10.
-
-        Returns:
-            List[Dict[str, Any]]: A list of dictionaries, each representing a search result
-                                  with URN, type, name, and description.
-        """
         try:
             client = await self._get_client()
 
@@ -330,16 +290,6 @@ _client: DataHubClient | None = None
 
 
 def get_datahub_client() -> DataHubClient:
-    """
-    Retrieves the singleton instance of the DataHubClient.
-
-    This factory function ensures that only one DataHubClient is instantiated
-    per application process, promoting efficient use of network resources
-    and persistent connections.
-
-    Returns:
-        DataHubClient: The singleton DataHubClient instance.
-    """
     global _client
     if _client is None:
         _client = DataHubClient()

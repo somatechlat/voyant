@@ -1,11 +1,4 @@
-"""
-Voyant Scraper — Fetch Activities.
-
-Temporal activities for web page fetching using Playwright, httpx, and Scrapy.
-Pure mechanical execution — NO intelligence, NO LLM, NO decision making.
-
-Extracted from scraper/activities.py (Rule 245 compliance — 949-line split).
-"""
+"""Temporal activities for web page fetching."""
 
 import asyncio
 import json
@@ -24,12 +17,7 @@ settings = get_settings()
 
 
 class FetchActivities:
-    """
-    Web fetch activities: Playwright, httpx, Scrapy, and deep archive.
-
-    All fetch activities enforce SSRF protection via apps.scraper.security.validate_url.
-    Engine selection is configurable per-request.
-    """
+    """Web fetch activities with SSRF protection."""
 
     @staticmethod
     def _heartbeat_safe(message: str) -> None:

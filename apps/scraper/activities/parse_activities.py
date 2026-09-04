@@ -1,12 +1,4 @@
-"""
-Voyant Scraper — Parse Activities.
-
-Temporal activities for structured data extraction: HTML parsing,
-OCR via Tesseract, media transcription via Whisper, and PDF parsing via Tika.
-Pure mechanical execution — NO intelligence, NO LLM, NO decision making.
-
-Extracted from scraper/activities.py (Rule 245 compliance — 949-line split).
-"""
+"""Temporal activities for structured data extraction."""
 
 import logging
 from datetime import datetime
@@ -21,13 +13,7 @@ settings = get_settings()
 
 
 class ParseActivities:
-    """
-    Parse and extraction activities: HTML, OCR, media transcription, PDF.
-
-    These activities are stateless — they receive raw bytes or HTML and return
-    structured data. All network requests within parse operations validate URLs
-    via apps.scraper.security.validate_url before downloading.
-    """
+    """Parse and extraction activities: HTML, OCR, media transcription, PDF."""
 
     @staticmethod
     def _heartbeat_safe(message: str) -> None:

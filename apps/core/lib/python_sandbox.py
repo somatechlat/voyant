@@ -19,16 +19,11 @@ logger = logging.getLogger(__name__)
 
 
 class PythonSandboxNode:
-    """Executes mathematically pure Python functions securely using real Docker."""
 
     @classmethod
     async def execute_script(
         cls, script_content: str, parameters: dict[str, Any], tenant_id: str
     ) -> dict[str, Any]:
-        """
-        Spawns an isolated container, mounts the data into the container,
-        executes the script, and retrieves the mathematical result.
-        """
         logger.info(
             f"Dispatching real sandboxed Python execution for tenant {tenant_id}"
         )
