@@ -64,6 +64,11 @@ class CapsuleActivities:
 
     @activity.defn(name="capsule.substitute_params")
     async def substitute_params(
+        self,
+        params: dict[str, Any],
+        parameter_values: dict[str, Any],
+        step_results: dict[str, Any],
+    ) -> dict[str, Any]:
         from jinja2.sandbox import SandboxedEnvironment
 
         env = SandboxedEnvironment()
