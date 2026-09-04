@@ -91,9 +91,7 @@ class ScrapeArtifact(models.Model):
         TRANSCRIPT = "transcript", "Transcript"
 
     artifact_id = models.CharField(max_length=512, primary_key=True)
-    job = models.ForeignKey(
-        ScrapeJob, on_delete=models.CASCADE, related_name="artifacts"
-    )
+    job = models.ForeignKey(ScrapeJob, on_delete=models.CASCADE, related_name="artifacts")
     artifact_type = models.CharField(max_length=64, choices=ArtifactType.choices)
     format = models.CharField(max_length=32)
     storage_path = models.CharField(max_length=512, help_text="MinIO/S3 object key")

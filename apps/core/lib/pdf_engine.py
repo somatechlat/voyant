@@ -22,9 +22,7 @@ class PDFAssembler:
     """WeasyPrint physical compiler for generic ISO documents."""
 
     @classmethod
-    def compile_pdf(
-        cls, template_name: str, params: dict[str, Any], tenant_id: str
-    ) -> str:
+    def compile_pdf(cls, template_name: str, params: dict[str, Any], tenant_id: str) -> str:
         """
         Binds parameters to a stored HTML layout and compiles to PDF.
         """

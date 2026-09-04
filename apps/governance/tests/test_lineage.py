@@ -1,6 +1,5 @@
 """Tests for data lineage module."""
 
-
 from apps.governance.lib.lineage import (
     EdgeType,
     LineageEdge,

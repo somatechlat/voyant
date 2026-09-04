@@ -32,9 +32,9 @@ class SignatureResult:
 
 def _canonicalize(data: dict[str, Any]) -> bytes:
     """Produce deterministic JSON bytes for signing (sorted keys, no whitespace)."""
-    return json.dumps(
-        data, sort_keys=True, separators=(",", ":"), ensure_ascii=False
-    ).encode("utf-8")
+    return json.dumps(data, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode(
+        "utf-8"
+    )
 
 
 def compute_content_hash(capsule_data: dict[str, Any]) -> str:

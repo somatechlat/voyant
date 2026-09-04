@@ -100,9 +100,7 @@ class KafkaProducer:
         else:
             logger.debug(f"Message delivered to {msg.topic()} [{msg.partition()}]")
 
-    def emit(
-        self, topic_key: str, event: VoyantEvent, skip_validation: bool = False
-    ) -> bool:
+    def emit(self, topic_key: str, event: VoyantEvent, skip_validation: bool = False) -> bool:
         """
         Validate and emit an event to a specified Kafka topic.
 

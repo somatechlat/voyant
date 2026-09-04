@@ -56,9 +56,7 @@ class TrinoClient:
                 )
                 logger.info(f"Trino connection established: {self.host}:{self.port}")
             except ImportError:
-                raise RuntimeError(
-                    "Trino client is not installed. Run: pip install 'trino[dbapi]'"
-                )
+                raise RuntimeError("Trino client is not installed. Run: pip install 'trino[dbapi]'")
             except Exception as e:
                 logger.error(f"Failed to establish connection to Trino: {e}")
                 raise
@@ -99,7 +97,7 @@ class TrinoClient:
     @staticmethod
     def _validate_identifier(name: str) -> str:
         """Reject identifiers that contain injection-viable characters."""
-        if not re.match(r'^[A-Za-z_][A-Za-z0-9_]*$', name):
+        if not re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", name):
             raise ValueError(
                 f"Invalid identifier: {name!r}. "
                 "Only alphanumeric characters and underscores are allowed."
@@ -111,9 +109,7 @@ class TrinoClient:
         result = self.execute(f"SHOW TABLES FROM {target_schema}")
         return [row[0] for row in result.rows]
 
-    def get_columns(
-        self, table: str, schema: str | None = None
-    ) -> list[dict[str, Any]]:
+    def get_columns(self, table: str, schema: str | None = None) -> list[dict[str, Any]]:
         target_schema = self._validate_identifier(schema or self.schema)
         safe_table = self._validate_identifier(table)
         result = self.execute(f"DESCRIBE {target_schema}.{safe_table}")
@@ -142,13 +138,11 @@ class TrinoClient:
         # (Trailing semicolon is harmless and commonly added by tools)
         semicolon_body = sql.rstrip().rstrip(";")
         if ";" in semicolon_body:
-            raise ValueError(
-                "Multi-statement queries are not allowed (semicolon detected)."
-            )
+            raise ValueError("Multi-statement queries are not allowed (semicolon detected).")
 
         # Strip single-line comments (-- ...) and multi-line comments before validating
-        stripped = re.sub(r'--[^\n]*', '', sql)
-        stripped = re.sub(r'/\*.*?\*/', '', stripped, flags=re.DOTALL)
+        stripped = re.sub(r"--[^\n]*", "", sql)
+        stripped = re.sub(r"/\*.*?\*/", "", stripped, flags=re.DOTALL)
         sql_upper = stripped.strip().upper()
 
         allowed_prefixes = ("SELECT", "WITH", "SHOW", "DESCRIBE", "EXPLAIN")

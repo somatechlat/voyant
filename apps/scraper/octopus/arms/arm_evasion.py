@@ -40,9 +40,7 @@ async def _execute_curl_cffi(request: OctopusRequest) -> OctopusResult:
                 timeout=request.timeout_seconds,
                 headers={
                     "User-Agent": settings.scraper_http_user_agent,
-                    "Accept-Language": (
-                        settings.scraper_http_accept_language
-                    ),
+                    "Accept-Language": (settings.scraper_http_accept_language),
                 },
             )
             html = resp.text
@@ -56,9 +54,7 @@ async def _execute_curl_cffi(request: OctopusRequest) -> OctopusResult:
             tenant_id=request.tenant_id,
             job_id=request.job_id,
             success=False,
-            duration_ms=int(
-                (datetime.now(UTC) - start).total_seconds() * 1000
-            ),
+            duration_ms=int((datetime.now(UTC) - start).total_seconds() * 1000),
             fetched_at=start.isoformat(),
             error_code="EVASION_CURL_ERROR",
             error_message=str(exc),
@@ -82,9 +78,7 @@ async def _execute_curl_cffi(request: OctopusRequest) -> OctopusResult:
     if request.extract_links:
         links = parser.get_all_links(html)
 
-    duration_ms = int(
-        (datetime.now(UTC) - start).total_seconds() * 1000
-    )
+    duration_ms = int((datetime.now(UTC) - start).total_seconds() * 1000)
     return OctopusResult(
         arm=request.arm.value,
         url=request.url,
@@ -133,9 +127,7 @@ async def _execute_camoufox(request: OctopusRequest) -> OctopusResult:
             tenant_id=request.tenant_id,
             job_id=request.job_id,
             success=False,
-            duration_ms=int(
-                (datetime.now(UTC) - start).total_seconds() * 1000
-            ),
+            duration_ms=int((datetime.now(UTC) - start).total_seconds() * 1000),
             fetched_at=start.isoformat(),
             error_code="EVASION_CAMOUFOX_ERROR",
             error_message=str(exc),
@@ -159,9 +151,7 @@ async def _execute_camoufox(request: OctopusRequest) -> OctopusResult:
     if request.extract_links:
         links = parser.get_all_links(html)
 
-    duration_ms = int(
-        (datetime.now(UTC) - start).total_seconds() * 1000
-    )
+    duration_ms = int((datetime.now(UTC) - start).total_seconds() * 1000)
     return OctopusResult(
         arm=request.arm.value,
         url=request.url,

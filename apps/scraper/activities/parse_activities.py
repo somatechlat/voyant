@@ -93,9 +93,7 @@ class ParseActivities:
             elements = sel(tree)
 
             if pseudo == "text":
-                return [
-                    el.text_content().strip() for el in elements if el.text_content()
-                ]
+                return [el.text_content().strip() for el in elements if el.text_content()]
             elif pseudo.startswith("attr("):
                 attr = pseudo[5:-1]
                 return [el.get(attr) for el in elements if el.get(attr)]
@@ -262,9 +260,7 @@ class ParseActivities:
 
             except Exception as e:
                 logger.warning(f"Transcription failed for {media_url}: {e}")
-                transcriptions.append(
-                    {"source": media_url, "error_code": "TRANSCRIPTION_FAILED"}
-                )
+                transcriptions.append({"source": media_url, "error_code": "TRANSCRIPTION_FAILED"})
 
         return {
             "transcriptions": transcriptions,

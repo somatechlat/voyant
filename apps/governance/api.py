@@ -240,14 +240,10 @@ async def search_metadata(request, query: str, types: str | None = None, limit: 
 async def get_lineage(request, urn: str, direction: str = "both", depth: int = 3):
     try:
         nodes = [
-            LineageNode(
-                urn=urn, name=urn.split(",")[1] if "," in urn else urn, type="dataset"
-            )
+            LineageNode(urn=urn, name=urn.split(",")[1] if "," in urn else urn, type="dataset")
         ]
         edges: list[LineageEdge] = []
-        directions = (
-            ["UPSTREAM", "DOWNSTREAM"] if direction == "both" else [direction.upper()]
-        )
+        directions = ["UPSTREAM", "DOWNSTREAM"] if direction == "both" else [direction.upper()]
 
         for dir_enum in directions:
             data = await _datahub_graphql(
@@ -343,9 +339,7 @@ def list_quota_tiers(request):
                     _policy_limit(policy, ResourceType.TOTAL_STORAGE_MB) / 1024.0, 3
                 ),
                 max_sources=int(_policy_limit(policy, ResourceType.WORKFLOWS_PER_DAY)),
-                max_concurrent_jobs=int(
-                    _policy_limit(policy, ResourceType.JOBS_CONCURRENT)
-                ),
+                max_concurrent_jobs=int(_policy_limit(policy, ResourceType.JOBS_CONCURRENT)),
             )
         )
     return tiers
@@ -367,8 +361,6 @@ def update_quota_tier(request, payload: SetTierRequest):
     try:
         tier = QuotaTier(payload.tier)
     except ValueError as exc:
-        raise HttpError(
-            400, get_message("ERR_INVALID_TIER", tier=payload.tier)
-        ) from exc
+        raise HttpError(400, get_message("ERR_INVALID_TIER", tier=payload.tier)) from exc
     set_tenant_tier(tenant_id, tier)
     return {"tenant_id": tenant_id, "tier": tier.value, "status": "updated"}

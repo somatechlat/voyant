@@ -13,7 +13,6 @@ from apps.scraper.deep_research.schemas import Citation, Finding, ResearchReport
 
 
 class ReportGenerator:
-
     def generate(
         self,
         query: str,
@@ -81,7 +80,7 @@ class ReportGenerator:
         """Compose a short executive summary paragraph."""
         validated = sum(1 for f in findings if f.cross_validated)
         parts = [
-            f"Deep research on \"{query}\" processed {urls_processed} sources",
+            f'Deep research on "{query}" processed {urls_processed} sources',
             f"({deduplicated} near-duplicates removed)",
             f"and produced {len(findings)} findings,",
             f"of which {validated} are cross-validated by multiple independent sources.",
@@ -119,9 +118,7 @@ class ReportGenerator:
 
         for idx, finding in enumerate(findings, start=1):
             status = "✅" if finding.cross_validated else "⚠️"
-            lines.append(
-                f"### {status} Finding {idx}: {finding.claim[:80]}..."
-            )
+            lines.append(f"### {status} Finding {idx}: {finding.claim[:80]}...")
             lines.append("")
             lines.append(f"**Confidence:** {finding.confidence_score:.0%}")
             lines.append("")
@@ -130,41 +127,42 @@ class ReportGenerator:
                 snippet = chunk.text.replace("\n", " ")[:200]
                 lines.append(f"- {snippet}... *[{chunk.source_url}]*")
             lines.append("")
-            lines.append(
-                f"**Supporting sources:** {len(finding.supporting_sources)}"
-            )
+            lines.append(f"**Supporting sources:** {len(finding.supporting_sources)}")
             lines.append("")
 
-        lines.extend([
-            "## Citations",
-            "",
-            "| # | Domain | Title | URL | Credibility |",
-            "|---|--------|-------|-----|-------------|",
-        ])
+        lines.extend(
+            [
+                "## Citations",
+                "",
+                "| # | Domain | Title | URL | Credibility |",
+                "|---|--------|-------|-----|-------------|",
+            ]
+        )
         for idx, cite in enumerate(citations, start=1):
             title = cite.title.replace("|", "\\|") or "—"
             lines.append(
-                f"| {idx} | {cite.domain} | {title} | {cite.url} | "
-                f"{cite.credibility_score:.0%} |"
+                f"| {idx} | {cite.domain} | {title} | {cite.url} | {cite.credibility_score:.0%} |"
             )
 
-        lines.extend([
-            "",
-            "## Methodology",
-            "",
-            "1. **Query Expansion** — deterministic keyword-driven sub-query generation.",
-            "2. **Multi-Source Search** — SearXNG, Brave Search, Google CSE.",
-            "3. **Content Fetch** — Octopus ARM-2 (dynamic) and ARM-3 (evasion).",
-            "4. **Extraction** — trafilatura / readability-lxml / newspaper3k / crawl4ai.",
-            "5. **Source Scoring** — static domain credibility DB + freshness heuristics.",
-            "6. **Deduplication** — MinHash/LSH on character n-grams.",
-            "7. **Synthesis** — TF-IDF sentence salience + keyword clustering.",
-            "8. **Recursion** — follow-up queries when depth > 1.",
-            "9. **Cross-Validation** — claims verified by >=2 independent sources.",
-            "10. **Report Generation** — deterministic Markdown templating.",
-            "",
-            f"*URLs processed: {urls_processed} | Deduplicated: {deduplicated}*",
-            "",
-        ])
+        lines.extend(
+            [
+                "",
+                "## Methodology",
+                "",
+                "1. **Query Expansion** — deterministic keyword-driven sub-query generation.",
+                "2. **Multi-Source Search** — SearXNG, Brave Search, Google CSE.",
+                "3. **Content Fetch** — Octopus ARM-2 (dynamic) and ARM-3 (evasion).",
+                "4. **Extraction** — trafilatura / readability-lxml / newspaper3k / crawl4ai.",
+                "5. **Source Scoring** — static domain credibility DB + freshness heuristics.",
+                "6. **Deduplication** — MinHash/LSH on character n-grams.",
+                "7. **Synthesis** — TF-IDF sentence salience + keyword clustering.",
+                "8. **Recursion** — follow-up queries when depth > 1.",
+                "9. **Cross-Validation** — claims verified by >=2 independent sources.",
+                "10. **Report Generation** — deterministic Markdown templating.",
+                "",
+                f"*URLs processed: {urls_processed} | Deduplicated: {deduplicated}*",
+                "",
+            ]
+        )
 
         return "\n".join(lines)

@@ -30,24 +30,17 @@ def _extract_metadata(html: str) -> dict[str, Any]:
     if title:
         metadata["title"] = title.strip()
 
-    description = (
-        sel.css('meta[name="description"]::attr(content)').get("")
-        or sel.css(
-            'meta[property="og:description"]::attr(content)'
-        ).get("")
-    )
+    description = sel.css('meta[name="description"]::attr(content)').get("") or sel.css(
+        'meta[property="og:description"]::attr(content)'
+    ).get("")
     if description:
         metadata["description"] = description.strip()
 
-    og_title = sel.css(
-        'meta[property="og:title"]::attr(content)'
-    ).get("")
+    og_title = sel.css('meta[property="og:title"]::attr(content)').get("")
     if og_title:
         metadata["og_title"] = og_title.strip()
 
-    og_image = sel.css(
-        'meta[property="og:image"]::attr(content)'
-    ).get("")
+    og_image = sel.css('meta[property="og:image"]::attr(content)').get("")
     if og_image:
         metadata["og_image"] = og_image.strip()
 
@@ -55,9 +48,7 @@ def _extract_metadata(html: str) -> dict[str, Any]:
     if canonical:
         metadata["canonical"] = canonical.strip()
 
-    schema_scripts = sel.css(
-        'script[type="application/ld+json"]::text'
-    ).getall()
+    schema_scripts = sel.css('script[type="application/ld+json"]::text').getall()
     schemas: list[dict[str, Any]] = []
     for script in schema_scripts:
         try:
@@ -128,9 +119,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
                 request.url,
                 headers={
                     "User-Agent": settings.scraper_http_user_agent,
-                    "Accept-Language": (
-                        settings.scraper_http_accept_language
-                    ),
+                    "Accept-Language": (settings.scraper_http_accept_language),
                 },
             )
             html = resp.text
@@ -144,26 +133,20 @@ async def execute(request: OctopusRequest) -> OctopusResult:
             tenant_id=request.tenant_id,
             job_id=request.job_id,
             success=False,
-            duration_ms=int(
-                (datetime.now(UTC) - start).total_seconds() * 1000
-            ),
+            duration_ms=int((datetime.now(UTC) - start).total_seconds() * 1000),
             fetched_at=start.isoformat(),
             error_code="FETCH_ERROR",
             error_message=str(exc),
         )
 
     extracted = _extract_fields(html, request)
-    metadata = (
-        _extract_metadata(html) if request.extract_metadata else {}
-    )
+    metadata = _extract_metadata(html) if request.extract_metadata else {}
     links: list[str] = []
     if request.extract_links:
         sel = Selector(text=html)
         links = sel.css("a::attr(href)").getall()
 
-    duration_ms = int(
-        (datetime.now(UTC) - start).total_seconds() * 1000
-    )
+    duration_ms = int((datetime.now(UTC) - start).total_seconds() * 1000)
     return OctopusResult(
         arm=request.arm.value,
         url=request.url,

@@ -63,9 +63,7 @@ class ScrapeWorkflow:
         settings = get_settings()
 
         if not urls:
-            raise ApplicationError(
-                "List of URLs is required for scraping.", non_retryable=True
-            )
+            raise ApplicationError("List of URLs is required for scraping.", non_retryable=True)
 
         pages_fetched = 0
         bytes_processed = 0
@@ -140,9 +138,7 @@ class ScrapeWorkflow:
                         },
                         start_to_close_timeout=timedelta(minutes=10),
                     )
-                    extract_result["transcriptions"] = media_result.get(
-                        "transcriptions", []
-                    )
+                    extract_result["transcriptions"] = media_result.get("transcriptions", [])
 
                 # 5. Store Artifact Activity: Persists the processed data/artifacts.
                 artifact = await workflow.execute_activity(

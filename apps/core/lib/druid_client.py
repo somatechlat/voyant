@@ -113,9 +113,7 @@ class DruidClient:
         datasources = []
         for name in names:
             try:
-                resp2 = self._get_client().get(
-                    f"/druid/v2/datasources/{name}"
-                )
+                resp2 = self._get_client().get(f"/druid/v2/datasources/{name}")
                 resp2.raise_for_status()
                 meta = resp2.json()
                 datasources.append(
@@ -136,9 +134,7 @@ class DruidClient:
         resp = self._get_client().get("/tables")
         resp.raise_for_status()
         tables = resp.json().get("tables", [])
-        return [
-            OLAPDataSource(name=t, engine="pinot") for t in tables
-        ]
+        return [OLAPDataSource(name=t, engine="pinot") for t in tables]
 
     def is_available(self) -> bool:
         """Check if Druid/Pinot is reachable."""

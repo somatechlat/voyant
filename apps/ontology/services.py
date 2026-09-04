@@ -123,7 +123,9 @@ class ObjectTypeService:
                 if prop["name"] in existing:
                     old = existing[prop["name"]]
                     # Type change on a required field is forbidden
-                    if old.required and old.property_type != prop.get("property_type", old.property_type):
+                    if old.required and old.property_type != prop.get(
+                        "property_type", old.property_type
+                    ):
                         raise ValidationError(
                             [
                                 {
@@ -362,7 +364,9 @@ class LinkTypeService:
 
     @staticmethod
     def list(tenant_id: str) -> QuerySet[LinkType]:
-        return LinkType.objects.filter(tenant_id=tenant_id, deleted_at__isnull=True).order_by("name")
+        return LinkType.objects.filter(tenant_id=tenant_id, deleted_at__isnull=True).order_by(
+            "name"
+        )
 
     @staticmethod
     def get(tenant_id: str, lt_id: str) -> LinkType:

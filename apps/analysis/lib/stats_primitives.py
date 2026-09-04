@@ -23,9 +23,7 @@ class RStatsPrimitives:
     def __init__(self, r_engine: REngine | None = None):
         self.r = r_engine or REngine()
 
-    def describe_column(
-        self, vector: list[float], col_name: str = "x"
-    ) -> dict[str, float]:
+    def describe_column(self, vector: list[float], col_name: str = "x") -> dict[str, float]:
         """
         Calculate descriptive statistics for a numeric vector.
         Includes: mean, median, sd, quartiles, skewness, kurtosis.
@@ -107,9 +105,7 @@ class RStatsPrimitives:
         except Exception as e:
             raise AnalysisError("VYNT-6021", f"Correlation Error: {e}")
 
-    def fit_distribution(
-        self, vector: list[float], dist: str = "normal"
-    ) -> dict[str, float]:
+    def fit_distribution(self, vector: list[float], dist: str = "normal") -> dict[str, float]:
         """
         Fit a distribution to data using MASS::fitdistr.
         """

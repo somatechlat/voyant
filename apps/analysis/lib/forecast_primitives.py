@@ -58,9 +58,7 @@ class ForecastPrimitives:
             forecast = m.predict(future)
 
             # Extract results
-            result_df = forecast[["ds", "yhat", "yhat_lower", "yhat_upper"]].tail(
-                periods
-            )
+            result_df = forecast[["ds", "yhat", "yhat_lower", "yhat_upper"]].tail(periods)
 
             return {
                 "method": "prophet",

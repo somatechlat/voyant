@@ -24,9 +24,7 @@ settings = get_settings()
 async def _fetch_image(url: str) -> bytes:
     """Fetch image bytes from a remote URL."""
     validate_url(url)
-    async with httpx.AsyncClient(
-        timeout=settings.scraper_default_timeout_seconds
-    ) as client:
+    async with httpx.AsyncClient(timeout=settings.scraper_default_timeout_seconds) as client:
         resp = await client.get(url)
         resp.raise_for_status()
         return resp.content
@@ -61,9 +59,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
             tenant_id=request.tenant_id,
             job_id=request.job_id,
             success=False,
-            duration_ms=int(
-                (datetime.now(UTC) - start).total_seconds() * 1000
-            ),
+            duration_ms=int((datetime.now(UTC) - start).total_seconds() * 1000),
             fetched_at=start.isoformat(),
             error_code="OCR_FETCH_ERROR",
             error_message=str(exc),
@@ -80,9 +76,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
             tenant_id=request.tenant_id,
             job_id=request.job_id,
             success=False,
-            duration_ms=int(
-                (datetime.now(UTC) - start).total_seconds() * 1000
-            ),
+            duration_ms=int((datetime.now(UTC) - start).total_seconds() * 1000),
             fetched_at=start.isoformat(),
             error_code="OCR_PROCESS_ERROR",
             error_message=str(exc),
@@ -96,9 +90,7 @@ async def execute(request: OctopusRequest) -> OctopusResult:
         if conf >= request.ocr_confidence_threshold:
             filtered_blocks.append(word)
 
-    duration_ms = int(
-        (datetime.now(UTC) - start).total_seconds() * 1000
-    )
+    duration_ms = int((datetime.now(UTC) - start).total_seconds() * 1000)
     return OctopusResult(
         arm=request.arm.value,
         url=request.url,

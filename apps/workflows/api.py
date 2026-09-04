@@ -265,9 +265,7 @@ def trigger_quality(request, payload: QualityRequest):
     except NamespaceViolationError as exc:
         raise HttpError(403, get_message("ERR_VALIDATION", error=str(exc))) from exc
 
-    policy_prompt = (
-        f"voyant quality source_id={payload.source_id} table={payload.table}"
-    )
+    policy_prompt = f"voyant quality source_id={payload.source_id} table={payload.table}"
     apply_policy("quality", policy_prompt, {"source_id": payload.source_id})
 
     job = _create_job(
@@ -328,7 +326,9 @@ def get_job(request, job_id: str):
     return _to_job_response(job)
 
 
-@jobs_router.post("/{job_id}/cancel", response=dict[str, str], auth=require_permission("write:jobs"))
+@jobs_router.post(
+    "/{job_id}/cancel", response=dict[str, str], auth=require_permission("write:jobs")
+)
 def cancel_job(request, job_id: str):
     tenant_id = get_tenant_id(request)
     job = Job.objects.filter(id=job_id, tenant_id=tenant_id).first()
@@ -338,10 +338,21 @@ def cancel_job(request, job_id: str):
     try:
         client = run_async(get_temporal_client)
         for prefix in (
-            "ingest", "profile", "quality", "analyze",
-            "capsule", "sandbox", "streaming", "scrape",
-            "research", "benchmark", "anomaly", "sentiment",
-            "forecast", "segment", "regression",
+            "ingest",
+            "profile",
+            "quality",
+            "analyze",
+            "capsule",
+            "sandbox",
+            "streaming",
+            "scrape",
+            "research",
+            "benchmark",
+            "anomaly",
+            "sentiment",
+            "forecast",
+            "segment",
+            "regression",
         ):
             try:
                 handle = client.get_workflow_handle(f"{prefix}-{job_id}")
@@ -360,12 +371,8 @@ def cancel_job(request, job_id: str):
 @artifacts_router.get("/{job_id}", response=dict[str, list[ArtifactInfo]])
 def list_artifacts(request, job_id: str):
     tenant_id = get_tenant_id(request)
-    apply_policy(
-        "artifact_list", f"voyant artifact list job_id={job_id}", {"job_id": job_id}
-    )
-    rows = Artifact.objects.filter(job_id=job_id, tenant_id=tenant_id).order_by(
-        "-created_at"
-    )
+    apply_policy("artifact_list", f"voyant artifact list job_id={job_id}", {"job_id": job_id})
+    rows = Artifact.objects.filter(job_id=job_id, tenant_id=tenant_id).order_by("-created_at")
     artifacts = [
         ArtifactInfo(
             artifact_id=row.artifact_id,
@@ -404,14 +411,10 @@ def download_artifact(request, job_id: str, artifact_type: str, format: str = "j
         return StreamingHttpResponse(
             io.BytesIO(data),
             content_type="application/octet-stream",
-            headers={
-                "Content-Disposition": f"attachment; filename={artifact_type}.{format}"
-            },
+            headers={"Content-Disposition": f"attachment; filename={artifact_type}.{format}"},
         )
     except Exception as exc:
-        raise HttpError(
-            404, get_message("ERR_ARTIFACT_DOWNLOAD", error=str(exc))
-        ) from exc
+        raise HttpError(404, get_message("ERR_ARTIFACT_DOWNLOAD", error=str(exc))) from exc
 
 
 PRESETS: dict[str, dict[str, Any]] = {
@@ -468,7 +471,9 @@ def get_preset(request, preset_name: str):
     )
 
 
-@presets_router.post("/{preset_name}/execute", response=dict[str, str], auth=require_permission("execute:presets"))
+@presets_router.post(
+    "/{preset_name}/execute", response=dict[str, str], auth=require_permission("execute:presets")
+)
 def execute_preset(request, preset_name: str, payload: dict[str, Any]):
     preset = PRESETS.get(preset_name)
     if not preset:
@@ -493,7 +498,9 @@ def execute_preset(request, preset_name: str, payload: dict[str, Any]):
     if not workflow_cls:
         job.status = "failed"
         job.save(update_fields=["status"])
-        raise HttpError(400, get_message("ERR_VALIDATION", error=f"No workflow for job_type={job_type}"))
+        raise HttpError(
+            400, get_message("ERR_VALIDATION", error=f"No workflow for job_type={job_type}")
+        )
 
     try:
         client = run_async(get_temporal_client)
@@ -558,9 +565,7 @@ def get_kpi_template_endpoint(request, template_name: str):
     response=dict[str, str],
     auth=require_permission("execute:presets"),
 )
-def render_kpi_template_endpoint(
-    request, template_name: str, payload: RenderKPIRequest
-):
+def render_kpi_template_endpoint(request, template_name: str, payload: RenderKPIRequest):
     try:
         return {"sql": render_kpi_template(template_name, payload.params)}
     except ValueError as exc:

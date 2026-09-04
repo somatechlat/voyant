@@ -177,7 +177,9 @@ def _start_scrape_workflow(
 # ============================================================================
 
 
-@scrape_router.post("/start", response={202: ScrapeJobSchema}, auth=require_permission("write:jobs"))
+@scrape_router.post(
+    "/start", response={202: ScrapeJobSchema}, auth=require_permission("write:jobs")
+)
 def start_scrape(request, payload: ScrapeStartSchema):
     """
     Start a new web scraping job.

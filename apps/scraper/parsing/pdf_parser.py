@@ -63,9 +63,7 @@ class PDFParser:
             # For robustness, pages will be updated by pdfplumber if fallback occurs.
             logger.info("PDF parsed successfully with Apache Tika.")
         except Exception as e:
-            logger.warning(
-                f"Apache Tika parsing failed: {e}. Falling back to pdfplumber."
-            )
+            logger.warning(f"Apache Tika parsing failed: {e}. Falling back to pdfplumber.")
             # Fallback to pdfplumber if Tika fails or is not available.
             plumber_result = self._parse_with_pdfplumber(pdf_path)
             result["text"] = plumber_result.get("text", "")

@@ -147,7 +147,9 @@ def validate_properties(
                     {
                         "field": prop_def.name,
                         "code": "invalid_type",
-                        "message": (f"'{prop_def.name}' expects {prop_def.property_type}, got {type(value).__name__}"),
+                        "message": (
+                            f"'{prop_def.name}' expects {prop_def.property_type}, got {type(value).__name__}"
+                        ),
                     }
                 )
                 continue

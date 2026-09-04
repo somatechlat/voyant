@@ -87,9 +87,7 @@ def substitute_parameters(
     def _resolve(value: Any) -> Any:
         if isinstance(value, str):
             try:
-                return _jinja_env.from_string(value).render(
-                    **parameters, steps=step_results
-                )
+                return _jinja_env.from_string(value).render(**parameters, steps=step_results)
             except Exception as exc:
                 logger.warning("Template substitution failed for '%s': %s", value, exc)
                 return value

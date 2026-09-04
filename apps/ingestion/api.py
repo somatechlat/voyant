@@ -35,9 +35,7 @@ class ConnectSourceRequest(Schema):
     """Request to provision an Airbyte source connector."""
 
     source_id: str = Field(..., description="Voyant source ID from discovery")
-    source_definition_id: str = Field(
-        ..., description="Airbyte source definition (connector) ID"
-    )
+    source_definition_id: str = Field(..., description="Airbyte source definition (connector) ID")
     connection_config: dict[str, Any] = Field(
         ..., description="Source-specific configuration (host, port, auth, etc.)"
     )
@@ -63,13 +61,9 @@ class ProvisionDestinationRequest(Schema):
     """Request to provision an Airbyte destination connector."""
 
     workspace_id: str = Field("default", description="Airbyte workspace / tenant ID")
-    destination_definition_id: str = Field(
-        ..., description="Airbyte destination definition ID"
-    )
+    destination_definition_id: str = Field(..., description="Airbyte destination definition ID")
     name: str = Field(..., description="Human-readable destination name")
-    connection_config: dict[str, Any] = Field(
-        ..., description="Destination-specific configuration"
-    )
+    connection_config: dict[str, Any] = Field(..., description="Destination-specific configuration")
 
 
 class ProvisionDestinationResponse(Schema):
@@ -107,9 +101,7 @@ def connect_source(request, payload: ConnectSourceRequest):
     # Validate source exists and belongs to this tenant
     source = Source.objects.filter(id=payload.source_id).first()
     if not source:
-        raise HttpError(
-            404, get_message("ERR_SOURCE_NOT_FOUND", source_id=payload.source_id)
-        )
+        raise HttpError(404, get_message("ERR_SOURCE_NOT_FOUND", source_id=payload.source_id))
     if source.tenant_id != tenant_id:
         raise HttpError(403, get_message("ERR_ACCESS_DENIED"))
 
@@ -169,9 +161,7 @@ def connect_source(request, payload: ConnectSourceRequest):
         logger.exception(f"Failed to connect source {payload.source_id}")
         source.status = "error"
         source.save(update_fields=["status"])
-        raise HttpError(
-            500, get_message("ERR_SYSTEM", error=str(exc))
-        ) from exc
+        raise HttpError(500, get_message("ERR_SYSTEM", error=str(exc))) from exc
 
 
 @ingestion_router.post(
@@ -219,6 +209,4 @@ def provision_destination(request, payload: ProvisionDestinationRequest):
 
     except Exception as exc:
         logger.exception("Failed to provision destination")
-        raise HttpError(
-            500, get_message("ERR_SYSTEM", error=str(exc))
-        ) from exc
+        raise HttpError(500, get_message("ERR_SYSTEM", error=str(exc))) from exc

@@ -7,7 +7,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = []
@@ -70,9 +69,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "name",
-                    models.CharField(
-                        help_text="Human-readable name for the node", max_length=255
-                    ),
+                    models.CharField(help_text="Human-readable name for the node", max_length=255),
                 ),
                 (
                     "node_type",
@@ -116,9 +113,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "metadata",
-                    models.JSONField(
-                        default=dict, help_text="Additional metadata about the node"
-                    ),
+                    models.JSONField(default=dict, help_text="Additional metadata about the node"),
                 ),
             ],
             options={
@@ -182,9 +177,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "description",
-                    models.TextField(
-                        blank=True, help_text="Detailed description of the policy"
-                    ),
+                    models.TextField(blank=True, help_text="Detailed description of the policy"),
                 ),
                 (
                     "policy_type",
@@ -274,39 +267,27 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "name",
-                    models.CharField(
-                        help_text="Display name for the tier", max_length=128
-                    ),
+                    models.CharField(help_text="Display name for the tier", max_length=128),
                 ),
                 (
                     "max_jobs_per_day",
-                    models.IntegerField(
-                        default=100, help_text="Maximum number of jobs per day"
-                    ),
+                    models.IntegerField(default=100, help_text="Maximum number of jobs per day"),
                 ),
                 (
                     "max_artifacts_gb",
-                    models.FloatField(
-                        default=10.0, help_text="Maximum artifact storage in GB"
-                    ),
+                    models.FloatField(default=10.0, help_text="Maximum artifact storage in GB"),
                 ),
                 (
                     "max_sources",
-                    models.IntegerField(
-                        default=10, help_text="Maximum number of data sources"
-                    ),
+                    models.IntegerField(default=10, help_text="Maximum number of data sources"),
                 ),
                 (
                     "max_concurrent_jobs",
-                    models.IntegerField(
-                        default=5, help_text="Maximum concurrent running jobs"
-                    ),
+                    models.IntegerField(default=5, help_text="Maximum concurrent running jobs"),
                 ),
                 (
                     "metadata",
-                    models.JSONField(
-                        default=dict, help_text="Additional tier metadata"
-                    ),
+                    models.JSONField(default=dict, help_text="Additional tier metadata"),
                 ),
                 (
                     "created_at",
@@ -377,9 +358,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "jobs_today",
-                    models.IntegerField(
-                        default=0, help_text="Number of jobs executed today"
-                    ),
+                    models.IntegerField(default=0, help_text="Number of jobs executed today"),
                 ),
                 (
                     "artifacts_gb",
@@ -389,9 +368,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "sources_count",
-                    models.IntegerField(
-                        default=0, help_text="Current number of data sources"
-                    ),
+                    models.IntegerField(default=0, help_text="Current number of data sources"),
                 ),
                 (
                     "concurrent_jobs",
@@ -469,9 +446,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "description",
-                    models.TextField(
-                        blank=True, help_text="Detailed description of the contract"
-                    ),
+                    models.TextField(blank=True, help_text="Detailed description of the contract"),
                 ),
                 (
                     "dataset_urn",
@@ -542,9 +517,7 @@ class Migration(migrations.Migration):
                         fields=["tenant_id", "status", "-created_at"],
                         name="voyant_data_tenant__4bbef6_idx",
                     ),
-                    models.Index(
-                        fields=["dataset_urn"], name="voyant_data_dataset_b2e6ee_idx"
-                    ),
+                    models.Index(fields=["dataset_urn"], name="voyant_data_dataset_b2e6ee_idx"),
                 ],
             },
         ),
@@ -568,9 +541,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="lineagenode",
-            index=models.Index(
-                fields=["platform"], name="voyant_line_platfor_679536_idx"
-            ),
+            index=models.Index(fields=["platform"], name="voyant_line_platfor_679536_idx"),
         ),
         migrations.AddIndex(
             model_name="policy",
@@ -603,9 +574,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="tenantquota",
-            index=models.Index(
-                fields=["tenant_id"], name="voyant_tena_tenant__7af0e7_idx"
-            ),
+            index=models.Index(fields=["tenant_id"], name="voyant_tena_tenant__7af0e7_idx"),
         ),
         migrations.AddConstraint(
             model_name="tenantquota",

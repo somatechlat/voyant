@@ -15,7 +15,6 @@ logger = logging.getLogger(__name__)
 
 
 class ProfileActivities:
-
     def __init__(self):
         self.settings = get_settings()
 
@@ -45,9 +44,7 @@ class ProfileActivities:
                 # A buffer (1.5x) is added to ensure enough data for Python-side adaptive sampling.
                 percentage = (requested_sample_size / total_rows) * 100 * 1.5
                 query = f"SELECT * FROM {table_name} USING SAMPLE {percentage:.2f}%"
-                activity.logger.info(
-                    f"Applying SQL sampling to DuckDB: {percentage:.2f}%"
-                )
+                activity.logger.info(f"Applying SQL sampling to DuckDB: {percentage:.2f}%")
             else:
                 activity.logger.info(
                     f"Fetching full dataset (total rows: {total_rows}) as it's within limits."

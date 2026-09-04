@@ -433,9 +433,7 @@ class TestQuotaEndpoints:
     @patch("apps.governance.api.get_tenant_id")
     @patch("apps.governance.api.get_usage_stats")
     @patch("apps.governance.api.get_quota_manager")
-    def test_get_quota_usage(
-        self, mock_get_manager, mock_get_usage, mock_get_tenant_id
-    ):
+    def test_get_quota_usage(self, mock_get_manager, mock_get_usage, mock_get_tenant_id):
         from apps.governance.api import get_quota_usage
 
         mock_get_tenant_id.return_value = "tenant_1"

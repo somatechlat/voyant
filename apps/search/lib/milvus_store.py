@@ -74,6 +74,7 @@ _SCHEMA = CollectionSchema(
 # Resilient Milvus client
 # ---------------------------------------------------------------------------
 
+
 class _MilvusConnection:
     """Lazy, resilient Milvus connection manager."""
 
@@ -108,9 +109,7 @@ class _MilvusConnection:
         cfg = self._settings()
         now = time.time()
         if now - self._last_fail < self._backoff:
-            raise MilvusException(
-                message=f"Milvus connection cooling down ({self._backoff:.1f}s)"
-            )
+            raise MilvusException(message=f"Milvus connection cooling down ({self._backoff:.1f}s)")
 
         try:
             self._client = MilvusClient(
@@ -171,6 +170,7 @@ _CONN = _MilvusConnection()
 # ---------------------------------------------------------------------------
 # Public VectorStore
 # ---------------------------------------------------------------------------
+
 
 class VectorStore:
     """

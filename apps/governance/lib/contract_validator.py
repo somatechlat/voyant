@@ -68,7 +68,9 @@ class QualityRuleValidator(ABC):
     """Abstract base for quality rule validation strategies."""
 
     @abstractmethod
-    def validate_quality_rules(self, data: list[dict[str, Any]], rules: list[dict]) -> ValidationResult:
+    def validate_quality_rules(
+        self, data: list[dict[str, Any]], rules: list[dict]
+    ) -> ValidationResult:
         """Validate data against quality rules."""
         pass
 
@@ -80,7 +82,9 @@ class JSONSchemaValidator(SchemaValidator):
     See: docs/PHASE_A_STATUS.md
     """
 
-    def validate_schema(self, data: dict[str, Any], schema: dict) -> ValidationResult:  # STUB: needs implementation
+    def validate_schema(
+        self, data: dict[str, Any], schema: dict
+    ) -> ValidationResult:  # STUB: needs implementation
         """Validate data against JSON schema.
 
         Args:
@@ -109,7 +113,9 @@ class DataQualityRuleValidator(QualityRuleValidator):
     See: docs/PHASE_A_STATUS.md
     """
 
-    def validate_quality_rules(self, data: list[dict[str, Any]], rules: list[dict]) -> ValidationResult:  # STUB: needs implementation
+    def validate_quality_rules(
+        self, data: list[dict[str, Any]], rules: list[dict]
+    ) -> ValidationResult:  # STUB: needs implementation
         """Validate data against quality rules.
 
         Args:
@@ -157,9 +163,13 @@ class DataContractValidator:
             quality_validator: Custom quality validator (default: DataQualityRuleValidator).
         """
         self.schema_validator: SchemaValidator = schema_validator or JSONSchemaValidator()
-        self.quality_validator: QualityRuleValidator = quality_validator or DataQualityRuleValidator()
+        self.quality_validator: QualityRuleValidator = (
+            quality_validator or DataQualityRuleValidator()
+        )
 
-    def validate(self, data: list[dict[str, Any]], contract: Any) -> ValidationResult:  # STUB: needs implementation
+    def validate(
+        self, data: list[dict[str, Any]], contract: Any
+    ) -> ValidationResult:  # STUB: needs implementation
         """Validate data against all contract rules.
 
         Args:

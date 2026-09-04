@@ -36,9 +36,7 @@ def discover_capsules(
 
     tenant_filter = {"tenant_id": tenant_id, "realm": realm}
     if include_public:
-        q = q.filter(
-            models.Q(**tenant_filter) | models.Q(tenant_id="public", realm=realm)
-        )
+        q = q.filter(models.Q(**tenant_filter) | models.Q(tenant_id="public", realm=realm))
     else:
         q = q.filter(**tenant_filter)
 

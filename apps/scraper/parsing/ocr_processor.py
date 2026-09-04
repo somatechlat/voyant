@@ -56,9 +56,7 @@ class OCRProcessor:
         image = self._preprocess(image)
 
         # Extract text using Tesseract.
-        text = pytesseract.image_to_string(
-            image, lang=self.language, config=self.config
-        )
+        text = pytesseract.image_to_string(image, lang=self.language, config=self.config)
 
         # Calculate an average confidence score for the extraction.
         confidence = self._get_confidence(image)
@@ -118,9 +116,7 @@ class OCRProcessor:
 
         return {
             "words": words,
-            "full_text": " ".join(
-                filter(None, data["text"])
-            ).strip(),  # Join non-empty words.
+            "full_text": " ".join(filter(None, data["text"])).strip(),  # Join non-empty words.
             "word_count": len(words),
         }
 

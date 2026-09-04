@@ -49,9 +49,7 @@ class TemplateExecutionRequest(BaseModel):
     tenant_id: str = Field(
         ..., description="CRITICAL: The isolated tenant context executing the template."
     )
-    job_name: str | None = Field(
-        None, description="Optional human-readable alias for tracking."
-    )
+    job_name: str | None = Field(None, description="Optional human-readable alias for tracking.")
 
     class Config:
         extra = "forbid"  # Security: No undeclared fields permitted.

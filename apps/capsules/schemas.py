@@ -92,7 +92,9 @@ class CapsuleBody(BaseModel):
     config: dict[str, Any] = Field(default_factory=dict)
     execution_graph: list[ExecutionStep] = Field(default_factory=list)
     parameters: dict[str, ParameterSchema] = Field(default_factory=dict)
-    rbac: CapsuleRBAC = Field(default_factory=lambda: CapsuleRBAC(required_permission="execute:research"))
+    rbac: CapsuleRBAC = Field(
+        default_factory=lambda: CapsuleRBAC(required_permission="execute:research")
+    )
     output_formats: list[str] = Field(default_factory=lambda: ["pdf", "markdown"])
     triggers: list[dict[str, Any]] = Field(default_factory=list)
 

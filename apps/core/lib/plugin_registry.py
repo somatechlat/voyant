@@ -34,7 +34,6 @@ logger = logging.getLogger(__name__)
 
 
 class PluginCategory(StrEnum):
-
     VISUALIZATION = "visualization"
     REPORT = "report"
     DATA_QUALITY = "data_quality"
@@ -57,20 +56,17 @@ class PluginMetadata:
 
 
 class VoyantPlugin(abc.ABC):
-
     def get_name(self) -> str:
         return self.__class__.__name__
 
 
 class GeneratorPlugin(VoyantPlugin):
-
     @abc.abstractmethod
     def generate(self, context: dict[str, Any]) -> dict[str, Any]:
         pass
 
 
 class AnalyzerPlugin(VoyantPlugin):
-
     @abc.abstractmethod
     def analyze(self, data: Any, context: dict[str, Any]) -> dict[str, Any]:
         pass
@@ -83,9 +79,7 @@ class PluginRegistry:
 
     def __init__(self):
         if PluginRegistry._instance is not None:
-            raise RuntimeError(
-                "PluginRegistry is a singleton and should not be re-instantiated."
-            )
+            raise RuntimeError("PluginRegistry is a singleton and should not be re-instantiated.")
         self._plugins: dict[str, type[VoyantPlugin]] = {}
         self._metadata: dict[str, PluginMetadata] = {}
         self._instances: dict[str, VoyantPlugin] = {}

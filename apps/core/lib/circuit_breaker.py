@@ -16,7 +16,6 @@ logger = logging.getLogger(__name__)
 
 
 class CircuitState(StrEnum):
-
     CLOSED = "closed"
     OPEN = "open"
     HALF_OPEN = "half_open"
@@ -187,12 +186,8 @@ class CircuitBreaker:
         old_state = self._state.state
         if old_state != new_state:
             self._state.state = new_state
-            self._state_transitions.append(
-                (old_state.value, new_state.value, time.time())
-            )
-            logger.warning(
-                f"Circuit breaker '{self.name}': {old_state.value} → {new_state.value}"
-            )
+            self._state_transitions.append((old_state.value, new_state.value, time.time()))
+            logger.warning(f"Circuit breaker '{self.name}': {old_state.value} → {new_state.value}")
 
     def reset(self):
         """
@@ -204,9 +199,7 @@ class CircuitBreaker:
         with self._lock:
             old_state = self._state.state
             self._state = CircuitBreakerState()
-            logger.info(
-                f"Circuit breaker '{self.name}' manually reset from {old_state.value}"
-            )
+            logger.info(f"Circuit breaker '{self.name}' manually reset from {old_state.value}")
 
     def get_state(self) -> CircuitState:
         """Get the current, real-time state of the circuit breaker."""
@@ -244,9 +237,7 @@ _circuit_breakers: dict[str, CircuitBreaker] = {}
 _registry_lock = threading.Lock()
 
 
-def get_circuit_breaker(
-    name: str, config: CircuitBreakerConfig | None = None
-) -> CircuitBreaker:
+def get_circuit_breaker(name: str, config: CircuitBreakerConfig | None = None) -> CircuitBreaker:
     """
     Factory function to get or create a named CircuitBreaker instance.
 

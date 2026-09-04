@@ -1,6 +1,5 @@
 """Tests for data contract validation module."""
 
-
 from apps.governance.lib.contract_validator import (
     DataContractValidator,
     DataQualityRuleValidator,

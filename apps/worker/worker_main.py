@@ -83,9 +83,7 @@ def _setup_django() -> None:
 
         django.setup()
     except Exception:
-        logger.exception(
-            "Failed to initialize Django. ORM-backed activities will fail."
-        )
+        logger.exception("Failed to initialize Django. ORM-backed activities will fail.")
 
 
 async def run_worker():
@@ -235,8 +233,7 @@ async def run_worker():
     cpu_count = os.cpu_count() or 2
     max_workers = (
         settings.temporal_activity_max_workers
-        if settings.temporal_activity_max_workers
-        and settings.temporal_activity_max_workers > 0
+        if settings.temporal_activity_max_workers and settings.temporal_activity_max_workers > 0
         else min(32, cpu_count * 5)
     )
     activity_executor = ThreadPoolExecutor(max_workers=max_workers)

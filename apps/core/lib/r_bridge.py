@@ -12,7 +12,6 @@ logger = logging.getLogger(__name__)
 
 
 class REngine:
-
     def __init__(self):
         self.settings = get_settings()
         self.host = self.settings.r_engine_host

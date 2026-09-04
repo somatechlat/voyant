@@ -169,9 +169,7 @@ class CapsuleInstallation(TenantModel, TimeStampedModel):
     """Records which capsules are installed by which tenant."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    capsule = models.ForeignKey(
-        Capsule, on_delete=models.CASCADE, related_name="installations"
-    )
+    capsule = models.ForeignKey(Capsule, on_delete=models.CASCADE, related_name="installations")
     installed_by = models.CharField(max_length=255, blank=True)
     is_enabled = models.BooleanField(default=True, db_index=True)
     parameter_overrides = models.JSONField(default=dict, blank=True)
@@ -202,9 +200,7 @@ class CapsuleInstance(TenantModel, TimeStampedModel):
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    capsule = models.ForeignKey(
-        Capsule, on_delete=models.CASCADE, related_name="instances"
-    )
+    capsule = models.ForeignKey(Capsule, on_delete=models.CASCADE, related_name="instances")
     installation = models.ForeignKey(
         CapsuleInstallation,
         on_delete=models.SET_NULL,

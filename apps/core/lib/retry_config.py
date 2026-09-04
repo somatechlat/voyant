@@ -74,9 +74,7 @@ NO_RETRY = RetryPolicy(maximum_attempts=1)
 TIMEOUTS = {
     # Statistical Activities (R-Engine calls)
     "stats_short": timedelta(minutes=5),  # Simple stats: mean, median, correlation
-    "stats_long": timedelta(
-        minutes=10
-    ),  # Complex stats: market share, hypothesis tests
+    "stats_long": timedelta(minutes=10),  # Complex stats: market share, hypothesis tests
     # Machine Learning Activities
     "ml_clustering": timedelta(minutes=10),  # K-means clustering
     "ml_training": timedelta(minutes=15),  # Model training (regression, classification)
@@ -138,8 +136,7 @@ def get_retry_policy(activity_type: str) -> RetryPolicy:
 
     if activity_type not in policies:
         raise ValueError(
-            f"Unknown activity_type: {activity_type}. "
-            f"Must be one of: {list(policies.keys())}"
+            f"Unknown activity_type: {activity_type}. Must be one of: {list(policies.keys())}"
         )
 
     return policies[activity_type]
@@ -160,8 +157,7 @@ def get_timeout(timeout_key: str) -> timedelta:
     """
     if timeout_key not in TIMEOUTS:
         raise ValueError(
-            f"Unknown timeout_key: {timeout_key}. "
-            f"Must be one of: {list(TIMEOUTS.keys())}"
+            f"Unknown timeout_key: {timeout_key}. Must be one of: {list(TIMEOUTS.keys())}"
         )
 
     return TIMEOUTS[timeout_key]

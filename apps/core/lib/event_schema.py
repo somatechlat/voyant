@@ -355,9 +355,7 @@ def validate_event(
     )
 
 
-def _check_type(
-    value: Any, expected_type: FieldType, enum_values: list[str] | None
-) -> bool:
+def _check_type(value: Any, expected_type: FieldType, enum_values: list[str] | None) -> bool:
     """
     Internal helper to check if a value matches the expected FieldType.
 
@@ -375,12 +373,9 @@ def _check_type(
     type_checks = {
         FieldType.STRING: lambda v: isinstance(v, str),
         FieldType.INTEGER: lambda v: isinstance(v, int) and not isinstance(v, bool),
-        FieldType.FLOAT: lambda v: isinstance(v, (int, float))
-        and not isinstance(v, bool),
+        FieldType.FLOAT: lambda v: isinstance(v, (int, float)) and not isinstance(v, bool),
         FieldType.BOOLEAN: lambda v: isinstance(v, bool),
-        FieldType.DATETIME: lambda v: isinstance(
-            v, str
-        ),  # Simplified check for ISO string
+        FieldType.DATETIME: lambda v: isinstance(v, str),  # Simplified check for ISO string
         FieldType.ARRAY: lambda v: isinstance(v, list),
         FieldType.OBJECT: lambda v: isinstance(v, dict),
     }
@@ -413,12 +408,8 @@ def _register_canonical_schemas():
             version="1.0.0",
             description="Emitted when a job begins execution.",
             fields=[
-                FieldSpec(
-                    "job_id", FieldType.STRING, description="Unique job identifier"
-                ),
-                FieldSpec(
-                    "tenant_id", FieldType.STRING, description="Tenant identifier"
-                ),
+                FieldSpec("job_id", FieldType.STRING, description="Unique job identifier"),
+                FieldSpec("tenant_id", FieldType.STRING, description="Tenant identifier"),
                 FieldSpec(
                     "job_type",
                     FieldType.STRING,

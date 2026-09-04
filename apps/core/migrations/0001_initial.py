@@ -6,7 +6,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = []
@@ -175,9 +174,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "details",
-                    models.JSONField(
-                        default=dict, help_text="Additional details about the action"
-                    ),
+                    models.JSONField(default=dict, help_text="Additional details about the action"),
                 ),
                 (
                     "ip_address",
@@ -187,9 +184,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "user_agent",
-                    models.TextField(
-                        blank=True, help_text="User agent string of the client"
-                    ),
+                    models.TextField(blank=True, help_text="User agent string of the client"),
                 ),
             ],
             options={

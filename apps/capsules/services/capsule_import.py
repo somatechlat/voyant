@@ -79,9 +79,7 @@ def import_capsule(
                 version=new_version,
                 tenant_id=tenant_id,
             ).exists():
-                new_version = (
-                    f"{new_version}.{datetime.now(UTC).strftime('%Y%m%d%H%M%S')}"
-                )
+                new_version = f"{new_version}.{datetime.now(UTC).strftime('%Y%m%d%H%M%S')}"
                 warnings.append(f"Version conflict resolved: using {new_version}")
 
             soul = capsule_data.get("soul", {})
@@ -145,9 +143,7 @@ def import_tenant_capsules(
     }
 
     if not verify_export_checksum(export_data):
-        result["failed_imports"].append(
-            {"error": "Tenant export checksum verification failed"}
-        )
+        result["failed_imports"].append({"error": "Tenant export checksum verification failed"})
         result["failure_count"] = 1
         return result
 

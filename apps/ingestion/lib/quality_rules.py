@@ -57,9 +57,7 @@ class NullCheck(QualityRule):
 
     def check(self, df: pd.DataFrame) -> ValidationResult:
         if self.column not in df.columns:
-            return ValidationResult(
-                self.get_name(), False, {"error": "Column not found"}
-            )
+            return ValidationResult(self.get_name(), False, {"error": "Column not found"})
 
         total = len(df)
         if total == 0:
@@ -96,17 +94,13 @@ class RangeCheck(QualityRule):
 
     def check(self, df: pd.DataFrame) -> ValidationResult:
         if self.column not in df.columns:
-            return ValidationResult(
-                self.get_name(), False, {"error": "Column not found"}
-            )
+            return ValidationResult(self.get_name(), False, {"error": "Column not found"})
 
         # Filter for non-null numeric values
         numeric_col = cast(pd.Series, pd.to_numeric(df[self.column], errors="coerce"))
         series = numeric_col.dropna()
         if series.empty:
-            return ValidationResult(
-                self.get_name(), True, {"reason": "No numeric values"}
-            )
+            return ValidationResult(self.get_name(), True, {"reason": "No numeric values"})
 
         failures = 0
         if self.min_val is not None:
@@ -134,9 +128,7 @@ class UniqueCheck(QualityRule):
 
     def check(self, df: pd.DataFrame) -> ValidationResult:
         if self.column not in df.columns:
-            return ValidationResult(
-                self.get_name(), False, {"error": "Column not found"}
-            )
+            return ValidationResult(self.get_name(), False, {"error": "Column not found"})
 
         total = len(df)
         unique = df[self.column].nunique()
@@ -155,7 +147,6 @@ class UniqueCheck(QualityRule):
 
 
 class QualityEngine:
-
     def __init__(self, rules: list[QualityRule]):
         self.rules = rules
 

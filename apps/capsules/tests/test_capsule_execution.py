@@ -175,9 +175,7 @@ class TestSubstituteParameters:
 
     def test_step_results_access(self):
         template = {"output": "Result: {{steps.step1.value}}"}
-        result = substitute_parameters(
-            template, {}, step_results={"step1": {"value": 42}}
-        )
+        result = substitute_parameters(template, {}, step_results={"step1": {"value": 42}})
         assert result["output"] == "Result: 42"
 
     def test_invalid_template_returns_original(self):

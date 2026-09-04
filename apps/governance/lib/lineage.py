@@ -17,7 +17,6 @@ logger = logging.getLogger(__name__)
 
 
 class NodeType(StrEnum):
-
     SOURCE = "source"  # External data source
     TABLE = "table"  # Ingested table
     COLUMN = "column"  # Column within a table
@@ -28,7 +27,6 @@ class NodeType(StrEnum):
 
 
 class EdgeType(StrEnum):
-
     DERIVES_FROM = "derives_from"  # Downstream derives from upstream
     PRODUCES = "produces"  # Job produces artifact
     VALIDATES = "validates"  # Contract validates data
@@ -37,7 +35,6 @@ class EdgeType(StrEnum):
 
 @dataclass
 class LineageNode:
-
     node_id: str  # Unique ID (e.g., "source:orders", "artifact:abc123")
     node_type: NodeType
     name: str
@@ -63,7 +60,6 @@ class LineageNode:
 
 @dataclass
 class LineageEdge:
-
     source_id: str  # Upstream node
     target_id: str  # Downstream node
     edge_type: EdgeType
@@ -99,9 +95,7 @@ class LineageGraph:
         self._nodes: dict[str, LineageNode] = {}
         self._edges: list[LineageEdge] = []
         self._upstream: dict[str, set[str]] = defaultdict(set)  # node -> upstream nodes
-        self._downstream: dict[str, set[str]] = defaultdict(
-            set
-        )  # node -> downstream nodes
+        self._downstream: dict[str, set[str]] = defaultdict(set)  # node -> downstream nodes
 
     def add_node(
         self,
@@ -214,9 +208,7 @@ class LineageGraph:
         return list(result)
 
     def get_edges_for_node(self, node_id: str) -> list[LineageEdge]:
-        return [
-            e for e in self._edges if e.source_id == node_id or e.target_id == node_id
-        ]
+        return [e for e in self._edges if e.source_id == node_id or e.target_id == node_id]
 
     def get_impact_analysis(
         self,
@@ -260,11 +252,7 @@ class LineageGraph:
             nodes = [n for n in nodes if n.tenant_id == tenant_id]
 
         node_ids = {n.node_id for n in nodes}
-        edges = [
-            e
-            for e in self._edges
-            if e.source_id in node_ids and e.target_id in node_ids
-        ]
+        edges = [e for e in self._edges if e.source_id in node_ids and e.target_id in node_ids]
 
         return {
             "nodes": [
@@ -329,9 +317,7 @@ class LineageGraph:
             self._downstream.pop(node_id, None)
 
         self._edges = [
-            e
-            for e in self._edges
-            if e.source_id not in node_ids and e.target_id not in node_ids
+            e for e in self._edges if e.source_id not in node_ids and e.target_id not in node_ids
         ]
 
         return len(node_ids)

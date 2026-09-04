@@ -54,9 +54,7 @@ class AnomalyDetector(AnalyzerPlugin):
             - visualization: Plotly-ready JSON
         """
         if not SKLEARN_AVAILABLE:
-            raise AnalysisError(
-                "VYNT-ML-001", "scikit-learn is required for anomaly detection"
-            )
+            raise AnalysisError("VYNT-ML-001", "scikit-learn is required for anomaly detection")
 
         # 1. Data Prep
         df = self._to_dataframe(data)
@@ -124,9 +122,7 @@ class AnomalyDetector(AnalyzerPlugin):
             return pd.DataFrame(data)
         raise AnalysisError("VYNT-DATA-002", f"Unsupported data type: {type(data)}")
 
-    def _generate_plot_spec(
-        self, df: pd.DataFrame, features: list[str]
-    ) -> dict[str, Any]:
+    def _generate_plot_spec(self, df: pd.DataFrame, features: list[str]) -> dict[str, Any]:
         """Generate a Scatter plot metadata for outliers."""
         # Simple scatter of first 2 features (or Index vs Feature if 1 dim)
         if len(features) >= 2:

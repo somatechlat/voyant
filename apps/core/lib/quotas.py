@@ -137,9 +137,7 @@ def _reset_daily_if_needed(usage: TenantUsage) -> None:
 def set_tenant_tier(tenant_id: str, tier: str) -> None:
     """Set the quota tier for a tenant."""
     if tier not in QUOTA_TIERS:
-        raise ValueError(
-            f"Unknown tier: {tier}. Valid tiers: {list(QUOTA_TIERS.keys())}"
-        )
+        raise ValueError(f"Unknown tier: {tier}. Valid tiers: {list(QUOTA_TIERS.keys())}")
 
     _tenant_tiers[tenant_id] = tier
     if tenant_id in _usage_store:
@@ -273,9 +271,7 @@ def record_artifact_size(tenant_id: str, size_bytes: int) -> None:
     """Record artifact storage usage."""
     usage = _get_usage(tenant_id)
     usage.artifacts_bytes += size_bytes
-    logger.debug(
-        f"Tenant {tenant_id}: artifact size updated ({usage.artifacts_bytes} bytes)"
-    )
+    logger.debug(f"Tenant {tenant_id}: artifact size updated ({usage.artifacts_bytes} bytes)")
 
 
 def record_source_added(tenant_id: str) -> bool:

@@ -77,10 +77,7 @@ class AtlasClient:
             qualified_name=attrs.get("qualifiedName", ""),
             name=attrs.get("name", ""),
             attributes=attrs,
-            classifications=[
-                c.get("typeName", "")
-                for c in entity_data.get("classifications", [])
-            ],
+            classifications=[c.get("typeName", "") for c in entity_data.get("classifications", [])],
             status=entity_data.get("status", "ACTIVE"),
         )
 
@@ -148,9 +145,7 @@ class AtlasClient:
             downstream=_parse_entities(data.get("downstream", {}).get("nodes", [])),
         )
 
-    def add_classification(
-        self, guid: str, classification_type: str
-    ) -> None:
+    def add_classification(self, guid: str, classification_type: str) -> None:
         """Add a classification (tag) to an entity."""
         resp = self._get_client().post(
             f"/api/atlas/v2/entity/guid/{guid}/classifications",
