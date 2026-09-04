@@ -230,18 +230,17 @@ class TestForecastTimeSeries:
         assert len(result["predictions"]) == 7
 
     def test_forecast_linear(self, ops, env):
-        """Linear forecast returns predictions.
-
-        Note: The 'linear' method currently has a bug in ForecastResult.to_dict()
-        where stats contains a non-numeric value that fails round(). This test
-        documents the known issue.
-        """
+        """Linear forecast returns predictions with correct stats handling."""
         values = [float(100 + i * 3) for i in range(30)]
-        with pytest.raises(ApplicationError, match="Forecasting failed"):
-            env.run(
-                ops.forecast_time_series,
-                {"values": values, "periods": 5, "method": "linear"},
-            )
+        result = env.run(
+            ops.forecast_time_series,
+            {"values": values, "periods": 5, "method": "linear"},
+        )
+        assert "predictions" in result
+        assert len(result["predictions"]) == 5
+        assert result["method"] == "linear"
+        # Verify non-numeric stats (e.g. 'trend') don't crash round()
+        assert "stats" in result
 
     def test_forecast_empty_values_raises(self, ops, env):
         """Empty values raises non-retryable ApplicationError."""

@@ -2,7 +2,7 @@ import logging
 from enum import StrEnum
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 logger = logging.getLogger(__name__)
 
@@ -51,5 +51,4 @@ class TemplateExecutionRequest(BaseModel):
     )
     job_name: str | None = Field(None, description="Optional human-readable alias for tracking.")
 
-    class Config:
-        extra = "forbid"  # Security: No undeclared fields permitted.
+    model_config = ConfigDict(extra="forbid")  # Security: No undeclared fields permitted.

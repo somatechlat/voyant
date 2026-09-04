@@ -5,7 +5,6 @@ from __future__ import annotations
 import pytest
 from django.test import TestCase
 
-from apps.core.models import Tenant
 from apps.governance.models import DataContract, LineageNode, Policy
 
 
@@ -15,16 +14,13 @@ class TestDataContract(TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.tenant = Tenant.objects.create(
-            name="test-tenant",
-            realm="test",
-            external_tenant_id="ext-123",
-        )
+        self.tenant_id = "test-tenant"
+        self.realm = "test"
 
     def test_create_data_contract(self):
         """Test creating a basic data contract."""
         contract = DataContract.objects.create(
-            tenant=self.tenant,
+            tenant_id=self.tenant_id, realm=self.realm,
             name="user_data_contract",
             description="Contract for user data",
             dataset_urn="urn:datahub:dataset:user_profile",
@@ -48,7 +44,7 @@ class TestDataContract(TestCase):
             "required": ["user_id", "email"],
         }
         contract = DataContract.objects.create(
-            tenant=self.tenant,
+            tenant_id=self.tenant_id, realm=self.realm,
             name="user_schema",
             dataset_urn="urn:datahub:dataset:users",
             schema_definition=schema,
@@ -65,7 +61,7 @@ class TestDataContract(TestCase):
             {"type": "pattern", "column": "email", "pattern": r"^[\w\.-]+@[\w\.-]+\.\w+$"},
         ]
         contract = DataContract.objects.create(
-            tenant=self.tenant,
+            tenant_id=self.tenant_id, realm=self.realm,
             name="user_quality",
             dataset_urn="urn:datahub:dataset:users",
             quality_rules=rules,
@@ -77,7 +73,7 @@ class TestDataContract(TestCase):
     def test_contract_status_transitions(self):
         """Test contract status lifecycle."""
         contract = DataContract.objects.create(
-            tenant=self.tenant,
+            tenant_id=self.tenant_id, realm=self.realm,
             name="lifecycle_test",
             dataset_urn="urn:datahub:dataset:test",
             owner="owner",
@@ -98,14 +94,14 @@ class TestDataContract(TestCase):
     def test_contract_versioning(self):
         """Test multiple versions of the same contract."""
         contract_v1 = DataContract.objects.create(
-            tenant=self.tenant,
+            tenant_id=self.tenant_id, realm=self.realm,
             name="versioned_contract",
             dataset_urn="urn:datahub:dataset:versioned",
             version="1.0.0",
             owner="owner",
         )
         contract_v2 = DataContract.objects.create(
-            tenant=self.tenant,
+            tenant_id=self.tenant_id, realm=self.realm,
             name="versioned_contract",
             dataset_urn="urn:datahub:dataset:versioned",
             version="2.0.0",
@@ -115,7 +111,7 @@ class TestDataContract(TestCase):
         assert contract_v2.version == "2.0.0"
 
         contracts = DataContract.objects.filter(
-            tenant=self.tenant, name="versioned_contract"
+            tenant_id=self.tenant_id, realm=self.realm, name="versioned_contract"
         ).order_by("version")
         assert len(contracts) == 2
 
@@ -126,16 +122,13 @@ class TestPolicy(TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.tenant = Tenant.objects.create(
-            name="test-tenant",
-            realm="test",
-            external_tenant_id="ext-123",
-        )
+        self.tenant_id = "test-tenant"
+        self.realm = "test"
 
     def test_create_access_control_policy(self):
         """Test creating an access control policy."""
         policy = Policy.objects.create(
-            tenant=self.tenant,
+            tenant_id=self.tenant_id, realm=self.realm,
             name="restrict_pii_access",
             policy_type=Policy.PolicyType.ACCESS_CONTROL,
             status=Policy.Status.ACTIVE,
@@ -158,7 +151,7 @@ class TestPolicy(TestCase):
     def test_create_data_retention_policy(self):
         """Test creating a data retention policy."""
         policy = Policy.objects.create(
-            tenant=self.tenant,
+            tenant_id=self.tenant_id, realm=self.realm,
             name="user_data_retention",
             policy_type=Policy.PolicyType.DATA_RETENTION,
             status=Policy.Status.ACTIVE,
@@ -176,7 +169,7 @@ class TestPolicy(TestCase):
     def test_policy_status_transitions(self):
         """Test policy status lifecycle."""
         policy = Policy.objects.create(
-            tenant=self.tenant,
+            tenant_id=self.tenant_id, realm=self.realm,
             name="lifecycle_test",
             policy_type=Policy.PolicyType.COMPLIANCE,
             status=Policy.Status.DRAFT,
@@ -194,7 +187,7 @@ class TestPolicy(TestCase):
         enforcement_levels = ["strict", "warn", "audit"]
         for level in enforcement_levels:
             policy = Policy.objects.create(
-                tenant=self.tenant,
+                tenant_id=self.tenant_id, realm=self.realm,
                 name=f"policy_{level}",
                 policy_type=Policy.PolicyType.USAGE,
                 enforcement_level=level,
@@ -221,7 +214,7 @@ class TestPolicy(TestCase):
             ],
         }
         policy = Policy.objects.create(
-            tenant=self.tenant,
+            tenant_id=self.tenant_id, realm=self.realm,
             name="business_hours_policy",
             policy_type=Policy.PolicyType.ACCESS_CONTROL,
             rules=rules,
@@ -236,16 +229,13 @@ class TestLineageNode(TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.tenant = Tenant.objects.create(
-            name="test-tenant",
-            realm="test",
-            external_tenant_id="ext-123",
-        )
+        self.tenant_id = "test-tenant"
+        self.realm = "test"
 
     def test_create_dataset_node(self):
         """Test creating a dataset lineage node."""
         node = LineageNode.objects.create(
-            tenant=self.tenant,
+            tenant_id=self.tenant_id, realm=self.realm,
             urn="urn:datahub:dataset:raw_customers",
             name="raw_customers",
             node_type=LineageNode.NodeType.DATASET,
@@ -258,7 +248,7 @@ class TestLineageNode(TestCase):
     def test_create_transformation_node(self):
         """Test creating a transformation lineage node."""
         node = LineageNode.objects.create(
-            tenant=self.tenant,
+            tenant_id=self.tenant_id, realm=self.realm,
             urn="urn:datahub:transformation:customer_aggregation",
             name="customer_aggregation",
             node_type=LineageNode.NodeType.TRANSFORMATION,
@@ -272,7 +262,7 @@ class TestLineageNode(TestCase):
         downstream_urn = "urn:datahub:dataset:processed_data"
 
         node = LineageNode.objects.create(
-            tenant=self.tenant,
+            tenant_id=self.tenant_id, realm=self.realm,
             urn="urn:datahub:transformation:process",
             name="process",
             node_type=LineageNode.NodeType.TRANSFORMATION,
@@ -291,7 +281,7 @@ class TestLineageNode(TestCase):
             "tags": ["production", "critical"],
         }
         node = LineageNode.objects.create(
-            tenant=self.tenant,
+            tenant_id=self.tenant_id, realm=self.realm,
             urn="urn:datahub:dataset:critical_data",
             name="critical_data",
             node_type=LineageNode.NodeType.DATASET,
@@ -304,7 +294,7 @@ class TestLineageNode(TestCase):
         """Test that URN uniqueness is enforced."""
         urn = "urn:datahub:dataset:unique_test"
         LineageNode.objects.create(
-            tenant=self.tenant,
+            tenant_id=self.tenant_id, realm=self.realm,
             urn=urn,
             name="node1",
             node_type=LineageNode.NodeType.DATASET,
@@ -312,7 +302,7 @@ class TestLineageNode(TestCase):
         # Attempting to create another node with the same URN should fail
         with pytest.raises(Exception):  # IntegrityError
             LineageNode.objects.create(
-                tenant=self.tenant,
+                tenant_id=self.tenant_id, realm=self.realm,
                 urn=urn,
                 name="node2",
                 node_type=LineageNode.NodeType.DATASET,
@@ -325,33 +315,30 @@ class TestGovernanceQuerysets(TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.tenant = Tenant.objects.create(
-            name="test-tenant",
-            realm="test",
-            external_tenant_id="ext-123",
-        )
+        self.tenant_id = "test-tenant"
+        self.realm = "test"
 
     def test_filter_contracts_by_status(self):
         """Test filtering contracts by status."""
         DataContract.objects.create(
-            tenant=self.tenant,
+            tenant_id=self.tenant_id, realm=self.realm,
             name="active_contract",
             dataset_urn="urn:datahub:dataset:active",
             owner="owner",
             status=DataContract.Status.ACTIVE,
         )
         DataContract.objects.create(
-            tenant=self.tenant,
+            tenant_id=self.tenant_id, realm=self.realm,
             name="draft_contract",
             dataset_urn="urn:datahub:dataset:draft",
             owner="owner",
             status=DataContract.Status.DRAFT,
         )
         active = DataContract.objects.filter(
-            tenant=self.tenant, status=DataContract.Status.ACTIVE
+            tenant_id=self.tenant_id, realm=self.realm, status=DataContract.Status.ACTIVE
         )
         draft = DataContract.objects.filter(
-            tenant=self.tenant, status=DataContract.Status.DRAFT
+            tenant_id=self.tenant_id, realm=self.realm, status=DataContract.Status.DRAFT
         )
         assert active.count() == 1
         assert draft.count() == 1
@@ -359,22 +346,22 @@ class TestGovernanceQuerysets(TestCase):
     def test_filter_policies_by_type(self):
         """Test filtering policies by type."""
         Policy.objects.create(
-            tenant=self.tenant,
+            tenant_id=self.tenant_id, realm=self.realm,
             name="access_policy",
             policy_type=Policy.PolicyType.ACCESS_CONTROL,
             owner="owner",
         )
         Policy.objects.create(
-            tenant=self.tenant,
+            tenant_id=self.tenant_id, realm=self.realm,
             name="retention_policy",
             policy_type=Policy.PolicyType.DATA_RETENTION,
             owner="owner",
         )
         access = Policy.objects.filter(
-            tenant=self.tenant, policy_type=Policy.PolicyType.ACCESS_CONTROL
+            tenant_id=self.tenant_id, realm=self.realm, policy_type=Policy.PolicyType.ACCESS_CONTROL
         )
         retention = Policy.objects.filter(
-            tenant=self.tenant, policy_type=Policy.PolicyType.DATA_RETENTION
+            tenant_id=self.tenant_id, realm=self.realm, policy_type=Policy.PolicyType.DATA_RETENTION
         )
         assert access.count() == 1
         assert retention.count() == 1
@@ -382,22 +369,22 @@ class TestGovernanceQuerysets(TestCase):
     def test_filter_lineage_by_platform(self):
         """Test filtering lineage nodes by platform."""
         LineageNode.objects.create(
-            tenant=self.tenant,
+            tenant_id=self.tenant_id, realm=self.realm,
             urn="urn:datahub:dataset:postgres_data",
             name="postgres_data",
             node_type=LineageNode.NodeType.DATASET,
             platform="postgresql",
         )
         LineageNode.objects.create(
-            tenant=self.tenant,
+            tenant_id=self.tenant_id, realm=self.realm,
             urn="urn:datahub:dataset:s3_data",
             name="s3_data",
             node_type=LineageNode.NodeType.DATASET,
             platform="s3",
         )
         postgres_nodes = LineageNode.objects.filter(
-            tenant=self.tenant, platform="postgresql"
+            tenant_id=self.tenant_id, realm=self.realm, platform="postgresql"
         )
-        s3_nodes = LineageNode.objects.filter(tenant=self.tenant, platform="s3")
+        s3_nodes = LineageNode.objects.filter(tenant_id=self.tenant_id, realm=self.realm, platform="s3")
         assert postgres_nodes.count() == 1
         assert s3_nodes.count() == 1

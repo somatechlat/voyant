@@ -9,7 +9,7 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Any
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class CapsuleStatus(StrEnum):
@@ -121,8 +121,7 @@ class CapsuleCreateRequest(BaseModel):
     soul: CapsuleSoul = Field(default_factory=CapsuleSoul)
     body: CapsuleBody = Field(default_factory=CapsuleBody)
 
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
 
 class CapsuleUpdateRequest(BaseModel):
@@ -130,8 +129,7 @@ class CapsuleUpdateRequest(BaseModel):
     soul: CapsuleSoul | None = None
     body: CapsuleBody | None = None
 
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
 
 class CapsuleRunRequest(BaseModel):
@@ -139,8 +137,7 @@ class CapsuleRunRequest(BaseModel):
     parameter_values: dict[str, Any] = Field(default_factory=dict)
     tenant_id: str | None = None
 
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
 
 class CapsuleInstallRequest(BaseModel):
@@ -148,8 +145,7 @@ class CapsuleInstallRequest(BaseModel):
     parameter_overrides: dict[str, Any] = Field(default_factory=dict)
     tenant_id: str | None = None
 
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
 
 class CapsuleResponse(BaseModel):
