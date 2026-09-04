@@ -79,23 +79,25 @@ class TestPolicyEvaluationResult:
 
 
 class TestPolicyEvaluator:
-    """Test PolicyEvaluator (stub implementation)."""
+    """Test PolicyEvaluator with real implementation."""
 
     def setup_method(self):
         self.evaluator = PolicyEvaluator()
 
-    def test_evaluate_policy_returns_defer(self):
+    def test_evaluate_policy_no_scope_no_rules_returns_allow(self):
+        """A policy with no scope and no rules matches everything and allows."""
         policy = type("Policy", (), {"name": "test_policy"})()
         context = {"user_id": "user1", "operation": "read"}
         result = self.evaluator.evaluate_policy(policy, context)
-        assert result.decision == PolicyDecision.DEFER
+        assert result.decision == PolicyDecision.ALLOW
 
     def test_evaluate_policy_with_empty_context(self):
         policy = type("Policy", (), {"name": "test_policy"})()
         result = self.evaluator.evaluate_policy(policy, {})
-        assert result.decision == PolicyDecision.DEFER
+        assert result.decision == PolicyDecision.ALLOW
 
     def test_evaluate_policy_with_complex_context(self):
+        """A policy with no scope/rules allows any context."""
         policy = type("Policy", (), {"name": "access_control"})()
         context = {
             "user_id": "user123",
@@ -106,11 +108,40 @@ class TestPolicyEvaluator:
             "timestamp": "2024-01-15T10:30:00Z",
         }
         result = self.evaluator.evaluate_policy(policy, context)
+        assert result.decision == PolicyDecision.ALLOW
+
+    def test_evaluate_policy_out_of_scope_returns_defer(self):
+        """A policy whose scope doesn't match the context returns DEFER."""
+        policy = type(
+            "Policy",
+            (),
+            {
+                "name": "scoped_policy",
+                "scope": {"paths": ["/admin/*"]},
+                "rules": {"denied_methods": ["DELETE"]},
+                "enforcement_level": "strict",
+            },
+        )()
+        result = self.evaluator.evaluate_policy(policy, {"path": "/api/v1/data"})
         assert result.decision == PolicyDecision.DEFER
+
+    def test_evaluate_policy_denies_when_rules_violated(self):
+        policy = type(
+            "Policy",
+            (),
+            {
+                "name": "deny_delete",
+                "scope": {},
+                "rules": {"denied_methods": ["DELETE"]},
+                "enforcement_level": "strict",
+            },
+        )()
+        result = self.evaluator.evaluate_policy(policy, {"method": "DELETE"})
+        assert result.decision == PolicyDecision.DENY
 
 
 class TestPolicyEnforcer:
-    """Test PolicyEnforcer (stub implementation)."""
+    """Test PolicyEnforcer with real implementation."""
 
     def setup_method(self):
         self.enforcer = PolicyEnforcer()
