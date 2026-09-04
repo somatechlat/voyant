@@ -44,7 +44,15 @@ class TestNamespaceConfig:
 class TestPrefixMode:
     @pytest.fixture
     def analyzer(self):
-        return NamespaceAnalyzer(NamespaceConfig(mode=IsolationMode.PREFIX))
+        return NamespaceAnalyzer(
+            NamespaceConfig(mode=IsolationMode.PREFIX, strict=False)
+        )
+
+    @pytest.fixture
+    def strict_analyzer(self):
+        return NamespaceAnalyzer(
+            NamespaceConfig(mode=IsolationMode.PREFIX, strict=True)
+        )
 
     def test_valid_prefix(self, analyzer):
         assert analyzer.validate_access("t123", "t123_orders") is True
@@ -58,34 +66,28 @@ class TestPrefixMode:
 
     def test_prefix_with_custom_separator(self):
         analyzer = NamespaceAnalyzer(
-            NamespaceConfig(mode=IsolationMode.PREFIX, separator="-")
+            NamespaceConfig(mode=IsolationMode.PREFIX, separator="-", strict=False)
         )
         assert analyzer.validate_access("t1", "t1-orders") is True
         assert analyzer.validate_access("t1", "t1_orders") is False
 
-    def test_strict_raises(self, analyzer):
+    def test_strict_raises(self, strict_analyzer):
         with pytest.raises(NamespaceViolationError):
-            analyzer.validate_access("t1", "other_table")
+            strict_analyzer.validate_access("t1", "other_table")
 
-    def test_non_strict_returns_false(self):
-        analyzer = NamespaceAnalyzer(
-            NamespaceConfig(mode=IsolationMode.PREFIX, strict=False)
-        )
+    def test_non_strict_returns_false(self, analyzer):
         result = analyzer.validate_access("t1", "other_table")
         assert result is False
 
-    def test_empty_tenant_id_strict(self, analyzer):
+    def test_empty_tenant_id_strict(self, strict_analyzer):
         with pytest.raises(ValueError, match="required"):
-            analyzer.validate_access("", "table")
+            strict_analyzer.validate_access("", "table")
 
-    def test_empty_table_name_strict(self, analyzer):
+    def test_empty_table_name_strict(self, strict_analyzer):
         with pytest.raises(ValueError, match="required"):
-            analyzer.validate_access("t1", "")
+            strict_analyzer.validate_access("t1", "")
 
-    def test_empty_inputs_non_strict(self):
-        analyzer = NamespaceAnalyzer(
-            NamespaceConfig(mode=IsolationMode.PREFIX, strict=False)
-        )
+    def test_empty_inputs_non_strict(self, analyzer):
         assert analyzer.validate_access("", "table") is False
         assert analyzer.validate_access("t1", "") is False
 
@@ -101,7 +103,9 @@ class TestPrefixMode:
 class TestSchemaMode:
     @pytest.fixture
     def analyzer(self):
-        return NamespaceAnalyzer(NamespaceConfig(mode=IsolationMode.SCHEMA))
+        return NamespaceAnalyzer(
+            NamespaceConfig(mode=IsolationMode.SCHEMA, strict=False)
+        )
 
     def test_valid_schema(self, analyzer):
         assert analyzer.validate_access("tenant1", "tenant1.orders") is True
@@ -135,7 +139,7 @@ class TestCustomPatternMode:
 
     def test_non_matching_pattern(self):
         analyzer = NamespaceAnalyzer(
-            NamespaceConfig(custom_pattern=r"^voyant_\w+_\w+$")
+            NamespaceConfig(custom_pattern=r"^voyant_\w+_\w+$", strict=False)
         )
         assert analyzer.validate_access("t1", "other_table") is False
 
@@ -194,14 +198,20 @@ class TestViolationError:
 
 class TestEdgeCases:
     def test_tenant_id_is_prefix_of_another(self):
-        analyzer = NamespaceAnalyzer(NamespaceConfig())
+        analyzer = NamespaceAnalyzer(
+            NamespaceConfig(mode=IsolationMode.PREFIX, strict=False)
+        )
         # "t1" should not match "t12_orders"
         assert analyzer.validate_access("t1", "t12_orders") is False
 
     def test_table_name_with_special_chars(self):
-        analyzer = NamespaceAnalyzer(NamespaceConfig())
+        analyzer = NamespaceAnalyzer(
+            NamespaceConfig(mode=IsolationMode.PREFIX, strict=False)
+        )
         assert analyzer.validate_access("t1", "t1_orders-v2") is True
 
     def test_unicode_tenant_id(self):
-        analyzer = NamespaceAnalyzer(NamespaceConfig())
+        analyzer = NamespaceAnalyzer(
+            NamespaceConfig(mode=IsolationMode.PREFIX, strict=False)
+        )
         assert analyzer.validate_access("日本語", "日本語_orders") is True
