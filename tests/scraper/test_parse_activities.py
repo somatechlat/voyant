@@ -30,8 +30,10 @@ class TestExtractSingle:
     def test_xpath_extraction(self, activities):
         tree = self._make_tree("<html><body><p>Hello</p><p>World</p></body></html>")
         result = activities._extract_single(tree, "//p")
-        assert "Hello" in result
-        assert "World" in result
+        # XPath returns Element objects; verify they contain the expected text
+        assert len(result) == 2
+        assert result[0].text_content().strip() == "Hello"
+        assert result[1].text_content().strip() == "World"
 
     def test_css_attr_extraction(self, activities):
         tree = self._make_tree('<html><body><a href="https://example.com">Link</a></body></html>')
@@ -136,9 +138,8 @@ class TestExtractData:
         media = tree.xpath("//video/source/@src | //audio/source/@src")
         assert media == ["v.mp4"]
 
-    def test_invalid_html_returns_error(self, activities):
-        # lxml can handle most broken HTML, but test the error path exists
+    def test_invalid_html_raises(self, activities):
+        """lxml raises ParserError on completely empty document."""
         from lxml import html as lxml_html
-        # Even malformed HTML usually parses; test with truly empty
-        tree = lxml_html.fromstring("")
-        assert tree is not None
+        with pytest.raises(Exception):
+            lxml_html.fromstring("")

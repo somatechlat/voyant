@@ -40,6 +40,7 @@ class TestSearchActivitiesQueryFormatting:
 
     def test_search_url_format(self):
         """Verify the search URL format."""
+        import urllib.parse
         base = "http://localhost:8888"
         query = "test query"
         encoded = urllib.parse.quote(query)

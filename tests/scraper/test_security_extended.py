@@ -4,6 +4,7 @@ import ipaddress
 
 import pytest
 
+from apps.core.config import get_settings
 from apps.scraper.security import (
     ALLOWED_SCHEMES,
     BLOCKED_EXTENSIONS,
@@ -86,6 +87,15 @@ class TestIsIpBlocked:
 
 
 class TestValidateUrlSsrf:
+    @pytest.fixture(autouse=True)
+    def _ensure_local_hosts_blocked(self):
+        """Ensure scraper_allow_local_hosts is False for SSRF tests."""
+        settings = get_settings()
+        original = settings.scraper_allow_local_hosts
+        settings.scraper_allow_local_hosts = False
+        yield
+        settings.scraper_allow_local_hosts = original
+
     def test_empty_url(self):
         safe, reason = validate_url_ssrf("")
         assert safe is False
