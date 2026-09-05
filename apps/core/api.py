@@ -3,6 +3,7 @@ import uuid
 
 from ninja import NinjaAPI
 
+from apps.admin_panel.api import admin_router
 from apps.analysis.api import analyze_router
 
 # Capsules router — imported lazily to avoid startup coupling
@@ -10,15 +11,14 @@ from apps.capsules.api import capsules_router
 from apps.discovery.api import discovery_router, sources_router
 from apps.governance.api import governance_router
 from apps.ingestion.api import ingestion_router
-from apps.scraper.api import scrape_router
-from apps.scraper.template_api import template_router
-from apps.search.api import router as search_router
-from apps.sql.api import sql_router
-from apps.admin_panel.api import admin_router
 from apps.intent.api import intent_router
 from apps.llm_providers.api import llm_router
 from apps.ml_platform.api import ml_router
 from apps.ontology.api import ontology_router
+from apps.scraper.api import scrape_router
+from apps.scraper.template_api import template_router
+from apps.search.api import router as search_router
+from apps.sql.api import sql_router
 from apps.workflows.api import artifacts_router, jobs_router, presets_router
 
 # Use a unique namespace during testing to avoid NinjaAPI registry collisions

@@ -315,7 +315,7 @@ def seed():
     import django
     django.setup()
 
-    from apps.llm_providers.models import LLMModel, LLMProvider, ActiveLLMConfig
+    from apps.llm_providers.models import ActiveLLMConfig, LLMModel, LLMProvider
 
     created_providers = 0
     created_models = 0

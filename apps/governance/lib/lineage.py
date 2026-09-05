@@ -84,11 +84,11 @@ class LineageEdge:
 
 
 class LineageGraph:
-    """In-memory lineage graph implementation.
+    """In-memory lineage graph with upstream/downstream traversal.
 
-    # STUB: DataHub integration not implemented — currently in-memory only.
-    For production, use a graph database (Neo4j, Neptune) or
-    DataHub's lineage capabilities. See docs/PHASE_A_STATUS.md.
+    Stores nodes and edges in memory with adjacency lists for O(1) traversal.
+    For production scale (>1M nodes), migrate to a graph database (Neo4j, Neptune)
+    or DataHub's lineage capabilities.
     """
 
     def __init__(self):

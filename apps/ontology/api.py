@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from ninja import Field, Router, Schema
+from ninja import Router, Schema
 from ninja.errors import HttpError
 
 from apps.core.middleware import get_tenant_id

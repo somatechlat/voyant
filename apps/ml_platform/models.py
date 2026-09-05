@@ -7,8 +7,6 @@ and model serving. Part of Voyant v4.0 Phase 3.
 
 from __future__ import annotations
 
-import uuid
-
 from django.db import models
 
 from apps.core.models import TenantModel, UUIDModel

@@ -16,7 +16,6 @@ from apps.ml_platform.models import (
     ModelVersion,
     RegisteredModel,
     Run,
-    RunArtifact,
 )
 
 logger = logging.getLogger(__name__)

@@ -17,8 +17,8 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass, field
-from typing import Any
 from enum import StrEnum
+from typing import Any
 
 import httpx
 
@@ -117,7 +117,7 @@ class IntentEngine:
     def resolve_schema(self, tenant_id: str) -> dict[str, Any]:
         """Load tenant's ontology for LLM context."""
         try:
-            from apps.ontology.models import ObjectType, Property, LinkType
+            from apps.ontology.models import LinkType, ObjectType, Property
 
             types = ObjectType.objects.filter(
                 tenant_id=tenant_id, deleted_at__isnull=True
