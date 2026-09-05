@@ -125,6 +125,7 @@ INSTALLED_APPS = [
     "apps.ontology",  # Ontology Engine (Object Types, Properties, Links)
     "apps.admin_panel",  # Admin Panel API (dashboard, management endpoints)
     "apps.ml_platform",  # ML Platform (experiments, models, serving)
+    "apps.intent",  # Intent Engine (LLM-powered intent translation)
 ]
 
 # --- Middleware Configuration ---

@@ -110,6 +110,9 @@ class Settings(BaseSettings):
         "oauth_microsoft_client_secret",
         "oauth_okta_client_secret",
         "oauth_generic_client_secret",
+        # LLM API keys
+        "groq_api_key",
+        "openai_api_key",
     }
 
     # --------------------------------------------------------------------------
@@ -594,6 +597,46 @@ class Settings(BaseSettings):
     metrics_mode: str = Field(
         default="full",
         description="Metrics registration mode: 'off', 'basic', or 'full'.",
+    )
+
+    # --------------------------------------------------------------------------
+    # LLM / Intent Engine Configuration
+    # --------------------------------------------------------------------------
+    llm_provider: str = Field(
+        default="groq",
+        description="LLM provider: 'groq', 'openai', 'local', 'none'.",
+    )
+    llm_api_url: str = Field(
+        default="https://api.groq.com/openai/v1",
+        description="LLM API base URL (Groq-compatible OpenAI API).",
+    )
+    llm_api_key: str = Field(
+        default="",
+        description="LLM API key (stored in Vault in production).",
+    )
+    llm_model: str = Field(
+        default="openai/gpt-oss-120b",
+        description="LLM model ID (e.g. 'openai/gpt-oss-120b', 'llama-3.3-70b-versatile').",
+    )
+    llm_temperature: float = Field(
+        default=0.1,
+        description="LLM temperature (0.0 = deterministic, 2.0 = creative).",
+    )
+    llm_max_tokens: int = Field(
+        default=4096,
+        description="LLM max completion tokens.",
+    )
+    llm_timeout_seconds: int = Field(
+        default=30,
+        description="LLM request timeout in seconds.",
+    )
+    llm_cache_enabled: bool = Field(
+        default=True,
+        description="Cache LLM-generated plans for reuse.",
+    )
+    intent_engine_enabled: bool = Field(
+        default=True,
+        description="Enable the Intent Engine for natural language queries.",
     )
 
     # --------------------------------------------------------------------------
