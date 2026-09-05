@@ -1,10 +1,9 @@
 """
 Voyant Scraper - Django ORM Models
 
-Production Standard v3 Compliant | Agent-Tool Architecture
-
 ScrapeJob: Pure execution job record (no LLM)
 ScrapeArtifact: Artifact produced by scraping
+ScrapeTemplate: Pre-built scraping configurations (v4.0)
 """
 
 import uuid
@@ -107,3 +106,68 @@ class ScrapeArtifact(models.Model):
 
     def __str__(self):
         return f"ScrapeArtifact({self.artifact_id}) - {self.artifact_type}"
+
+
+class ScrapeTemplate(models.Model):
+    """Pre-built scraping template for a specific website or use case.
+
+    Templates define reusable scraping configurations that can be executed
+    with parameter substitution. Part of the Scraper Octopus v4.0 system.
+    """
+
+    CATEGORY_CHOICES = [
+        ("ecommerce", "E-Commerce"),
+        ("social", "Social Media"),
+        ("maps", "Maps"),
+        ("news", "News"),
+        ("finance", "Finance"),
+        ("jobs", "Jobs"),
+        ("realestate", "Real Estate"),
+        ("travel", "Travel"),
+        ("education", "Education"),
+        ("developer", "Developer"),
+        ("leadgen", "Lead Generation"),
+        ("directory", "Directory"),
+        ("search", "Search Engine"),
+        ("universal", "Universal"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    tenant_id = models.CharField(max_length=128, default="system", db_index=True)
+    name = models.CharField(max_length=255)
+    site_pattern = models.CharField(max_length=500, help_text="URL pattern or domain")
+    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, db_index=True)
+    description = models.TextField(blank=True, default="")
+    language = models.CharField(max_length=10, default="en")
+    status = models.CharField(max_length=20, default="active", db_index=True)
+
+    # Scraping config
+    engine = models.CharField(max_length=20, default="playwright")
+    selectors = models.JSONField(default=dict)
+    workflow = models.JSONField(default=list)
+    options = models.JSONField(default=dict)
+
+    # Parameterization
+    parameters = models.JSONField(default=list)
+
+    # Output
+    output_fields = models.JSONField(default=list)
+
+    # Stats
+    use_count = models.PositiveIntegerField(default=0)
+    success_rate = models.FloatField(default=0.0)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "scraper_template"
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["tenant_id", "category"]),
+            models.Index(fields=["tenant_id", "status"]),
+            models.Index(fields=["site_pattern"]),
+        ]
+
+    def __str__(self):
+        return f"Template({self.name} [{self.category}])"
