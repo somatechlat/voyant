@@ -95,6 +95,8 @@ SESSION_COOKIE_SECURE = (
 CSRF_COOKIE_SECURE = (
     security_settings.security_enabled and not DEBUG and app_settings.env != "local"
 )
+# Trust X-Forwarded-Proto from reverse proxy (nginx, Vite dev server, ALB)
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # --- Application Definition ---
 
