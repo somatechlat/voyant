@@ -364,3 +364,140 @@ def update_quota_tier(request, payload: SetTierRequest):
         raise HttpError(400, get_message("ERR_INVALID_TIER", tier=payload.tier)) from exc
     set_tenant_tier(tenant_id, tier)
     return {"tenant_id": tenant_id, "tier": tier.value, "status": "updated"}
+
+
+# ---------------------------------------------------------------------------
+# Row-Level Security (GOV-F-003)
+# ---------------------------------------------------------------------------
+
+
+@governance_router.get("/row-security-policies", auth=auth_guard)
+def list_row_security_policies(request):
+    """List all row-level security policies."""
+    from apps.governance.models import RowSecurityPolicy
+
+    tenant_id = get_tenant_id(request)
+    policies = RowSecurityPolicy.objects.filter(tenant_id=tenant_id, status="active")
+    return [
+        {
+            "id": str(p.id),
+            "name": p.name,
+            "table_name": p.table_name,
+            "column_name": p.column_name,
+            "filter_type": p.filter_type,
+            "filter_config": p.filter_config,
+            "applies_to_roles": p.applies_to_roles,
+            "status": p.status,
+        }
+        for p in policies
+    ]
+
+
+@governance_router.post("/row-security-policies", auth=auth_guard)
+def create_row_security_policy(request, payload: dict[str, Any]):
+    """Create a new row-level security policy."""
+    from apps.governance.models import RowSecurityPolicy
+
+    tenant_id = get_tenant_id(request)
+    policy = RowSecurityPolicy.objects.create(
+        tenant_id=tenant_id,
+        name=payload.get("name", ""),
+        table_name=payload.get("table_name", ""),
+        column_name=payload.get("column_name", ""),
+        filter_type=payload.get("filter_type", "user_match"),
+        filter_config=payload.get("filter_config", {}),
+        applies_to_roles=payload.get("applies_to_roles", []),
+    )
+    return {"id": str(policy.id), "name": policy.name, "status": "created"}
+
+
+# ---------------------------------------------------------------------------
+# Column Masking (GOV-F-004)
+# ---------------------------------------------------------------------------
+
+
+@governance_router.get("/column-masks", auth=auth_guard)
+def list_column_masks(request):
+    """List all column masking policies."""
+    from apps.governance.models import ColumnMaskPolicy
+
+    tenant_id = get_tenant_id(request)
+    masks = ColumnMaskPolicy.objects.filter(tenant_id=tenant_id, status="active")
+    return [
+        {
+            "id": str(m.id),
+            "name": m.name,
+            "table_name": m.table_name,
+            "column_name": m.column_name,
+            "mask_type": m.mask_type,
+            "mask_config": m.mask_config,
+            "applies_to_roles": m.applies_to_roles,
+            "exempt_roles": m.exempt_roles,
+        }
+        for m in masks
+    ]
+
+
+@governance_router.post("/column-masks", auth=auth_guard)
+def create_column_mask(request, payload: dict[str, Any]):
+    """Create a new column masking policy."""
+    from apps.governance.models import ColumnMaskPolicy
+
+    tenant_id = get_tenant_id(request)
+    mask = ColumnMaskPolicy.objects.create(
+        tenant_id=tenant_id,
+        name=payload.get("name", ""),
+        table_name=payload.get("table_name", ""),
+        column_name=payload.get("column_name", ""),
+        mask_type=payload.get("mask_type", "full"),
+        mask_config=payload.get("mask_config", {}),
+        applies_to_roles=payload.get("applies_to_roles", []),
+        exempt_roles=payload.get("exempt_roles", []),
+    )
+    return {"id": str(mask.id), "name": mask.name, "status": "created"}
+
+
+# ---------------------------------------------------------------------------
+# Data Classification (GOV-F-005)
+# ---------------------------------------------------------------------------
+
+
+@governance_router.get("/classifications", auth=auth_guard)
+def list_classifications(request):
+    """List all data classifications."""
+    from apps.governance.models import DataClassification
+
+    tenant_id = get_tenant_id(request)
+    classifications = DataClassification.objects.filter(tenant_id=tenant_id)
+    return [
+        {
+            "id": str(c.id),
+            "name": c.name,
+            "level": c.level,
+            "target_type": c.target_type,
+            "target_name": c.target_name,
+            "requires_encryption": c.requires_encryption,
+            "requires_masking": c.requires_masking,
+            "retention_days": c.retention_days,
+        }
+        for c in classifications
+    ]
+
+
+@governance_router.post("/classifications", auth=auth_guard)
+def create_classification(request, payload: dict[str, Any]):
+    """Create a new data classification tag."""
+    from apps.governance.models import DataClassification
+
+    tenant_id = get_tenant_id(request)
+    classification = DataClassification.objects.create(
+        tenant_id=tenant_id,
+        name=payload.get("name", ""),
+        level=payload.get("level", "internal"),
+        target_type=payload.get("target_type", "table"),
+        target_name=payload.get("target_name", ""),
+        requires_encryption=payload.get("requires_encryption", False),
+        requires_masking=payload.get("requires_masking", False),
+        retention_days=payload.get("retention_days"),
+    )
+    return {"id": str(classification.id), "name": classification.name, "status": "created"}
