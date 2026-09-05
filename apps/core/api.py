@@ -15,6 +15,7 @@ from apps.scraper.template_api import template_router
 from apps.search.api import router as search_router
 from apps.sql.api import sql_router
 from apps.admin_panel.api import admin_router
+from apps.ml_platform.api import ml_router
 from apps.ontology.api import ontology_router
 from apps.workflows.api import artifacts_router, jobs_router, presets_router
 
@@ -50,3 +51,4 @@ api.add_router("/capsules", capsules_router, tags=["capsules"])
 api.add_router("/ingestion", ingestion_router, tags=["ingestion"])
 api.add_router("/admin", admin_router, tags=["admin"])
 api.add_router("/ontology", ontology_router, tags=["ontology"])
+api.add_router("/ml", ml_router, tags=["ml"])
