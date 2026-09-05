@@ -1,5 +1,6 @@
-import { LitElement, html } from 'lit';
+import { LitElement, html, svg } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
+import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 
 interface NavItem {
     label: string;
@@ -91,7 +92,7 @@ export class SaaSSidebar extends LitElement {
                     >
                         <svg class="h-4 w-4 ${isActive ? 'text-white' : 'text-gray-400'}" viewBox="0 0 24 24"
                             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            ${html([ICONS[item.icon] || ICONS.grid] as unknown as TemplateStringsArray)}
+                            ${unsafeSVG(ICONS[item.icon] || ICONS.grid)}
                         </svg>
                         ${item.label}
                     </button>`;
@@ -106,7 +107,7 @@ export class SaaSSidebar extends LitElement {
                 >
                     <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
-                        ${html([ICONS.logout] as unknown as TemplateStringsArray)}
+                        ${unsafeSVG(ICONS.logout)}
                     </svg>
                     Logout
                 </button>

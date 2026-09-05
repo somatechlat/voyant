@@ -1,6 +1,6 @@
-import { html } from 'lit';
-import { Router } from '@lit-labs/router';
+import { html, render } from 'lit';
 import { isAuthenticated } from './lib/api';
+import { Router } from './lib/router';
 
 // Components
 import './components/saas-sidebar';
@@ -27,7 +27,8 @@ function auth(): boolean {
     return true;
 }
 
-const router = new Router(document.body);
+const outlet = document.getElementById('app') || document.body;
+const router = new Router(outlet);
 
 router.setRoutes([
     { path: '/admin/login', component: () => html`<view-login></view-login>` },

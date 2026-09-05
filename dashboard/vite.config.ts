@@ -15,4 +15,14 @@ export default defineConfig({
     build: {
         outDir: 'dist',
     },
+    esbuild: {
+        target: 'esnext',
+        // Lit uses legacy decorators — esbuild must keep them
+        tsconfigRaw: {
+            compilerOptions: {
+                experimentalDecorators: true,
+                useDefineForClassFields: false,
+            },
+        },
+    },
 });
