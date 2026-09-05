@@ -11,6 +11,7 @@ from apps.discovery.api import discovery_router, sources_router
 from apps.governance.api import governance_router
 from apps.ingestion.api import ingestion_router
 from apps.scraper.api import scrape_router
+from apps.scraper.template_api import template_router
 from apps.search.api import router as search_router
 from apps.sql.api import sql_router
 from apps.admin_panel.api import admin_router
@@ -44,6 +45,7 @@ api.add_router("/analyze", analyze_router, tags=["analyze"])
 api.add_router("/discovery", discovery_router, tags=["discovery"])
 api.add_router("/search", search_router, tags=["search"])
 api.add_router("/scrape", scrape_router, tags=["scrape"])
+api.add_router("/scraper", template_router, tags=["scraper-templates"])
 api.add_router("/capsules", capsules_router, tags=["capsules"])
 api.add_router("/ingestion", ingestion_router, tags=["ingestion"])
 api.add_router("/admin", admin_router, tags=["admin"])
