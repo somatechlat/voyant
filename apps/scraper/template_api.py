@@ -95,8 +95,6 @@ def get_template(request, template_id: str):
 @template_router.post("/templates/{template_id}/run", auth=require_permission("write:jobs"))
 def run_template(request, template_id: str, payload: dict[str, Any]):
     """Execute a template with parameter substitution."""
-    from apps.core.lib.workflow_utils import dispatch_workflow
-    from apps.worker.workflows.ingest_workflow import IngestDataWorkflow
 
     t = ScrapeTemplate.objects.filter(id=template_id, status="active").first()
     if not t:

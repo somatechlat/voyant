@@ -10,7 +10,6 @@ from __future__ import annotations
 import logging
 import time
 from datetime import UTC, datetime
-from typing import Any
 
 from ninja import Router
 from ninja.errors import HttpError
@@ -64,7 +63,6 @@ def get_dashboard(request):
     """System overview with health, stats, and service status."""
     from apps.core.models import AuditLog
     from apps.discovery.models import Source
-    from apps.governance.models import Policy
     from apps.workflows.models import Job
 
     # Job stats
@@ -248,8 +246,8 @@ def get_job_detail(request, job_id: str):
 @admin_router.post("/jobs/{job_id}/cancel", response=JobActionResponse)
 def cancel_job(request, job_id: str):
     """Cancel a running job."""
-    from apps.core.lib.temporal_client import get_temporal_client
     from apps.core.api_utils import run_async
+    from apps.core.lib.temporal_client import get_temporal_client
     from apps.workflows.models import Job
 
     job = Job.objects.filter(id=job_id).first()
@@ -427,7 +425,11 @@ def list_contracts(request, tenant_id: str | None = None):
 @admin_router.get("/governance/quotas", response=list[QuotaInfo])
 def list_quotas(request):
     """List quota usage for all tenants."""
-    from apps.core.lib.tenant_quotas import get_quota_manager, get_usage_stats, ResourceType
+    from apps.core.lib.tenant_quotas import (
+        ResourceType,
+        get_quota_manager,
+        get_usage_stats,
+    )
 
     manager = get_quota_manager()
     from apps.workflows.models import Job
@@ -722,9 +724,10 @@ def list_tables(request, schema: str | None = None):
 def index_document(request, payload: SearchIndexRequest):
     """Index a document for semantic search."""
     import uuid
+
+    from apps.core.middleware import get_tenant_id
     from apps.search.lib.embeddings import get_embedding_extractor, get_sparse_embedder
     from apps.search.lib.milvus_store import get_vector_store
-    from apps.core.middleware import get_tenant_id
 
     tenant_id = get_tenant_id(request) or "default"
     store = get_vector_store()
@@ -822,8 +825,8 @@ def list_scraper_jobs(request, status: str | None = None, limit: int = 50):
 @admin_router.get("/tenants", response=list[TenantInfo])
 def list_tenants(request):
     """List all known tenants with activity summary."""
-    from apps.workflows.models import Job, Artifact
     from apps.discovery.models import Source
+    from apps.workflows.models import Artifact, Job
 
     tenant_ids = list(
         Job.objects.values_list("tenant_id", flat=True).distinct()[:100]
