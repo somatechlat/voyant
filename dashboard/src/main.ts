@@ -1,24 +1,29 @@
-import { html, render } from 'lit';
+import { html } from 'lit';
 import { Router } from '@lit-labs/router';
 import { isAuthenticated } from './lib/api';
 
 // Components
 import './components/saas-sidebar';
 import './components/saas-stat-card';
-import './components/saas-status-dot';
-import './components/saas-infra-card';
 import './components/saas-glass-modal';
-import './components/saas-layout';
 
 // Views
 import './views/view-login';
 import './views/view-dashboard';
+import './views/view-jobs';
+import './views/view-sources';
+import './views/view-governance';
+import './views/view-capsules';
+import './views/view-ontology';
+import './views/view-audit';
+import './views/view-sql';
+import './views/view-search';
+import './views/view-scraper';
+import './views/view-settings';
+import './views/view-tenants';
 
-function requireAuth(): boolean {
-    if (!isAuthenticated()) {
-        window.location.href = '/admin/login';
-        return false;
-    }
+function auth(): boolean {
+    if (!isAuthenticated()) { window.location.href = '/admin/login'; return false; }
     return true;
 }
 
@@ -26,62 +31,21 @@ const router = new Router(document.body);
 
 router.setRoutes([
     { path: '/admin/login', component: () => html`<view-login></view-login>` },
-    { path: '/admin', component: () => {
-        if (!requireAuth()) return html``;
-        return html`<view-dashboard></view-dashboard>`;
-    }},
-    // Placeholder routes — pages to be built
-    { path: '/admin/jobs', component: () => {
-        if (!requireAuth()) return html``;
-        return html`<view-dashboard></view-dashboard>`;
-    }},
-    { path: '/admin/sources', component: () => {
-        if (!requireAuth()) return html``;
-        return html`<view-dashboard></view-dashboard>`;
-    }},
-    { path: '/admin/governance', component: () => {
-        if (!requireAuth()) return html``;
-        return html`<view-dashboard></view-dashboard>`;
-    }},
-    { path: '/admin/capsules', component: () => {
-        if (!requireAuth()) return html``;
-        return html`<view-dashboard></view-dashboard>`;
-    }},
-    { path: '/admin/ontology', component: () => {
-        if (!requireAuth()) return html``;
-        return html`<view-dashboard></view-dashboard>`;
-    }},
-    { path: '/admin/audit', component: () => {
-        if (!requireAuth()) return html``;
-        return html`<view-dashboard></view-dashboard>`;
-    }},
-    { path: '/admin/sql', component: () => {
-        if (!requireAuth()) return html``;
-        return html`<view-dashboard></view-dashboard>`;
-    }},
-    { path: '/admin/search', component: () => {
-        if (!requireAuth()) return html``;
-        return html`<view-dashboard></view-dashboard>`;
-    }},
-    { path: '/admin/scraper', component: () => {
-        if (!requireAuth()) return html``;
-        return html`<view-dashboard></view-dashboard>`;
-    }},
-    { path: '/admin/settings', component: () => {
-        if (!requireAuth()) return html``;
-        return html`<view-dashboard></view-dashboard>`;
-    }},
-    { path: '/admin/tenants', component: () => {
-        if (!requireAuth()) return html``;
-        return html`<view-dashboard></view-dashboard>`;
-    }},
-    { path: '/', render: () => {
-        window.location.href = '/admin/login';
-        return html``;
-    }},
+    { path: '/admin', component: () => auth() ? html`<view-dashboard></view-dashboard>` : html`` },
+    { path: '/admin/jobs', component: () => auth() ? html`<view-jobs></view-jobs>` : html`` },
+    { path: '/admin/sources', component: () => auth() ? html`<view-sources></view-sources>` : html`` },
+    { path: '/admin/governance', component: () => auth() ? html`<view-governance></view-governance>` : html`` },
+    { path: '/admin/capsules', component: () => auth() ? html`<view-capsules></view-capsules>` : html`` },
+    { path: '/admin/ontology', component: () => auth() ? html`<view-ontology></view-ontology>` : html`` },
+    { path: '/admin/audit', component: () => auth() ? html`<view-audit></view-audit>` : html`` },
+    { path: '/admin/sql', component: () => auth() ? html`<view-sql></view-sql>` : html`` },
+    { path: '/admin/search', component: () => auth() ? html`<view-search></view-search>` : html`` },
+    { path: '/admin/scraper', component: () => auth() ? html`<view-scraper></view-scraper>` : html`` },
+    { path: '/admin/settings', component: () => auth() ? html`<view-settings></view-settings>` : html`` },
+    { path: '/admin/tenants', component: () => auth() ? html`<view-tenants></view-tenants>` : html`` },
+    { path: '/', render: () => { window.location.href = '/admin/login'; return html``; } },
 ]);
 
-// Default route
 if (window.location.pathname === '/' || window.location.pathname === '') {
     window.history.replaceState({}, '', '/admin/login');
 }

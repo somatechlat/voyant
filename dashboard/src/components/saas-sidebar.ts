@@ -85,8 +85,8 @@ export class SaaSSidebar extends LitElement {
                     <button
                         class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm mb-0.5 transition-colors
                             ${isActive
-                                ? 'bg-gray-900 text-white'
-                                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}"
+                                ? 'bg-brand text-white'
+                                : 'text-gray-600 hover:bg-gray-50 hover:text-ink'}"
                         @click=${() => this.navigate(item.path)}
                     >
                         <svg class="h-4 w-4 ${isActive ? 'text-white' : 'text-gray-400'}" viewBox="0 0 24 24"
