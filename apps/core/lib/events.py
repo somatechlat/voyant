@@ -250,3 +250,117 @@ def emit_quality_alert(
         },
     )
     return get_kafka_producer().emit("quality", event)
+
+
+def emit_ontology_event(
+    event_type: str,
+    tenant_id: str,
+    object_type: str,
+    object_id: str = "",
+    **extra,
+) -> bool:
+    """Emit an ontology lifecycle event."""
+    event = VoyantEvent(
+        event_type=event_type,
+        event_id=str(uuid.uuid4()),
+        timestamp=datetime.now(UTC).isoformat(),
+        tenant_id=tenant_id,
+        payload={
+            "object_type": object_type,
+            "object_id": object_id,
+            **extra,
+        },
+    )
+    return get_kafka_producer().emit("ontology", event)
+
+
+def emit_ml_event(
+    event_type: str,
+    tenant_id: str,
+    entity_type: str,
+    entity_id: str = "",
+    **extra,
+) -> bool:
+    """Emit an ML platform event (experiment, model, endpoint)."""
+    event = VoyantEvent(
+        event_type=event_type,
+        event_id=str(uuid.uuid4()),
+        timestamp=datetime.now(UTC).isoformat(),
+        tenant_id=tenant_id,
+        payload={
+            "entity_type": entity_type,
+            "entity_id": entity_id,
+            **extra,
+        },
+    )
+    return get_kafka_producer().emit("ml", event)
+
+
+def emit_intent_event(
+    event_type: str,
+    tenant_id: str,
+    intent: str,
+    intent_type: str,
+    confidence: float = 0.0,
+    **extra,
+) -> bool:
+    """Emit an intent engine event (plan generated, executed)."""
+    event = VoyantEvent(
+        event_type=event_type,
+        event_id=str(uuid.uuid4()),
+        timestamp=datetime.now(UTC).isoformat(),
+        tenant_id=tenant_id,
+        payload={
+            "intent": intent,
+            "intent_type": intent_type,
+            "confidence": confidence,
+            **extra,
+        },
+    )
+    return get_kafka_producer().emit("intent", event)
+
+
+def emit_governance_event(
+    event_type: str,
+    tenant_id: str,
+    policy_type: str,
+    policy_id: str = "",
+    decision: str = "",
+    **extra,
+) -> bool:
+    """Emit a governance event (policy evaluated, RLS applied)."""
+    event = VoyantEvent(
+        event_type=event_type,
+        event_id=str(uuid.uuid4()),
+        timestamp=datetime.now(UTC).isoformat(),
+        tenant_id=tenant_id,
+        payload={
+            "policy_type": policy_type,
+            "policy_id": policy_id,
+            "decision": decision,
+            **extra,
+        },
+    )
+    return get_kafka_producer().emit("governance", event)
+
+
+def emit_scraper_event(
+    event_type: str,
+    tenant_id: str,
+    template_id: str = "",
+    template_name: str = "",
+    **extra,
+) -> bool:
+    """Emit a scraper event (template executed, scrape completed)."""
+    event = VoyantEvent(
+        event_type=event_type,
+        event_id=str(uuid.uuid4()),
+        timestamp=datetime.now(UTC).isoformat(),
+        tenant_id=tenant_id,
+        payload={
+            "template_id": template_id,
+            "template_name": template_name,
+            **extra,
+        },
+    )
+    return get_kafka_producer().emit("scraper", event)
