@@ -2,6 +2,22 @@
 
 **Goal:** Ship v4.0 in 24 weeks with 3-4 engineers.
 **Strategy:** Parallel workstreams, test-driven, ship weekly.
+**Methodology:** Rapid Application Development (RAD) — iterative prototyping, minimal planning overhead, continuous user feedback, weekly deliverables.
+
+---
+
+## Rapid Development Principles
+
+| Principle | Implementation |
+|-----------|---------------|
+| **Prototype first** | Build working UI/API in days, not weeks. Refine iteratively. |
+| **Parallel workstreams** | 2-3 engineers work on different phases simultaneously. |
+| **Weekly releases** | Every Friday: working demo of week's deliverable. |
+| **Test-driven** | Write test → make it pass → commit. No test = not done. |
+| **No big design up front** | SRS defines WHAT. Engineers decide HOW during implementation. |
+| **Reuse everything** | Apache projects before custom code. Existing patterns before new ones. |
+| **Continuous integration** | Every commit runs full test suite. Broken = blocked. |
+| **Feedback loops** | Weekly demo → user feedback → adjust next week's plan. |
 
 ---
 
@@ -13,7 +29,7 @@
 | 2 | No dead code | `ruff check --select F` → 0 errors |
 | 3 | No duplicate code | Extract to `core/lib/` if pattern repeats 2+ times |
 | 4 | Real interfaces only | Every UI page fully functional — no mocks |
-| 5 | ISO compliance | SRS traceability, >80% coverage, security review |
+| 5 | ISO compliance | SRS requirement ID traceability, >80% coverage |
 | 6 | Lint clean | `ruff check apps/ --select E,F,W,I` → 0 errors |
 | 7 | Django check clean | `manage.py check --deploy` → 0 issues |
 | 8 | Docs match code | Endpoint/tool/model counts must agree |
@@ -28,15 +44,19 @@
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| Frontend | React 18 + TypeScript + Tailwind | Replace Lit — richer ecosystem, component libraries |
-| Ontology Storage | PostgreSQL + JSONB | Flexible schema, full-text search, proven |
-| ML Platform | MLflow-compatible API | Industry standard, open source, no lock-in |
-| Visual Builder | React Flow (DAG editor) | Proven library for visual workflow editing |
-| Code Editor | Monaco Editor | Same engine as VS Code, mature |
-| Graph Visualization | Sigma.js or D3-force | Force-directed ontology graphs |
-| Real-time | Redis Pub/Sub + WebSocket | Django Channels for subscriptions |
-| CLI | Click (Python) | Standard for Python CLIs |
-| SDK | Auto-generated from OpenAPI | Single source of truth for all clients |
+| **Frontend** | **Lit 3 + Vite + Tailwind** | Already proven (13 views, 96KB). NOT React. |
+| **DAG Editor** | **Custom Lit canvas** | Lightweight, no external dependency. |
+| **Code Editor** | **Monaco Editor** (Lit wrapper) | Same engine as VS Code, mature. |
+| **Graph Viz** | **Sigma.js** (Lit wrapper) | Force-directed ontology graphs. |
+| **Charts** | **Apache ECharts** (Lit wrapper) | Rich charting, Apache-backed. |
+| **Maps** | **Leaflet** (Lit wrapper) | Geospatial visualization. |
+| **BI Dashboards** | **Apache Superset** (Lit iframe embed) | Full BI without building from scratch. |
+| **Pipelines** | **Apache NiFi** (Lit iframe + REST API) | Visual DAG builder, 300+ processors. |
+| **Ontology Storage** | PostgreSQL + JSONB | Flexible schema, full-text search, proven. |
+| **ML Platform** | MLflow-compatible API | Industry standard, open source, no lock-in. |
+| **Real-time** | Redis Pub/Sub + WebSocket | Django Channels for subscriptions. |
+| **CLI** | Click (Python) | Standard for Python CLIs. |
+| **SDK** | Auto-generated from OpenAPI | Single source of truth for all clients. |
 
 ---
 
@@ -60,12 +80,12 @@
 - [ ] Upsert by unique key property
 - [ ] Subscription service (Redis Pub/Sub for change notifications)
 
-### Week 5–6: Ontology Explorer UI
-- [ ] React Ontology Explorer with table, grid, graph views
-- [ ] Object Type Builder (visual schema designer)
-- [ ] Filter Builder (visual condition editor)
+### Week 5–6: Ontology Explorer UI (Lit 3)
+- [ ] Lit 3 Ontology Explorer with table, grid, graph views
+- [ ] Lit 3 Object Type Builder (visual schema designer)
+- [ ] Lit 3 Filter Builder (visual condition editor)
 - [ ] Search Bar (semantic + full-text via Milvus)
-- [ ] Graph View (force-directed visualization)
+- [ ] Graph View (Sigma.js force-directed, Lit wrapper)
 - [ ] E2E tests for all UI flows
 
 **Deliverables:** 20+ models, 35 endpoints, 10 MCP tools, Explorer UI
@@ -135,21 +155,21 @@
 
 ## Phase 4: Visual Builders (Weeks 9–14)
 
-### Week 9–10: Scraper Visual Builder
-- [ ] React Flow DAG editor for scraper workflows
+### Week 9–10: Scraper Visual Builder (Lit 3)
+- [ ] Lit 3 DAG canvas component (custom, no React Flow)
 - [ ] Step types: navigate, click, scroll, extract, paginate, wait, login
 - [ ] Point-and-click element selection (Playwright overlay)
 - [ ] Live preview of extraction results
 - [ ] Workflow import/export as JSON
 
-### Week 11–12: Ontology Action Builder
-- [ ] Visual action configuration (parameters, rules, conditions)
+### Week 11–12: Ontology Action Builder (Lit 3)
+- [ ] Lit 3 visual action configuration (parameters, rules, conditions)
 - [ ] Action execution engine (side effects, undo support)
-- [ ] Function editor with Monaco code editor
+- [ ] Lit 3 Monaco code editor wrapper for functions
 - [ ] Function execution sandbox
 
-### Week 13–14: Pipeline Builder
-- [ ] Visual DAG editor for data pipelines
+### Week 13–14: Pipeline Builder (Lit 3 + NiFi)
+- [ ] Lit 3 pipeline builder UI (embed NiFi or custom DAG)
 - [ ] Pipeline nodes: source, transform, filter, aggregate, export
 - [ ] Pipeline execution via Temporal workflows
 - [ ] Pipeline monitoring and logs
@@ -163,12 +183,12 @@
 ### Week 15–16: Row-Level Security + Column Masking
 - [ ] `SecurityPolicy` model (row filters per user/group)
 - [ ] `ColumnMask` model (PII masking rules)
-- [ ] SpiceDB integration for row-level checks
+- [ ] Ranger integration for row-level checks
 - [ ] Query-time column masking in Trino client
 
-### Week 17–18: Unified Catalog + Dashboard Builder
-- [ ] Catalog Explorer UI (browse databases, tables, columns, lineage)
-- [ ] Dashboard builder with chart/table/widget configuration
+### Week 17–18: Unified Catalog + Dashboard Builder (Lit 3)
+- [ ] Lit 3 Catalog Explorer (browse databases, tables, columns, lineage)
+- [ ] Lit 3 dashboard builder with ECharts charts
 - [ ] Dashboard persistence and sharing
 - [ ] Data retention policy engine
 
@@ -227,7 +247,7 @@
 | Risk | Mitigation |
 |------|-----------|
 | CAPTCHA solver reliability | Multi-provider fallback (2Captcha → AntiCaptcha → CapSolver) |
-| Visual builder complexity | Use proven library (React Flow), start simple |
+| Visual builder complexity | Custom Lit canvas, start simple, iterate |
 | MLflow API compatibility | Use MLflow's own test suite for validation |
 | Performance at scale | Load test weekly, optimize early |
 | Scope creep | Strict phase boundaries, no features outside current phase |
