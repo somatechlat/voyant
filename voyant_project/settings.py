@@ -126,6 +126,7 @@ INSTALLED_APPS = [
     "apps.admin_panel",  # Admin Panel API (dashboard, management endpoints)
     "apps.ml_platform",  # ML Platform (experiments, models, serving)
     "apps.intent",  # Intent Engine (LLM-powered intent translation)
+    "apps.llm_providers",  # LLM Provider management (Groq, OpenAI, MiMo, etc.)
 ]
 
 # --- Middleware Configuration ---

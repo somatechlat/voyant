@@ -16,6 +16,7 @@ from apps.search.api import router as search_router
 from apps.sql.api import sql_router
 from apps.admin_panel.api import admin_router
 from apps.intent.api import intent_router
+from apps.llm_providers.api import llm_router
 from apps.ml_platform.api import ml_router
 from apps.ontology.api import ontology_router
 from apps.workflows.api import artifacts_router, jobs_router, presets_router
@@ -54,3 +55,4 @@ api.add_router("/admin", admin_router, tags=["admin"])
 api.add_router("/ontology", ontology_router, tags=["ontology"])
 api.add_router("/ml", ml_router, tags=["ml"])
 api.add_router("/intent", intent_router, tags=["intent"])
+api.add_router("/llm", llm_router, tags=["llm-providers"])
