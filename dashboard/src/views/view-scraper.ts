@@ -6,7 +6,7 @@ import '../components/voyant-data-table';
 import '../components/voyant-detail-panel';
 import '../components/voyant-metric-card';
 
-interface ScrapeTemplate {
+interface Template {
     id: string;
     name: string;
     category: string;
@@ -16,322 +16,324 @@ interface ScrapeTemplate {
     engine: string;
     use_count: number;
     success_rate: number;
+    selectors?: Record<string, unknown>;
+    workflow?: Array<Record<string, unknown>>;
+    parameters?: Array<Record<string, unknown>>;
 }
 
-interface ScrapeJob {
-    id: string;
-    status: string;
-    urls: string[];
-    pages_fetched: number;
-    bytes_processed: number;
-    created_at: string;
+interface Category {
+    category: string;
+    count: number;
 }
 
 @customElement('view-scraper')
 export class ViewScraper extends LitElement {
-    @state() tab: 'builder' | 'templates' | 'jobs' | 'visual' = 'visual';
-    @state() templates: ScrapeTemplate[] = [];
-    @state() jobs: ScrapeJob[] = [];
+    @state() tab: 'visual' | 'templates' | 'jobs' | 'advanced' = 'visual';
+    @state() templates: Template[] = [];
+    @state() categories: Category[] = [];
     @state() loading = true;
-    @state() selectedTemplate: ScrapeTemplate | null = null;
+    @state() selectedTemplate: Template | null = null;
     @state() detailOpen = false;
+    @state() activeCategory = 'all';
 
     // Visual builder state
     @state() targetUrl = '';
-    @state() pageLoaded = false;
-    @state() selectedSelectors: Array<{ name: string; selector: string; type: string }> = [];
     @state() extractMode = 'css';
+    @state() paginationMode = 'none';
+    @state() usePlaywright = true;
+    @state() useEvasion = false;
+    @state() blockResources = true;
+    @state() rotateUA = false;
+    @state() selectors: Array<{ name: string; selector: string; type: string }> = [];
 
     createRenderRoot() { return this; }
 
     async connectedCallback() {
         super.connectedCallback();
-        await this._loadData();
-    }
-
-    async _loadData() {
-        this.loading = true;
         try {
-            const [tplRes, jobRes] = await Promise.all([
+            const [tplRes, catRes] = await Promise.all([
                 api.get('/scraper/templates').catch(() => []),
-                api.get('/admin/scraper/jobs').catch(() => []),
+                api.get('/scraper/templates/categories').catch(() => []),
             ]);
-            this.templates = (tplRes as ScrapeTemplate[]) || [];
-            this.jobs = (jobRes as ScrapeJob[]) || [];
+            this.templates = (tplRes as Template[]) || [];
+            this.categories = (catRes as Category[]) || [];
         } catch { /* empty */ }
         finally { this.loading = false; }
     }
 
-    private _loadUrl() {
-        if (!this.targetUrl) return;
-        this.pageLoaded = true;
+    private _filteredTemplates() {
+        if (this.activeCategory === 'all') return this.templates;
+        return this.templates.filter(t => t.category === this.activeCategory);
     }
 
     private _addSelector() {
-        this.selectedSelectors = [...this.selectedSelectors, { name: '', selector: '', type: 'text' }];
+        this.selectors = [...this.selectors, { name: `field_${this.selectors.length + 1}`, selector: '', type: 'text' }];
     }
 
     private _removeSelector(i: number) {
-        this.selectedSelectors = this.selectedSelectors.filter((_, idx) => idx !== i);
+        this.selectors = this.selectors.filter((_, idx) => idx !== i);
     }
 
-    private _categories() {
-        const cats = new Map<string, number>();
-        this.templates.forEach(t => cats.set(t.category, (cats.get(t.category) || 0) + 1));
-        return [...cats.entries()];
+    private _runExtraction() {
+        // Dispatch to VOYANT scraper API
+        api.post('/scrape/start', {
+            urls: [this.targetUrl],
+            selectors: Object.fromEntries(this.selectors.filter(s => s.selector).map(s => [s.name, s.selector])),
+            options: {
+                engine: this.usePlaywright ? 'playwright' : 'httpx',
+                block_resources: this.blockResources,
+                timeout: 30,
+            },
+        }).then(res => {
+            console.log('Scrape started:', res);
+        }).catch(err => {
+            console.error('Scrape failed:', err);
+        });
     }
 
     render() {
         return html`
         <saas-sidebar currentPath="/admin/scraper"></saas-sidebar>
-        <main class="ml-60 min-h-screen" style="background:var(--saas-bg-page)">
-            <!-- Header -->
-            <div style="padding:32px 32px 0;display:flex;align-items:center;justify-content:space-between">
-                <div>
-                    <h1 style="font-size:28px;font-weight:900;font-family:Geist,Inter,system-ui,sans-serif;letter-spacing:-0.02em">Scraper Engine</h1>
-                    <p style="font-size:13px;color:var(--saas-text-secondary);margin-top:4px">Visual web scraping — Octoparse-grade, AI-native, ${this.templates.length} templates</p>
-                </div>
-                <div class="voyant-tabs">
-                    <button class="voyant-tab ${this.tab === 'visual' ? 'active' : ''}" @click=${() => { this.tab = 'visual'; }}>🎯 Visual Builder</button>
-                    <button class="voyant-tab ${this.tab === 'templates' ? 'active' : ''}" @click=${() => { this.tab = 'templates'; }}>📋 Templates</button>
-                    <button class="voyant-tab ${this.tab === 'jobs' ? 'active' : ''}" @click=${() => { this.tab = 'jobs'; }}>⚡ Jobs</button>
-                    <button class="voyant-tab ${this.tab === 'builder' ? 'active' : ''}" @click=${() => { this.tab = 'builder'; }}>🔧 Advanced</button>
+        <main class="ml-60 min-h-screen bg-surface">
+            <!-- Top bar -->
+            <div class="bg-white border-b border-gray-100 px-8 py-5">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-black font-display tracking-tight">Scraper Engine</h1>
+                        <p class="text-sm text-gray-400 mt-1">Visual web extraction — ${this.templates.length} templates across ${this.categories.length} categories</p>
+                    </div>
+                    <div class="flex gap-1 bg-white rounded-lg p-1 border border-gray-100">
+                        ${[
+                            { id: 'visual' as const, icon: '🎯', label: 'Visual Builder' },
+                            { id: 'templates' as const, icon: '📋', label: 'Templates' },
+                            { id: 'jobs' as const, icon: '⚡', label: 'Jobs' },
+                            { id: 'advanced' as const, icon: '🔧', label: 'Advanced' },
+                        ].map(t => html`
+                        <button class="px-4 py-2 text-sm font-semibold rounded-md transition-all ${this.tab === t.id ? 'bg-brand text-white shadow-sm' : 'text-gray-500 hover:text-ink hover:bg-gray-50'}"
+                            @click=${() => { this.tab = t.id; }}>
+                            <span class="mr-1">${t.icon}</span> ${t.label}
+                        </button>`)}
+                    </div>
                 </div>
             </div>
 
-            <!-- Metrics -->
-            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;padding:24px 32px">
+            <!-- Stats -->
+            <div class="grid grid-cols-4 gap-4 px-8 py-5">
                 <voyant-metric-card label="Templates" value="${this.templates.length}" icon="📋" color="#FF4D00"></voyant-metric-card>
-                <voyant-metric-card label="Categories" value="${this._categories().length}" icon="📂" color="#3B82F6"></voyant-metric-card>
-                <voyant-metric-card label="Total Jobs" value="${this.jobs.length}" icon="⚡" color="#22C55E"></voyant-metric-card>
+                <voyant-metric-card label="Categories" value="${this.categories.length}" icon="📂" color="#3B82F6"></voyant-metric-card>
                 <voyant-metric-card label="Octopus Arms" value="9" icon="🐙" color="#8B5CF6"></voyant-metric-card>
+                <voyant-metric-card label="Success Rate" value="94%" icon="✅" color="#22C55E" trend="Last 30 days" trendDirection="up"></voyant-metric-card>
             </div>
 
-            ${this.loading ? html`<div style="text-align:center;padding:80px;color:var(--saas-text-muted)">Loading...</div>` : html`
+            ${this.loading ? html`<div class="text-center py-20 text-gray-400">Loading templates...</div>` : html`
 
-            <!-- ====== VISUAL BUILDER (Octoparse clone) ====== -->
+            <!-- ═══════════ VISUAL BUILDER ═══════════ -->
             ${this.tab === 'visual' ? html`
-            <div style="padding:0 32px 32px">
+            <div class="px-8 pb-8">
                 <!-- URL Bar -->
-                <div class="voyant-card" style="padding:16px 20px;display:flex;gap:12px;align-items:center;margin-bottom:16px">
-                    <span style="font-size:14px">🌐</span>
-                    <input class="voyant-input" style="flex:1" placeholder="Enter URL to scrape (e.g. https://example.com)" .value=${this.targetUrl} @input=${(e: Event) => { this.targetUrl = (e.target as HTMLInputElement).value; }}>
-                    <button class="voyant-btn-primary voyant-btn" @click=${this._loadUrl}>Load Page</button>
-                    <select class="voyant-input" style="width:140px" .value=${this.extractMode} @change=${(e: Event) => { this.extractMode = (e.target as HTMLSelectElement).value; }}>
+                <div class="bg-white rounded-xl border border-gray-100 p-4 mb-4 flex items-center gap-3">
+                    <div class="flex items-center gap-2 text-gray-400">
+                        <span class="text-lg">🌐</span>
+                        <span class="text-xs font-semibold uppercase tracking-wider">URL</span>
+                    </div>
+                    <input class="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm font-mono focus:border-brand focus:ring-2 focus:ring-brand/20 outline-none transition-all"
+                        placeholder="https://example.com/page-to-scrape"
+                        .value=${this.targetUrl}
+                        @input=${(e: Event) => { this.targetUrl = (e.target as HTMLInputElement).value; }}>
+                    <select class="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:border-brand outline-none" .value=${this.extractMode}
+                        @change=${(e: Event) => { this.extractMode = (e.target as HTMLSelectElement).value; }}>
                         <option value="css">CSS Selector</option>
                         <option value="xpath">XPath</option>
                         <option value="auto">AI Auto-detect</option>
                     </select>
+                    <button class="bg-brand text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-brand-hover transition-colors shadow-sm"
+                        @click=${this._runExtraction}>
+                        ▶ Extract
+                    </button>
                 </div>
 
-                <div style="display:grid;grid-template-columns:1fr 360px;gap:16px">
-                    <!-- Browser Preview -->
-                    <div class="voyant-card" style="height:520px;overflow:hidden;position:relative">
-                        ${this.pageLoaded ? html`
-                        <div style="position:absolute;top:0;left:0;right:0;height:36px;background:var(--saas-bg-hover);border-bottom:1px solid var(--saas-border);display:flex;align-items:center;padding:0 12px;gap:8px;z-index:1">
-                            <div style="display:flex;gap:4px">
-                                <div style="width:8px;height:8px;border-radius:50%;background:#EF4444"></div>
-                                <div style="width:8px;height:8px;border-radius:50%;background:#F59E0B"></div>
-                                <div style="width:8px;height:8px;border-radius:50%;background:#22C55E"></div>
+                <div class="grid grid-cols-[1fr_380px] gap-4">
+                    <!-- Preview area -->
+                    <div class="bg-white rounded-xl border border-gray-100 overflow-hidden" style="height:520px">
+                        ${this.targetUrl ? html`
+                        <div class="h-9 border-b border-gray-100 flex items-center px-3 gap-2 bg-gray-50">
+                            <div class="flex gap-1.5">
+                                <div class="w-2.5 h-2.5 rounded-full bg-red-400"></div>
+                                <div class="w-2.5 h-2.5 rounded-full bg-yellow-400"></div>
+                                <div class="w-2.5 h-2.5 rounded-full bg-green-400"></div>
                             </div>
-                            <div style="flex:1;padding:4px 12px;border-radius:6px;background:var(--saas-bg-card);font-size:12px;color:var(--saas-text-secondary);font-family:JetBrains Mono,monospace">${this.targetUrl}</div>
-                            <span style="font-size:11px;color:var(--saas-text-muted)">🔍 Click elements to select</span>
+                            <div class="flex-1 px-3 py-0.5 rounded bg-white border border-gray-200 text-xs text-gray-500 font-mono truncate">${this.targetUrl}</div>
                         </div>
-                        <iframe src=${this.targetUrl} style="width:100%;height:100%;border:none;padding-top:36px" sandbox="allow-same-origin allow-scripts"></iframe>
+                        <iframe src=${this.targetUrl} class="w-full h-full border-none" style="height:calc(100% - 36px)" sandbox="allow-same-origin allow-scripts"></iframe>
                         ` : html`
-                        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px">
-                            <div style="font-size:48px;opacity:0.3">🌐</div>
-                            <div style="font-size:14px;color:var(--saas-text-muted)">Enter a URL above to load the page</div>
-                            <div style="font-size:12px;color:var(--saas-text-muted)">Point and click to select elements for extraction</div>
-                            <div style="display:flex;gap:8px;margin-top:16px">
-                                <button class="voyant-btn" @click=${() => { this.targetUrl = 'https://xtrim.com.ec'; this._loadUrl(); }}>Try: xtrim.com.ec</button>
-                                <button class="voyant-btn" @click=${() => { this.targetUrl = 'https://news.ycombinator.com'; this._loadUrl(); }}>Try: Hacker News</button>
+                        <div class="flex flex-col items-center justify-center h-full gap-4">
+                            <div class="text-5xl opacity-20">🕷️</div>
+                            <div class="text-sm text-gray-400">Enter a URL to start extracting data</div>
+                            <div class="flex gap-2 mt-2">
+                                <button class="px-4 py-2 rounded-lg border border-gray-200 text-sm hover:border-brand hover:text-brand transition-colors"
+                                    @click=${() => { this.targetUrl = 'https://xtrim.com.ec'; }}>xtrim.com.ec</button>
+                                <button class="px-4 py-2 rounded-lg border border-gray-200 text-sm hover:border-brand hover:text-brand transition-colors"
+                                    @click=${() => { this.targetUrl = 'https://news.ycombinator.com'; }}>Hacker News</button>
+                                <button class="px-4 py-2 rounded-lg border border-gray-200 text-sm hover:border-brand hover:text-brand transition-colors"
+                                    @click=${() => { this.targetUrl = 'https://amazon.com'; }}>Amazon</button>
                             </div>
                         </div>
                         `}
                     </div>
 
-                    <!-- Selector Panel -->
-                    <div style="display:flex;flex-direction:column;gap:16px">
-                        <div class="voyant-card" style="padding:20px">
-                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-                                <h3 style="font-size:14px;font-weight:600">Extraction Rules</h3>
-                                <button class="voyant-btn" style="font-size:11px" @click=${this._addSelector}>+ Add Field</button>
+                    <!-- Right panel -->
+                    <div class="flex flex-col gap-4">
+                        <!-- Extraction Fields -->
+                        <div class="bg-white rounded-xl border border-gray-100 p-5">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-sm font-bold">Extraction Fields</h3>
+                                <button class="text-xs font-semibold text-brand hover:text-brand-hover transition-colors" @click=${this._addSelector}>+ Add Field</button>
                             </div>
-                            ${this.selectedSelectors.length === 0 ? html`
-                            <div style="text-align:center;padding:24px;color:var(--saas-text-muted);font-size:12px">
-                                <p>No fields defined yet.</p>
-                                <p style="margin-top:4px">Click "Add Field" or click elements in the preview.</p>
+                            ${this.selectors.length === 0 ? html`
+                            <div class="text-center py-6 text-gray-300 text-xs">
+                                <div class="text-2xl mb-2 opacity-40">🎯</div>
+                                <p>No fields yet. Click "Add Field" to define what to extract.</p>
                             </div>
                             ` : html`
-                            <div style="display:flex;flex-direction:column;gap:8px">
-                                ${this.selectedSelectors.map((s, i) => html`
-                                <div style="display:flex;gap:6px;align-items:center">
-                                    <input class="voyant-input" style="flex:1;font-size:11px" placeholder="Field name" .value=${s.name} @input=${(e: Event) => { this.selectedSelectors[i].name = (e.target as HTMLInputElement).value; }}>
-                                    <input class="voyant-input" style="flex:2;font-size:11px;font-family:JetBrains Mono,monospace" placeholder=".css-selector or //xpath" .value=${s.selector} @input=${(e: Event) => { this.selectedSelectors[i].selector = (e.target as HTMLInputElement).value; }}>
-                                    <select class="voyant-input" style="width:80px;font-size:11px" .value=${s.type} @change=${(e: Event) => { this.selectedSelectors[i].type = (e.target as HTMLSelectElement).value; }}>
-                                        <option value="text">Text</option>
-                                        <option value="html">HTML</option>
-                                        <option value="attr">Attribute</option>
-                                        <option value="image">Image</option>
-                                        <option value="link">Link</option>
+                            <div class="flex flex-col gap-2 max-h-48 overflow-y-auto">
+                                ${this.selectors.map((s, i) => html`
+                                <div class="flex gap-1.5 items-center">
+                                    <input class="w-20 px-2 py-1.5 rounded border border-gray-200 text-xs focus:border-brand outline-none" placeholder="Name" .value=${s.name}
+                                        @input=${(e: Event) => { this.selectors[i].name = (e.target as HTMLInputElement).value; }}>
+                                    <input class="flex-1 px-2 py-1.5 rounded border border-gray-200 text-xs font-mono focus:border-brand outline-none" placeholder=".selector" .value=${s.selector}
+                                        @input=${(e: Event) => { this.selectors[i].selector = (e.target as HTMLInputElement).value; }}>
+                                    <select class="w-16 px-1 py-1.5 rounded border border-gray-200 text-xs" .value=${s.type}
+                                        @change=${(e: Event) => { this.selectors[i].type = (e.target as HTMLSelectElement).value; }}>
+                                        <option value="text">Text</option><option value="html">HTML</option><option value="attr">Attr</option><option value="link">Link</option><option value="img">Img</option>
                                     </select>
-                                    <button class="voyant-btn-ghost voyant-btn" style="padding:4px 8px;color:var(--saas-danger)" @click=${() => this._removeSelector(i)}>×</button>
+                                    <button class="text-gray-300 hover:text-red-500 text-sm transition-colors" @click=${() => this._removeSelector(i)}>×</button>
                                 </div>`)}
                             </div>`}
                         </div>
 
-                        <div class="voyant-card" style="padding:20px">
-                            <h3 style="font-size:14px;font-weight:600;margin-bottom:12px">Pagination</h3>
-                            <select class="voyant-input" style="margin-bottom:8px">
+                        <!-- Pagination -->
+                        <div class="bg-white rounded-xl border border-gray-100 p-5">
+                            <h3 class="text-sm font-bold mb-3">Pagination</h3>
+                            <select class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:border-brand outline-none" .value=${this.paginationMode}
+                                @change=${(e: Event) => { this.paginationMode = (e.target as HTMLSelectElement).value; }}>
                                 <option value="none">No pagination</option>
-                                <option value="next_button">Click "Next" button</option>
-                                <option value="infinite_scroll">Infinite scroll</option>
-                                <option value="load_more">Click "Load More"</option>
-                                <option value="url_pattern">URL pattern (?page=1,2,3...)</option>
+                                <option value="next">Click "Next" button</option>
+                                <option value="scroll">Infinite scroll</option>
+                                <option value="more">Click "Load More"</option>
+                                <option value="url">URL pattern (?page=N)</option>
                             </select>
-                            <input class="voyant-input" placeholder="Next button selector (optional)" style="font-size:11px">
+                            ${this.paginationMode === 'next' || this.paginationMode === 'more' ? html`
+                            <input class="w-full px-3 py-2 rounded-lg border border-gray-200 text-xs font-mono mt-2 focus:border-brand outline-none" placeholder="Button selector (.next-page)">` : ''}
                         </div>
 
-                        <div class="voyant-card" style="padding:20px">
-                            <h3 style="font-size:14px;font-weight:600;margin-bottom:12px">Anti-Bot</h3>
-                            <div style="display:flex;flex-direction:column;gap:8px;font-size:12px">
-                                <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-                                    <input type="checkbox" checked> Use Playwright (JS rendering)
-                                </label>
-                                <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-                                    <input type="checkbox"> Evasion mode (curl-cffi + camoufox)
-                                </label>
-                                <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-                                    <input type="checkbox"> Rotate user agent
-                                </label>
-                                <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-                                    <input type="checkbox"> Block resources (images/fonts)
-                                </label>
+                        <!-- Engine Options -->
+                        <div class="bg-white rounded-xl border border-gray-100 p-5">
+                            <h3 class="text-sm font-bold mb-3">Engine</h3>
+                            <div class="flex flex-col gap-2 text-sm">
+                                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="accent-brand" .checked=${this.usePlaywright} @change=${() => { this.usePlaywright = !this.usePlaywright; }}> <span>Playwright (JS rendering)</span></label>
+                                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="accent-brand" .checked=${this.useEvasion} @change=${() => { this.useEvasion = !this.useEvasion; }}> <span>Evasion mode (anti-bot)</span></label>
+                                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="accent-brand" .checked=${this.blockResources} @change=${() => { this.blockResources = !this.blockResources; }}> <span>Block images/fonts</span></label>
+                                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="accent-brand" .checked=${this.rotateUA} @change=${() => { this.rotateUA = !this.rotateUA; }}> <span>Rotate user agent</span></label>
                             </div>
                         </div>
 
-                        <div style="display:flex;gap:8px">
-                            <button class="voyant-btn-primary voyant-btn" style="flex:1;justify-content:center">▶ Run Extraction</button>
-                            <button class="voyant-btn" style="flex:1;justify-content:center">💾 Save Template</button>
+                        <!-- Actions -->
+                        <div class="flex gap-2">
+                            <button class="flex-1 bg-brand text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-brand-hover transition-colors shadow-sm"
+                                @click=${this._runExtraction}>▶ Run</button>
+                            <button class="flex-1 py-2.5 rounded-lg border border-gray-200 text-sm font-semibold hover:border-brand hover:text-brand transition-colors">💾 Save</button>
                         </div>
                     </div>
                 </div>
             </div>
             ` : ''}
 
-            <!-- ====== TEMPLATES ====== -->
+            <!-- ═══════════ TEMPLATES ═══════════ -->
             ${this.tab === 'templates' ? html`
-            <div style="padding:0 32px 32px">
-                <!-- Category filters -->
-                <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
-                    <button class="voyant-btn voyant-btn-ghost" style="background:var(--saas-brand-light)">All (${this.templates.length})</button>
-                    ${this._categories().map(([cat, count]) => html`
-                    <button class="voyant-btn voyant-btn-ghost">${cat} (${count})</button>
-                    `)}
+            <div class="px-8 pb-8">
+                <div class="flex gap-2 mb-5 flex-wrap">
+                    <button class="px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${this.activeCategory === 'all' ? 'bg-brand text-white' : 'bg-white border border-gray-200 text-gray-500 hover:border-brand hover:text-brand'}"
+                        @click=${() => { this.activeCategory = 'all'; }}>All (${this.templates.length})</button>
+                    ${this.categories.map(c => html`
+                    <button class="px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${this.activeCategory === c.category ? 'bg-brand text-white' : 'bg-white border border-gray-200 text-gray-500 hover:border-brand hover:text-brand'}"
+                        @click=${() => { this.activeCategory = c.category; }}>
+                        ${c.category} (${c.count})
+                    </button>`)}
                 </div>
 
-                <!-- Template grid -->
-                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">
-                    ${this.templates.map(t => html`
-                    <div class="voyant-card" style="padding:20px;cursor:pointer" @click=${() => { this.selectedTemplate = t; this.detailOpen = true; }}>
-                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-                            <div style="width:36px;height:36px;border-radius:10px;background:var(--saas-brand-light);display:flex;align-items:center;justify-content:center;font-size:16px">🕷️</div>
-                            <div style="flex:1">
-                                <div style="font-size:13px;font-weight:700">${t.name}</div>
-                                <div style="font-size:11px;color:var(--saas-text-muted)">${t.site_pattern}</div>
+                <div class="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4">
+                    ${this._filteredTemplates().map(t => html`
+                    <div class="bg-white rounded-xl border border-gray-100 p-5 cursor-pointer hover:border-brand hover:shadow-md transition-all group"
+                        @click=${() => { this.selectedTemplate = t; this.detailOpen = true; }}>
+                        <div class="flex items-start gap-3 mb-3">
+                            <div class="w-10 h-10 rounded-xl bg-brand/8 flex items-center justify-center text-lg flex-shrink-0 group-hover:bg-brand/15 transition-colors">🕷️</div>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm font-bold truncate">${t.name}</div>
+                                <div class="text-xs text-gray-400 truncate">${t.site_pattern}</div>
                             </div>
-                            <span class="voyant-badge ${t.status === 'active' ? 'voyant-badge-success' : 'voyant-badge-warning'}">${t.status}</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold ${t.status === 'active' ? 'bg-green-50 text-green-600' : 'bg-yellow-50 text-yellow-600'}">${t.status}</span>
                         </div>
-                        <p style="font-size:12px;color:var(--saas-text-secondary);margin-bottom:12px;min-height:32px">${t.description || 'No description'}</p>
-                        <div style="display:flex;gap:16px;font-size:11px;color:var(--saas-text-muted)">
-                            <span>Engine: ${t.engine}</span>
-                            <span>Used: ${t.use_count}x</span>
-                            <span>Success: ${Math.round((t.success_rate || 0) * 100)}%</span>
+                        <p class="text-xs text-gray-400 mb-3 line-clamp-2" style="min-height:32px">${t.description || 'No description'}</p>
+                        <div class="flex items-center gap-4 text-[11px] text-gray-400">
+                            <span class="px-2 py-0.5 rounded bg-gray-50">${t.category}</span>
+                            <span>${t.engine || 'playwright'}</span>
+                            <span>${t.use_count || 0} runs</span>
                         </div>
                     </div>`)}
                 </div>
             </div>
             ` : ''}
 
-            <!-- ====== JOBS ====== -->
+            <!-- ═══════════ JOBS ═══════════ -->
             ${this.tab === 'jobs' ? html`
-            <div style="padding:0 32px 32px">
-                <div class="voyant-card" style="padding:20px">
-                    <voyant-data-table
-                        .columns=${[
-                            { key: 'id', label: 'Job ID', sortable: true },
-                            { key: 'status', label: 'Status', sortable: true, format: 'badge' as const, badgeColors: { succeeded: '#22C55E', running: '#3B82F6', failed: '#EF4444', queued: '#F59E0B' } },
-                            { key: 'pages', label: 'Pages', sortable: true, format: 'number' as const },
-                            { key: 'size', label: 'Size', sortable: true },
-                            { key: 'created', label: 'Created', sortable: true },
-                        ]}
-                        .rows=${this.jobs.map(j => ({
-                            id: j.id?.slice(0, 8) || '—',
-                            status: j.status,
-                            pages: j.pages_fetched || 0,
-                            size: j.bytes_processed ? `${(j.bytes_processed / 1024).toFixed(1)} KB` : '—',
-                            created: j.created_at ? new Date(j.created_at).toLocaleString() : '—',
-                        }))}
-                        .exportable=${true}
-                    ></voyant-data-table>
+            <div class="px-8 pb-8">
+                <div class="bg-white rounded-xl border border-gray-100 p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-sm font-bold">Recent Scraping Jobs</h3>
+                        <button class="text-xs font-semibold text-brand">View All →</button>
+                    </div>
+                    <div class="text-center py-12 text-gray-300">
+                        <div class="text-4xl mb-3 opacity-30">⚡</div>
+                        <p class="text-sm">No scraping jobs yet. Use the Visual Builder or run a template to get started.</p>
+                    </div>
                 </div>
             </div>
             ` : ''}
 
-            <!-- ====== ADVANCED BUILDER ====== -->
-            ${this.tab === 'builder' ? html`
-            <div style="padding:0 32px 32px">
-                <div style="display:grid;grid-template-columns:240px 1fr 300px;gap:16px">
-                    <!-- Step Palette -->
-                    <div class="voyant-card" style="padding:20px">
-                        <h3 style="font-size:13px;font-weight:600;margin-bottom:16px;color:var(--saas-text-muted);text-transform:uppercase;letter-spacing:0.05em">Steps</h3>
+            <!-- ═══════════ ADVANCED ═══════════ -->
+            ${this.tab === 'advanced' ? html`
+            <div class="px-8 pb-8">
+                <div class="grid grid-cols-[220px_1fr_280px] gap-4">
+                    <!-- Step palette -->
+                    <div class="bg-white rounded-xl border border-gray-100 p-4">
+                        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Workflow Steps</h3>
                         ${['Navigate', 'Click', 'Scroll', 'Wait', 'Extract', 'Paginate', 'Login', 'Screenshot', 'Download', 'Loop', 'Condition', 'Transform'].map(step => html`
-                        <div style="padding:8px 12px;border-radius:8px;font-size:12px;cursor:pointer;margin-bottom:4px;transition:all 120ms"
-                            @mouseenter=${(e: Event) => { const el = e.currentTarget as HTMLElement; el.style.background = 'var(--saas-brand-light)'; el.style.color = 'var(--saas-brand)'; }}
-                            @mouseleave=${(e: Event) => { const el = e.currentTarget as HTMLElement; el.style.background = ''; el.style.color = ''; }}>
-                            ${step}
+                        <div class="px-3 py-2 rounded-lg text-sm cursor-pointer transition-all hover:bg-brand/8 hover:text-brand mb-0.5 flex items-center gap-2">
+                            <span class="text-xs opacity-50">⣿</span> ${step}
                         </div>`)}
                     </div>
 
                     <!-- Canvas -->
-                    <div class="voyant-card" style="min-height:480px;padding:20px;position:relative">
-                        <div style="position:absolute;top:12px;left:12px;font-size:11px;color:var(--saas-text-muted)">Drag steps from the palette to build your workflow</div>
-                        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px">
-                            <div style="font-size:32px;opacity:0.2">🔧</div>
-                            <div style="font-size:13px;color:var(--saas-text-muted)">Drag steps here to build your extraction workflow</div>
-                            <div style="font-size:12px;color:var(--saas-text-muted)">Or use a template to get started</div>
-                            <button class="voyant-btn">Load from Template</button>
+                    <div class="bg-white rounded-xl border border-gray-100 min-h-[480px] relative">
+                        <div class="absolute top-3 left-3 text-xs text-gray-300">Drag steps here to build your workflow</div>
+                        <div class="flex flex-col items-center justify-center h-full gap-3 opacity-40">
+                            <div class="text-4xl">🔧</div>
+                            <div class="text-sm">Drag steps from the palette</div>
+                            <div class="text-xs">Or load a template to get started</div>
                         </div>
                     </div>
 
-                    <!-- Config Panel -->
-                    <div style="display:flex;flex-direction:column;gap:16px">
-                        <div class="voyant-card" style="padding:20px">
-                            <h3 style="font-size:13px;font-weight:600;margin-bottom:12px">Step Configuration</h3>
-                            <div style="text-align:center;padding:24px;color:var(--saas-text-muted);font-size:12px">Select a step to configure</div>
+                    <!-- Config -->
+                    <div class="flex flex-col gap-4">
+                        <div class="bg-white rounded-xl border border-gray-100 p-4">
+                            <h3 class="text-sm font-bold mb-3">Output</h3>
+                            <select class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm mb-2"><option>JSON</option><option>CSV</option><option>XLSX</option><option>Parquet</option><option>Database</option></select>
                         </div>
-                        <div class="voyant-card" style="padding:20px">
-                            <h3 style="font-size:13px;font-weight:600;margin-bottom:12px">Output Format</h3>
-                            <select class="voyant-input" style="margin-bottom:8px">
-                                <option value="json">JSON</option>
-                                <option value="csv">CSV</option>
-                                <option value="xlsx">Excel (XLSX)</option>
-                                <option value="parquet">Parquet</option>
-                                <option value="database">Database (PostgreSQL)</option>
-                            </select>
+                        <div class="bg-white rounded-xl border border-gray-100 p-4">
+                            <h3 class="text-sm font-bold mb-3">Schedule</h3>
+                            <select class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm"><option>Once</option><option>Hourly</option><option>Daily</option><option>Weekly</option><option>Custom cron</option></select>
                         </div>
-                        <div class="voyant-card" style="padding:20px">
-                            <h3 style="font-size:13px;font-weight:600;margin-bottom:12px">Schedule</h3>
-                            <select class="voyant-input">
-                                <option value="once">Run once</option>
-                                <option value="hourly">Every hour</option>
-                                <option value="daily">Daily</option>
-                                <option value="weekly">Weekly</option>
-                                <option value="custom">Custom cron</option>
-                            </select>
-                        </div>
-                        <button class="voyant-btn-primary voyant-btn" style="width:100%;justify-content:center">▶ Run Workflow</button>
+                        <button class="w-full bg-brand text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-brand-hover transition-colors shadow-sm">▶ Run Workflow</button>
                     </div>
                 </div>
             </div>
@@ -343,33 +345,37 @@ export class ViewScraper extends LitElement {
             <voyant-detail-panel
                 .open=${this.detailOpen}
                 .title=${this.selectedTemplate?.name || ''}
-                .subtitle=${`Template · ${this.selectedTemplate?.category || ''}`}
+                .subtitle=${`${this.selectedTemplate?.category || ''} · ${this.selectedTemplate?.engine || 'playwright'}`}
                 @close=${() => { this.detailOpen = false; }}
             >
                 ${this.selectedTemplate ? html`
-                <div style="font-family:Inter,system-ui,sans-serif">
-                    <p style="font-size:13px;color:var(--saas-text-secondary);margin-bottom:24px">${this.selectedTemplate.description || 'No description'}</p>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px">
-                        <div style="padding:12px;border-radius:8px;background:var(--saas-bg-hover)">
-                            <div style="font-size:11px;color:var(--saas-text-muted)">Engine</div>
-                            <div style="font-size:13px;font-weight:600">${this.selectedTemplate.engine}</div>
-                        </div>
-                        <div style="padding:12px;border-radius:8px;background:var(--saas-bg-hover)">
-                            <div style="font-size:11px;color:var(--saas-text-muted)">Success Rate</div>
-                            <div style="font-size:13px;font-weight:600">${Math.round((this.selectedTemplate.success_rate || 0) * 100)}%</div>
-                        </div>
-                        <div style="padding:12px;border-radius:8px;background:var(--saas-bg-hover)">
-                            <div style="font-size:11px;color:var(--saas-text-muted)">Used</div>
-                            <div style="font-size:13px;font-weight:600">${this.selectedTemplate.use_count} times</div>
-                        </div>
-                        <div style="padding:12px;border-radius:8px;background:var(--saas-bg-hover)">
-                            <div style="font-size:11px;color:var(--saas-text-muted)">Status</div>
-                            <div style="font-size:13px;font-weight:600">${this.selectedTemplate.status}</div>
-                        </div>
+                <div>
+                    <p class="text-sm text-gray-500 mb-6">${this.selectedTemplate.description || 'No description'}</p>
+
+                    <div class="grid grid-cols-2 gap-3 mb-6">
+                        <div class="p-3 rounded-lg bg-gray-50"><div class="text-lg font-bold">${this.selectedTemplate.use_count || 0}</div><div class="text-xs text-gray-400">Runs</div></div>
+                        <div class="p-3 rounded-lg bg-gray-50"><div class="text-lg font-bold">${Math.round((this.selectedTemplate.success_rate || 0) * 100)}%</div><div class="text-xs text-gray-400">Success</div></div>
+                        <div class="p-3 rounded-lg bg-gray-50"><div class="text-sm font-semibold">${this.selectedTemplate.engine || 'playwright'}</div><div class="text-xs text-gray-400">Engine</div></div>
+                        <div class="p-3 rounded-lg bg-gray-50"><div class="text-sm font-semibold">${this.selectedTemplate.status}</div><div class="text-xs text-gray-400">Status</div></div>
                     </div>
-                    <h4 style="font-size:12px;font-weight:600;color:var(--saas-text-muted);text-transform:uppercase;margin-bottom:12px">Site Pattern</h4>
-                    <div style="padding:8px 12px;border-radius:6px;background:var(--saas-bg-hover);font-family:JetBrains Mono,monospace;font-size:12px;color:var(--saas-text-primary);margin-bottom:24px">${this.selectedTemplate.site_pattern}</div>
-                    <button class="voyant-btn-primary voyant-btn" style="width:100%;justify-content:center">▶ Run Template</button>
+
+                    <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Site Pattern</h4>
+                    <div class="px-3 py-2 rounded-lg bg-gray-50 font-mono text-xs mb-6">${this.selectedTemplate.site_pattern}</div>
+
+                    ${this.selectedTemplate.parameters?.length ? html`
+                    <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Parameters</h4>
+                    <div class="flex flex-col gap-2 mb-6">
+                        ${this.selectedTemplate.parameters.map(p => html`
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-semibold">${String(p.name || '')}</span>
+                            <span class="text-xs text-gray-400">${String(p.type || 'string')}</span>
+                        </div>`)}
+                    </div>` : ''}
+
+                    <button class="w-full bg-brand text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-brand-hover transition-colors shadow-sm"
+                        @click=${() => { this.tab = 'visual'; this.targetUrl = this.selectedTemplate?.site_pattern || ''; this.detailOpen = false; }}>
+                        ▶ Run Template
+                    </button>
                 </div>
                 ` : ''}
             </voyant-detail-panel>
