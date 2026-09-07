@@ -263,81 +263,140 @@ def _start_workflow_sync(workflow_run, args, workflow_id, task_queue):
 
 
 def _run_inline(job, urls, selectors, options):
-    """Fallback: run scraping inline when Temporal is unavailable. Synchronous only."""
+    """Fallback: execute full workflow inline with Playwright. Runs in a thread."""
+
     from apps.scraper.models import ScrapeJob
 
-    try:
-        import httpx
+    def _execute():
+        # Phase 1: Run Playwright (collects data, no Django ORM calls inside)
+        scrape_result = {"status": "failed", "results": {}, "html": "", "bytes": 0, "error": ""}
 
-        url = urls[0] if urls else ""
-        if not url:
-            job.status = ScrapeJob.Status.FAILED
-            job.error_message = "No URL"
-            job.save(update_fields=["status", "error_message"])
-            return
+        try:
+            from playwright.sync_api import sync_playwright
 
-        timeout = options.get("timeout", 30)
+            url = urls[0] if urls else ""
+            if not url:
+                scrape_result["error"] = "No URL"
+                return scrape_result
 
-        response = httpx.get(
-            url,
-            timeout=timeout,
-            follow_redirects=True,
-            headers={
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                "Accept-Language": "en-US,en;q=0.5",
-            },
-        )
-        html = response.text
+            workflow_steps = options.get("workflow", [])
+            timeout_ms = options.get("timeout", 30) * 1000
 
-        from lxml import html as lxml_html
+            with sync_playwright() as pw:
+                browser = pw.chromium.launch(
+                    headless=True,
+                    args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+                )
+                context = browser.new_context(
+                    viewport={"width": 1280, "height": 800},
+                    user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                )
+                page = context.new_page()
 
-        tree = lxml_html.fromstring(html)
-        results = {}
-        for field_name, selector in selectors.items():
-            try:
-                if not selector:
-                    continue
                 try:
-                    elements = tree.cssselect(selector)
-                except Exception:
-                    elements = tree.xpath(selector)
-                if elements:
-                    if len(elements) == 1:
-                        text = elements[0].text_content().strip()[:500]
-                        if elements[0].tag == "a":
-                            href = elements[0].get("href", "")
-                            if href and not text:
-                                text = href
-                        results[field_name] = text
+                    # Execute workflow steps
+                    if workflow_steps:
+                        for step in workflow_steps:
+                            action = step.get("action", "")
+                            if action in ("navigate", "fetch"):
+                                step_url = step.get("url", url)
+                                page.goto(step_url, wait_until="domcontentloaded", timeout=timeout_ms)
+                                try:
+                                    page.wait_for_load_state("networkidle", timeout=10000)
+                                except Exception:
+                                    pass
+                            elif action == "scroll":
+                                for _ in range(step.get("times", 3)):
+                                    page.evaluate("window.scrollBy(0, window.innerHeight)")
+                                    page.wait_for_timeout(step.get("wait_ms", 1500))
+                            elif action == "click":
+                                sel = step.get("selector", "")
+                                if sel:
+                                    try:
+                                        page.click(sel, timeout=5000)
+                                        page.wait_for_timeout(1000)
+                                    except Exception:
+                                        pass
+                            elif action == "wait":
+                                page.wait_for_timeout(step.get("wait_ms", 2000))
+                            elif action == "enter_text":
+                                sel, text = step.get("selector", ""), step.get("text", "")
+                                if sel and text:
+                                    try:
+                                        page.fill(sel, text, timeout=5000)
+                                    except Exception:
+                                        page.type(sel, text, delay=50)
                     else:
-                        results[field_name] = [el.text_content().strip()[:200] for el in elements[:50]]
-                else:
-                    results[field_name] = None
-            except Exception:
-                results[field_name] = None
+                        # No workflow — just navigate to the URL
+                        page.goto(url, wait_until="domcontentloaded", timeout=timeout_ms)
+                        try:
+                            page.wait_for_load_state("networkidle", timeout=10000)
+                        except Exception:
+                            pass
+
+                    html = page.content()
+                    scrape_result["html"] = html
+                    scrape_result["bytes"] = len(html.encode("utf-8"))
+
+                    # Extract data using selectors
+                    if selectors:
+                        results = {}
+                        for field_name, selector in selectors.items():
+                            try:
+                                if not selector:
+                                    continue
+                                elements = page.query_selector_all(selector)
+                                if len(elements) == 1:
+                                    text = elements[0].inner_text().strip()[:500]
+                                    if not text:
+                                        text = elements[0].get_attribute("href") or elements[0].get_attribute("src") or ""
+                                    results[field_name] = text
+                                elif len(elements) > 1:
+                                    results[field_name] = [el.inner_text().strip()[:200] for el in elements[:50]]
+                                else:
+                                    results[field_name] = None
+                            except Exception:
+                                results[field_name] = None
+                        scrape_result["results"] = results
+                    else:
+                        scrape_result["results"] = {"raw_html": html[:5000]}
+
+                    scrape_result["status"] = "succeeded"
+
+                finally:
+                    context.close()
+                    browser.close()
+
+        except Exception as exc:
+            logger.exception("Playwright scrape failed")
+            scrape_result["error"] = str(exc)[:500]
+
+        return scrape_result
+
+    # Phase 2: Save results to Django ORM (outside Playwright's event loop)
+    result = _execute()
+
+    if result["status"] == "succeeded":
+        import json as json_mod
 
         job.status = ScrapeJob.Status.SUCCEEDED
         job.pages_fetched = 1
-        job.bytes_processed = len(response.content)
+        job.bytes_processed = result["bytes"]
         job.save(update_fields=["status", "pages_fetched", "bytes_processed"])
 
-        import json
+        from apps.scraper.models import ScrapeArtifact
 
-        from apps.workflows.models import Artifact
-
-        Artifact.objects.create(
-            job_id=job.job_id,
-            artifact_type="data",
+        ScrapeArtifact.objects.create(
+            job=job,
+            artifact_type="json",
             format="json",
             storage_path=f"scraper/{job.job_id}/result.json",
-            size_bytes=len(json.dumps(results).encode()),
+            source_url=urls[0] if urls else "",
+            size_bytes=len(json_mod.dumps(result["results"]).encode()),
+            metadata={"fields": list(result["results"].keys())},
         )
-
-        logger.info("Inline scrape succeeded for %s: %d fields extracted", url, len(results))
-
-    except Exception as exc:
-        logger.exception("Inline scrape failed for %s", urls)
+        logger.info("Inline scrape succeeded: %d fields", len(result["results"]))
+    else:
         job.status = ScrapeJob.Status.FAILED
-        job.error_message = str(exc)
+        job.error_message = result["error"]
         job.save(update_fields=["status", "error_message"])
