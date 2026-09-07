@@ -11,7 +11,6 @@ interface Source {
     source_type: string;
     status: string;
     created_at: string;
-    datahub_urn: string | null;
     connection_config: Record<string, unknown> | null;
 }
 
@@ -22,6 +21,17 @@ export class ViewSources extends LitElement {
     @state() selectedSource: Source | null = null;
     @state() detailOpen = false;
 
+    // Action state
+    @state() actionTab: 'info' | 'query' | 'search' | 'index' = 'info';
+    @state() sqlQuery = '';
+    @state() sqlResult: Record<string, unknown> | null = null;
+    @state() sqlRunning = false;
+    @state() searchQuery = '';
+    @state() searchResults: Array<Record<string, unknown>> = [];
+    @state() searchRunning = false;
+    @state() indexText = '';
+    @state() indexStatus = '';
+
     // Create form
     @state() showCreate = false;
     @state() createName = '';
@@ -29,16 +39,7 @@ export class ViewSources extends LitElement {
     @state() createHost = '';
     @state() createPort = '5432';
     @state() createDatabase = '';
-    @state() createUser = '';
-    @state() createPassword = '';
     @state() creating = false;
-    @state() createResult = '';
-
-    // Edit state
-    @state() editing = false;
-    @state() editName = '';
-    @state() editConfig = '';
-    @state() editSaving = false;
 
     createRenderRoot() { return this; }
 
@@ -54,246 +55,279 @@ export class ViewSources extends LitElement {
         finally { this.loading = false; }
     }
 
+    // ── Actions ─────────────────────────────────────────────────────────
+
+    openSource(source: Source) {
+        this.selectedSource = source;
+        this.actionTab = 'info';
+        this.sqlResult = null;
+        this.searchResults = [];
+        this.indexStatus = '';
+        this.detailOpen = true;
+
+        // Auto-set SQL query based on source type
+        const cfg = source.connection_config || {};
+        if (source.source_type === 'csv' && cfg.table_name) {
+            this.sqlQuery = `SELECT * FROM ${cfg.table_name} LIMIT 20`;
+        } else if (source.source_type === 'postgresql') {
+            this.sqlQuery = 'SELECT * FROM information_schema.tables LIMIT 20';
+        } else {
+            this.sqlQuery = '';
+        }
+    }
+
+    async runSQL() {
+        if (!this.sqlQuery.trim()) return;
+        this.sqlRunning = true;
+        this.sqlResult = null;
+        try {
+            const res = await api.post('/admin/sql/execute', { sql: this.sqlQuery });
+            this.sqlResult = res as Record<string, unknown>;
+        } catch (e: unknown) {
+            this.sqlResult = { error: (e as Error).message };
+        } finally { this.sqlRunning = false; }
+    }
+
+    async runSearch() {
+        if (!this.searchQuery.trim()) return;
+        this.searchRunning = true;
+        this.searchResults = [];
+        try {
+            this.searchResults = await api.post('/search/query', {
+                query: this.searchQuery,
+                limit: 10,
+            }) as Array<Record<string, unknown>>;
+        } catch { this.searchResults = []; }
+        finally { this.searchRunning = false; }
+    }
+
+    async indexDocument() {
+        if (!this.indexText.trim()) return;
+        try {
+            await api.post('/search/index', {
+                text: this.indexText,
+                metadata: { source: this.selectedSource?.name || '' },
+            });
+            this.indexStatus = 'Indexed successfully';
+            this.indexText = '';
+        } catch { this.indexStatus = 'Indexing failed'; }
+    }
+
     async createSource() {
         if (!this.createName.trim() || !this.createHost.trim()) return;
         this.creating = true;
-        this.createResult = '';
         try {
-            const connection_config: Record<string, string> = {
-                host: this.createHost,
-                port: this.createPort,
-                database: this.createDatabase,
-            };
             await api.post('/sources', {
                 name: this.createName,
                 source_type: this.createType,
-                connection_config,
+                connection_config: { host: this.createHost, port: this.createPort, database: this.createDatabase },
             });
-            this.createResult = 'Source created successfully';
             this.showCreate = false;
             this.createName = '';
             this.createHost = '';
             this.createDatabase = '';
             await this.load();
         } catch (e: unknown) {
-            this.createResult = `Error: ${e instanceof Error ? e.message : 'Failed'}`;
+            alert(`Create failed: ${(e as Error).message}`);
         } finally { this.creating = false; }
     }
 
     async deleteSource(id: string, name: string) {
-        if (!confirm(`Delete source "${name}"? This cannot be undone.`)) return;
+        if (!confirm(`Delete "${name}"?`)) return;
         try {
-            await api.del(`/admin/sources/${id}`);
-            if (this.selectedSource?.source_id === id) {
-                this.detailOpen = false;
-                this.selectedSource = null;
-            }
+            await api.del(`/sources/${id}`);
+            if (this.selectedSource?.source_id === id) { this.detailOpen = false; }
             await this.load();
-        } catch (e: unknown) {
-            alert(`Delete failed: ${e instanceof Error ? e.message : 'Unknown error'}`);
-        }
+        } catch (e: unknown) { alert(`Delete failed: ${(e as Error).message}`); }
     }
 
-    openDetail(source: Source) {
-        this.selectedSource = source;
-        this.editing = false;
-        this.editName = source.name;
-        this.editConfig = JSON.stringify(source.connection_config || {}, null, 2);
-        this.detailOpen = true;
-    }
-
-    async saveEdit() {
-        if (!this.selectedSource) return;
-        this.editSaving = true;
-        try {
-            let config: Record<string, unknown> | undefined;
-            try { config = JSON.parse(this.editConfig); } catch { config = undefined; }
-
-            await api.put(`/sources/${this.selectedSource.source_id}`, {
-                name: this.editName,
-                connection_config: config,
-            });
-            this.editing = false;
-            await this.load();
-            // Refresh selected source
-            this.selectedSource = this.sources.find(s => s.source_id === this.selectedSource?.source_id) || null;
-        } catch (e: unknown) {
-            alert(`Save failed: ${e instanceof Error ? e.message : 'Unknown error'}`);
-        } finally { this.editSaving = false; }
-    }
-
-    private statusColor(s: string): string {
-        if (s === 'active' || s === 'connected') return 'bg-green-50 text-green-700 border-green-200';
-        if (s === 'error' || s === 'failed') return 'bg-red-50 text-red-700 border-red-200';
-        return 'bg-amber-50 text-amber-700 border-amber-200';
-    }
+    // ── Helpers ─────────────────────────────────────────────────────────
 
     private typeIcon(t: string): string {
-        const icons: Record<string, string> = {
+        const m: Record<string, string> = {
             postgresql: '🐘', mysql: '🐬', mongodb: '🍃', csv: '📄',
             s3: '☁️', api: '🔗', trino: '⚡', redis: '🔴',
             elasticsearch: '🔍', milvus: '🧲', kafka: '📡',
             search_engine: '🌐', vector_knowledge: '📚', web: '🕷️',
         };
-        return icons[t] || '🗄️';
+        return m[t] || '🗄️';
+    }
+
+    private statusBadge(s: string) {
+        if (s === 'active' || s === 'connected') return html`<span class="voyant-badge voyant-badge-success">${s}</span>`;
+        if (s === 'error' || s === 'failed') return html`<span class="voyant-badge voyant-badge-danger">${s}</span>`;
+        return html`<span class="voyant-badge voyant-badge-warning">${s}</span>`;
     }
 
     private typeDefaults(t: string) {
-        const d: Record<string, { port: string; placeholder: string }> = {
-            postgresql: { port: '5432', placeholder: 'localhost' },
-            mysql: { port: '3306', placeholder: 'localhost' },
-            mongodb: { port: '27017', placeholder: 'localhost' },
-            csv: { port: '', placeholder: '/path/to/file.csv' },
-            s3: { port: '', placeholder: 's3://bucket/path' },
-            api: { port: '', placeholder: 'https://api.example.com' },
+        const d: Record<string, { port: string; ph: string }> = {
+            postgresql: { port: '5432', ph: 'localhost' },
+            mysql: { port: '3306', ph: 'localhost' },
+            mongodb: { port: '27017', ph: 'localhost' },
+            csv: { port: '', ph: '/path/to/file.csv' },
+            s3: { port: '', ph: 's3://bucket' },
+            api: { port: '', ph: 'https://api.example.com' },
         };
         return d[t] || d.postgresql;
     }
 
+    // ── Render ──────────────────────────────────────────────────────────
+
     render() {
         return html`
         <saas-sidebar currentPath="/admin/sources"></saas-sidebar>
-        <main class="ml-60 min-h-screen bg-surface p-8">
-            <div class="flex items-center justify-between mb-6">
+        <main class="ml-60 min-h-screen" style="background:var(--saas-bg-page)">
+            <!-- Header -->
+            <div style="padding:32px 32px 0;display:flex;align-items:center;justify-content:space-between">
                 <div>
-                    <h1 class="text-2xl font-black font-display tracking-tight">Sources</h1>
-                    <p class="text-sm text-gray-400 mt-1">${this.sources.length} data sources configured</p>
-                    ${this.createResult ? html`<p class="text-sm mt-1 ${this.createResult.startsWith('Error') ? 'text-red-600' : 'text-green-600'}">${this.createResult}</p>` : ''}
+                    <h1 style="font-size:28px;font-weight:900;font-family:Inter,system-ui,sans-serif;letter-spacing:-0.02em">Sources</h1>
+                    <p style="font-size:13px;color:var(--saas-text-secondary);margin-top:4px">${this.sources.length} data sources · Click a source to query, search, or index</p>
                 </div>
-                <button class="px-4 py-2 text-sm font-semibold bg-brand text-white rounded-lg hover:bg-black transition-colors" @click=${() => { this.showCreate = !this.showCreate; }}>+ New Source</button>
+                <button class="voyant-btn voyant-btn-primary" @click=${() => { this.showCreate = !this.showCreate; }}>+ New Source</button>
             </div>
 
-            <!-- Create Source Form -->
+            <!-- Create Form -->
             ${this.showCreate ? html`
-            <div class="bg-white rounded-xl border border-gray-100 p-6 mb-6">
-                <h3 class="text-sm font-semibold text-gray-500 mb-4">Create New Source</h3>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                    <div>
-                        <label class="block text-xs font-medium text-gray-500 mb-1">Name *</label>
-                        <input type="text" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg" placeholder="My Database" .value=${this.createName} @input=${(e: Event) => { this.createName = (e.target as HTMLInputElement).value; }} />
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-500 mb-1">Type</label>
-                        <select class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white" .value=${this.createType} @change=${(e: Event) => { this.createType = (e.target as HTMLSelectElement).value; this.createPort = this.typeDefaults(this.createType).port; }}>
-                            <option value="postgresql">PostgreSQL</option>
-                            <option value="mysql">MySQL</option>
-                            <option value="mongodb">MongoDB</option>
-                            <option value="csv">CSV File</option>
-                            <option value="s3">S3 Bucket</option>
-                            <option value="api">REST API</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-500 mb-1">Host/Path *</label>
-                        <input type="text" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg font-mono" .value=${this.createHost} placeholder=${this.typeDefaults(this.createType).placeholder} @input=${(e: Event) => { this.createHost = (e.target as HTMLInputElement).value; }} />
-                    </div>
-                    ${this.createType !== 'csv' && this.createType !== 's3' && this.createType !== 'api' ? html`
-                    <div>
-                        <label class="block text-xs font-medium text-gray-500 mb-1">Port</label>
-                        <input type="text" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg font-mono" .value=${this.createPort} @input=${(e: Event) => { this.createPort = (e.target as HTMLInputElement).value; }} />
-                    </div>` : html`<div></div>`}
-                </div>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                    ${this.createType !== 'csv' && this.createType !== 's3' ? html`
-                    <div>
-                        <label class="block text-xs font-medium text-gray-500 mb-1">Database</label>
-                        <input type="text" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg font-mono" placeholder="mydb" .value=${this.createDatabase} @input=${(e: Event) => { this.createDatabase = (e.target as HTMLInputElement).value; }} />
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-500 mb-1">Username</label>
-                        <input type="text" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg font-mono" .value=${this.createUser} @input=${(e: Event) => { this.createUser = (e.target as HTMLInputElement).value; }} />
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-500 mb-1">Password</label>
-                        <input type="password" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg" .value=${this.createPassword} @input=${(e: Event) => { this.createPassword = (e.target as HTMLInputElement).value; }} />
-                    </div>` : html`<div></div><div></div><div></div>`}
-                    <div class="flex items-end">
-                        <button class="w-full px-4 py-2 text-sm font-bold bg-brand text-white rounded-lg hover:bg-black transition-colors ${this.creating ? 'opacity-50' : ''}" ?disabled=${this.creating} @click=${() => this.createSource()}>
-                            ${this.creating ? 'Creating...' : 'Create Source'}
-                        </button>
+            <div style="margin:16px 32px;padding:20px;background:var(--saas-bg-card);border:1px solid var(--saas-border);border-radius:12px">
+                <h3 style="font-size:13px;font-weight:600;margin-bottom:12px">Create New Source</h3>
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px">
+                    <div><label style="font-size:11px;color:var(--saas-text-muted);display:block;margin-bottom:4px">Name *</label>
+                    <input class="voyant-input" placeholder="My Database" .value=${this.createName} @input=${(e: Event) => { this.createName = (e.target as HTMLInputElement).value; }}></div>
+                    <div><label style="font-size:11px;color:var(--saas-text-muted);display:block;margin-bottom:4px">Type</label>
+                    <select class="voyant-input" .value=${this.createType} @change=${(e: Event) => { this.createType = (e.target as HTMLSelectElement).value; this.createPort = this.typeDefaults(this.createType).port; }}>
+                        <option value="postgresql">PostgreSQL</option><option value="mysql">MySQL</option><option value="mongodb">MongoDB</option><option value="csv">CSV File</option><option value="s3">S3</option><option value="api">REST API</option>
+                    </select></div>
+                    <div><label style="font-size:11px;color:var(--saas-text-muted);display:block;margin-bottom:4px">Host *</label>
+                    <input class="voyant-input" .value=${this.createHost} placeholder=${this.typeDefaults(this.createType).ph} @input=${(e: Event) => { this.createHost = (e.target as HTMLInputElement).value; }}></div>
+                    <div style="display:flex;align-items:flex-end;gap:8px">
+                        <button class="voyant-btn voyant-btn-primary" ?disabled=${this.creating} @click=${() => this.createSource()}>Create</button>
+                        <button class="voyant-btn" @click=${() => { this.showCreate = false; }}>Cancel</button>
                     </div>
                 </div>
             </div>` : ''}
 
-            <!-- Sources Grid -->
-            ${this.loading ? html`<div class="text-center text-gray-400 py-16">Loading...</div>` : html`
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Source Cards -->
+            ${this.loading ? html`<div style="text-align:center;padding:60px;color:var(--saas-text-muted)">Loading...</div>` : html`
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;padding:0 32px 32px">
                 ${this.sources.map(s => html`
-                <div class="bg-white rounded-xl border border-gray-100 p-5 cursor-pointer hover:border-brand hover:shadow-md transition-all"
-                    @click=${() => this.openDetail(s)}>
-                    <div class="flex items-center gap-3 mb-3">
-                        <div class="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center text-lg">${this.typeIcon(s.source_type)}</div>
-                        <div class="flex-1 min-w-0">
-                            <div class="text-sm font-bold truncate">${s.name}</div>
-                            <div class="text-xs text-gray-400">${s.source_type}</div>
+                <div class="voyant-card" style="padding:20px;cursor:pointer" @click=${() => this.openSource(s)}>
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+                        <div style="width:40px;height:40px;border-radius:10px;background:var(--saas-brand-light);display:flex;align-items:center;justify-content:center;font-size:18px">${this.typeIcon(s.source_type)}</div>
+                        <div style="flex:1;min-width:0">
+                            <div style="font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.name}</div>
+                            <div style="font-size:11px;color:var(--saas-text-muted)">${s.source_type}</div>
                         </div>
-                        <span class="px-2 py-0.5 text-[10px] font-semibold rounded border ${this.statusColor(s.status)}">${s.status}</span>
+                        ${this.statusBadge(s.status)}
                     </div>
-                    <div class="flex items-center gap-3 text-[11px] text-gray-400">
-                        <span>${s.tenant_id}</span>
-                        <span>·</span>
-                        <span>${new Date(s.created_at).toLocaleDateString()}</span>
-                        ${s.connection_config?.description ? html`
-                        <span>·</span>
-                        <span class="truncate">${String(s.connection_config.description).slice(0, 40)}</span>
-                        ` : ''}
+                    ${s.connection_config?.description ? html`
+                    <p style="font-size:12px;color:var(--saas-text-secondary);margin-bottom:8px;line-height:1.4">${String(s.connection_config.description).slice(0, 80)}</p>
+                    ` : ''}
+                    <div style="display:flex;gap:6px;flex-wrap:wrap">
+                        ${['postgresql', 'trino', 'csv', 'web', 'vector_knowledge'].includes(s.source_type) ? html`
+                        <span style="font-size:10px;padding:2px 8px;border-radius:4px;background:var(--saas-info-bg);color:var(--saas-info)">Queryable</span>` : ''}
+                        ${s.source_type === 'vector_knowledge' ? html`
+                        <span style="font-size:10px;padding:2px 8px;border-radius:4px;background:var(--saas-success-bg);color:var(--saas-success)">Searchable</span>` : ''}
+                        ${s.source_type === 'csv' || s.source_type === 'web' ? html`
+                        <span style="font-size:10px;padding:2px 8px;border-radius:4px;background:var(--saas-warning-bg);color:var(--saas-warning)">Indexable</span>` : ''}
                     </div>
                 </div>`)}
-            </div>
-            ${this.sources.length === 0 ? html`<div class="text-center text-gray-400 py-16">No sources configured. Click "+ New Source" to add one.</div>` : ''}
-            `}
+            </div>`}
 
             <!-- Detail Panel -->
             <voyant-detail-panel
                 .open=${this.detailOpen}
                 .title=${this.selectedSource?.name || ''}
                 .subtitle=${this.selectedSource?.source_type || ''}
-                .width=${500}
-                @close=${() => { this.detailOpen = false; this.editing = false; }}
+                .width=${560}
+                @close=${() => { this.detailOpen = false; }}
             >
                 ${this.selectedSource ? html`
                 <div>
-                    <!-- Status badge -->
-                    <div class="flex items-center gap-3 mb-5">
-                        <span class="px-3 py-1 text-xs font-semibold rounded-full border ${this.statusColor(this.selectedSource.status)}">${this.selectedSource.status}</span>
-                        <span class="text-xs text-gray-400">${this.selectedSource.tenant_id}</span>
-                        <span class="text-xs text-gray-400">Created ${new Date(this.selectedSource.created_at).toLocaleString()}</span>
+                    <!-- Action tabs -->
+                    <div class="voyant-tabs" style="margin-bottom:16px">
+                        <button class="voyant-tab ${this.actionTab === 'info' ? 'active' : ''}" @click=${() => { this.actionTab = 'info'; }}>Info</button>
+                        <button class="voyant-tab ${this.actionTab === 'query' ? 'active' : ''}" @click=${() => { this.actionTab = 'query'; }}>SQL Query</button>
+                        <button class="voyant-tab ${this.actionTab === 'search' ? 'active' : ''}" @click=${() => { this.actionTab = 'search'; }}>Search</button>
+                        <button class="voyant-tab ${this.actionTab === 'index' ? 'active' : ''}" @click=${() => { this.actionTab = 'index'; }}>Index</button>
                     </div>
 
-                    ${this.editing ? html`
-                    <!-- Edit mode -->
-                    <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Name</h4>
-                    <input class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm mb-4" .value=${this.editName} @input=${(e: Event) => { this.editName = (e.target as HTMLInputElement).value; }}>
-
-                    <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Connection Config (JSON)</h4>
-                    <textarea class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm font-mono mb-4" rows="10" .value=${this.editConfig} @input=${(e: Event) => { this.editConfig = (e.target as HTMLTextAreaElement).value; }}></textarea>
-
-                    <div class="flex gap-2">
-                        <button class="flex-1 px-4 py-2 text-sm font-bold bg-brand text-white rounded-lg hover:bg-black transition-colors ${this.editSaving ? 'opacity-50' : ''}"
-                            ?disabled=${this.editSaving} @click=${() => this.saveEdit()}>
-                            ${this.editSaving ? 'Saving...' : '💾 Save'}
-                        </button>
-                        <button class="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50" @click=${() => { this.editing = false; }}>Cancel</button>
+                    <!-- INFO TAB -->
+                    ${this.actionTab === 'info' ? html`
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+                        <div style="padding:10px;border-radius:8px;background:var(--saas-bg-hover)"><div style="font-size:11px;color:var(--saas-text-muted)">Type</div><div style="font-size:13px;font-weight:600">${this.selectedSource.source_type}</div></div>
+                        <div style="padding:10px;border-radius:8px;background:var(--saas-bg-hover)"><div style="font-size:11px;color:var(--saas-text-muted)">Status</div><div style="font-size:13px;font-weight:600">${this.selectedSource.status}</div></div>
+                        <div style="padding:10px;border-radius:8px;background:var(--saas-bg-hover)"><div style="font-size:11px;color:var(--saas-text-muted)">Tenant</div><div style="font-size:13px;font-weight:600">${this.selectedSource.tenant_id}</div></div>
+                        <div style="padding:10px;border-radius:8px;background:var(--saas-bg-hover)"><div style="font-size:11px;color:var(--saas-text-muted)">Created</div><div style="font-size:13px;font-weight:600">${new Date(this.selectedSource.created_at).toLocaleDateString()}</div></div>
                     </div>
-                    ` : html`
-                    <!-- View mode -->
-                    <div class="flex gap-2 mb-5">
-                        <button class="px-4 py-2 text-sm font-semibold border border-gray-200 rounded-lg hover:border-brand hover:text-brand transition-colors"
-                            @click=${() => { this.editing = true; this.editName = this.selectedSource!.name; this.editConfig = JSON.stringify(this.selectedSource!.connection_config || {}, null, 2); }}>✏️ Edit</button>
-                        <button class="px-4 py-2 text-sm font-semibold border border-red-200 text-red-500 rounded-lg hover:bg-red-50 transition-colors"
-                            @click=${() => this.deleteSource(this.selectedSource!.source_id, this.selectedSource!.name)}>🗑️ Delete</button>
+                    <h4 style="font-size:11px;font-weight:700;color:var(--saas-text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">Connection Config</h4>
+                    <div style="background:var(--saas-bg-hover);border-radius:8px;padding:12px;margin-bottom:16px;max-height:200px;overflow:auto">
+                        <pre style="font-size:11px;font-family:JetBrains Mono,monospace;white-space:pre-wrap;color:var(--saas-text-primary);margin:0">${JSON.stringify(this.selectedSource.connection_config || {}, null, 2)}</pre>
                     </div>
-
-                    <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Connection Config</h4>
-                    <div class="bg-gray-50 rounded-lg p-3 mb-5 max-h-48 overflow-auto">
-                        <pre class="text-xs font-mono text-gray-700 whitespace-pre-wrap">${JSON.stringify(this.selectedSource.connection_config || {}, null, 2)}</pre>
-                    </div>
-
-                    ${this.selectedSource.datahub_urn ? html`
-                    <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">DataHub URN</h4>
-                    <div class="px-3 py-2 rounded-lg bg-gray-50 font-mono text-xs mb-5">${this.selectedSource.datahub_urn}</div>
+                    <button class="voyant-btn" style="color:#EF4444;border-color:#FCA5A5" @click=${() => this.deleteSource(this.selectedSource!.source_id, this.selectedSource!.name)}>Delete Source</button>
                     ` : ''}
-                    `}
+
+                    <!-- SQL QUERY TAB -->
+                    ${this.actionTab === 'query' ? html`
+                    <div>
+                        <textarea class="voyant-input" style="font-family:JetBrains Mono,monospace;font-size:12px;height:100px;resize:vertical;margin-bottom:8px"
+                            placeholder="SELECT * FROM table_name LIMIT 10"
+                            .value=${this.sqlQuery}
+                            @input=${(e: Event) => { this.sqlQuery = (e.target as HTMLTextAreaElement).value; }}></textarea>
+                        <button class="voyant-btn voyant-btn-primary" style="margin-bottom:12px" ?disabled=${this.sqlRunning} @click=${() => this.runSQL()}>
+                            ${this.sqlRunning ? 'Running...' : '▶ Run Query'}
+                        </button>
+                        ${this.sqlResult ? html`
+                        <div style="background:var(--saas-bg-hover);border-radius:8px;padding:12px;max-height:300px;overflow:auto">
+                            ${this.sqlResult.error ? html`
+                            <div style="color:#EF4444;font-size:12px">${String(this.sqlResult.error)}</div>
+                            ` : html`
+                            <div style="font-size:11px;color:var(--saas-text-muted);margin-bottom:8px">${(this.sqlResult as Record<string, unknown>).row_count || 0} rows · ${(this.sqlResult as Record<string, unknown>).execution_time_ms || 0}ms</div>
+                            <table style="width:100%;font-size:11px;font-family:JetBrains Mono,monospace;border-collapse:collapse">
+                                <thead><tr>${((this.sqlResult as Record<string, unknown>).columns as string[] || []).map((c: string) => html`<th style="padding:4px 8px;text-align:left;border-bottom:1px solid var(--saas-border);font-weight:600">${c}</th>`)}</tr></thead>
+                                <tbody>${((this.sqlResult as Record<string, unknown>).rows as unknown[][] || []).slice(0, 20).map((r: unknown[]) => html`
+                                    <tr>${(r as unknown[]).map((v: unknown) => html`<td style="padding:4px 8px;border-bottom:1px solid var(--saas-border-subtle)">${v ?? '—'}</td>`)}</tr>`)}</tbody>
+                            </table>`}
+                        </div>` : ''}
+                    </div>
+                    ` : ''}
+
+                    <!-- SEARCH TAB -->
+                    ${this.actionTab === 'search' ? html`
+                    <div>
+                        <div style="display:flex;gap:8px;margin-bottom:12px">
+                            <input class="voyant-input" style="flex:1" placeholder="Semantic search query..." .value=${this.searchQuery}
+                                @input=${(e: Event) => { this.searchQuery = (e.target as HTMLInputElement).value; }}
+                                @keydown=${(e: KeyboardEvent) => { if (e.key === 'Enter') this.runSearch(); }}>
+                            <button class="voyant-btn voyant-btn-primary" ?disabled=${this.searchRunning} @click=${() => this.runSearch()}>Search</button>
+                        </div>
+                        ${this.searchResults.length > 0 ? html`
+                        <div style="display:flex;flex-direction:column;gap:8px">
+                            ${this.searchResults.map(r => html`
+                            <div style="padding:12px;border-radius:8px;border:1px solid var(--saas-border)">
+                                <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+                                    <span style="font-size:11px;font-family:JetBrains Mono,monospace;color:var(--saas-text-muted)">${r.id}</span>
+                                    <span style="font-size:11px;font-weight:600;color:var(--saas-brand)">${((r.score as number) * 100).toFixed(1)}%</span>
+                                </div>
+                                <p style="font-size:12px;color:var(--saas-text-primary);line-height:1.4">${(r.metadata as Record<string, unknown>)?.text_preview || JSON.stringify(r.metadata).slice(0, 200)}</p>
+                            </div>`)}
+                        </div>` : this.searchQuery ? html`<div style="text-align:center;padding:20px;color:var(--saas-text-muted);font-size:12px">No results</div>` : ''}
+                    </div>
+                    ` : ''}
+
+                    <!-- INDEX TAB -->
+                    ${this.actionTab === 'index' ? html`
+                    <div>
+                        <p style="font-size:12px;color:var(--saas-text-secondary);margin-bottom:12px">Index text into the vector search engine. Agents and humans can then search it semantically.</p>
+                        <textarea class="voyant-input" style="font-family:JetBrains Mono,monospace;font-size:12px;height:120px;resize:vertical;margin-bottom:8px"
+                            placeholder="Paste text to index..."
+                            .value=${this.indexText}
+                            @input=${(e: Event) => { this.indexText = (e.target as HTMLTextAreaElement).value; }}></textarea>
+                        <div style="display:flex;justify-content:space-between;align-items:center">
+                            <span style="font-size:11px;color:${this.indexStatus.includes('success') ? 'var(--saas-success)' : 'var(--saas-text-muted)'}">${this.indexStatus}</span>
+                            <button class="voyant-btn voyant-btn-primary" @click=${() => this.indexDocument()}>Index Document</button>
+                        </div>
+                    </div>
+                    ` : ''}
                 </div>
                 ` : ''}
             </voyant-detail-panel>
