@@ -10,20 +10,10 @@ These tests require a running PostgreSQL instance. Mark as integration:
 """
 
 import pytest
-from django.db import connection
-from django.utils import timezone
-
-# Skip entire module if DB is unreachable
-_db_available = True
-try:
-    with connection.cursor() as cursor:
-        cursor.execute("SELECT 1")
-except Exception:
-    _db_available = False
 
 pytestmark = [
     pytest.mark.integration,
-    pytest.mark.skipif(not _db_available, reason="PostgreSQL not available"),
+    pytest.mark.django_db,
 ]
 
 from apps.ontology.models import (
@@ -32,7 +22,6 @@ from apps.ontology.models import (
     LinkType,
     Object,
     ObjectType,
-    Property,
 )
 from apps.ontology.services import (
     LinkService,
@@ -41,7 +30,6 @@ from apps.ontology.services import (
     ObjectTypeService,
 )
 from apps.ontology.validators import ValidationError
-
 
 TENANT = "test-tenant-001"
 
@@ -114,7 +102,7 @@ class TestObjectTypeService:
     @pytest.mark.django_db
     def test_get_nonexistent_raises(self, db):
         with pytest.raises(ObjectType.DoesNotExist):
-            ObjectTypeService.get(TENANT, "nonexistent-id")
+            ObjectTypeService.get(TENANT, "00000000-0000-0000-0000-000000000000")
 
     @pytest.mark.django_db
     def test_update_name_and_description(self, object_type):
@@ -326,7 +314,7 @@ class TestLinkTypeService:
             LinkTypeService.create(
                 TENANT,
                 name="bad",
-                source_object_type_id="nonexistent",
+                source_object_type_id="00000000-0000-0000-0000-000000000000",
                 target_object_type_id=str(second_object_type.id),
             )
 

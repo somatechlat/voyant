@@ -18,6 +18,7 @@ from apps.ontology.models import (
     ActionType,
     Function,
     Interface,
+    Link,
     Object,
     ObjectType,
     Property,
@@ -140,6 +141,7 @@ class LinkOut(Schema):
 class CreateObjectTypeIn(Schema):
     name: str
     description: str = ""
+    properties: list[dict[str, Any]] = []
 
 
 class CreateInterfaceIn(Schema):
@@ -568,3 +570,952 @@ def create_function(request, payload: CreateFunctionIn):
         attached_to_action=str(func.attached_to_action_id) if func.attached_to_action_id else None,
         tenant_id=func.tenant_id,
     )
+
+
+# ── Object Types: GET / PUT / DELETE ─────────────────────────────────────────
+
+
+class UpdateObjectTypeIn(Schema):
+    name: str | None = None
+    description: str | None = None
+    properties: list[dict[str, Any]] | None = None
+
+
+@ontology_router.put("/types/{type_id}", auth=require_permission("write:ontology"))
+def update_object_type(request, type_id: str, payload: UpdateObjectTypeIn):
+    """Update an existing object type."""
+    from apps.ontology.services import ObjectTypeService
+
+    tenant_id = get_tenant_id(request)
+    try:
+        ot = ObjectTypeService.update(
+            tenant_id,
+            type_id,
+            name=payload.name,
+            description=payload.description,
+            properties=payload.properties,
+        )
+        return {
+            "id": str(ot.id),
+            "name": ot.name,
+            "description": ot.description,
+            "version": ot.version,
+            "tenant_id": ot.tenant_id,
+        }
+    except Exception as exc:
+        raise HttpError(400, str(exc))
+
+
+@ontology_router.delete("/types/{type_id}", auth=require_permission("write:ontology"))
+def delete_object_type(request, type_id: str):
+    """Soft-delete an object type."""
+    from apps.ontology.services import ObjectTypeService
+
+    tenant_id = get_tenant_id(request)
+    try:
+        ObjectTypeService.soft_delete(tenant_id, type_id)
+        return {"status": "deleted", "id": type_id}
+    except Exception as exc:
+        raise HttpError(400, str(exc))
+
+
+# ── Interfaces: GET(id) / PUT / DELETE ───────────────────────────────────────
+
+
+class UpdateInterfaceIn(Schema):
+    name: str | None = None
+    description: str | None = None
+    required_properties: list[dict] | None = None
+    optional_properties: list[dict] | None = None
+
+
+@ontology_router.get("/interfaces/{iface_id}")
+def get_interface(request, iface_id: str):
+    """Get a single interface by ID."""
+    tenant_id = get_tenant_id(request)
+    iface = Interface.objects.filter(
+        tenant_id=tenant_id, id=iface_id, deleted_at__isnull=True
+    ).first()
+    if not iface:
+        raise HttpError(404, "Interface not found")
+    return {
+        "id": str(iface.id),
+        "name": iface.name,
+        "description": iface.description,
+        "version": iface.version,
+        "required_properties": iface.required_properties,
+        "optional_properties": iface.optional_properties,
+        "implementing_types": [
+            str(t.id) for t in iface.implementing_types.all()
+        ],
+        "tenant_id": iface.tenant_id,
+        "created_at": iface.created_at.isoformat(),
+    }
+
+
+@ontology_router.put("/interfaces/{iface_id}", auth=require_permission("write:ontology"))
+def update_interface(request, iface_id: str, payload: UpdateInterfaceIn):
+    """Update an existing interface."""
+    tenant_id = get_tenant_id(request)
+    iface = Interface.objects.filter(
+        tenant_id=tenant_id, id=iface_id, deleted_at__isnull=True
+    ).first()
+    if not iface:
+        raise HttpError(404, "Interface not found")
+    if payload.name is not None:
+        iface.name = payload.name
+    if payload.description is not None:
+        iface.description = payload.description
+    if payload.required_properties is not None:
+        iface.required_properties = payload.required_properties
+    if payload.optional_properties is not None:
+        iface.optional_properties = payload.optional_properties
+    iface.version += 1
+    iface.save()
+    return {
+        "id": str(iface.id),
+        "name": iface.name,
+        "description": iface.description,
+        "version": iface.version,
+        "tenant_id": iface.tenant_id,
+    }
+
+
+@ontology_router.delete("/interfaces/{iface_id}", auth=require_permission("write:ontology"))
+def delete_interface(request, iface_id: str):
+    """Soft-delete an interface."""
+    tenant_id = get_tenant_id(request)
+    iface = Interface.objects.filter(
+        tenant_id=tenant_id, id=iface_id, deleted_at__isnull=True
+    ).first()
+    if not iface:
+        raise HttpError(404, "Interface not found")
+    from django.utils import timezone
+    iface.deleted_at = timezone.now()
+    iface.save(update_fields=["deleted_at", "updated_at"])
+    return {"status": "deleted", "id": iface_id}
+
+
+# ── Struct Types: GET(id) / PUT / DELETE ─────────────────────────────────────
+
+
+class UpdateStructTypeIn(Schema):
+    name: str | None = None
+    description: str | None = None
+    fields: list[dict] | None = None
+
+
+@ontology_router.get("/structs/{struct_id}")
+def get_struct_type(request, struct_id: str):
+    """Get a single struct type by ID."""
+    tenant_id = get_tenant_id(request)
+    st = StructType.objects.filter(
+        tenant_id=tenant_id, id=struct_id, deleted_at__isnull=True
+    ).first()
+    if not st:
+        raise HttpError(404, "Struct type not found")
+    return {
+        "id": str(st.id),
+        "name": st.name,
+        "description": st.description,
+        "version": st.version,
+        "fields": st.fields,
+        "tenant_id": st.tenant_id,
+        "created_at": st.created_at.isoformat(),
+    }
+
+
+@ontology_router.put("/structs/{struct_id}", auth=require_permission("write:ontology"))
+def update_struct_type(request, struct_id: str, payload: UpdateStructTypeIn):
+    """Update an existing struct type."""
+    tenant_id = get_tenant_id(request)
+    st = StructType.objects.filter(
+        tenant_id=tenant_id, id=struct_id, deleted_at__isnull=True
+    ).first()
+    if not st:
+        raise HttpError(404, "Struct type not found")
+    if payload.name is not None:
+        st.name = payload.name
+    if payload.description is not None:
+        st.description = payload.description
+    if payload.fields is not None:
+        st.fields = payload.fields
+    st.version += 1
+    st.save()
+    return {
+        "id": str(st.id),
+        "name": st.name,
+        "description": st.description,
+        "version": st.version,
+        "fields": st.fields,
+        "tenant_id": st.tenant_id,
+    }
+
+
+@ontology_router.delete("/structs/{struct_id}", auth=require_permission("write:ontology"))
+def delete_struct_type(request, struct_id: str):
+    """Soft-delete a struct type."""
+    tenant_id = get_tenant_id(request)
+    st = StructType.objects.filter(
+        tenant_id=tenant_id, id=struct_id, deleted_at__isnull=True
+    ).first()
+    if not st:
+        raise HttpError(404, "Struct type not found")
+    from django.utils import timezone
+    st.deleted_at = timezone.now()
+    st.save(update_fields=["deleted_at", "updated_at"])
+    return {"status": "deleted", "id": struct_id}
+
+
+# ── Shared Properties: GET(id) / PUT / DELETE ────────────────────────────────
+
+
+class UpdateSharedPropertyIn(Schema):
+    name: str | None = None
+    property_type: str | None = None
+    description: str | None = None
+    default_value: Any = None
+    validation_rules: Any = None
+
+
+@ontology_router.get("/shared-properties/{prop_id}")
+def get_shared_property(request, prop_id: str):
+    """Get a single shared property by ID."""
+    tenant_id = get_tenant_id(request)
+    sp = SharedProperty.objects.filter(
+        tenant_id=tenant_id, id=prop_id, deleted_at__isnull=True
+    ).first()
+    if not sp:
+        raise HttpError(404, "Shared property not found")
+    return {
+        "id": str(sp.id),
+        "name": sp.name,
+        "property_type": sp.property_type,
+        "description": sp.description,
+        "default_value": sp.default_value,
+        "validation_rules": sp.validation_rules,
+        "used_by_types": [str(t.id) for t in sp.used_by_types.all()],
+        "tenant_id": sp.tenant_id,
+        "created_at": sp.created_at.isoformat(),
+    }
+
+
+@ontology_router.put("/shared-properties/{prop_id}", auth=require_permission("write:ontology"))
+def update_shared_property(request, prop_id: str, payload: UpdateSharedPropertyIn):
+    """Update an existing shared property."""
+    tenant_id = get_tenant_id(request)
+    sp = SharedProperty.objects.filter(
+        tenant_id=tenant_id, id=prop_id, deleted_at__isnull=True
+    ).first()
+    if not sp:
+        raise HttpError(404, "Shared property not found")
+    if payload.name is not None:
+        sp.name = payload.name
+    if payload.property_type is not None:
+        sp.property_type = payload.property_type
+    if payload.description is not None:
+        sp.description = payload.description
+    if payload.default_value is not None:
+        sp.default_value = payload.default_value
+    if payload.validation_rules is not None:
+        sp.validation_rules = payload.validation_rules
+    sp.save()
+    return {
+        "id": str(sp.id),
+        "name": sp.name,
+        "property_type": sp.property_type,
+        "description": sp.description,
+        "tenant_id": sp.tenant_id,
+    }
+
+
+@ontology_router.delete("/shared-properties/{prop_id}", auth=require_permission("write:ontology"))
+def delete_shared_property(request, prop_id: str):
+    """Soft-delete a shared property."""
+    tenant_id = get_tenant_id(request)
+    sp = SharedProperty.objects.filter(
+        tenant_id=tenant_id, id=prop_id, deleted_at__isnull=True
+    ).first()
+    if not sp:
+        raise HttpError(404, "Shared property not found")
+    from django.utils import timezone
+    sp.deleted_at = timezone.now()
+    sp.save(update_fields=["deleted_at", "updated_at"])
+    return {"status": "deleted", "id": prop_id}
+
+
+# ── Value Types: GET(id) / PUT / DELETE ──────────────────────────────────────
+
+
+class UpdateValueTypeIn(Schema):
+    name: str | None = None
+    description: str | None = None
+    base_type: str | None = None
+    constraints: dict | None = None
+
+
+@ontology_router.get("/value-types/{vt_id}")
+def get_value_type(request, vt_id: str):
+    """Get a single value type by ID."""
+    tenant_id = get_tenant_id(request)
+    vt = ValueType.objects.filter(
+        tenant_id=tenant_id, id=vt_id, deleted_at__isnull=True
+    ).first()
+    if not vt:
+        raise HttpError(404, "Value type not found")
+    return {
+        "id": str(vt.id),
+        "name": vt.name,
+        "base_type": vt.base_type,
+        "version": vt.version,
+        "constraints": vt.constraints,
+        "is_system": vt.is_system,
+        "tenant_id": vt.tenant_id,
+        "created_at": vt.created_at.isoformat(),
+    }
+
+
+@ontology_router.put("/value-types/{vt_id}", auth=require_permission("write:ontology"))
+def update_value_type(request, vt_id: str, payload: UpdateValueTypeIn):
+    """Update an existing value type."""
+    tenant_id = get_tenant_id(request)
+    vt = ValueType.objects.filter(
+        tenant_id=tenant_id, id=vt_id, deleted_at__isnull=True
+    ).first()
+    if not vt:
+        raise HttpError(404, "Value type not found")
+    if vt.is_system:
+        raise HttpError(400, "Cannot modify system value types")
+    if payload.name is not None:
+        vt.name = payload.name
+    if payload.description is not None:
+        vt.description = payload.description
+    if payload.base_type is not None:
+        vt.base_type = payload.base_type
+    if payload.constraints is not None:
+        vt.constraints = payload.constraints
+    vt.version += 1
+    vt.save()
+    return {
+        "id": str(vt.id),
+        "name": vt.name,
+        "base_type": vt.base_type,
+        "version": vt.version,
+        "constraints": vt.constraints,
+        "tenant_id": vt.tenant_id,
+    }
+
+
+@ontology_router.delete("/value-types/{vt_id}", auth=require_permission("write:ontology"))
+def delete_value_type(request, vt_id: str):
+    """Soft-delete a value type."""
+    tenant_id = get_tenant_id(request)
+    vt = ValueType.objects.filter(
+        tenant_id=tenant_id, id=vt_id, deleted_at__isnull=True
+    ).first()
+    if not vt:
+        raise HttpError(404, "Value type not found")
+    if vt.is_system:
+        raise HttpError(400, "Cannot delete system value types")
+    from django.utils import timezone
+    vt.deleted_at = timezone.now()
+    vt.save(update_fields=["deleted_at", "updated_at"])
+    return {"status": "deleted", "id": vt_id}
+
+
+# ── Action Types: GET(id) / PUT / DELETE ─────────────────────────────────────
+
+
+class UpdateActionTypeIn(Schema):
+    name: str | None = None
+    description: str | None = None
+    status: str | None = None
+    target_object_type_id: str | None = None
+    parameters: list[dict] | None = None
+    rules: list[dict] | None = None
+    side_effects: list[dict] | None = None
+    undoable: bool | None = None
+    required_permission: str | None = None
+
+
+@ontology_router.get("/actions/{action_id}")
+def get_action_type(request, action_id: str):
+    """Get a single action type by ID."""
+    tenant_id = get_tenant_id(request)
+    at = ActionType.objects.filter(
+        tenant_id=tenant_id, id=action_id, deleted_at__isnull=True
+    ).first()
+    if not at:
+        raise HttpError(404, "Action type not found")
+    return {
+        "id": str(at.id),
+        "name": at.name,
+        "description": at.description,
+        "status": at.status,
+        "version": at.version,
+        "target_object_type": str(at.target_object_type_id) if at.target_object_type_id else None,
+        "parameters": at.parameters,
+        "rules": at.rules,
+        "side_effects": at.side_effects,
+        "undoable": at.undoable,
+        "undo_rules": at.undo_rules,
+        "required_permission": at.required_permission,
+        "tenant_id": at.tenant_id,
+        "created_at": at.created_at.isoformat(),
+    }
+
+
+@ontology_router.put("/actions/{action_id}", auth=require_permission("write:ontology"))
+def update_action_type(request, action_id: str, payload: UpdateActionTypeIn):
+    """Update an existing action type."""
+    tenant_id = get_tenant_id(request)
+    at = ActionType.objects.filter(
+        tenant_id=tenant_id, id=action_id, deleted_at__isnull=True
+    ).first()
+    if not at:
+        raise HttpError(404, "Action type not found")
+    if payload.name is not None:
+        at.name = payload.name
+    if payload.description is not None:
+        at.description = payload.description
+    if payload.status is not None:
+        at.status = payload.status
+    if payload.target_object_type_id is not None:
+        ot = ObjectType.objects.filter(id=payload.target_object_type_id).first()
+        if not ot:
+            raise HttpError(404, "Target object type not found")
+        at.target_object_type = ot
+    if payload.parameters is not None:
+        at.parameters = payload.parameters
+    if payload.rules is not None:
+        at.rules = payload.rules
+    if payload.side_effects is not None:
+        at.side_effects = payload.side_effects
+    if payload.undoable is not None:
+        at.undoable = payload.undoable
+    if payload.required_permission is not None:
+        at.required_permission = payload.required_permission
+    at.version += 1
+    at.save()
+    return {
+        "id": str(at.id),
+        "name": at.name,
+        "description": at.description,
+        "status": at.status,
+        "version": at.version,
+        "tenant_id": at.tenant_id,
+    }
+
+
+@ontology_router.delete("/actions/{action_id}", auth=require_permission("write:ontology"))
+def delete_action_type(request, action_id: str):
+    """Soft-delete an action type."""
+    tenant_id = get_tenant_id(request)
+    at = ActionType.objects.filter(
+        tenant_id=tenant_id, id=action_id, deleted_at__isnull=True
+    ).first()
+    if not at:
+        raise HttpError(404, "Action type not found")
+    from django.utils import timezone
+    at.deleted_at = timezone.now()
+    at.save(update_fields=["deleted_at", "updated_at"])
+    return {"status": "deleted", "id": action_id}
+
+
+# ── Functions: GET(id) / PUT / DELETE ────────────────────────────────────────
+
+
+class UpdateFunctionIn(Schema):
+    name: str | None = None
+    description: str | None = None
+    status: str | None = None
+    language: str | None = None
+    source_code: str | None = None
+    entry_point: str | None = None
+    input_schema: dict | None = None
+    output_schema: dict | None = None
+    attached_to_type_id: str | None = None
+    attached_to_action_id: str | None = None
+    timeout_seconds: int | None = None
+    memory_limit_mb: int | None = None
+
+
+@ontology_router.get("/functions/{func_id}")
+def get_function(request, func_id: str):
+    """Get a single function by ID."""
+    tenant_id = get_tenant_id(request)
+    fn = Function.objects.filter(
+        tenant_id=tenant_id, id=func_id, deleted_at__isnull=True
+    ).first()
+    if not fn:
+        raise HttpError(404, "Function not found")
+    return {
+        "id": str(fn.id),
+        "name": fn.name,
+        "description": fn.description,
+        "status": fn.status,
+        "version": fn.version,
+        "language": fn.language,
+        "source_code": fn.source_code,
+        "entry_point": fn.entry_point,
+        "input_schema": fn.input_schema,
+        "output_schema": fn.output_schema,
+        "attached_to_type": str(fn.attached_to_type_id) if fn.attached_to_type_id else None,
+        "attached_to_action": str(fn.attached_to_action_id) if fn.attached_to_action_id else None,
+        "timeout_seconds": fn.timeout_seconds,
+        "memory_limit_mb": fn.memory_limit_mb,
+        "tenant_id": fn.tenant_id,
+        "created_at": fn.created_at.isoformat(),
+    }
+
+
+@ontology_router.put("/functions/{func_id}", auth=require_permission("write:ontology"))
+def update_function(request, func_id: str, payload: UpdateFunctionIn):
+    """Update an existing function."""
+    tenant_id = get_tenant_id(request)
+    fn = Function.objects.filter(
+        tenant_id=tenant_id, id=func_id, deleted_at__isnull=True
+    ).first()
+    if not fn:
+        raise HttpError(404, "Function not found")
+    if payload.name is not None:
+        fn.name = payload.name
+    if payload.description is not None:
+        fn.description = payload.description
+    if payload.status is not None:
+        fn.status = payload.status
+    if payload.language is not None:
+        fn.language = payload.language
+    if payload.source_code is not None:
+        fn.source_code = payload.source_code
+    if payload.entry_point is not None:
+        fn.entry_point = payload.entry_point
+    if payload.input_schema is not None:
+        fn.input_schema = payload.input_schema
+    if payload.output_schema is not None:
+        fn.output_schema = payload.output_schema
+    if payload.attached_to_type_id is not None:
+        fn.attached_to_type_id = payload.attached_to_type_id or None
+    if payload.attached_to_action_id is not None:
+        fn.attached_to_action_id = payload.attached_to_action_id or None
+    if payload.timeout_seconds is not None:
+        fn.timeout_seconds = payload.timeout_seconds
+    if payload.memory_limit_mb is not None:
+        fn.memory_limit_mb = payload.memory_limit_mb
+    fn.version += 1
+    fn.save()
+    return {
+        "id": str(fn.id),
+        "name": fn.name,
+        "description": fn.description,
+        "status": fn.status,
+        "version": fn.version,
+        "language": fn.language,
+        "tenant_id": fn.tenant_id,
+    }
+
+
+@ontology_router.delete("/functions/{func_id}", auth=require_permission("write:ontology"))
+def delete_function(request, func_id: str):
+    """Soft-delete a function."""
+    tenant_id = get_tenant_id(request)
+    fn = Function.objects.filter(
+        tenant_id=tenant_id, id=func_id, deleted_at__isnull=True
+    ).first()
+    if not fn:
+        raise HttpError(404, "Function not found")
+    from django.utils import timezone
+    fn.deleted_at = timezone.now()
+    fn.save(update_fields=["deleted_at", "updated_at"])
+    return {"status": "deleted", "id": func_id}
+
+
+# ── Objects: CRUD + Batch + Upsert ───────────────────────────────────────────
+
+
+class CreateObjectIn(Schema):
+    object_type_id: str
+    properties: dict[str, Any] = {}
+
+
+class UpdateObjectIn(Schema):
+    properties: dict[str, Any]
+    version: int | None = None
+
+
+class BatchCreateIn(Schema):
+    object_type_id: str
+    items: list[dict[str, Any]]
+
+
+class UpsertIn(Schema):
+    object_type_id: str
+    key_property: str
+    items: list[dict[str, Any]]
+
+
+@ontology_router.get("/objects")
+def list_objects(request, object_type_id: str | None = None, limit: int = 100):
+    """List objects, optionally filtered by type."""
+    from apps.ontology.services import ObjectService
+
+    tenant_id = get_tenant_id(request)
+    qs = ObjectService.list(tenant_id, object_type_id=object_type_id)[:limit]
+    return [
+        {
+            "id": str(o.id),
+            "object_type": str(o.object_type_id),
+            "object_type_name": o.object_type.name,
+            "properties": o.properties,
+            "version": o.version,
+            "tenant_id": o.tenant_id,
+            "created_at": o.created_at.isoformat(),
+        }
+        for o in qs
+    ]
+
+
+@ontology_router.get("/objects/{object_id}")
+def get_object(request, object_id: str):
+    """Get a single object by ID."""
+    from apps.ontology.services import ObjectService
+
+    tenant_id = get_tenant_id(request)
+    try:
+        obj = ObjectService.get(tenant_id, object_id)
+    except Exception:
+        raise HttpError(404, "Object not found")
+    return {
+        "id": str(obj.id),
+        "object_type": str(obj.object_type_id),
+        "object_type_name": obj.object_type.name,
+        "properties": obj.properties,
+        "version": obj.version,
+        "tenant_id": obj.tenant_id,
+        "created_at": obj.created_at.isoformat(),
+    }
+
+
+@ontology_router.post("/objects", auth=require_permission("write:ontology"))
+def create_object(request, payload: CreateObjectIn):
+    """Create a new object instance."""
+    from apps.ontology.services import ObjectService
+
+    tenant_id = get_tenant_id(request)
+    try:
+        obj = ObjectService.create(tenant_id, payload.object_type_id, payload.properties)
+        return {
+            "id": str(obj.id),
+            "object_type": str(obj.object_type_id),
+            "properties": obj.properties,
+            "version": obj.version,
+            "tenant_id": obj.tenant_id,
+        }
+    except Exception as exc:
+        raise HttpError(400, str(exc))
+
+
+@ontology_router.put("/objects/{object_id}", auth=require_permission("write:ontology"))
+def update_object(request, object_id: str, payload: UpdateObjectIn):
+    """Update an existing object."""
+    from apps.ontology.services import ObjectService
+
+    tenant_id = get_tenant_id(request)
+    try:
+        obj = ObjectService.update(
+            tenant_id, object_id, payload.properties, version=payload.version
+        )
+        return {
+            "id": str(obj.id),
+            "object_type": str(obj.object_type_id),
+            "properties": obj.properties,
+            "version": obj.version,
+            "tenant_id": obj.tenant_id,
+        }
+    except Exception as exc:
+        raise HttpError(400, str(exc))
+
+
+@ontology_router.delete("/objects/{object_id}", auth=require_permission("write:ontology"))
+def delete_object(request, object_id: str):
+    """Soft-delete an object."""
+    from apps.ontology.services import ObjectService
+
+    tenant_id = get_tenant_id(request)
+    try:
+        ObjectService.soft_delete(tenant_id, object_id)
+        return {"status": "deleted", "id": object_id}
+    except Exception as exc:
+        raise HttpError(400, str(exc))
+
+
+@ontology_router.post("/objects/batch", auth=require_permission("write:ontology"))
+def batch_create_objects(request, payload: BatchCreateIn):
+    """Batch create 1000+ objects."""
+    from apps.ontology.services import ObjectService
+
+    tenant_id = get_tenant_id(request)
+    try:
+        objects = ObjectService.batch_create(tenant_id, payload.object_type_id, payload.items)
+        return {
+            "created": len(objects),
+            "ids": [str(o.id) for o in objects],
+        }
+    except Exception as exc:
+        raise HttpError(400, str(exc))
+
+
+@ontology_router.post("/objects/upsert", auth=require_permission("write:ontology"))
+def upsert_objects(request, payload: UpsertIn):
+    """Upsert objects by unique key property."""
+    from apps.ontology.services import ObjectService
+
+    tenant_id = get_tenant_id(request)
+    try:
+        objects = ObjectService.upsert(
+            tenant_id, payload.object_type_id, payload.key_property, payload.items
+        )
+        return {
+            "processed": len(objects),
+            "ids": [str(o.id) for o in objects],
+        }
+    except Exception as exc:
+        raise HttpError(400, str(exc))
+
+
+# ── Link Types: CRUD ─────────────────────────────────────────────────────────
+
+
+class CreateLinkTypeIn(Schema):
+    name: str
+    source_object_type_id: str
+    target_object_type_id: str
+    cardinality: str = "one_to_many"
+    description: str = ""
+    properties_schema: dict | None = None
+    inverse_name: str = ""
+
+
+class UpdateLinkTypeIn(Schema):
+    name: str | None = None
+    description: str | None = None
+    properties_schema: dict | None = None
+    inverse_name: str | None = None
+
+
+@ontology_router.get("/link-types")
+def list_link_types(request):
+    """List all link types."""
+    from apps.ontology.services import LinkTypeService
+
+    tenant_id = get_tenant_id(request)
+    lts = LinkTypeService.list(tenant_id)
+    return [
+        {
+            "id": str(lt.id),
+            "name": lt.name,
+            "description": lt.description,
+            "source_object_type": str(lt.source_object_type_id),
+            "source_object_type_name": lt.source_object_type.name,
+            "target_object_type": str(lt.target_object_type_id),
+            "target_object_type_name": lt.target_object_type.name,
+            "cardinality": lt.cardinality,
+            "properties_schema": lt.properties_schema,
+            "inverse_name": lt.inverse_name,
+            "instance_count": lt.instances.filter(deleted_at__isnull=True).count(),
+            "tenant_id": lt.tenant_id,
+        }
+        for lt in lts
+    ]
+
+
+@ontology_router.get("/link-types/{lt_id}")
+def get_link_type(request, lt_id: str):
+    """Get a single link type by ID."""
+    from apps.ontology.services import LinkTypeService
+
+    tenant_id = get_tenant_id(request)
+    try:
+        lt = LinkTypeService.get(tenant_id, lt_id)
+    except Exception:
+        raise HttpError(404, "Link type not found")
+    return {
+        "id": str(lt.id),
+        "name": lt.name,
+        "description": lt.description,
+        "source_object_type": str(lt.source_object_type_id),
+        "target_object_type": str(lt.target_object_type_id),
+        "cardinality": lt.cardinality,
+        "properties_schema": lt.properties_schema,
+        "inverse_name": lt.inverse_name,
+        "tenant_id": lt.tenant_id,
+        "created_at": lt.created_at.isoformat(),
+    }
+
+
+@ontology_router.post("/link-types", auth=require_permission("write:ontology"))
+def create_link_type(request, payload: CreateLinkTypeIn):
+    """Create a new link type."""
+    from apps.ontology.services import LinkTypeService
+
+    tenant_id = get_tenant_id(request)
+    try:
+        lt = LinkTypeService.create(
+            tenant_id,
+            name=payload.name,
+            source_object_type_id=payload.source_object_type_id,
+            target_object_type_id=payload.target_object_type_id,
+            cardinality=payload.cardinality,
+            description=payload.description,
+            properties_schema=payload.properties_schema,
+            inverse_name=payload.inverse_name,
+        )
+        return {
+            "id": str(lt.id),
+            "name": lt.name,
+            "description": lt.description,
+            "cardinality": lt.cardinality,
+            "tenant_id": lt.tenant_id,
+        }
+    except Exception as exc:
+        raise HttpError(400, str(exc))
+
+
+@ontology_router.put("/link-types/{lt_id}", auth=require_permission("write:ontology"))
+def update_link_type(request, lt_id: str, payload: UpdateLinkTypeIn):
+    """Update an existing link type."""
+    from apps.ontology.services import LinkTypeService
+
+    tenant_id = get_tenant_id(request)
+    try:
+        lt = LinkTypeService.get(tenant_id, lt_id)
+    except Exception:
+        raise HttpError(404, "Link type not found")
+    if payload.name is not None:
+        lt.name = payload.name
+    if payload.description is not None:
+        lt.description = payload.description
+    if payload.properties_schema is not None:
+        lt.properties_schema = payload.properties_schema
+    if payload.inverse_name is not None:
+        lt.inverse_name = payload.inverse_name
+    lt.save()
+    return {
+        "id": str(lt.id),
+        "name": lt.name,
+        "description": lt.description,
+        "cardinality": lt.cardinality,
+        "tenant_id": lt.tenant_id,
+    }
+
+
+@ontology_router.delete("/link-types/{lt_id}", auth=require_permission("write:ontology"))
+def delete_link_type(request, lt_id: str):
+    """Soft-delete a link type."""
+    from apps.ontology.services import LinkTypeService
+
+    tenant_id = get_tenant_id(request)
+    try:
+        LinkTypeService.soft_delete(tenant_id, lt_id)
+        return {"status": "deleted", "id": lt_id}
+    except Exception as exc:
+        raise HttpError(400, str(exc))
+
+
+# ── Links: Create / List / Delete / Traverse ─────────────────────────────────
+
+
+class CreateLinkIn(Schema):
+    link_type_id: str
+    source_object_id: str
+    target_object_id: str
+    properties: dict[str, Any] = {}
+
+
+class TraverseIn(Schema):
+    link_type_name: str | None = None
+    direction: str = "outgoing"
+    max_depth: int = 1
+
+
+@ontology_router.get("/links")
+def list_links(request, link_type_id: str | None = None, limit: int = 100):
+    """List link instances."""
+    tenant_id = get_tenant_id(request)
+    qs = Link.objects.filter(tenant_id=tenant_id, deleted_at__isnull=True)
+    if link_type_id:
+        qs = qs.filter(link_type_id=link_type_id)
+    qs = qs.select_related("link_type", "source_object", "target_object")[:limit]
+    return [
+        {
+            "id": str(lk.id),
+            "link_type": str(lk.link_type_id),
+            "link_type_name": lk.link_type.name,
+            "source_object": str(lk.source_object_id),
+            "target_object": str(lk.target_object_id),
+            "properties": lk.properties,
+            "tenant_id": lk.tenant_id,
+        }
+        for lk in qs
+    ]
+
+
+@ontology_router.post("/links", auth=require_permission("write:ontology"))
+def create_link(request, payload: CreateLinkIn):
+    """Create a new link instance."""
+    from apps.ontology.services import LinkService
+
+    tenant_id = get_tenant_id(request)
+    try:
+        link = LinkService.create(
+            tenant_id,
+            link_type_id=payload.link_type_id,
+            source_object_id=payload.source_object_id,
+            target_object_id=payload.target_object_id,
+            properties=payload.properties,
+        )
+        return {
+            "id": str(link.id),
+            "link_type": str(link.link_type_id),
+            "source_object": str(link.source_object_id),
+            "target_object": str(link.target_object_id),
+            "properties": link.properties,
+            "tenant_id": link.tenant_id,
+        }
+    except Exception as exc:
+        raise HttpError(400, str(exc))
+
+
+@ontology_router.delete("/links/{link_id}", auth=require_permission("write:ontology"))
+def delete_link(request, link_id: str):
+    """Soft-delete a link."""
+    from apps.ontology.services import LinkService
+
+    tenant_id = get_tenant_id(request)
+    try:
+        LinkService.delete(tenant_id, link_id)
+        return {"status": "deleted", "id": link_id}
+    except Exception as exc:
+        raise HttpError(400, str(exc))
+
+
+# ── Traversal ────────────────────────────────────────────────────────────────
+
+
+@ontology_router.post("/objects/{object_id}/traverse")
+def traverse_object(request, object_id: str, payload: TraverseIn):
+    """Traverse links from an object (multi-hop)."""
+    from apps.ontology.services import LinkService
+
+    tenant_id = get_tenant_id(request)
+    try:
+        results = LinkService.traverse(
+            tenant_id,
+            object_id,
+            link_type_name=payload.link_type_name,
+            direction=payload.direction,
+            max_depth=min(payload.max_depth, 10),
+        )
+        return {"object_id": object_id, "results": results, "count": len(results)}
+    except Exception as exc:
+        raise HttpError(400, str(exc))

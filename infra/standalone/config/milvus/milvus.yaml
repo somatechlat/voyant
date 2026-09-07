@@ -1,0 +1,15 @@
+# Milvus standalone config override
+etcd:
+  endpoints:
+    - voyant_etcd:2379
+minio:
+  address: voyant_minio
+  port: 9000
+  accessKeyID: minioadmin
+  secretAccessKey: minioadmin
+  useSSL: false
+  bucketName: a-bucket
+  useIAM: false
+  cloudProvider: aws
+  useVirtualHost: false
+  requestTimeoutMs: 10000

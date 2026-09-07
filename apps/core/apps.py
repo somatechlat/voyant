@@ -21,4 +21,5 @@ class CoreConfig(AppConfig):
         # @mcp_app.tool decorator registrations. Split per Rule-245 from tools.py.
         from apps.mcp import tools_catalog as _t2  # noqa: F401
         from apps.mcp import tools_core as _t1  # noqa: F401
+        from apps.mcp import tools_ontology as _t4  # noqa: F401
         from apps.mcp import tools_scrape as _t3  # noqa: F401
