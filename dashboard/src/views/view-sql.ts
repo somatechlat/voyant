@@ -2,137 +2,144 @@ import { LitElement, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { api } from '../lib/api';
 import '../components/saas-sidebar';
+import '../components/voyant-monaco-editor';
+import '../components/voyant-data-table';
 
 @customElement('view-sql')
 export class ViewSql extends LitElement {
-    @state() sql = '';
-    @state() result: { columns: string[]; rows: unknown[][]; row_count: number; execution_time_ms: number; truncated: boolean } | null = null;
-    @state() loading = false;
+    @state() sql = 'SELECT 1 AS test';
+    @state() results: { columns: string[]; rows: Array<Record<string, unknown>>; row_count: number; execution_time_ms: number } | null = null;
+    @state() running = false;
     @state() error = '';
-    @state() history: string[] = [];
-    @state() tables: Array<{ name: string; table_schema?: string }> = [];
-    @state() tablesLoading = false;
+    @state() tables: string[] = [];
+    @state() history: Array<{ sql: string; time: number; rows: number }> = [];
 
     createRenderRoot() { return this; }
 
     async connectedCallback() {
         super.connectedCallback();
-        await this.loadTables();
-    }
-
-    async loadTables() {
-        this.tablesLoading = true;
         try {
-            const res = await api.get<{ tables: Array<{ name: string; table_schema?: string }> }>('/admin/sql/tables');
-            this.tables = res.tables || [];
-        } catch { this.tables = []; }
-        finally { this.tablesLoading = false; }
+            const tablesRes = await api.get('/admin/sql/tables').catch(() => []);
+            this.tables = (tablesRes as string[]) || [];
+        } catch { /* empty */ }
     }
 
-    insertTable(name: string) {
-        this.sql = this.sql ? `${this.sql}\nSELECT * FROM ${name} LIMIT 100;` : `SELECT * FROM ${name} LIMIT 100;`;
-    }
-
-    exportCsv() {
-        if (!this.result) return;
-        const header = this.result.columns.join(',');
-        const rows = this.result.rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
-        const csv = `${header}\n${rows}`;
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = 'query_result.csv'; a.click();
-        URL.revokeObjectURL(url);
-    }
-
-    async execute() {
-        if (!this.sql.trim()) return;
-        this.loading = true;
+    async _runQuery() {
+        this.running = true;
         this.error = '';
-        this.result = null;
+        this.results = null;
+        const start = performance.now();
         try {
-            this.result = await api.post('/admin/sql/execute', { sql: this.sql, limit: 500 });
-            this.history = [this.sql, ...this.history.slice(0, 19)];
+            const res = await api.post('/sql/query', { sql: this.sql, limit: 1000 });
+            const elapsed = Math.round(performance.now() - start);
+            this.results = res as typeof this.results;
+            this.history = [{ sql: this.sql, time: elapsed, rows: (this.results?.row_count || 0) }, ...this.history.slice(0, 19)];
         } catch (e: unknown) {
-            this.error = e instanceof Error ? e.message : 'Query failed';
-        } finally { this.loading = false; }
+            this.error = (e as Error).message || 'Query failed';
+        }
+        finally { this.running = false; }
+    }
+
+    private _onRun(e: CustomEvent) {
+        this.sql = e.detail.value;
+        this._runQuery();
+    }
+
+    private _onEditorChange(e: CustomEvent) {
+        this.sql = e.detail.value;
     }
 
     render() {
+        const resultColumns = this.results?.columns?.map(c => ({ key: c, label: c, sortable: true })) || [];
+        const resultRows = this.results?.rows?.map(r => {
+            const obj: Record<string, unknown> = {};
+            this.results!.columns.forEach((c, i) => { obj[c] = r[i]; });
+            return obj;
+        }) || [];
+
         return html`
         <saas-sidebar currentPath="/admin/sql"></saas-sidebar>
-        <div class="ml-60 flex min-h-screen">
-            <!-- Table Browser Sidebar -->
-            <aside class="w-56 bg-white border-r border-gray-100 p-4 flex-shrink-0 overflow-y-auto">
-                <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tables</h3>
-                    <button class="text-xs text-brand hover:underline" @click=${() => this.loadTables()}>Refresh</button>
-                </div>
-                ${this.tablesLoading ? html`<div class="text-xs text-gray-400">Loading...</div>` : html`
-                <div class="space-y-0.5">
-                    ${this.tables.map(t => html`
-                    <button class="w-full text-left px-2 py-1.5 text-xs font-mono text-gray-600 hover:bg-gray-50 hover:text-brand rounded truncate transition-colors" @click=${() => this.insertTable(t.name)} title="${t.name}">
-                        ${t.name}
-                    </button>`)}
-                    ${this.tables.length === 0 ? html`<div class="text-xs text-gray-400">No tables found</div>` : ''}
-                </div>`}
-            </aside>
+        <main class="ml-60 min-h-screen" style="background:var(--saas-bg-page)">
+            <div style="padding:32px">
+                <h1 style="font-size:28px;font-weight:900;font-family:Geist,Inter,system-ui,sans-serif;letter-spacing:-0.02em">SQL Console</h1>
+                <p style="font-size:13px;color:var(--saas-text-secondary);margin-top:4px">Execute read-only queries via Trino · Ctrl+Enter to run</p>
 
-            <!-- Main Content -->
-            <main class="flex-1 bg-surface p-8">
-                <h1 class="text-2xl font-black font-display tracking-tight mb-6">SQL Console</h1>
-                <div class="bg-white rounded-xl border border-gray-100 p-5 mb-6">
-                    <textarea
-                        class="w-full h-32 p-4 border border-gray-200 rounded-lg font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
-                        placeholder="SELECT * FROM voyant_job LIMIT 10;"
-                        .value=${this.sql}
-                        @input=${(e: Event) => { this.sql = (e.target as HTMLTextAreaElement).value; }}
-                        @keydown=${(e: KeyboardEvent) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) this.execute(); }}
-                    ></textarea>
-                    <div class="flex items-center justify-between mt-3">
-                        <span class="text-xs text-gray-400">Ctrl+Enter to execute · Click table name to insert query</span>
-                        <div class="flex gap-2">
-                            ${this.result ? html`<button class="px-3 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-gray-50" @click=${() => this.exportCsv()}>Export CSV</button>` : ''}
-                            <button
-                                class="px-5 py-2 text-sm font-semibold bg-brand text-white rounded-lg hover:bg-black transition-colors ${this.loading ? 'opacity-50' : ''}"
-                                ?disabled=${this.loading}
-                                @click=${() => this.execute()}
-                            >${this.loading ? 'Running...' : 'Execute'}</button>
+                <div style="display:grid;grid-template-columns:1fr 260px;gap:16px;margin-top:24px">
+                    <div>
+                        <!-- Monaco Editor -->
+                        <div class="voyant-card" style="overflow:hidden;margin-bottom:12px">
+                            <voyant-monaco-editor
+                                .value=${this.sql}
+                                language="sql"
+                                height="200px"
+                                @change=${this._onEditorChange}
+                                @run=${this._onRun}
+                            ></voyant-monaco-editor>
+                        </div>
+
+                        <!-- Run bar -->
+                        <div style="display:flex;gap:8px;align-items:center;margin-bottom:16px">
+                            <button class="voyant-btn-primary voyant-btn" @click=${this._runQuery} ?disabled=${this.running}>
+                                ${this.running ? html`<span class="animate-spin" style="display:inline-block">⏳</span> Running...` : html`▶ Run Query`}
+                            </button>
+                            ${this.results ? html`
+                            <span style="font-size:12px;color:var(--saas-text-muted)">
+                                ${this.results.row_count} rows · ${this.results.execution_time_ms}ms
+                            </span>` : ''}
+                            ${this.error ? html`<span style="font-size:12px;color:var(--saas-danger)">${this.error}</span>` : ''}
+                        </div>
+
+                        <!-- Results -->
+                        ${this.results ? html`
+                        <div class="voyant-card" style="padding:20px">
+                            <voyant-data-table
+                                .columns=${resultColumns}
+                                .rows=${resultRows}
+                                .exportable=${true}
+                                .filterable=${true}
+                            ></voyant-data-table>
+                        </div>
+                        ` : html`
+                        <div class="voyant-card" style="padding:80px;text-align:center">
+                            <div style="font-size:32px;opacity:0.2;margin-bottom:12px">📊</div>
+                            <div style="font-size:13px;color:var(--saas-text-muted)">Write a query and press Ctrl+Enter or click Run</div>
+                        </div>
+                        `}
+                    </div>
+
+                    <!-- Sidebar: Tables + History -->
+                    <div style="display:flex;flex-direction:column;gap:16px">
+                        <div class="voyant-card" style="padding:16px">
+                            <h3 style="font-size:12px;font-weight:600;color:var(--saas-text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px">Tables</h3>
+                            <div style="max-height:200px;overflow-y:auto">
+                                ${this.tables.length > 0 ? this.tables.map(t => html`
+                                <div style="padding:6px 8px;border-radius:6px;font-size:12px;cursor:pointer;transition:all 120ms;font-family:JetBrains Mono,monospace"
+                                    @mouseenter=${(e: Event) => (e.currentTarget as HTMLElement).style.background = 'var(--saas-brand-light)'}
+                                    @mouseleave=${(e: Event) => (e.currentTarget as HTMLElement).style.background = ''}
+                                    @click=${() => { this.sql = `SELECT * FROM ${t} LIMIT 100`; }}>
+                                    📋 ${t}
+                                </div>
+                                `) : html`<div style="font-size:11px;color:var(--saas-text-muted)">Loading tables...</div>`}
+                            </div>
+                        </div>
+
+                        <div class="voyant-card" style="padding:16px;flex:1">
+                            <h3 style="font-size:12px;font-weight:600;color:var(--saas-text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px">History</h3>
+                            <div style="max-height:300px;overflow-y:auto">
+                                ${this.history.length > 0 ? this.history.map(h => html`
+                                <div style="padding:8px;border-radius:6px;margin-bottom:6px;border:1px solid var(--saas-border);cursor:pointer;transition:all 120ms"
+                                    @mouseenter=${(e: Event) => (e.currentTarget as HTMLElement).style.borderColor = 'var(--saas-brand)'}
+                                    @mouseleave=${(e: Event) => (e.currentTarget as HTMLElement).style.borderColor = 'var(--saas-border)'}
+                                    @click=${() => { this.sql = h.sql; }}>
+                                    <div style="font-size:11px;font-family:JetBrains Mono,monospace;color:var(--saas-text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${h.sql}</div>
+                                    <div style="font-size:10px;color:var(--saas-text-muted);margin-top:2px">${h.rows} rows · ${h.time}ms</div>
+                                </div>
+                                `) : html`<div style="font-size:11px;color:var(--saas-text-muted)">No queries yet</div>`}
+                            </div>
                         </div>
                     </div>
                 </div>
-
-                ${this.error ? html`<div class="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm mb-6">${this.error}</div>` : ''}
-
-                ${this.result ? html`
-                <div class="bg-white rounded-xl border border-gray-100 overflow-hidden mb-6">
-                    <div class="px-5 py-3 border-b border-gray-100 flex items-center gap-4 text-xs text-gray-400">
-                        <span class="font-semibold text-ink">${this.result.row_count} rows</span>
-                        <span>${this.result.execution_time_ms}ms</span>
-                        ${this.result.truncated ? html`<span class="text-amber-600 font-semibold">Truncated</span>` : ''}
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm">
-                            <thead><tr class="border-b border-gray-100 text-left text-xs text-gray-400 uppercase tracking-wider">
-                                ${this.result.columns.map(c => html`<th class="px-4 py-2 font-mono">${c}</th>`)}
-                            </tr></thead>
-                            <tbody>
-                            ${this.result.rows.map(row => html`
-                                <tr class="border-b border-gray-50 hover:bg-gray-50">
-                                    ${row.map(cell => html`<td class="px-4 py-2 font-mono text-xs">${cell === null ? html`<span class="text-gray-300">NULL</span>` : String(cell)}</td>`)}
-                                </tr>`)}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>` : ''}
-
-                ${this.history.length > 0 ? html`
-                <div class="bg-white rounded-xl border border-gray-100 p-5">
-                    <h3 class="text-sm font-semibold text-gray-500 mb-3">History</h3>
-                    ${this.history.map(q => html`
-                    <button class="block w-full text-left px-3 py-2 text-xs font-mono text-gray-500 hover:bg-gray-50 rounded truncate" @click=${() => { this.sql = q; }}>${q}</button>`)}
-                </div>` : ''}
-            </main>
-        </div>`;
+            </div>
+        </main>`;
     }
 }
