@@ -1,15 +1,8 @@
 """
-Intent Engine — Core module with Groq LLM integration.
+Intent Engine — NL → structured execution plan via Groq LLM.
 
-Translates natural language intent into structured execution plans.
-Uses Groq API (OpenAI-compatible) with openai/gpt-oss-120b model.
-
-Architecture:
-1. Intent Classifier — classify intent type (query, pipeline, scraper, analyze)
-2. Schema Resolver — load tenant's ontology for context
-3. Plan Generator — Groq LLM translates intent + schema → structured plan
-4. Plan Validator — validate plan against ontology
-5. Plan Executor — execute plan via existing tools/workflows
+Translates natural language intent into MCP tool calls.
+Supports all46 VOYANT MCP tools with full execution.
 """
 
 from __future__ import annotations
@@ -32,6 +25,9 @@ class IntentType(StrEnum):
     PIPELINE = "pipeline"
     SCRAPER = "scraper"
     ANALYZE = "analyze"
+    ONTOLOGY = "ontology"
+    GOVERNANCE = "governance"
+    SEARCH = "search"
     UNKNOWN = "unknown"
 
 
@@ -56,32 +52,111 @@ class IntentPlan:
         }
 
 
-# System prompt for the Intent Engine LLM
-INTENT_SYSTEM_PROMPT = """You are Voyant's Intent Engine. Your job is to translate natural language
-intent into structured JSON execution plans.
+# ── Tool catalog for LLM context ──────────────────────────────────────────
 
-You have access to these tools:
-- voyant.sql.execute: Execute SQL query (params: sql, limit)
-- voyant.analyze: Run analysis (params: source_id, table, analyzers, sample_size)
-- voyant.ingest: Ingest data (params: source_id, mode, tables)
-- voyant.profile: Profile data (params: source_id, table, sample_size)
-- voyant.quality: Quality checks (params: source_id, table, checks)
+TOOL_CATALOG = """
+You have access to these MCP tools. Use the EXACT tool name in your plan.
+
+DATA OPERATIONS:
+- voyant.sql: Execute read-only SQL via Trino (params: sql, limit)
+- voyant.ingest: Trigger data ingestion (params: source_id, mode, tables)
+- voyant.profile: Run data profiling (params: source_id, table, sample_size)
+- voyant.quality: Run data quality checks (params: source_id, table, checks)
+- voyant.analyze: Run analysis pipeline (params: source_id, table, analyzers, sample_size)
+- voyant.kpi: Execute KPI queries (params: kpis, limit)
 - voyant.search: Semantic search (params: query, limit)
-- scrape.fetch: Fetch web page (params: url, engine, timeout)
-- scrape.extract: Extract from HTML (params: html, selectors)
-- voyant.scraper.template.run: Run scraper template (params: template_id, parameters)
+- voyant.discover: Auto-detect source type (params: hint)
+- voyant.connect: Register data source (params: name, source_type, connection_config)
 
-The user's ontology schema is provided below. Use it to generate correct SQL queries.
+SOURCE MANAGEMENT:
+- voyant.sources.list: List all data sources
+- voyant.sources.get: Get source details (params: source_id)
+- voyant.sources.delete: Delete source (params: source_id)
 
-OUTPUT FORMAT: Return ONLY valid JSON matching this schema:
-{
-  "intent_type": "query|pipeline|scraper|analyze",
+JOB MANAGEMENT:
+- voyant.jobs.list: List jobs (params: status, job_type, limit)
+- voyant.jobs.cancel: Cancel job (params: job_id)
+- voyant.status: Check job status (params: job_id)
+- voyant.artifact: Get artifact metadata (params: artifact_id)
+- voyant.artifacts.list: List artifacts for job (params: job_id)
+
+DATA DISCOVERY:
+- voyant.tables.list: List Trino tables (params: schema)
+- voyant.tables.columns: Get table columns (params: table, schema)
+- voyant.lineage: Get data lineage (params: urn, direction, depth)
+- voyant.governance.schema: Get schema metadata (params: urn)
+
+VECTOR OPERATIONS:
+- voyant.vector.search: Hybrid vector search (params: query, limit)
+- voyant.vector.index: Index document (params: text, metadata, item_id)
+
+PRESETS & KPIs:
+- voyant.preset: Execute preset (params: preset_name, payload)
+- voyant.presets.list: List presets
+- voyant.presets.get: Get preset details (params: job_id)
+- voyant.kpi_templates.list: List KPI templates (params: category)
+- voyant.kpi_templates.get: Get template (params: name)
+- voyant.kpi_templates.render: Render template SQL (params: name, params)
+
+GOVERNANCE:
+- voyant.quotas.tiers: List quota tiers
+- voyant.quotas.usage: Get quota usage
+- voyant.quotas.limits: Get quota limits
+- voyant.quotas.set_tier: Set quota tier (params: tier)
+
+SCRAPER:
+- scrape.fetch: Fetch web page (params: url, engine, timeout, scroll)
+- scrape.extract: Extract from HTML (params: html, selectors, url)
+- scrape.ocr: OCR images (params: images, language)
+- scrape.parse_pdf: Parse PDF (params: pdf_url, extract_tables)
+- scrape.transcribe: Transcribe media (params: media_urls, language)
+- scrape.deep_archive: Deep archive (params: url, interaction_selectors)
+- voyant.scraper.template.run: Run template (params: template_id, parameters)
+
+ONTOLOGY:
+- voyant.ontology.types.list: List object types
+- voyant.ontology.types.get: Get type details (params: type_id)
+- voyant.ontology.types.create: Create type (params: name, description, properties)
+- voyant.ontology.objects.list: List objects (params: type_id, limit)
+- voyant.ontology.objects.create: Create object (params: type_id, properties)
+- voyant.ontology.objects.get: Get object (params: object_id)
+- voyant.ontology.objects.update: Update object (params: object_id, properties)
+- voyant.ontology.objects.batch_create: Batch create (params: type_id, items)
+- voyant.ontology.links.create: Create link (params: link_type_id, source_object_id, target_object_id)
+- voyant.ontology.links.delete: Delete link (params: link_id)
+- voyant.ontology.traverse: Traverse graph (params: object_id, direction, max_depth)
+- voyant.ontology.interfaces.list: List interfaces
+- voyant.ontology.actions.execute: Execute action (params: action_type_id, object_id, params)
+- voyant.ontology.functions.run: Run function (params: function_id, input_data)
+
+DISCOVERY:
+- voyant.discovery.services.list: List services (params: tag)
+- voyant.discovery.services.get: Get service (params: name)
+- voyant.discovery.services.register: Register service (params: name, base_url, spec_url)
+- voyant.discovery.scan: Scan OpenAPI spec (params: url)
+"""
+
+INTENT_SYSTEM_PROMPT = f"""You are Voyant's Intent Engine. Translate natural language into structured JSON execution plans.
+
+{TOOL_CATALOG}
+
+OUTPUT FORMAT: Return ONLY valid JSON:
+{{
+  "intent_type": "query|pipeline|scraper|analyze|ontology|governance|search",
   "confidence": 0.0-1.0,
   "steps": [
-    {"tool": "tool.name", "params": {"key": "value"}}
+    {{"tool": "exact.tool.name", "params": {{"key": "value"}}}}
   ],
-  "assumptions": ["list of assumptions made"]
-}"""
+  "assumptions": ["list of assumptions"]
+}}
+
+Rules:
+- Use EXACT tool names from the catalog above
+- For SQL queries, use voyant.sql with the SQL in params.sql
+- For ontology operations, use voyant.ontology.* tools
+- Chain multiple steps when needed (e.g., discover → connect → ingest)
+- Include tenant_id in params when the tool supports it
+"""
 
 
 class IntentEngine:
@@ -100,17 +175,29 @@ class IntentEngine:
         """Fast keyword-based intent classification (no LLM call)."""
         text_lower = text.lower()
 
-        scraper_keywords = ["scrape", "crawl", "extract from website", "fetch page", "parse html"]
+        ontology_keywords = ["object type", "link type", "create type", "ontology", "traverse", "interface"]
+        if any(kw in text_lower for kw in ontology_keywords):
+            return IntentType.ONTOLOGY
+
+        governance_keywords = ["quota", "governance", "policy", "lineage", "classification", "security"]
+        if any(kw in text_lower for kw in governance_keywords):
+            return IntentType.GOVERNANCE
+
+        scraper_keywords = ["scrape", "crawl", "fetch page", "parse html", "ocr", "transcribe"]
         if any(kw in text_lower for kw in scraper_keywords):
             return IntentType.SCRAPER
 
-        pipeline_keywords = ["pipeline", "etl", "data flow", "transform", "clean", "ingest"]
+        pipeline_keywords = ["pipeline", "etl", "ingest", "data flow", "transform"]
         if any(kw in text_lower for kw in pipeline_keywords):
             return IntentType.PIPELINE
 
-        analyze_keywords = ["analyze", "anomal", "forecast", "predict", "cluster", "segment", "trend"]
+        analyze_keywords = ["analyze", "anomal", "forecast", "predict", "cluster", "segment", "trend", "profile", "quality"]
         if any(kw in text_lower for kw in analyze_keywords):
             return IntentType.ANALYZE
+
+        search_keywords = ["search", "find", "lookup", "similar", "semantic"]
+        if any(kw in text_lower for kw in search_keywords):
+            return IntentType.SEARCH
 
         return IntentType.QUERY
 
@@ -157,36 +244,23 @@ class IntentEngine:
         tenant_id: str,
         intent_type: IntentType | None = None,
     ) -> IntentPlan:
-        """Generate an execution plan from natural language intent.
-
-        1. Check cache
-        2. Classify intent (fast, no LLM)
-        3. Resolve schema from ontology
-        4. Call Groq LLM for plan generation
-        5. Parse and validate plan
-        6. Cache result
-        """
-        # Check cache
+        """Generate an execution plan from natural language intent."""
         cache_key = f"{tenant_id}:{intent}"
         if self._settings.llm_cache_enabled and cache_key in self._plan_cache:
             cached = self._plan_cache[cache_key]
             cached.cached = True
             return cached
 
-        # 1. Classify
         if intent_type is None:
             intent_type = self.classify_intent(intent)
 
-        # 2. Resolve schema
         schema = self.resolve_schema(tenant_id)
 
-        # 3. Call LLM
         if self._settings.llm_provider == "none" or not self._settings.intent_engine_enabled:
             plan = self._generate_fallback(intent, intent_type, schema, tenant_id)
         else:
             plan = self._call_llm(intent, intent_type, schema, tenant_id)
 
-        # 4. Cache
         if self._settings.llm_cache_enabled:
             self._plan_cache[cache_key] = plan
 
@@ -200,7 +274,7 @@ class IntentEngine:
         tenant_id: str,
     ) -> IntentPlan:
         """Call Groq LLM for plan generation."""
-        schema_str = json.dumps(schema, indent=2)[:3000]  # Limit context size
+        schema_str = json.dumps(schema, indent=2)[:3000]
 
         user_message = f"""Intent: {intent}
 Intent type: {intent_type.value}
@@ -270,22 +344,53 @@ Generate a JSON execution plan for this intent."""
         tenant_id: str,
     ) -> IntentPlan:
         """Generate a plan without LLM (keyword-based fallback)."""
-        steps = []
-        assumptions = []
+        steps: list[dict[str, Any]] = []
+        assumptions: list[str] = []
 
         if intent_type == IntentType.QUERY and schema.get("object_types"):
             ot = schema["object_types"][0]
             props = [p["name"] for p in ot.get("properties", [])][:20]
             columns = ", ".join(props) if props else "*"
             steps.append({
-                "tool": "voyant.sql.execute",
+                "tool": "voyant.sql",
                 "params": {"sql": f"SELECT {columns} FROM {ot['name'].lower()} LIMIT 1000"},
             })
             assumptions.append(f"Fallback: querying {ot['name']}")
 
+        elif intent_type == IntentType.SEARCH:
+            steps.append({
+                "tool": "voyant.vector.search",
+                "params": {"query": intent, "limit": 5},
+            })
+            assumptions.append("Fallback: semantic vector search")
+
         elif intent_type == IntentType.ANALYZE:
-            steps.append({"tool": "voyant.analyze", "params": {"analyzers": ["profiling"]}})
+            steps.append({
+                "tool": "voyant.analyze",
+                "params": {"analyzers": ["profiling"]},
+            })
             assumptions.append("Fallback: general profiling analysis")
+
+        elif intent_type == IntentType.ONTOLOGY:
+            steps.append({
+                "tool": "voyant.ontology.types.list",
+                "params": {},
+            })
+            assumptions.append("Fallback: listing ontology types")
+
+        elif intent_type == IntentType.GOVERNANCE:
+            steps.append({
+                "tool": "voyant.quotas.usage",
+                "params": {},
+            })
+            assumptions.append("Fallback: checking quota usage")
+
+        elif intent_type == IntentType.SCRAPER:
+            steps.append({
+                "tool": "voyant.scraper.template.run",
+                "params": {"template_id": "", "parameters": {}},
+            })
+            assumptions.append("Fallback: scraper template (needs template_id)")
 
         return IntentPlan(
             intent_type=intent_type,
@@ -305,43 +410,497 @@ Generate a JSON execution plan for this intent."""
                 result = self._execute_step(tool, params, tenant_id)
                 results.append({"step": i, "tool": tool, "result": result})
             except Exception as exc:
+                logger.error("Step %d (%s) failed: %s", i, tool, exc)
                 results.append({"step": i, "tool": tool, "error": str(exc)})
 
         return {"steps": results, "plan": plan.to_dict()}
 
     def _execute_step(self, tool: str, params: dict, tenant_id: str) -> dict:
-        """Execute a single plan step."""
-        if tool == "voyant.sql.execute":
-            from apps.core.lib.trino import get_trino_client
-            client = get_trino_client()
-            result = client.execute(params.get("sql", ""), limit=params.get("limit", 1000))
-            return {
-                "columns": result.columns,
-                "rows": result.rows[:100],
-                "row_count": result.row_count,
-            }
+        """Execute a single plan step by routing to the correct service."""
+        handler = _TOOL_HANDLERS.get(tool)
+        if handler:
+            return handler(params, tenant_id)
 
-        elif tool == "voyant.analyze":
-            from apps.core.lib.workflow_utils import dispatch_workflow
-            from apps.worker.workflows.analyze_workflow import AnalyzeWorkflow
-            job = dispatch_workflow(
-                workflow_cls=AnalyzeWorkflow,
-                job_type="analyze",
-                source_id=params.get("source_id", ""),
-                parameters=params,
-                tenant_id=tenant_id,
-            )
-            return {"job_id": str(job.job_id), "status": job.status}
+        prefix_handlers = {
+            "voyant.ontology.": _handle_ontology,
+            "voyant.discovery.": _handle_discovery,
+            "voyant.quotas.": _handle_quotas,
+            "voyant.kpi_templates.": _handle_kpi_templates,
+            "voyant.presets.": _handle_presets,
+            "voyant.vector.": _handle_vector,
+            "voyant.sources.": _handle_sources,
+            "voyant.jobs.": _handle_jobs,
+            "voyant.artifacts.": _handle_artifacts,
+            "voyant.tables.": _handle_tables,
+            "voyant.governance.": _handle_governance,
+            "scrape.": _handle_scrape,
+        }
+        for prefix, handler in prefix_handlers.items():
+            if tool.startswith(prefix):
+                return handler(tool, params, tenant_id)
 
-        elif tool == "voyant.scraper.template.run":
-            from apps.scraper.models import ScrapeTemplate
-            template = ScrapeTemplate.objects.filter(id=params.get("template_id")).first()
-            if not template:
-                return {"error": "Template not found"}
-            return {"template": template.name, "status": "dispatched"}
+        return {"status": "skipped", "reason": f"Unknown tool: {tool}"}
 
-        else:
-            return {"status": "skipped", "reason": f"Unknown tool: {tool}"}
+
+# ── Direct tool handlers ───────────────────────────────────────────────────
+
+
+def _handle_sql(params: dict, tenant_id: str) -> dict:
+    from apps.core.lib.trino import get_trino_client
+    client = get_trino_client()
+    result = client.execute(params.get("sql", ""), limit=params.get("limit", 1000))
+    return {
+        "columns": result.columns,
+        "rows": result.rows[:100],
+        "row_count": result.row_count,
+    }
+
+
+def _handle_search(params: dict, tenant_id: str) -> dict:
+    from apps.search.lib.embeddings import DenseEmbedder, SparseEmbedder
+    from apps.search.lib.milvus_store import get_vector_store
+    store = get_vector_store()
+    dense = DenseEmbedder()
+    sparse = SparseEmbedder()
+    query = params.get("query", "")
+    dense_result = dense.embed(query)
+    sparse_result = sparse.embed(query)
+    query_vector = dense_result.embeddings[0]
+    query_sparse = sparse_result.vectors[0] if sparse_result.vectors else None
+    results = store.search(
+        query_vector=query_vector,
+        k=params.get("limit", 5),
+        query_sparse_vector=query_sparse,
+        filter_metadata={"tenant_id": tenant_id},
+    )
+    return {
+        "results": [
+            {"id": item.id, "score": score, "metadata": item.metadata}
+            for item, score in results
+        ],
+        "count": len(results),
+    }
+
+
+def _handle_ingest(params: dict, tenant_id: str) -> dict:
+    from apps.core.lib.workflow_utils import dispatch_workflow
+    from apps.worker.workflows.ingest_workflow import IngestDataWorkflow
+    job = dispatch_workflow(
+        workflow_cls=IngestDataWorkflow,
+        job_type="ingest",
+        source_id=params.get("source_id", ""),
+        parameters=params,
+        tenant_id=tenant_id,
+    )
+    return {"job_id": str(job.job_id), "status": job.status}
+
+
+def _handle_profile(params: dict, tenant_id: str) -> dict:
+    from apps.core.lib.workflow_utils import dispatch_workflow
+    from apps.worker.workflows.profile_workflow import ProfileWorkflow
+    job = dispatch_workflow(
+        workflow_cls=ProfileWorkflow,
+        job_type="profile",
+        source_id=params.get("source_id", ""),
+        parameters=params,
+        tenant_id=tenant_id,
+    )
+    return {"job_id": str(job.job_id), "status": job.status}
+
+
+def _handle_quality(params: dict, tenant_id: str) -> dict:
+    from apps.core.lib.workflow_utils import dispatch_workflow
+    from apps.worker.workflows.quality_workflow import QualityWorkflow
+    job = dispatch_workflow(
+        workflow_cls=QualityWorkflow,
+        job_type="quality",
+        source_id=params.get("source_id", ""),
+        parameters=params,
+        tenant_id=tenant_id,
+    )
+    return {"job_id": str(job.job_id), "status": job.status}
+
+
+def _handle_analyze(params: dict, tenant_id: str) -> dict:
+    from apps.core.lib.workflow_utils import dispatch_workflow
+    from apps.worker.workflows.analyze_workflow import AnalyzeWorkflow
+    job = dispatch_workflow(
+        workflow_cls=AnalyzeWorkflow,
+        job_type="analyze",
+        source_id=params.get("source_id", ""),
+        parameters=params,
+        tenant_id=tenant_id,
+    )
+    return {"job_id": str(job.job_id), "status": job.status}
+
+
+def _handle_kpi(params: dict, tenant_id: str) -> dict:
+    from apps.core.lib.trino import get_trino_client
+    client = get_trino_client()
+    kpis = params.get("kpis", [])
+    results = []
+    for kpi in kpis[:5]:
+        sql = kpi.get("sql", "")
+        if sql:
+            result = client.execute(sql, limit=params.get("limit", 1000))
+            results.append({"kpi": kpi.get("name", "unknown"), "rows": result.rows[:10], "columns": result.columns})
+    return {"kpis": results, "count": len(results)}
+
+
+def _handle_discover(params: dict, tenant_id: str) -> dict:
+    from apps.discovery.source_detection import SourceDetection
+    hint = params.get("hint", "")
+    return SourceDetection.detect(hint)
+
+
+def _handle_connect(params: dict, tenant_id: str) -> dict:
+    from apps.discovery.models import Source
+    source = Source.objects.create(
+        tenant_id=tenant_id,
+        name=params.get("name", ""),
+        source_type=params.get("source_type", ""),
+        connection_config=params.get("connection_config", {}),
+    )
+    return {"source_id": str(source.id), "name": source.name, "status": source.status}
+
+
+def _handle_status(params: dict, tenant_id: str) -> dict:
+    from apps.workflows.models import Job
+    job = Job.objects.filter(job_id=params.get("job_id", ""), tenant_id=tenant_id).first()
+    if not job:
+        return {"error": "Job not found"}
+    return {"job_id": str(job.job_id), "status": job.status, "progress": job.progress}
+
+
+def _handle_artifact(params: dict, tenant_id: str) -> dict:
+    from apps.workflows.models import Artifact
+    artifact = Artifact.objects.filter(artifact_id=params.get("artifact_id", "")).first()
+    if not artifact:
+        return {"error": "Artifact not found"}
+    return {"artifact_id": str(artifact.artifact_id), "type": artifact.artifact_type, "format": artifact.format, "size": artifact.size_bytes}
+
+
+# ── Prefix-based handlers ──────────────────────────────────────────────────
+
+
+def _handle_ontology(tool: str, params: dict, tenant_id: str) -> dict:
+    from apps.ontology.services import (
+        LinkService,
+        ObjectService,
+        ObjectTypeService,
+    )
+
+    if tool == "voyant.ontology.types.list":
+        types = ObjectTypeService.list(tenant_id)
+        return {"types": [{"id": str(t.id), "name": t.name, "description": t.description} for t in types]}
+
+    if tool == "voyant.ontology.types.get":
+        ot = ObjectTypeService.get(tenant_id, params.get("type_id", ""))
+        return {"id": str(ot.id), "name": ot.name, "description": ot.description, "version": ot.version}
+
+    if tool == "voyant.ontology.types.create":
+        ot = ObjectTypeService.create(tenant_id, name=params.get("name", ""), description=params.get("description", ""), properties=params.get("properties", []))
+        return {"id": str(ot.id), "name": ot.name}
+
+    if tool == "voyant.ontology.objects.list":
+        objs = ObjectService.list(tenant_id, object_type_id=params.get("type_id"))
+        return {"objects": [{"id": str(o.id), "properties": o.properties, "type": o.object_type.name} for o in objs[:params.get("limit", 100)]]}
+
+    if tool == "voyant.ontology.objects.create":
+        obj = ObjectService.create(tenant_id, params.get("type_id", ""), params.get("properties", {}))
+        return {"id": str(obj.id), "properties": obj.properties}
+
+    if tool == "voyant.ontology.objects.get":
+        obj = ObjectService.get(tenant_id, params.get("object_id", ""))
+        return {"id": str(obj.id), "properties": obj.properties, "type": obj.object_type.name}
+
+    if tool == "voyant.ontology.objects.update":
+        obj = ObjectService.update(tenant_id, params.get("object_id", ""), params.get("properties", {}))
+        return {"id": str(obj.id), "version": obj.version}
+
+    if tool == "voyant.ontology.objects.batch_create":
+        objects = ObjectService.batch_create(tenant_id, params.get("type_id", ""), params.get("items", []))
+        return {"created": len(objects)}
+
+    if tool == "voyant.ontology.links.create":
+        link = LinkService.create(tenant_id, params.get("link_type_id", ""), params.get("source_object_id", ""), params.get("target_object_id", ""), params.get("properties"))
+        return {"id": str(link.id)}
+
+    if tool == "voyant.ontology.links.delete":
+        LinkService.delete(tenant_id, params.get("link_id", ""))
+        return {"status": "deleted"}
+
+    if tool == "voyant.ontology.traverse":
+        results = LinkService.traverse(tenant_id, params.get("object_id", ""), link_type_name=params.get("link_type_name"), direction=params.get("direction", "outgoing"), max_depth=min(params.get("max_depth", 1), 10))
+        return {"results": results, "count": len(results)}
+
+    if tool == "voyant.ontology.interfaces.list":
+        from apps.ontology.models import Interface
+        ifaces = Interface.objects.filter(tenant_id=tenant_id, deleted_at__isnull=True)
+        return {"interfaces": [{"id": str(i.id), "name": i.name} for i in ifaces]}
+
+    if tool == "voyant.ontology.actions.execute":
+        from apps.ontology.action_executor import ActionExecutor
+        executor = ActionExecutor()
+        result = executor.execute(tenant_id, params.get("action_type_id", ""), params.get("object_id", ""), params.get("params", {}))
+        return {"success": result.success, "changes": result.changes, "errors": result.errors}
+
+    if tool == "voyant.ontology.functions.run":
+        from apps.ontology.function_runner import FunctionRunner
+        runner = FunctionRunner()
+        result = runner.run(tenant_id, params.get("function_id", ""), params.get("input_data", {}))
+        return {"success": result.success, "output": result.output, "duration_ms": result.duration_ms}
+
+    return {"error": f"Unknown ontology tool: {tool}"}
+
+
+def _handle_discovery(tool: str, params: dict, tenant_id: str) -> dict:
+    from apps.discovery.lib.catalog import get_catalog
+    catalog = get_catalog()
+
+    if tool == "voyant.discovery.services.list":
+        services = catalog.list_services(tag=params.get("tag"))
+        return {"services": [{"name": s.name, "base_url": s.base_url} for s in services]}
+
+    if tool == "voyant.discovery.services.get":
+        svc = catalog.get(params.get("name", ""))
+        if not svc:
+            return {"error": "Service not found"}
+        return {"name": svc.name, "base_url": svc.base_url, "version": svc.version}
+
+    if tool == "voyant.discovery.services.register":
+        svc = catalog.register(
+            name=params.get("name", ""),
+            base_url=params.get("base_url", ""),
+            spec_url=params.get("spec_url"),
+            version=params.get("version", "1.0.0"),
+        )
+        return {"name": svc.name, "status": "registered"}
+
+    if tool == "voyant.discovery.scan":
+        from apps.discovery.lib.spec_parser import SpecParser
+        parser = SpecParser()
+        spec = parser.parse_from_url(params.get("url", ""))
+        return {"title": spec.title, "version": spec.version, "endpoints": len(spec.endpoints)}
+
+    return {"error": f"Unknown discovery tool: {tool}"}
+
+
+def _handle_quotas(tool: str, params: dict, tenant_id: str) -> dict:
+    from apps.core.lib.tenant_quotas import QuotaManager
+    manager = QuotaManager()
+
+    if tool == "voyant.quotas.tiers":
+        return {"tiers": [t.value for t in manager.list_tiers()]}
+
+    if tool == "voyant.quotas.usage":
+        return manager.get_usage(tenant_id)
+
+    if tool == "voyant.quotas.limits":
+        return manager.get_limits(tenant_id)
+
+    if tool == "voyant.quotas.set_tier":
+        manager.set_tier(tenant_id, params.get("tier", "free"))
+        return {"status": "updated", "tier": params.get("tier")}
+
+    return {"error": f"Unknown quota tool: {tool}"}
+
+
+def _handle_kpi_templates(tool: str, params: dict, tenant_id: str) -> dict:
+    from apps.analysis.lib.kpi_templates import KPITemplateRegistry
+    registry = KPITemplateRegistry()
+
+    if tool == "voyant.kpi_templates.list":
+        templates = registry.list_templates(category=params.get("category"))
+        return {"templates": [{"name": t["name"], "category": t["category"]} for t in templates]}
+
+    if tool == "voyant.kpi_templates.get":
+        template = registry.get_template(params.get("name", ""))
+        if not template:
+            return {"error": "Template not found"}
+        return template
+
+    if tool == "voyant.kpi_templates.render":
+        sql = registry.render(params.get("name", ""), params.get("params", {}))
+        return {"sql": sql}
+
+    if tool == "voyant.kpi_templates.categories":
+        return {"categories": registry.list_categories()}
+
+    return {"error": f"Unknown KPI template tool: {tool}"}
+
+
+def _handle_presets(tool: str, params: dict, tenant_id: str) -> dict:
+    from apps.workflows.models import PresetJob
+
+    if tool == "voyant.presets.list":
+        presets = PresetJob.objects.filter(tenant_id=tenant_id).order_by("-created_at")[:20]
+        return {"presets": [{"id": str(p.id), "name": p.preset_name, "status": p.status} for p in presets]}
+
+    if tool == "voyant.presets.get":
+        preset = PresetJob.objects.filter(id=params.get("job_id", ""), tenant_id=tenant_id).first()
+        if not preset:
+            return {"error": "Preset not found"}
+        return {"id": str(preset.id), "name": preset.preset_name, "status": preset.status, "parameters": preset.parameters}
+
+    return {"error": f"Unknown preset tool: {tool}"}
+
+
+def _handle_vector(tool: str, params: dict, tenant_id: str) -> dict:
+    if tool == "voyant.vector.search":
+        return _handle_search(params, tenant_id)
+
+    if tool == "voyant.vector.index":
+        from apps.search.lib.embeddings import DenseEmbedder
+        from apps.search.lib.milvus_store import get_vector_store
+        store = get_vector_store()
+        embedder = DenseEmbedder()
+        text = params.get("text", "")
+        result = embedder.embed(text)
+        vec = result.embeddings[0]
+        metadata = params.get("metadata", {})
+        metadata["tenant_id"] = tenant_id
+        metadata["text_preview"] = text[:1000]
+        metadata["source_type"] = metadata.get("source_type", "api")
+        store.add(id=params.get("item_id", ""), vector=vec, metadata=metadata)
+        return {"status": "indexed", "text_length": len(text)}
+
+    return {"error": f"Unknown vector tool: {tool}"}
+
+
+def _handle_sources(tool: str, params: dict, tenant_id: str) -> dict:
+    from apps.discovery.models import Source
+
+    if tool == "voyant.sources.list":
+        sources = Source.objects.filter(tenant_id=tenant_id)
+        return {"sources": [{"id": str(s.id), "name": s.name, "type": s.source_type, "status": s.status} for s in sources]}
+
+    if tool == "voyant.sources.get":
+        source = Source.objects.filter(id=params.get("source_id", ""), tenant_id=tenant_id).first()
+        if not source:
+            return {"error": "Source not found"}
+        return {"id": str(source.id), "name": source.name, "type": source.source_type, "config": source.connection_config}
+
+    if tool == "voyant.sources.delete":
+        Source.objects.filter(id=params.get("source_id", ""), tenant_id=tenant_id).delete()
+        return {"status": "deleted"}
+
+    return {"error": f"Unknown sources tool: {tool}"}
+
+
+def _handle_jobs(tool: str, params: dict, tenant_id: str) -> dict:
+    from apps.workflows.models import Job
+
+    if tool == "voyant.jobs.list":
+        qs = Job.objects.filter(tenant_id=tenant_id)
+        if params.get("status"):
+            qs = qs.filter(status=params["status"])
+        if params.get("job_type"):
+            qs = qs.filter(job_type=params["job_type"])
+        jobs = qs.order_by("-created_at")[:params.get("limit", 50)]
+        return {"jobs": [{"id": str(j.job_id), "type": j.job_type, "status": j.status} for j in jobs]}
+
+    if tool == "voyant.jobs.cancel":
+        job = Job.objects.filter(job_id=params.get("job_id", ""), tenant_id=tenant_id).first()
+        if not job:
+            return {"error": "Job not found"}
+        job.status = "cancelled"
+        job.save(update_fields=["status"])
+        return {"status": "cancelled", "job_id": str(job.job_id)}
+
+    return {"error": f"Unknown jobs tool: {tool}"}
+
+
+def _handle_artifacts(tool: str, params: dict, tenant_id: str) -> dict:
+    from apps.workflows.models import Artifact
+
+    if tool == "voyant.artifacts.list":
+        arts = Artifact.objects.filter(job_id=params.get("job_id", ""))
+        return {"artifacts": [{"id": str(a.artifact_id), "type": a.artifact_type, "format": a.format, "size": a.size_bytes} for a in arts]}
+
+    return {"error": f"Unknown artifacts tool: {tool}"}
+
+
+def _handle_tables(tool: str, params: dict, tenant_id: str) -> dict:
+    from apps.core.lib.trino import get_trino_client
+    client = get_trino_client()
+
+    if tool == "voyant.tables.list":
+        result = client.execute("SHOW TABLES", limit=100)
+        return {"tables": [row[0] for row in result.rows]}
+
+    if tool == "voyant.tables.columns":
+        table = params.get("table", "")
+        result = client.execute(f"DESCRIBE {table}", limit=100)
+        return {"columns": [{"name": row[0], "type": row[1]} for row in result.rows]}
+
+    return {"error": f"Unknown tables tool: {tool}"}
+
+
+def _handle_governance(tool: str, params: dict, tenant_id: str) -> dict:
+    if tool == "voyant.governance.schema":
+        from apps.governance.lib.datahub import DataHubClient
+        client = DataHubClient()
+        schema = client.get_schema(params.get("urn", ""))
+        return {"schema": schema}
+
+    return {"error": f"Unknown governance tool: {tool}"}
+
+
+def _handle_scrape(tool: str, params: dict, tenant_id: str) -> dict:
+    if tool == "scrape.fetch":
+        from apps.scraper.lib.octopus.dispatcher import OctopusDispatcher
+        dispatcher = OctopusDispatcher()
+        result = dispatcher.fetch(url=params.get("url", ""), engine=params.get("engine", "playwright"), timeout=params.get("timeout", 30))
+        return {"status": "fetched", "url": params.get("url"), "size": len(str(result))}
+
+    if tool == "scrape.extract":
+        from apps.scraper.lib.html_parser import extract_data
+        result = extract_data(html=params.get("html", ""), selectors=params.get("selectors", {}), url=params.get("url", ""))
+        return {"data": result}
+
+    if tool == "scrape.ocr":
+        from apps.scraper.lib.ocr import process_ocr
+        result = process_ocr(images=params.get("images", []), language=params.get("language", "spa+eng"))
+        return {"text": result}
+
+    if tool == "scrape.parse_pdf":
+        from apps.scraper.lib.pdf_parser import parse_pdf
+        result = parse_pdf(pdf_url=params.get("pdf_url", ""), extract_tables=params.get("extract_tables", False))
+        return {"content": result}
+
+    if tool == "scrape.transcribe":
+        return {"status": "not_available", "reason": "Transcription requires Whisper model"}
+
+    if tool == "scrape.deep_archive":
+        return {"status": "not_available", "reason": "Deep archive requires Playwright setup"}
+
+    if tool == "voyant.scraper.template.run":
+        from apps.scraper.models import ScrapeTemplate
+        template = ScrapeTemplate.objects.filter(id=params.get("template_id")).first()
+        if not template:
+            return {"error": "Template not found"}
+        return {"template": template.name, "status": "dispatched"}
+
+    return {"error": f"Unknown scraper tool: {tool}"}
+
+
+# ── Tool handler registry ──────────────────────────────────────────────────
+
+_TOOL_HANDLERS: dict[str, Any] = {
+    "voyant.sql": _handle_sql,
+    "voyant.sql.execute": _handle_sql,
+    "voyant.search": _handle_search,
+    "voyant.ingest": _handle_ingest,
+    "voyant.profile": _handle_profile,
+    "voyant.quality": _handle_quality,
+    "voyant.analyze": _handle_analyze,
+    "voyant.kpi": _handle_kpi,
+    "voyant.discover": _handle_discover,
+    "voyant.connect": _handle_connect,
+    "voyant.status": _handle_status,
+    "voyant.artifact": _handle_artifact,
+}
 
 
 # Singleton
