@@ -748,3 +748,7 @@ class Function(TenantModel, UUIDModel):
 
     def __str__(self) -> str:
         return f"Function({self.name} v{self.version} [{self.language}])"
+
+
+# Re-export ActionExecution so Django's migration framework discovers it.
+from apps.ontology.action_executor import ActionExecution  # noqa: E402, F401
