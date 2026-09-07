@@ -64,7 +64,7 @@ export class ViewSources extends LitElement {
                 port: this.createPort,
                 database: this.createDatabase,
             };
-            await api.post('/v1/sources', {
+            await api.post('/sources', {
                 name: this.createName,
                 source_type: this.createType,
                 connection_config,
@@ -109,7 +109,7 @@ export class ViewSources extends LitElement {
             let config: Record<string, unknown> | undefined;
             try { config = JSON.parse(this.editConfig); } catch { config = undefined; }
 
-            await api.put(`/v1/sources/${this.selectedSource.source_id}`, {
+            await api.put(`/sources/${this.selectedSource.source_id}`, {
                 name: this.editName,
                 connection_config: config,
             });
