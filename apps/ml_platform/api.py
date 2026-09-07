@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any
 
@@ -282,3 +283,218 @@ def _get_latest_stage(model: RegisteredModel) -> str:
     """Get the stage of the latest version."""
     latest = model.versions.order_by("-version").first()
     return latest.stage if latest else "none"
+
+
+# ── Agent Definition endpoints ──────────────────────────────────────────────
+
+
+@ml_router.get("/agents", auth=require_permission("read:ml"))
+def list_agents(request):
+    """List all agent definitions."""
+    from apps.ml_platform.models import AgentDefinition
+
+    tenant_id = get_tenant_id(request)
+    agents = AgentDefinition.objects.filter(tenant_id=tenant_id).order_by("-created_at")
+    return [
+        {
+            "id": str(a.id),
+            "name": a.name,
+            "status": a.status,
+            "model": a.model_name,
+            "tools_count": len(a.tools),
+            "created_at": a.created_at.isoformat(),
+        }
+        for a in agents
+    ]
+
+
+@ml_router.post("/agents", auth=require_permission("write:ml"))
+def create_agent(request, payload: dict[str, Any]):
+    """Create a new agent definition."""
+    from apps.ml_platform.models import AgentDefinition
+
+    tenant_id = get_tenant_id(request)
+    agent = AgentDefinition.objects.create(
+        tenant_id=tenant_id,
+        name=payload.get("name", ""),
+        description=payload.get("description", ""),
+        system_prompt=payload.get("system_prompt", ""),
+        model_provider=payload.get("model_provider", "groq"),
+        model_name=payload.get("model_name", "openai/gpt-oss-120b"),
+        temperature=payload.get("temperature", 0.1),
+        max_tokens=payload.get("max_tokens", 4096),
+        tools=payload.get("tools", []),
+        guardrails=payload.get("guardrails", {}),
+    )
+    return {"id": str(agent.id), "name": agent.name, "status": agent.status}
+
+
+@ml_router.get("/agents/{agent_id}", auth=require_permission("read:ml"))
+def get_agent(request, agent_id: str):
+    """Get agent definition with evaluations."""
+    from apps.ml_platform.models import AgentDefinition
+
+    tenant_id = get_tenant_id(request)
+    agent = AgentDefinition.objects.filter(id=agent_id, tenant_id=tenant_id).first()
+    if not agent:
+        raise HttpError(404, "Agent not found")
+    evals = agent.evaluations.all().order_by("-completed_at")[:10]
+    return {
+        "id": str(agent.id),
+        "name": agent.name,
+        "status": agent.status,
+        "system_prompt": agent.system_prompt,
+        "model_provider": agent.model_provider,
+        "model_name": agent.model_name,
+        "temperature": agent.temperature,
+        "max_tokens": agent.max_tokens,
+        "tools": agent.tools,
+        "guardrails": agent.guardrails,
+        "evaluations": [
+            {
+                "id": str(e.id),
+                "name": e.name,
+                "status": e.status,
+                "overall_score": e.overall_score,
+                "run_count": e.run_count,
+            }
+            for e in evals
+        ],
+    }
+
+
+@ml_router.put("/agents/{agent_id}", auth=require_permission("write:ml"))
+def update_agent(request, agent_id: str, payload: dict[str, Any]):
+    """Update an agent definition."""
+    from apps.ml_platform.models import AgentDefinition
+
+    tenant_id = get_tenant_id(request)
+    agent = AgentDefinition.objects.filter(id=agent_id, tenant_id=tenant_id).first()
+    if not agent:
+        raise HttpError(404, "Agent not found")
+    for field in ["name", "description", "system_prompt", "model_provider", "model_name", "temperature", "max_tokens", "tools", "guardrails", "status"]:
+        if field in payload:
+            setattr(agent, field, payload[field])
+    agent.save()
+    return {"id": str(agent.id), "name": agent.name, "status": agent.status}
+
+
+@ml_router.delete("/agents/{agent_id}", auth=require_permission("write:ml"))
+def delete_agent(request, agent_id: str):
+    """Delete an agent definition."""
+    from apps.ml_platform.models import AgentDefinition
+
+    tenant_id = get_tenant_id(request)
+    deleted, _ = AgentDefinition.objects.filter(id=agent_id, tenant_id=tenant_id).delete()
+    if not deleted:
+        raise HttpError(404, "Agent not found")
+    return {"status": "deleted"}
+
+
+# ── Agent Evaluation endpoints ──────────────────────────────────────────────
+
+
+@ml_router.post("/agents/{agent_id}/evaluations", auth=require_permission("write:ml"))
+def create_evaluation(request, agent_id: str, payload: dict[str, Any]):
+    """Create a new evaluation for an agent."""
+    from apps.ml_platform.models import AgentDefinition, AgentEvaluation
+
+    tenant_id = get_tenant_id(request)
+    agent = AgentDefinition.objects.filter(id=agent_id, tenant_id=tenant_id).first()
+    if not agent:
+        raise HttpError(404, "Agent not found")
+    evaluation = AgentEvaluation.objects.create(
+        tenant_id=tenant_id,
+        agent=agent,
+        name=payload.get("name", f"eval-{agent.name}"),
+        test_cases=payload.get("test_cases", []),
+        judge_model=payload.get("judge_model", "openai/gpt-oss-120b"),
+    )
+    return {"id": str(evaluation.id), "name": evaluation.name, "status": evaluation.status}
+
+
+@ml_router.get("/agents/{agent_id}/evaluations", auth=require_permission("read:ml"))
+def list_evaluations(request, agent_id: str):
+    """List evaluations for an agent."""
+    from apps.ml_platform.models import AgentEvaluation
+
+    tenant_id = get_tenant_id(request)
+    evals = AgentEvaluation.objects.filter(
+        agent_id=agent_id, tenant_id=tenant_id
+    ).order_by("-created_at")
+    return [
+        {
+            "id": str(e.id),
+            "name": e.name,
+            "status": e.status,
+            "overall_score": e.overall_score,
+            "run_count": e.run_count,
+            "passed_count": e.passed_count,
+        }
+        for e in evals
+    ]
+
+
+@ml_router.post("/evaluations/{eval_id}/run", auth=require_permission("execute:ml"))
+def run_evaluation(request, eval_id: str):
+    """Run an evaluation against its test cases."""
+    from apps.ml_platform.models import AgentEvaluation
+
+    tenant_id = get_tenant_id(request)
+    evaluation = AgentEvaluation.objects.filter(id=eval_id, tenant_id=tenant_id).first()
+    if not evaluation:
+        raise HttpError(404, "Evaluation not found")
+
+    from django.utils import timezone
+
+    evaluation.status = "running"
+    evaluation.started_at = timezone.now()
+    evaluation.save(update_fields=["status", "started_at"])
+
+    results = []
+    total_score = 0.0
+    passed = 0
+
+    for tc in evaluation.test_cases:
+        input_text = tc.get("input", "")
+        expected = tc.get("expected", "")
+        try:
+            from apps.intent.engine import get_intent_engine
+            engine = get_intent_engine()
+            plan = engine.generate_plan(input_text, tenant_id)
+            exec_result = engine.execute_plan(plan, tenant_id)
+            output = json.dumps(exec_result, default=str)[:2000]
+            score = 1.0 if exec_result.get("steps") else 0.0
+            if score >= 0.8:
+                passed += 1
+            total_score += score
+            results.append({
+                "input": input_text,
+                "expected": expected,
+                "output": output,
+                "score": score,
+                "tools_used": [s.get("tool", "") for s in plan.steps],
+            })
+        except Exception as exc:
+            results.append({
+                "input": input_text,
+                "expected": expected,
+                "output": f"Error: {exc}",
+                "score": 0.0,
+            })
+
+    evaluation.results = results
+    evaluation.run_count = len(results)
+    evaluation.passed_count = passed
+    evaluation.overall_score = total_score / len(results) if results else 0.0
+    evaluation.status = "completed"
+    evaluation.completed_at = timezone.now()
+    evaluation.save()
+
+    return {
+        "id": str(evaluation.id),
+        "status": evaluation.status,
+        "overall_score": evaluation.overall_score,
+        "run_count": evaluation.run_count,
+        "passed_count": evaluation.passed_count,
+    }

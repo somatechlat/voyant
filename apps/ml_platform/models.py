@@ -174,3 +174,76 @@ class ModelEndpoint(TenantModel, UUIDModel):
 
     def __str__(self) -> str:
         return f"Endpoint({self.name} [{self.status}])"
+
+
+class AgentDefinition(TenantModel, UUIDModel):
+    """AI agent definition with prompt, model, tools, and guardrails."""
+
+    name = models.CharField(max_length=255, db_index=True)
+    description = models.TextField(blank=True, default="")
+    status = models.CharField(
+        max_length=20,
+        choices=[("draft", "Draft"), ("active", "Active"), ("archived", "Archived")],
+        default="draft",
+        db_index=True,
+    )
+
+    system_prompt = models.TextField(help_text="System prompt for the agent")
+    model_provider = models.CharField(max_length=100, default="groq", help_text="LLM provider")
+    model_name = models.CharField(max_length=255, default="openai/gpt-oss-120b", help_text="Model identifier")
+    temperature = models.FloatField(default=0.1)
+    max_tokens = models.IntegerField(default=4096)
+
+    tools = models.JSONField(
+        default=list, blank=True,
+        help_text='List of allowed MCP tools: ["voyant.sql", "voyant.search", ...]',
+    )
+    guardrails = models.JSONField(
+        default=dict, blank=True,
+        help_text='Safety rules: {"max_queries_per_session": 50, "blocked_tables": [], "require_approval": false}',
+    )
+    metadata = models.JSONField(default=dict, blank=True)
+
+    class Meta(TenantModel.Meta, UUIDModel.Meta):
+        db_table = "ml_agent_definition"
+        unique_together = [("tenant_id", "name")]
+
+    def __str__(self) -> str:
+        return f"Agent({self.name} [{self.status}])"
+
+
+class AgentEvaluation(TenantModel, UUIDModel):
+    """Test cases and scores for evaluating agent quality."""
+
+    agent = models.ForeignKey(
+        AgentDefinition, on_delete=models.CASCADE, related_name="evaluations"
+    )
+    name = models.CharField(max_length=255)
+    status = models.CharField(
+        max_length=20,
+        choices=[("pending", "Pending"), ("running", "Running"), ("completed", "Completed")],
+        default="pending",
+        db_index=True,
+    )
+
+    test_cases = models.JSONField(
+        default=list, blank=True,
+        help_text='[{"input": "query", "expected": "answer", "tools_used": ["voyant.sql"]}]',
+    )
+    results = models.JSONField(
+        default=list, blank=True,
+        help_text='[{"input": "...", "output": "...", "score": 0.95, "judge_notes": "..."}]',
+    )
+    overall_score = models.FloatField(null=True, blank=True, help_text="0.0-1.0 aggregate score")
+    judge_model = models.CharField(max_length=255, default="openai/gpt-oss-120b", help_text="AI judge model")
+    run_count = models.PositiveIntegerField(default=0)
+    passed_count = models.PositiveIntegerField(default=0)
+
+    started_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta(TenantModel.Meta, UUIDModel.Meta):
+        db_table = "ml_agent_evaluation"
+
+    def __str__(self) -> str:
+        return f"Eval({self.name} [{self.status}] score={self.overall_score})"
