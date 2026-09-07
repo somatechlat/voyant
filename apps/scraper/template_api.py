@@ -5,12 +5,16 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from ninja import Router
+from ninja import Router, Schema
 from ninja.errors import HttpError
 
 from apps.core.middleware import get_tenant_id
 from apps.core.security.auth import require_permission
 from apps.scraper.models import ScrapeTemplate
+
+
+class RunTemplatePayload(Schema):
+    parameters: dict[str, Any] = {}
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +97,7 @@ def get_template(request, template_id: str):
 
 
 @template_router.post("/templates/{template_id}/run", auth=require_permission("write:jobs"))
-def run_template(request, template_id: str, payload: dict[str, Any]):
+def run_template(request, template_id: str, payload: RunTemplatePayload):
     """Execute a template with parameter substitution. Starts a real Temporal workflow."""
     from apps.scraper.models import ScrapeJob
     from apps.scraper.security import SSRFError, validate_urls
@@ -103,7 +107,7 @@ def run_template(request, template_id: str, payload: dict[str, Any]):
         raise HttpError(404, "Template not found")
 
     tenant_id = get_tenant_id(request) or "default"
-    params = payload.get("parameters", {})
+    params = payload.parameters or {}
 
     # Substitute parameters into workflow
     workflow = _substitute_workflow(t.workflow or [], params)
@@ -237,8 +241,8 @@ def _extract_url(workflow: list[dict]) -> str:
 
 
 def _start_workflow_sync(workflow_run, args, workflow_id, task_queue):
-    """Start a Temporal workflow synchronously."""
-    import asyncio
+    """Start a Temporal workflow synchronously using a background thread."""
+    import concurrent.futures
 
     async def _start():
         from apps.core.lib.temporal_client import get_temporal_client
@@ -250,17 +254,16 @@ def _start_workflow_sync(workflow_run, args, workflow_id, task_queue):
             task_queue=task_queue,
         )
 
-    try:
-        asyncio.get_running_loop()
-        import concurrent.futures
-        with concurrent.futures.ThreadPoolExecutor() as pool:
-            pool.submit(asyncio.run, _start()).result(timeout=10)
-    except RuntimeError:
+    def _run():
+        import asyncio
         asyncio.run(_start())
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+        pool.submit(_run).result(timeout=15)
 
 
 def _run_inline(job, urls, selectors, options):
-    """Fallback: run scraping inline when Temporal is unavailable."""
+    """Fallback: run scraping inline when Temporal is unavailable. Synchronous only."""
     from apps.scraper.models import ScrapeJob
 
     try:
@@ -273,73 +276,65 @@ def _run_inline(job, urls, selectors, options):
             job.save(update_fields=["status", "error_message"])
             return
 
-        engine = options.get("engine", "httpx")
         timeout = options.get("timeout", 30)
 
-        if engine == "httpx" or not engine:
-            response = httpx.get(
-                url,
-                timeout=timeout,
-                follow_redirects=True,
-                headers={"User-Agent": "Mozilla/5.0 (compatible; VoyantBot/1.0)"},
-            )
-            html = response.text
+        response = httpx.get(
+            url,
+            timeout=timeout,
+            follow_redirects=True,
+            headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.5",
+            },
+        )
+        html = response.text
 
-            # Extract data using selectors
-            from lxml import html as lxml_html
+        from lxml import html as lxml_html
 
-            tree = lxml_html.fromstring(html)
-            results = {}
-            for field_name, selector in selectors.items():
+        tree = lxml_html.fromstring(html)
+        results = {}
+        for field_name, selector in selectors.items():
+            try:
+                if not selector:
+                    continue
                 try:
-                    elements = tree.xpath(selector) if "/" in selector else tree.cssselect(selector)
-                    if elements:
-                        if len(elements) == 1:
-                            results[field_name] = elements[0].text_content().strip()[:500]
-                        else:
-                            results[field_name] = [el.text_content().strip()[:200] for el in elements[:50]]
-                    else:
-                        results[field_name] = None
+                    elements = tree.cssselect(selector)
                 except Exception:
+                    elements = tree.xpath(selector)
+                if elements:
+                    if len(elements) == 1:
+                        text = elements[0].text_content().strip()[:500]
+                        if elements[0].tag == "a":
+                            href = elements[0].get("href", "")
+                            if href and not text:
+                                text = href
+                        results[field_name] = text
+                    else:
+                        results[field_name] = [el.text_content().strip()[:200] for el in elements[:50]]
+                else:
                     results[field_name] = None
+            except Exception:
+                results[field_name] = None
 
-            job.status = ScrapeJob.Status.SUCCEEDED
-            job.pages_fetched = 1
-            job.bytes_processed = len(response.content)
-            job.save(update_fields=["status", "pages_fetched", "bytes_processed"])
+        job.status = ScrapeJob.Status.SUCCEEDED
+        job.pages_fetched = 1
+        job.bytes_processed = len(response.content)
+        job.save(update_fields=["status", "pages_fetched", "bytes_processed"])
 
-            # Store result as artifact
-            import json
+        import json
 
-            from apps.workflows.models import Artifact
+        from apps.workflows.models import Artifact
 
-            Artifact.objects.create(
-                job_id=job.job_id,
-                artifact_type="data",
-                format="json",
-                storage_path=f"scraper/{job.job_id}/result.json",
-                size_bytes=len(json.dumps(results).encode()),
-            )
+        Artifact.objects.create(
+            job_id=job.job_id,
+            artifact_type="data",
+            format="json",
+            storage_path=f"scraper/{job.job_id}/result.json",
+            size_bytes=len(json.dumps(results).encode()),
+        )
 
-        elif engine == "playwright":
-            # Use Playwright for JS-rendered pages
-            from apps.scraper.visual.browser_manager import BrowserSession
-
-            async def _run_playwright():
-                session = BrowserSession(str(job.job_id))
-                await session.start()
-                try:
-                    await session.navigate(url)
-                    data = await session.extract_data(selectors)
-                    job.status = ScrapeJob.Status.SUCCEEDED
-                    job.pages_fetched = 1
-                    job.save(update_fields=["status", "pages_fetched"])
-                    return data
-                finally:
-                    await session.stop()
-
-            import asyncio
-            asyncio.run(_run_playwright())
+        logger.info("Inline scrape succeeded for %s: %d fields extracted", url, len(results))
 
     except Exception as exc:
         logger.exception("Inline scrape failed for %s", urls)

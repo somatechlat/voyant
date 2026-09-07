@@ -110,7 +110,6 @@ INSTALLED_APPS = [
     "corsheaders",  # For handling Cross-Origin Resource Sharing
     "ninja",  # For building the REST API
     "django_mcp",  # Django MCP Server (django-mcp 0.3.1)
-    "channels",  # Django Channels (WebSocket support)
     # Internal apps - New Django App Structure
     "apps.core",  # Core models (TimeStampedModel, TenantModel, AuditLog, SystemSetting)
     "apps.workflows",  # Workflows (Jobs, Artifacts, Presets)
@@ -129,6 +128,13 @@ INSTALLED_APPS = [
     "apps.intent",  # Intent Engine (LLM-powered intent translation)
     "apps.llm_providers",  # LLM Provider management (Groq, OpenAI, MiMo, etc.)
 ]
+
+# Add channels if installed (optional WebSocket support)
+try:
+    import channels  # noqa: F401
+    INSTALLED_APPS.append("channels")
+except ImportError:
+    pass
 
 # --- Middleware Configuration ---
 # The order of middleware is critical.
