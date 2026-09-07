@@ -1,6 +1,6 @@
 import { LitElement, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { api, setToken, isAuthenticated } from '../lib/api';
+import { setToken, isAuthenticated } from '../lib/api';
 
 @customElement('view-login')
 export class ViewLogin extends LitElement {
@@ -29,9 +29,6 @@ export class ViewLogin extends LitElement {
         this.error = '';
 
         try {
-            // In production, this would call Keycloak token endpoint.
-            // For now, we accept any credentials in local mode and
-            // the API returns a mock token.
             const res = await fetch('/v1/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -43,19 +40,29 @@ export class ViewLogin extends LitElement {
 
             if (res.ok) {
                 const data = await res.json();
-                setToken(data.token || data.access_token || '');
+                setToken(data.access_token);
+
+                // Store user info and refresh token
+                if (data.user) {
+                    localStorage.setItem('voyant_user', JSON.stringify(data.user));
+                }
+                if (data.refresh_token) {
+                    localStorage.setItem('voyant_refresh_token', data.refresh_token);
+                }
+
                 this.navigate('/admin');
-            } else if (res.status === 401) {
-                this.error = 'Invalid credentials';
             } else {
-                // In local dev mode without auth, skip login
+                const data = await res.json().catch(() => ({}));
+                this.error = data.detail || data.message || 'Invalid credentials';
+            }
+        } catch (err) {
+            // Fallback for local dev without Keycloak
+            if (window.location.hostname === 'localhost') {
                 setToken('local-dev-token');
                 this.navigate('/admin');
+            } else {
+                this.error = 'Authentication service unavailable';
             }
-        } catch {
-            // If auth endpoint doesn't exist (local mode), allow through
-            setToken('local-dev-token');
-            this.navigate('/admin');
         } finally {
             this.loading = false;
         }
@@ -63,59 +70,62 @@ export class ViewLogin extends LitElement {
 
     render() {
         return html`
-        <div class="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-            <div class="w-full max-w-sm">
+        <div style="min-height:100vh;background:var(--saas-bg-page);display:flex;align-items:center;justify-content:center;padding:16px;font-family:Inter,system-ui,sans-serif">
+            <div style="width:100%;max-width:380px">
                 <!-- Logo -->
-                <div class="text-center mb-8">
-                    <div class="h-12 w-12 rounded-xl bg-gray-900 flex items-center justify-center mx-auto mb-4">
-                        <svg class="h-6 w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <div style="text-align:center;margin-bottom:32px">
+                    <div style="width:48px;height:48px;border-radius:12px;background:#050505;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
                             <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/>
                             <line x1="12" y1="22" x2="12" y2="15.5"/>
                             <polyline points="22 8.5 12 15.5 2 8.5"/>
                         </svg>
                     </div>
-                    <h1 class="text-xl font-semibold text-gray-900">Voyant Admin</h1>
-                    <p class="text-sm text-gray-500 mt-1">Sign in to manage your data platform</p>
+                    <h1 style="font-size:20px;font-weight:700;color:#050505;margin:0">Voyant</h1>
+                    <p style="font-size:13px;color:#6B7280;margin-top:4px">Sign in to your data platform</p>
                 </div>
 
                 <!-- Form -->
-                <form @submit=${this.handleLogin} class="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
+                <form @submit=${this.handleLogin} style="background:white;border-radius:12px;border:1px solid #E5E7EB;padding:24px">
                     ${this.error ? html`
-                    <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                    <div style="margin-bottom:16px;padding:10px 14px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:8px;font-size:13px;color:#EF4444">
                         ${this.error}
                     </div>` : ''}
 
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Username</label>
-                        <input
-                            type="text"
+                    <div style="margin-bottom:16px">
+                        <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px">Username</label>
+                        <input type="text"
                             .value=${this.username}
                             @input=${(e: Event) => { this.username = (e.target as HTMLInputElement).value; }}
-                            class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                            style="width:100%;padding:8px 12px;border:1px solid #E5E7EB;border-radius:8px;font-size:13px;outline:none;transition:border-color 120ms"
                             placeholder="admin"
                             autocomplete="username"
+                            @focus=${(e: Event) => { (e.target as HTMLElement).style.borderColor = '#FF4D00'; }}
+                            @blur=${(e: Event) => { (e.target as HTMLElement).style.borderColor = '#E5E7EB'; }}
                         />
                     </div>
 
-                    <div class="mb-6">
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
-                        <input
-                            type="password"
+                    <div style="margin-bottom:24px">
+                        <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px">Password</label>
+                        <input type="password"
                             .value=${this.password}
                             @input=${(e: Event) => { this.password = (e.target as HTMLInputElement).value; }}
-                            class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                            style="width:100%;padding:8px 12px;border:1px solid #E5E7EB;border-radius:8px;font-size:13px;outline:none;transition:border-color 120ms"
                             placeholder="••••••••"
                             autocomplete="current-password"
+                            @focus=${(e: Event) => { (e.target as HTMLElement).style.borderColor = '#FF4D00'; }}
+                            @blur=${(e: Event) => { (e.target as HTMLElement).style.borderColor = '#E5E7EB'; }}
                         />
                     </div>
 
-                    <button
-                        type="submit"
-                        ?disabled=${this.loading}
-                        class="w-full py-2.5 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50 transition-colors"
-                    >
+                    <button type="submit" ?disabled=${this.loading}
+                        style="width:100%;padding:10px;background:${this.loading ? '#ccc' : '#FF4D00'};color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:${this.loading ? 'wait' : 'pointer'};transition:all 120ms">
                         ${this.loading ? 'Signing in...' : 'Sign In'}
                     </button>
+
+                    <p style="text-align:center;font-size:11px;color:#9CA3AF;margin-top:12px">
+                        Authenticated via Keycloak · JWT + RBAC
+                    </p>
                 </form>
             </div>
         </div>`;

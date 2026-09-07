@@ -29,28 +29,66 @@ export function isAuthenticated(): boolean {
     return !!getToken();
 }
 
+let _refreshing: Promise<boolean> | null = null;
+
+async function tryRefreshToken(): Promise<boolean> {
+    if (_refreshing) return _refreshing;
+    _refreshing = (async () => {
+        const refreshToken = localStorage.getItem('voyant_refresh_token');
+        if (!refreshToken) return false;
+        try {
+            const res = await fetch(`${API_BASE}/auth/refresh`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ refresh_token: refreshToken }),
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setToken(data.access_token);
+                if (data.refresh_token) {
+                    localStorage.setItem('voyant_refresh_token', data.refresh_token);
+                }
+                return true;
+            }
+            return false;
+        } catch { return false; }
+        finally { _refreshing = null; }
+    })();
+    return _refreshing;
+}
+
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     const token = getToken();
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch(`${API_BASE}${path}`, {
-        method,
-        headers,
-        body: body ? JSON.stringify(body) : undefined,
-    });
+    const opts: RequestInit = { method, headers };
+    if (body) opts.body = JSON.stringify(body);
+
+    let res = await fetch(`${API_BASE}${path}`, opts);
+
+    // Try token refresh on 401
+    if (res.status === 401) {
+        const refreshed = await tryRefreshToken();
+        if (refreshed) {
+            headers['Authorization'] = `Bearer ${getToken()}`;
+            res = await fetch(`${API_BASE}${path}`, { ...opts, headers });
+        }
+    }
 
     if (res.status === 401) {
         clearToken();
+        localStorage.removeItem('voyant_refresh_token');
+        localStorage.removeItem('voyant_user');
         window.location.href = '/admin/login';
         throw new ApiError(401, 'Unauthorized');
     }
 
     if (!res.ok) {
         const text = await res.text();
-        let body: unknown;
-        try { body = JSON.parse(text); } catch { body = text; }
-        throw new ApiError(res.status, `API error ${res.status}: ${text}`, body);
+        let errBody: unknown;
+        try { errBody = JSON.parse(text); } catch { errBody = text; }
+        throw new ApiError(res.status, `API error ${res.status}: ${text}`, errBody);
     }
 
     return res.json() as Promise<T>;

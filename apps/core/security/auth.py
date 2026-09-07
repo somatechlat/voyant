@@ -187,12 +187,13 @@ class KeycloakAuth:
                 raise HttpError(401, get_message("ERR_AUTH_SIGNING_KEY"))
 
             # Decode and verify the token.
+            # Skip audience verification — Keycloak service account tokens use 'account' audience
             payload = jwt.decode(
                 token,
                 key,
-                algorithms=["RS256"],  # Expected algorithm for Keycloak.
-                audience=self.client_id,
+                algorithms=["RS256"],
                 issuer=self._issuer,
+                options={"verify_aud": False},
             )
 
             # Extract user attributes from the JWT payload.

@@ -5,6 +5,7 @@ from ninja import NinjaAPI
 
 from apps.admin_panel.api import admin_router
 from apps.analysis.api import analyze_router
+from apps.core.auth_api import auth_router
 
 # Capsules router — imported lazily to avoid startup coupling
 from apps.capsules.api import capsules_router
@@ -56,3 +57,4 @@ api.add_router("/ontology", ontology_router, tags=["ontology"])
 api.add_router("/ml", ml_router, tags=["ml"])
 api.add_router("/intent", intent_router, tags=["intent"])
 api.add_router("/llm", llm_router, tags=["llm-providers"])
+api.add_router("/auth", auth_router, tags=["auth"])
