@@ -54,6 +54,16 @@ class SourceResponse(Schema):
     status: str
     created_at: str
     datahub_urn: str | None = None
+    connection_config: dict[str, Any] | None = None
+
+
+class UpdateSourceRequest(Schema):
+    name: str | None = None
+    source_type: str | None = None
+    connection_config: dict[str, Any] | None = None
+    credentials: dict[str, Any] | None = None
+    sync_schedule: str | None = None
+    status: str | None = None
 
 
 @sources_router.post("/discover", response=DiscoverResponse)
@@ -87,6 +97,7 @@ def create_source(request, payload: CreateSourceRequest):
         status=source.status,
         created_at=source.created_at.isoformat(),
         datahub_urn=source.datahub_urn,
+        connection_config=source.connection_config,
     )
 
 
@@ -103,6 +114,7 @@ def list_sources(request):
             status=source.status,
             created_at=source.created_at.isoformat(),
             datahub_urn=source.datahub_urn,
+            connection_config=source.connection_config,
         )
         for source in sources
     ]
@@ -124,6 +136,44 @@ def get_source(request, source_id: str):
         status=source.status,
         created_at=source.created_at.isoformat(),
         datahub_urn=source.datahub_urn,
+        connection_config=source.connection_config,
+    )
+
+
+@sources_router.put(
+    "/{source_id}", response=SourceResponse, auth=require_permission("write:sources")
+)
+def update_source(request, source_id: str, payload: UpdateSourceRequest):
+    source = Source.objects.filter(id=source_id).first()
+    if not source:
+        raise HttpError(404, get_message("ERR_SOURCE_NOT_FOUND", source_id=source_id))
+    tenant_id = get_tenant_id(request)
+    if source.tenant_id != tenant_id:
+        raise HttpError(403, get_message("ERR_ACCESS_DENIED"))
+
+    if payload.name is not None:
+        source.name = payload.name
+    if payload.source_type is not None:
+        source.source_type = payload.source_type
+    if payload.connection_config is not None:
+        source.connection_config = payload.connection_config
+    if payload.credentials is not None:
+        source.credentials = payload.credentials
+    if payload.sync_schedule is not None:
+        source.sync_schedule = payload.sync_schedule
+    if payload.status is not None:
+        source.status = payload.status
+    source.save()
+
+    return SourceResponse(
+        source_id=str(source.id),
+        tenant_id=source.tenant_id,
+        name=source.name,
+        source_type=source.source_type,
+        status=source.status,
+        created_at=source.created_at.isoformat(),
+        datahub_urn=source.datahub_urn,
+        connection_config=source.connection_config,
     )
 
 
