@@ -66,41 +66,50 @@ export class VoyantBrowserCanvas extends LitElement {
 
     createRenderRoot() { return this; }
 
-    connectedCallback() {
-        super.connectedCallback();
-        this._connect();
-    }
-
     disconnectedCallback() {
-        this.ws?.close();
+        this._disconnect();
         super.disconnectedCallback();
     }
 
+    private _disconnect() {
+        if (this.ws) {
+            this.ws.onopen = null;
+            this.ws.onmessage = null;
+            this.ws.onclose = null;
+            this.ws.onerror = null;
+            this.ws.close();
+            this.ws = null;
+        }
+        this.connected = false;
+    }
+
     private _connect() {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}/ws/scraper/`;
-        this.ws = new WebSocket(wsUrl);
+        this._disconnect();
+        try {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws/scraper/`;
+            this.ws = new WebSocket(wsUrl);
 
-        this.ws.onopen = () => {
-            this.connected = true;
-            this._send({ action: 'start' });
-            if (this.url) {
-                this._send({ action: 'navigate', url: this.url });
-            }
-        };
+            this.ws.onopen = () => {
+                this.connected = true;
+                this._send({ action: 'start' });
+                if (this.url) {
+                    this._send({ action: 'navigate', url: this.url });
+                }
+            };
 
-        this.ws.onmessage = (event) => {
-            const msg = JSON.parse(event.data);
-            this._handleMessage(msg);
-        };
+            this.ws.onmessage = (event) => {
+                try {
+                    const msg = JSON.parse(event.data);
+                    this._handleMessage(msg);
+                } catch { /* parse error — ignore */ }
+            };
 
-        this.ws.onclose = () => {
+            this.ws.onclose = () => { this.connected = false; };
+            this.ws.onerror = () => { this.connected = false; };
+        } catch {
             this.connected = false;
-        };
-
-        this.ws.onerror = () => {
-            this.connected = false;
-        };
+        }
     }
 
     private _send(data: Record<string, unknown>) {
@@ -244,7 +253,19 @@ export class VoyantBrowserCanvas extends LitElement {
     navigateTo(url: string) {
         this.loading = true;
         this.url = url;
-        this._send({ action: 'navigate', url });
+        if (!this.connected) {
+            this._connect();
+            // Wait for connection, then navigate
+            const check = setInterval(() => {
+                if (this.connected) {
+                    clearInterval(check);
+                    this._send({ action: 'navigate', url });
+                }
+            }, 200);
+            setTimeout(() => clearInterval(check), 10000); // give up after 10s
+        } else {
+            this._send({ action: 'navigate', url });
+        }
     }
 
     scroll(direction: 'up' | 'down' = 'down') {
