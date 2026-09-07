@@ -3,6 +3,7 @@ import { customElement, state } from 'lit/decorators.js';
 import { api } from '../lib/api';
 import '../components/saas-sidebar';
 import '../components/voyant-data-table';
+import '../components/voyant-browser-canvas';
 import '../components/voyant-detail-panel';
 import '../components/voyant-metric-card';
 
@@ -130,55 +131,10 @@ export class ViewScraper extends LitElement {
             <!-- ═══════════ VISUAL BUILDER ═══════════ -->
             ${this.tab === 'visual' ? html`
             <div class="px-8 pb-8">
-                <!-- URL Bar -->
-                <div class="bg-white rounded-xl border border-gray-100 p-4 mb-4 flex items-center gap-3">
-                    <div class="flex items-center gap-2 text-gray-400">
-                        <span class="text-lg">🌐</span>
-                        <span class="text-xs font-semibold uppercase tracking-wider">URL</span>
-                    </div>
-                    <input class="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm font-mono focus:border-brand focus:ring-2 focus:ring-brand/20 outline-none transition-all"
-                        placeholder="https://example.com/page-to-scrape"
-                        .value=${this.targetUrl}
-                        @input=${(e: Event) => { this.targetUrl = (e.target as HTMLInputElement).value; }}>
-                    <select class="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:border-brand outline-none" .value=${this.extractMode}
-                        @change=${(e: Event) => { this.extractMode = (e.target as HTMLSelectElement).value; }}>
-                        <option value="css">CSS Selector</option>
-                        <option value="xpath">XPath</option>
-                        <option value="auto">AI Auto-detect</option>
-                    </select>
-                    <button class="bg-brand text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-brand-hover transition-colors shadow-sm"
-                        @click=${this._runExtraction}>
-                        ▶ Extract
-                    </button>
-                </div>
-
                 <div class="grid grid-cols-[1fr_380px] gap-4">
-                    <!-- Preview area -->
-                    <div class="bg-white rounded-xl border border-gray-100 overflow-hidden" style="height:520px">
-                        ${this.targetUrl ? html`
-                        <div class="h-9 border-b border-gray-100 flex items-center px-3 gap-2 bg-gray-50">
-                            <div class="flex gap-1.5">
-                                <div class="w-2.5 h-2.5 rounded-full bg-red-400"></div>
-                                <div class="w-2.5 h-2.5 rounded-full bg-yellow-400"></div>
-                                <div class="w-2.5 h-2.5 rounded-full bg-green-400"></div>
-                            </div>
-                            <div class="flex-1 px-3 py-0.5 rounded bg-white border border-gray-200 text-xs text-gray-500 font-mono truncate">${this.targetUrl}</div>
-                        </div>
-                        <iframe src=${this.targetUrl} class="w-full h-full border-none" style="height:calc(100% - 36px)" sandbox="allow-same-origin allow-scripts"></iframe>
-                        ` : html`
-                        <div class="flex flex-col items-center justify-center h-full gap-4">
-                            <div class="text-5xl opacity-20">🕷️</div>
-                            <div class="text-sm text-gray-400">Enter a URL to start extracting data</div>
-                            <div class="flex gap-2 mt-2">
-                                <button class="px-4 py-2 rounded-lg border border-gray-200 text-sm hover:border-brand hover:text-brand transition-colors"
-                                    @click=${() => { this.targetUrl = 'https://xtrim.com.ec'; }}>xtrim.com.ec</button>
-                                <button class="px-4 py-2 rounded-lg border border-gray-200 text-sm hover:border-brand hover:text-brand transition-colors"
-                                    @click=${() => { this.targetUrl = 'https://news.ycombinator.com'; }}>Hacker News</button>
-                                <button class="px-4 py-2 rounded-lg border border-gray-200 text-sm hover:border-brand hover:text-brand transition-colors"
-                                    @click=${() => { this.targetUrl = 'https://amazon.com'; }}>Amazon</button>
-                            </div>
-                        </div>
-                        `}
+                    <!-- Browser Canvas (WebSocket-based, Playwright backend) -->
+                    <div class="bg-white rounded-xl border border-gray-100 overflow-hidden" style="height:560px">
+                        <voyant-browser-canvas .url=${this.targetUrl} style="height:100%"></voyant-browser-canvas>
                     </div>
 
                     <!-- Right panel -->

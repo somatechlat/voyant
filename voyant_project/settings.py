@@ -110,6 +110,7 @@ INSTALLED_APPS = [
     "corsheaders",  # For handling Cross-Origin Resource Sharing
     "ninja",  # For building the REST API
     "django_mcp",  # Django MCP Server (django-mcp 0.3.1)
+    "channels",  # Django Channels (WebSocket support)
     # Internal apps - New Django App Structure
     "apps.core",  # Core models (TimeStampedModel, TenantModel, AuditLog, SystemSetting)
     "apps.workflows",  # Workflows (Jobs, Artifacts, Presets)
@@ -372,6 +373,13 @@ CACHES = {
 # --- Rate Limiting Configuration (if using django-ratelimit) ---
 RATELIMIT_USE_CACHE = "default"
 RATELIMIT_CACHE_PREFIX = "rl"
+
+# --- Channels Configuration (WebSocket) ---
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    },
+}
 
 # --- MCP Configuration (django-mcp 0.3.1) ---
 # Reference: https://pypi.org/project/django-mcp/
