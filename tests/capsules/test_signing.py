@@ -4,8 +4,6 @@ import base64
 import hashlib
 import json
 
-import pytest
-
 from apps.capsules.services.capsule_signing import (
     SignatureResult,
     compute_content_hash,
@@ -13,7 +11,6 @@ from apps.capsules.services.capsule_signing import (
     sign_capsule,
     verify_signature,
 )
-
 
 # ---------------------------------------------------------------------------
 # compute_content_hash

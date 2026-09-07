@@ -7,8 +7,8 @@ ActivityEnvironment.run() is synchronous — no await needed.
 """
 
 import pytest
-from temporalio.testing import ActivityEnvironment
 from temporalio.exceptions import ApplicationError
+from temporalio.testing import ActivityEnvironment
 
 from apps.worker.activities.ml_activities import MLActivities
 

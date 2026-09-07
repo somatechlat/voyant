@@ -5,7 +5,6 @@ dataclasses, DruidClient construction, and response parsing logic.
 Real dataclass construction and parsing. No mocks.
 """
 
-import pytest
 
 from apps.core.lib.druid_client import (
     DruidClient,
@@ -14,7 +13,6 @@ from apps.core.lib.druid_client import (
     get_druid_client,
     get_pinot_client,
 )
-
 
 # ── Dataclass Tests ───────────────────────────────────────────────────────────
 

@@ -13,7 +13,6 @@ import pytest
 from apps.discovery.lib.catalog import DiscoveryRepo, ServiceDef, get_discovery_repo
 from apps.discovery.lib.models import ApiEndpoint
 
-
 # =========================================================================
 # ServiceDef
 # =========================================================================

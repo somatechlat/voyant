@@ -5,12 +5,10 @@ Real Prometheus registry. No mocks.
 """
 
 import pytest
-from prometheus_client import REGISTRY
 
 from apps.core.lib.metrics import (
     BASIC_METRICS,
     FULL_METRICS,
-    get_mode,
     init_metrics,
     record_airbyte_retry,
     record_artifacts_pruned,

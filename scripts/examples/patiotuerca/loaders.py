@@ -6,7 +6,7 @@ from __future__ import annotations
 import asyncio
 import sqlite3
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 
 def _utcnow_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def _connect(db_path: str) -> sqlite3.Connection:
@@ -37,7 +37,7 @@ def _ensure_tables(con: sqlite3.Connection) -> None:
     con.commit()
 
 
-def load_targets(cfg: "CrawlConfig") -> list[tuple[int, str]]:
+def load_targets(cfg: CrawlConfig) -> list[tuple[int, str]]:
     con = _connect(cfg.db_path)
     try:
         q = """
@@ -61,7 +61,7 @@ def load_targets(cfg: "CrawlConfig") -> list[tuple[int, str]]:
         con.close()
 
 
-async def writer(cfg: "CrawlConfig", outq: asyncio.Queue, total: int) -> None:
+async def writer(cfg: CrawlConfig, outq: asyncio.Queue, total: int) -> None:
     con = _connect(cfg.db_path)
     _ensure_tables(con)
 

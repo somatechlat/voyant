@@ -8,11 +8,6 @@ the _tenant delegation pattern.
 
 import inspect
 
-import pytest
-
-from apps.core.config import get_settings
-
-
 # =========================================================================
 # Tool signature verification
 # =========================================================================

@@ -20,6 +20,7 @@ class TestFetchActivitiesEngineRouting:
     def test_scrapy_engine_raises_application_error(self):
         """Scrapy engine is not yet integrated and should raise."""
         import asyncio
+
         from temporalio.exceptions import ApplicationError
 
         activity = FetchActivities()

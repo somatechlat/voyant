@@ -5,7 +5,6 @@ Provides authenticated and unauthenticated test clients for
 hitting real API endpoints through the full middleware stack.
 """
 
-import os
 
 import pytest
 

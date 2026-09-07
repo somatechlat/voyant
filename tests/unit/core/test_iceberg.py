@@ -5,7 +5,6 @@ IcebergClient URL construction, and response parsing.
 Real dataclass construction and parsing logic. No mocks.
 """
 
-import pytest
 
 from apps.core.lib.iceberg import (
     IcebergClient,
@@ -13,7 +12,6 @@ from apps.core.lib.iceberg import (
     IcebergTable,
     get_iceberg_client,
 )
-
 
 # ── Dataclass Tests ───────────────────────────────────────────────────────────
 

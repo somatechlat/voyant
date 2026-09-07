@@ -5,7 +5,6 @@ Real in-memory queue. No mocks, no external services.
 """
 
 import asyncio
-import time
 
 import pytest
 

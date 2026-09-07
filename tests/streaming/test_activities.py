@@ -1,6 +1,5 @@
 """Tests for apps/streaming/activities.py."""
 
-import pytest
 
 from apps.streaming.activities import FlinkJobResult, StreamingActivities
 

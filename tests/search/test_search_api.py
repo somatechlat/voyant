@@ -13,7 +13,6 @@ from pymilvus import MilvusException
 
 from apps.search.lib.milvus_store import get_vector_store
 
-
 # Heartbeat Milvus once at module level; skip all tests if down.
 try:
     _store = get_vector_store()

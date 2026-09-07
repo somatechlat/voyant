@@ -5,9 +5,7 @@ Real in-memory store with temp directories. No mocks, no external services.
 """
 
 import gzip
-import hashlib
 import json
-import tempfile
 from pathlib import Path
 
 import pytest

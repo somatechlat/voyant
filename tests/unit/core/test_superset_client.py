@@ -5,7 +5,6 @@ SupersetDashboard dataclasses, SupersetClient construction, and response parsing
 Real dataclass construction and parsing. No mocks.
 """
 
-import pytest
 
 from apps.core.lib.superset_client import (
     SupersetChart,
@@ -14,7 +13,6 @@ from apps.core.lib.superset_client import (
     SupersetDataset,
     get_superset_client,
 )
-
 
 # ── Dataclass Tests ───────────────────────────────────────────────────────────
 

@@ -6,11 +6,9 @@ validation, unknown field rejection, and partial-update mode.
 Pure logic — no DB, no services.
 """
 
-import pytest
 
 from apps.ontology.models import PropertyType
 from apps.ontology.validators import ValidationError, validate_properties
-
 
 # ---------------------------------------------------------------------------
 # Helpers: lightweight stand-in for Property model instances

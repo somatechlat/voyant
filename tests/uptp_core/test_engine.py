@@ -6,14 +6,12 @@ TemplateExecutionRequest schema.
 Uses real engine and schema objects — no mocks.
 """
 
-import uuid
 
 import pytest
 from django.core.exceptions import ValidationError as DjangoValidationError
 from pydantic import ValidationError as PydanticValidationError
 
 from apps.uptp_core.schemas import TemplateCategory, TemplateExecutionRequest
-
 
 # =========================================================================
 # TemplateCategory enum
@@ -174,7 +172,6 @@ class TestUPTPExecutionEngine:
 
     def test_unknown_category_raises(self):
         """Categories without a physical route should raise ValueError."""
-        from apps.uptp_core.engine import UPTPExecutionEngine
 
         # Create a request with a valid category, then monkey-patch to test
         # the else branch. We use a real request but override category.

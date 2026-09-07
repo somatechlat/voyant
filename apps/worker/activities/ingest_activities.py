@@ -320,7 +320,9 @@ class IngestActivities:
         """
         Record data lineage edges for the ingestion job.
 
-        Links the ingested source to the output table node in the lineage graph.
+        Links the ingested source to the output table node in the lineage graph,
+        and publishes dataset registration + lineage to DataHub (GOV-F-006)
+        when the integration is enabled.
         """
         job_id = params.get("job_id")
         source_id = params.get("source_id")
@@ -340,4 +342,29 @@ class IngestActivities:
         )
 
         activity.logger.info(f"Recorded lineage for job {job_id}")
-        return {"recorded": True, "nodes": 3}
+
+        datahub: dict[str, Any] = {"published": False, "reason": "datahub_disabled"}
+        try:
+            if self.settings.enable_datahub:
+                from apps.governance.lib.datahub import (
+                    DatasetUrn,
+                    publish_job_lineage,
+                )
+
+                source_urn = str(DatasetUrn(platform="postgresql", name=source_id))
+                output_urn = str(DatasetUrn(platform="duckdb", name=output_table))
+                datahub = await publish_job_lineage(
+                    source_urns=[source_urn],
+                    output_urn=output_urn,
+                    dataset_name=output_table,
+                    description=f"Ingested dataset for source {source_id}",
+                )
+                if datahub.get("published"):
+                    activity.logger.info(
+                        f"Published lineage for {output_table} to DataHub"
+                    )
+        except Exception as exc:
+            activity.logger.warning("DataHub lineage publication failed: %s", exc)
+            datahub = {"published": False, "reason": str(exc)}
+
+        return {"recorded": True, "nodes": 3, "datahub": datahub}

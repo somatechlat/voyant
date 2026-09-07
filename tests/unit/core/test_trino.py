@@ -6,7 +6,7 @@ Real TrinoClient validation logic. No Trino server needed for validation.
 
 import pytest
 
-from apps.core.lib.trino import TrinoClient, QueryResult
+from apps.core.lib.trino import QueryResult, TrinoClient
 
 
 @pytest.fixture

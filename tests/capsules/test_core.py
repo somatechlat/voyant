@@ -4,10 +4,8 @@ Tests the _increment_version and _apply_updates helper functions,
 and the verify_capsule logic using real dict structures.
 """
 
-import pytest
 
-from apps.capsules.services.capsule_core import _increment_version, _apply_updates
-
+from apps.capsules.services.capsule_core import _apply_updates, _increment_version
 
 # ---------------------------------------------------------------------------
 # _increment_version

@@ -5,7 +5,6 @@ get_tracer fallback, and shutdown_tracing.
 Real no-op objects. No mocks.
 """
 
-import pytest
 
 from apps.core.lib.skywalking import (
     _NoOpSpan,
@@ -13,7 +12,6 @@ from apps.core.lib.skywalking import (
     get_tracer,
     shutdown_tracing,
 )
-
 
 # ── _NoOpSpan Tests ──────────────────────────────────────────────────────────
 

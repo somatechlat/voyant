@@ -13,7 +13,6 @@ from apps.core.lib.namespace_analyzer import (
     NamespaceViolationError,
 )
 
-
 # =============================================================================
 # NamespaceConfig Tests
 # =============================================================================

@@ -11,7 +11,6 @@ These tests require a running PostgreSQL instance. Mark as integration:
 
 import pytest
 from django.db import connection
-from django.utils import timezone
 
 # Skip entire module if DB is unreachable
 _db_available = True
@@ -32,7 +31,6 @@ from apps.ontology.models import (
     LinkType,
     Object,
     ObjectType,
-    Property,
 )
 from apps.ontology.services import (
     LinkService,
@@ -41,7 +39,6 @@ from apps.ontology.services import (
     ObjectTypeService,
 )
 from apps.ontology.validators import ValidationError
-
 
 TENANT = "test-tenant-001"
 

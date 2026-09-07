@@ -7,9 +7,7 @@ Pure schema logic — no DB, no Trino.
 """
 
 import pytest
-from ninja import Schema
 from pydantic import ValidationError as PydanticValidationError
-
 
 # =========================================================================
 # SqlRequest schema
@@ -148,27 +146,27 @@ class TestSqlResponse:
 
 class TestEndpointSignatures:
     def test_execute_sql_signature(self):
-        from apps.sql.api import execute_sql
-
         import inspect
+
+        from apps.sql.api import execute_sql
 
         sig = inspect.signature(execute_sql)
         assert "request" in sig.parameters
         assert "payload" in sig.parameters
 
     def test_list_tables_signature(self):
-        from apps.sql.api import list_tables
-
         import inspect
+
+        from apps.sql.api import list_tables
 
         sig = inspect.signature(list_tables)
         assert "request" in sig.parameters
         assert sig.parameters["schema"].default is None
 
     def test_get_columns_signature(self):
-        from apps.sql.api import get_columns
-
         import inspect
+
+        from apps.sql.api import get_columns
 
         sig = inspect.signature(get_columns)
         assert "table" in sig.parameters

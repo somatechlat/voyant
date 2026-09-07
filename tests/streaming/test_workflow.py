@@ -33,6 +33,5 @@ class TestStreamingJobWorkflow:
         assert hasattr(StreamingJobWorkflow, "run")
 
     def test_workflow_is_decorated(self):
-        import temporalio.workflow
         # Verify the workflow class is properly decorated
         assert hasattr(StreamingJobWorkflow, "__temporal_workflow_definition")

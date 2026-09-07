@@ -5,13 +5,11 @@ Tests model string representations and enum completeness.
 Pure logic — no DB required.
 """
 
-import pytest
 
 from apps.ontology.models import (
     Cardinality,
     PropertyType,
 )
-
 
 # ---------------------------------------------------------------------------
 # PropertyType enum

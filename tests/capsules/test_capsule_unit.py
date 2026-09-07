@@ -9,7 +9,7 @@ attributes only.  Follows the No-Mocks rule: no MagicMock, no monkeypatch.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 from uuid import uuid4
 
 import pytest
@@ -48,7 +48,7 @@ class FakeCapsule:
     execution_graph: list = field(default_factory=list)
     parameters_schema: dict = field(default_factory=dict)
     capabilities_whitelist: list = field(default_factory=list)
-    registry_signature: Optional[str] = None
+    registry_signature: str | None = None
     constitution_ref: dict = field(default_factory=dict)
     body: dict = field(default_factory=dict)
     system_prompt: str = ""

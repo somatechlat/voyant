@@ -17,7 +17,6 @@ import pytest
 
 from apps.worker.workflows.types import IngestParams, IngestResult
 
-
 # ---------------------------------------------------------------------------
 # IngestParams Dataclass
 # ---------------------------------------------------------------------------

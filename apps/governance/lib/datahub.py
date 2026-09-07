@@ -289,3 +289,47 @@ def get_datahub_client() -> DataHubClient:
     if _client is None:
         _client = DataHubClient()
     return _client
+
+
+def reset_datahub_client():
+    """Reset the singleton client (testing / config reload)."""
+    global _client
+    _client = None
+
+
+async def publish_job_lineage(
+    *,
+    source_urns: list[str],
+    output_urn: str,
+    dataset_name: str,
+    description: str | None = None,
+    schema_fields: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """
+    Register the output dataset and emit source-to-output lineage to DataHub.
+
+    Best-effort: never raises and returns a status dict. Publish is skipped
+    when DataHub integration is disabled or DATAHUB_GMS_URL is not configured.
+    """
+    if not (settings.enable_datahub and settings.datahub_gms_url):
+        return {"published": False, "reason": "datahub_disabled"}
+
+    client = get_datahub_client()
+    try:
+        registered = await client.register_dataset(
+            urn=output_urn,
+            name=dataset_name,
+            description=description,
+            schema_fields=schema_fields,
+        )
+        emitted = False
+        if source_urns:
+            emitted = await client.emit_lineage(source_urns, output_urn)
+        return {
+            "published": True,
+            "registered": registered,
+            "lineage_emitted": emitted,
+        }
+    except Exception as exc:
+        logger.error("Failed to publish lineage to DataHub: %s", exc)
+        return {"published": False, "reason": str(exc)}

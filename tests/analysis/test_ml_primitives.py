@@ -2,7 +2,7 @@
 
 import pytest
 
-from apps.analysis.lib.ml_primitives import MLPrimitives, SKLEARN_AVAILABLE
+from apps.analysis.lib.ml_primitives import SKLEARN_AVAILABLE, MLPrimitives
 from apps.core.lib.errors import AnalysisError
 
 

@@ -5,8 +5,6 @@ Real in-memory registry. No mocks, no external services.
 """
 
 import json
-import tempfile
-from pathlib import Path
 
 import pytest
 
@@ -15,8 +13,6 @@ from apps.core.lib.contracts import (
     DataContract,
     DataType,
     SensitivityLevel,
-    ValidationError,
-    ValidationResult,
     clear_registry,
     get_contract,
     list_contracts,

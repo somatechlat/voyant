@@ -13,7 +13,6 @@ from django.http import HttpRequest, JsonResponse
 
 from apps.core.views import _run_with_timeout, health, ready, status_view, version_view
 
-
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 

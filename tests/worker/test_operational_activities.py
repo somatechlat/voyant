@@ -5,10 +5,9 @@ Tests clean_data, detect_anomalies, analyze_sentiment_batch, fix_data_quality,
 and forecast_time_series using real primitives. No mocking.
 """
 
-import numpy as np
 import pytest
-from temporalio.testing import ActivityEnvironment
 from temporalio.exceptions import ApplicationError
+from temporalio.testing import ActivityEnvironment
 
 from apps.worker.activities.operational_activities import OperationalActivities
 

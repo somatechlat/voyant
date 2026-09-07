@@ -5,12 +5,13 @@ Tests run_ingestion, validate_contract_activity, and record_lineage_activity.
 Uses ActivityEnvironment for activities that call activity.heartbeat().
 """
 
-import asyncio
+
+from types import SimpleNamespace
 
 import duckdb
 import pytest
-from temporalio.testing import ActivityEnvironment
 from temporalio.exceptions import ApplicationError
+from temporalio.testing import ActivityEnvironment
 
 from apps.worker.activities.ingest_activities import IngestActivities
 
@@ -212,6 +213,39 @@ class TestRecordLineageActivity:
             {"source_id": "test_source"},
         )
         assert result["recorded"] is True
+
+    @pytest.mark.asyncio
+    async def test_record_lineage_publishes_to_datahub(self, activities, env, monkeypatch):
+        """DataHub publish is invoked when integration is enabled."""
+        import apps.governance.lib.datahub as datahub_module
+
+        activities.settings = SimpleNamespace(enable_datahub=True)
+        calls = []
+
+        async def fake_publish(**kwargs):
+            calls.append(kwargs)
+            return {"published": True, "registered": True, "lineage_emitted": True}
+
+        monkeypatch.setattr(datahub_module, "publish_job_lineage", fake_publish)
+
+        result = await env.run(
+            activities.record_lineage_activity,
+            {"job_id": "lineage-job-003", "source_id": "test_source", "tenant_id": "tenant_1"},
+        )
+        assert result["datahub"]["published"] is True
+        assert result["nodes"] == 3
+        assert len(calls) == 1
+        assert "raw_test_source" in calls[0]["dataset_name"]
+
+    @pytest.mark.asyncio
+    async def test_record_lineage_datahub_disabled(self, activities, env):
+        """DataHub stays disabled when enable_datahub is False."""
+        activities.settings = SimpleNamespace(enable_datahub=False)
+        result = await env.run(
+            activities.record_lineage_activity,
+            {"job_id": "lineage-job-004", "source_id": "test_source"},
+        )
+        assert result["datahub"]["published"] is False
 
 
 class TestSyncAirbyte:

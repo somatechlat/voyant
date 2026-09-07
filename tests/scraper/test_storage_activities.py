@@ -1,7 +1,6 @@
 """Tests for apps.scraper.activities.storage_activities — pure logic tests."""
 
 import hashlib
-from datetime import datetime
 
 import pytest
 

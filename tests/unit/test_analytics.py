@@ -12,7 +12,7 @@ These tests ensure the correctness and reliability of the analytical core compon
 Reference: docs/CANONICAL_ROADMAP.md - P6 Advanced Analytics
 """
 
-from typing import Any, Dict, List
+from typing import Any
 
 import pytest
 
@@ -192,7 +192,7 @@ class TestSegmentation:
     """
 
     @pytest.fixture
-    def sample_data(self) -> List[Dict[str, Any]]:
+    def sample_data(self) -> list[dict[str, Any]]:
         """Provides sample data for segmentation tests."""
         return [
             {"region": "US", "sales": 100, "quantity": 10},
@@ -202,7 +202,7 @@ class TestSegmentation:
             {"region": "APAC", "sales": 150, "quantity": 15},
         ]
 
-    def test_profile_by_region(self, sample_data: List[Dict[str, Any]]):
+    def test_profile_by_region(self, sample_data: list[dict[str, Any]]):
         """
         Verifies that `profile_segments` correctly profiles data based on a specified column.
         """
@@ -212,7 +212,7 @@ class TestSegmentation:
         assert result.total_rows == 5
         assert len(result.segments) == 3  # US, EU, APAC
 
-    def test_segment_stats(self, sample_data: List[Dict[str, Any]]):
+    def test_segment_stats(self, sample_data: list[dict[str, Any]]):
         """
         Ensures that per-segment statistics are calculated correctly.
         """
@@ -223,7 +223,7 @@ class TestSegmentation:
         assert "sales" in us_segment.numeric_stats
         assert us_segment.numeric_stats["sales"]["mean"] == 110
 
-    def test_compare_segments(self, sample_data: List[Dict[str, Any]]):
+    def test_compare_segments(self, sample_data: list[dict[str, Any]]):
         """
         Verifies that `compare_segments` can accurately compare two distinct segments.
         """
@@ -233,7 +233,7 @@ class TestSegmentation:
         assert comparison.segment_b == "EU"
         assert "sales" in comparison.numeric_differences
 
-    def test_segment_drift_detection(self, sample_data: List[Dict[str, Any]]):
+    def test_segment_drift_detection(self, sample_data: list[dict[str, Any]]):
         """
         Tests the detection of drift in segment proportions between two datasets.
         """

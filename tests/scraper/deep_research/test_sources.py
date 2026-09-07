@@ -3,10 +3,9 @@
 import pytest
 
 from apps.scraper.deep_research.schemas import SearchResultItem
-from apps.scraper.deep_research.sources.searxng_client import SearXNGClient
 from apps.scraper.deep_research.sources.brave_search import BraveSearchClient
 from apps.scraper.deep_research.sources.google_cse import GoogleCSEClient
-
+from apps.scraper.deep_research.sources.searxng_client import SearXNGClient
 
 # ---------------------------------------------------------------------------
 # SearXNGClient

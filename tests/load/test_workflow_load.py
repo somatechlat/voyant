@@ -29,7 +29,7 @@ import statistics
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import pytest
 
@@ -88,11 +88,11 @@ class LoadTestResult:
     p99_latency: float = 0.0
 
     # Errors
-    errors: List[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
 
     # Metadata
     timestamp: str = ""
-    config: Optional[LoadTestConfig] = None
+    config: LoadTestConfig | None = None
 
     def __post_init__(self):
         if not self.timestamp:
@@ -111,7 +111,7 @@ class LoadTestResult:
             return 0.0
         return self.total_executions / self.total_duration_seconds
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "test_name": self.test_name,
             "total_executions": self.total_executions,
@@ -156,7 +156,7 @@ class LoadTestResult:
         print("=" * 60 + "\n")
 
 
-def calculate_percentile(data: List[float], percentile: float) -> float:
+def calculate_percentile(data: list[float], percentile: float) -> float:
     """Calculate percentile from sorted data."""
     if not data:
         return 0.0
@@ -166,7 +166,7 @@ def calculate_percentile(data: List[float], percentile: float) -> float:
     return sorted_data[idx]
 
 
-def calculate_statistics(latencies: List[float]) -> Dict[str, float]:
+def calculate_statistics(latencies: list[float]) -> dict[str, float]:
     """
     Calculate statistical metrics for latencies.
 
@@ -219,8 +219,8 @@ async def run_concurrent_test(
     Performance Engineer: Efficient async execution with semaphore control
     """
     semaphore = asyncio.Semaphore(concurrency)
-    latencies: List[float] = []
-    errors: List[str] = []
+    latencies: list[float] = []
+    errors: list[str] = []
     successful = 0
     failed = 0
 
@@ -440,7 +440,7 @@ class TestRateLimiting:
         test rate limiting. With high concurrency, tasks complete in bursts
         rather than at a steady rate.
         """
-        request_times: List[float] = []
+        request_times: list[float] = []
 
         async def rate_limited_call(worker_id: int, iteration: int):
             """Make a rate-limited API call."""

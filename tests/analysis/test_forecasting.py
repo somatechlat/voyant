@@ -1,12 +1,10 @@
 """Tests for apps.analysis.lib.forecasting — pure forecasting engine."""
 
-import math
 
 import pytest
 
 from apps.analysis.lib.forecasting import (
     ExponentialSmoothingForecaster,
-    ForecastMethod,
     ForecastPoint,
     ForecastResult,
     LinearTrendForecaster,
@@ -16,7 +14,6 @@ from apps.analysis.lib.forecasting import (
     forecast,
     get_available_methods,
 )
-
 
 # ---------------------------------------------------------------------------
 # ForecastPoint

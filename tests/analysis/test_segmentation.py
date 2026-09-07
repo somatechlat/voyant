@@ -3,10 +3,10 @@
 import pytest
 
 from apps.analysis.lib.segmentation import (
-    SegmentProfiler,
-    SegmentStats,
     SegmentComparison,
+    SegmentProfiler,
     SegmentProfileResult,
+    SegmentStats,
     SegmentType,
     compare_segments,
     detect_segment_drift,
