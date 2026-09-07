@@ -47,6 +47,12 @@ export class ViewScraper extends LitElement {
     @state() rotateUA = false;
     @state() selectors: Array<{ name: string; selector: string; type: string }> = [];
 
+    // Run state
+    @state() paramValues: Record<string, string> = {};
+    @state() running = false;
+    @state() runResult: Record<string, unknown> | null = null;
+    @state() runError = '';
+
     createRenderRoot() { return this; }
 
     async connectedCallback() {
@@ -76,7 +82,6 @@ export class ViewScraper extends LitElement {
     }
 
     private _runExtraction() {
-        // Dispatch to VOYANT scraper API
         api.post('/scrape/start', {
             urls: [this.targetUrl],
             selectors: Object.fromEntries(this.selectors.filter(s => s.selector).map(s => [s.name, s.selector])),
@@ -90,6 +95,33 @@ export class ViewScraper extends LitElement {
         }).catch(err => {
             console.error('Scrape failed:', err);
         });
+    }
+
+    private async _runTemplate() {
+        if (!this.selectedTemplate) return;
+        this.running = true;
+        this.runResult = null;
+        this.runError = '';
+
+        try {
+            const res = await api.post(`/scraper/templates/${this.selectedTemplate.id}/run`, {
+                parameters: this.paramValues,
+            });
+            this.runResult = res as Record<string, unknown>;
+
+            // If succeeded, fetch the result data
+            const jobId = (res as Record<string, unknown>).job_id as string;
+            if (jobId && (res as Record<string, unknown>).status === 'succeeded') {
+                try {
+                    const resultData = await api.get(`/scrape/result/${jobId}`);
+                    this.runResult = { ...this.runResult, result_data: resultData };
+                } catch { /* result fetch optional */ }
+            }
+        } catch (err: unknown) {
+            this.runError = (err as Error).message || 'Run failed';
+        } finally {
+            this.running = false;
+        }
     }
 
     render() {
@@ -302,36 +334,54 @@ export class ViewScraper extends LitElement {
                 .open=${this.detailOpen}
                 .title=${this.selectedTemplate?.name || ''}
                 .subtitle=${`${this.selectedTemplate?.category || ''} · ${this.selectedTemplate?.engine || 'playwright'}`}
-                @close=${() => { this.detailOpen = false; }}
+                @close=${() => { this.detailOpen = false; this.runResult = null; this.runError = ''; }}
             >
                 ${this.selectedTemplate ? html`
                 <div>
-                    <p class="text-sm text-gray-500 mb-6">${this.selectedTemplate.description || 'No description'}</p>
+                    <p class="text-sm text-gray-500 mb-5">${this.selectedTemplate.description || 'No description'}</p>
 
-                    <div class="grid grid-cols-2 gap-3 mb-6">
+                    <div class="grid grid-cols-2 gap-3 mb-5">
                         <div class="p-3 rounded-lg bg-gray-50"><div class="text-lg font-bold">${this.selectedTemplate.use_count || 0}</div><div class="text-xs text-gray-400">Runs</div></div>
                         <div class="p-3 rounded-lg bg-gray-50"><div class="text-lg font-bold">${Math.round((this.selectedTemplate.success_rate || 0) * 100)}%</div><div class="text-xs text-gray-400">Success</div></div>
-                        <div class="p-3 rounded-lg bg-gray-50"><div class="text-sm font-semibold">${this.selectedTemplate.engine || 'playwright'}</div><div class="text-xs text-gray-400">Engine</div></div>
-                        <div class="p-3 rounded-lg bg-gray-50"><div class="text-sm font-semibold">${this.selectedTemplate.status}</div><div class="text-xs text-gray-400">Status</div></div>
                     </div>
 
-                    <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Site Pattern</h4>
-                    <div class="px-3 py-2 rounded-lg bg-gray-50 font-mono text-xs mb-6">${this.selectedTemplate.site_pattern}</div>
-
                     ${this.selectedTemplate.parameters?.length ? html`
-                    <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Parameters</h4>
-                    <div class="flex flex-col gap-2 mb-6">
+                    <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Parameters</h4>
+                    <div class="flex flex-col gap-3 mb-5">
                         ${this.selectedTemplate.parameters.map(p => html`
-                        <div class="flex items-center gap-2">
-                            <span class="text-xs font-semibold">${String(p.name || '')}</span>
-                            <span class="text-xs text-gray-400">${String(p.type || 'string')}</span>
+                        <div>
+                            <label class="text-xs font-semibold text-gray-600 block mb-1">${String(p.name || '')} ${p.required ? html`<span class="text-red-400">*</span>` : ''}</label>
+                            <input class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:border-brand focus:ring-2 focus:ring-brand/20 outline-none transition-all font-mono"
+                                placeholder=${String(p.description || p.name || '')}
+                                .value=${this.paramValues[String(p.name || '')] || ''}
+                                @input=${(e: Event) => { this.paramValues = { ...this.paramValues, [String(p.name)]: (e.target as HTMLInputElement).value }; }}>
                         </div>`)}
                     </div>` : ''}
 
-                    <button class="w-full bg-brand text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-brand-hover transition-colors shadow-sm"
-                        @click=${() => { this.tab = 'visual'; this.targetUrl = this.selectedTemplate?.site_pattern || ''; this.detailOpen = false; }}>
-                        ▶ Run Template
+                    <button class="w-full bg-brand text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-brand-hover transition-all shadow-sm mb-4 ${this.running ? 'opacity-60 cursor-wait' : ''}"
+                        ?disabled=${this.running}
+                        @click=${() => this._runTemplate()}>
+                        ${this.running ? html`<span class="animate-spin inline-block mr-2">⏳</span> Scraping...` : html`▶ Run Template`}
                     </button>
+
+                    ${this.runError ? html`
+                    <div class="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-600 mb-4">${this.runError}</div>
+                    ` : ''}
+
+                    ${this.runResult ? html`
+                    <div class="border-t border-gray-100 pt-4">
+                        <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Results</h4>
+                        <div class="grid grid-cols-2 gap-2 mb-3">
+                            <div class="px-3 py-2 rounded bg-gray-50 text-xs"><span class="text-gray-400">Status:</span> <span class="font-semibold ${this.runResult.status === 'succeeded' ? 'text-green-600' : 'text-red-600'}">${String(this.runResult.status || 'unknown')}</span></div>
+                            <div class="px-3 py-2 rounded bg-gray-50 text-xs"><span class="text-gray-400">Job:</span> <span class="font-mono">${String(this.runResult.job_id || '').slice(0, 8)}</span></div>
+                        </div>
+                        ${this.runResult.result_data ? html`
+                        <div class="bg-gray-50 rounded-lg p-3 max-h-64 overflow-auto">
+                            <pre class="text-xs font-mono text-gray-700 whitespace-pre-wrap">${JSON.stringify(this.runResult.result_data, null, 2).slice(0, 2000)}</pre>
+                        </div>
+                        ` : ''}
+                    </div>
+                    ` : ''}
                 </div>
                 ` : ''}
             </voyant-detail-panel>
