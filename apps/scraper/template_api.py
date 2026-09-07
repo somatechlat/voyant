@@ -263,12 +263,13 @@ def _start_workflow_sync(workflow_run, args, workflow_id, task_queue):
 
 
 def _run_inline(job, urls, selectors, options):
-    """Fallback: execute full workflow inline with Playwright. Runs in a thread."""
-
+    """Execute full workflow inline with Playwright. Runs in a thread. Full audit trail."""
+    from apps.scraper.audit import create_audit_log
     from apps.scraper.models import ScrapeJob
 
+    audit = create_audit_log(str(job.job_id))
+
     def _execute():
-        # Phase 1: Run Playwright (collects data, no Django ORM calls inside)
         scrape_result = {"status": "failed", "results": {}, "html": "", "bytes": 0, "error": ""}
 
         try:
@@ -294,72 +295,88 @@ def _run_inline(job, urls, selectors, options):
                 page = context.new_page()
 
                 try:
-                    # Execute workflow steps
+                    # Execute workflow steps with audit tracking
                     if workflow_steps:
-                        for step in workflow_steps:
-                            action = step.get("action", "")
-                            if action in ("navigate", "fetch"):
-                                step_url = step.get("url", url)
-                                page.goto(step_url, wait_until="domcontentloaded", timeout=timeout_ms)
-                                try:
-                                    page.wait_for_load_state("networkidle", timeout=10000)
-                                except Exception:
-                                    pass
-                            elif action == "scroll":
-                                for _ in range(step.get("times", 3)):
-                                    page.evaluate("window.scrollBy(0, window.innerHeight)")
-                                    page.wait_for_timeout(step.get("wait_ms", 1500))
-                            elif action == "click":
-                                sel = step.get("selector", "")
-                                if sel:
+                        for step_def in workflow_steps:
+                            action = step_def.get("action", "")
+                            with audit.step(action, **{k: v for k, v in step_def.items() if k != "action"}) as s:
+                                if action in ("navigate", "fetch"):
+                                    step_url = step_def.get("url", url)
+                                    page.goto(step_url, wait_until="domcontentloaded", timeout=timeout_ms)
                                     try:
-                                        page.click(sel, timeout=5000)
-                                        page.wait_for_timeout(1000)
+                                        page.wait_for_load_state("networkidle", timeout=10000)
                                     except Exception:
                                         pass
-                            elif action == "wait":
-                                page.wait_for_timeout(step.get("wait_ms", 2000))
-                            elif action == "enter_text":
-                                sel, text = step.get("selector", ""), step.get("text", "")
-                                if sel and text:
-                                    try:
-                                        page.fill(sel, text, timeout=5000)
-                                    except Exception:
-                                        page.type(sel, text, delay=50)
+                                    s.detail("page_title", page.title())
+                                    s.detail("final_url", page.url)
+                                elif action == "scroll":
+                                    times = step_def.get("times", 3)
+                                    for i in range(times):
+                                        page.evaluate("window.scrollBy(0, window.innerHeight)")
+                                        page.wait_for_timeout(step_def.get("wait_ms", 1500))
+                                    s.detail("scroll_times", times)
+                                    s.detail("scroll_position", page.evaluate("window.scrollY"))
+                                elif action == "click":
+                                    sel = step_def.get("selector", "")
+                                    if sel:
+                                        page.click(sel, timeout=5000)
+                                        page.wait_for_timeout(1000)
+                                        s.detail("clicked", sel)
+                                elif action == "wait":
+                                    page.wait_for_timeout(step_def.get("wait_ms", 2000))
+                                elif action == "enter_text":
+                                    sel, text = step_def.get("selector", ""), step_def.get("text", "")
+                                    if sel and text:
+                                        try:
+                                            page.fill(sel, text, timeout=5000)
+                                        except Exception:
+                                            page.type(sel, text, delay=50)
+                                        s.detail("field", sel)
+                                elif action == "extract":
+                                    pass  # Handled below
                     else:
-                        # No workflow — just navigate to the URL
-                        page.goto(url, wait_until="domcontentloaded", timeout=timeout_ms)
-                        try:
-                            page.wait_for_load_state("networkidle", timeout=10000)
-                        except Exception:
-                            pass
-
-                    html = page.content()
-                    scrape_result["html"] = html
-                    scrape_result["bytes"] = len(html.encode("utf-8"))
-
-                    # Extract data using selectors
-                    if selectors:
-                        results = {}
-                        for field_name, selector in selectors.items():
+                        with audit.step("navigate", url=url):
+                            page.goto(url, wait_until="domcontentloaded", timeout=timeout_ms)
                             try:
-                                if not selector:
-                                    continue
-                                elements = page.query_selector_all(selector)
-                                if len(elements) == 1:
-                                    text = elements[0].inner_text().strip()[:500]
-                                    if not text:
-                                        text = elements[0].get_attribute("href") or elements[0].get_attribute("src") or ""
-                                    results[field_name] = text
-                                elif len(elements) > 1:
-                                    results[field_name] = [el.inner_text().strip()[:200] for el in elements[:50]]
-                                else:
-                                    results[field_name] = None
+                                page.wait_for_load_state("networkidle", timeout=10000)
                             except Exception:
-                                results[field_name] = None
-                        scrape_result["results"] = results
-                    else:
-                        scrape_result["results"] = {"raw_html": html[:5000]}
+                                pass
+
+                    # Get HTML
+                    with audit.step("capture_html") as s:
+                        html = page.content()
+                        scrape_result["html"] = html
+                        scrape_result["bytes"] = len(html.encode("utf-8"))
+                        s.detail("html_bytes", scrape_result["bytes"])
+                        s.detail("page_title", page.title())
+
+                    # Extract data with audit
+                    with audit.step("extract", selector_count=len(selectors)) as s:
+                        if selectors:
+                            results = {}
+                            for field_name, selector in selectors.items():
+                                try:
+                                    if not selector:
+                                        continue
+                                    elements = page.query_selector_all(selector)
+                                    if len(elements) == 1:
+                                        text = elements[0].inner_text().strip()[:500]
+                                        if not text:
+                                            text = elements[0].get_attribute("href") or elements[0].get_attribute("src") or ""
+                                        results[field_name] = text
+                                    elif len(elements) > 1:
+                                        results[field_name] = [el.inner_text().strip()[:200] for el in elements[:50]]
+                                    else:
+                                        results[field_name] = None
+                                except Exception:
+                                    results[field_name] = None
+                            scrape_result["results"] = results
+                            s.detail("fields", list(results.keys()))
+                            s.detail("field_count", len(results))
+                            s.detail("non_null_count", sum(1 for v in results.values() if v is not None))
+                        else:
+                            scrape_result["results"] = {"raw_html": html[:5000]}
+                            s.detail("fields", ["raw_html"])
 
                     scrape_result["status"] = "succeeded"
 
@@ -400,3 +417,53 @@ def _run_inline(job, urls, selectors, options):
         job.status = ScrapeJob.Status.FAILED
         job.error_message = result["error"]
         job.save(update_fields=["status", "error_message"])
+
+    # Finalize audit log
+    from apps.scraper.audit import finalize_audit_log
+
+    audit_data = finalize_audit_log(str(job.job_id))
+    if audit_data:
+        job.options = {**(job.options or {}), "audit": audit_data}
+        job.save(update_fields=["options"])
+
+
+# ── Audit Log API ───────────────────────────────────────────────────────────
+
+
+@template_router.get("/jobs/{job_id}/audit")
+def get_job_audit(request, job_id: str):
+    """Get the full audit trail for a scrape job — every step, timing, details."""
+    from apps.scraper.audit import get_audit_log
+    from apps.scraper.models import ScrapeJob
+
+    # Check active logs first
+    active_log = get_audit_log(job_id)
+    if active_log:
+        return active_log.to_dict()
+
+    # Fall back to persisted log in job options
+    job = ScrapeJob.objects.filter(job_id=job_id).first()
+    if not job:
+        raise HttpError(404, "Job not found")
+
+    audit_data = (job.options or {}).get("audit")
+    if audit_data:
+        return audit_data
+
+    return {"job_id": job_id, "steps": [], "message": "No audit data available"}
+
+
+@template_router.get("/jobs/{job_id}/audit/live")
+def get_job_audit_live(request, job_id: str):
+    """Get live audit feed — human-readable step-by-step progress."""
+    from apps.scraper.audit import get_audit_log
+
+    log = get_audit_log(job_id)
+    if not log:
+        return {"job_id": job_id, "feed": [], "summary": {}}
+
+    return {
+        "job_id": job_id,
+        "feed": log.to_live_feed(),
+        "summary": log.summary(),
+    }
