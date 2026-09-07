@@ -5,8 +5,6 @@ etcd:
 minio:
   address: voyant_minio
   port: 9000
-  accessKeyID: minioadmin
-  secretAccessKey: minioadmin
   useSSL: false
   bucketName: a-bucket
   useIAM: false
