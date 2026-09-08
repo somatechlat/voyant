@@ -110,7 +110,7 @@ export class ViewOntology extends LitElement {
             <div style="padding:32px 32px 0;display:flex;align-items:center;justify-content:space-between">
                 <div>
                     <h1 style="font-size:28px;font-weight:900;font-family:Geist,Inter,system-ui,sans-serif;letter-spacing:-0.02em;color:var(--saas-text-primary)">Ontology Explorer</h1>
-                    <p style="font-size:13px;color:var(--saas-text-secondary);margin-top:4px">Palantir-grade knowledge graph — ${this.types.length} types, ${this.links.length} relationships, ${totalInstances.toLocaleString()} instances</p>
+                    <p style="font-size:13px;color:var(--saas-text-secondary);margin-top:4px">${this.types.length} object types · ${this.links.length} link types · ${totalInstances.toLocaleString()} instances</p>
                 </div>
                 <div class="voyant-tabs">
                     <button class="voyant-tab ${this.view === 'graph' ? 'active' : ''}" @click=${() => { this.view = 'graph'; }}>🕸️ Graph</button>
@@ -132,13 +132,14 @@ export class ViewOntology extends LitElement {
             <!-- Graph View -->
             ${this.view === 'graph' ? html`
             <div style="padding:0 32px 32px">
-                <div class="voyant-card" style="height:560px;overflow:hidden">
-                    <voyant-graph-view
-                        .nodes=${this._graphNodes()}
-                        .edges=${this._graphEdges()}
-                        @node-click=${this._onNodeClick}
-                        style="height:100%"
-                    ></voyant-graph-view>
+                <div class="voyant-card" style="overflow:hidden">
+                    <div style="width:100%;height:520px">
+                        <voyant-graph-view
+                            .nodes=${this._graphNodes()}
+                            .edges=${this._graphEdges()}
+                            @node-click=${this._onNodeClick}
+                        ></voyant-graph-view>
+                    </div>
                 </div>
             </div>
             ` : ''}
