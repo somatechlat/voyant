@@ -1,4 +1,4 @@
-# Voyant v3.0.0 System Architecture & Tool Registry
+# Voyant v4.0.0 — System Architecture & Tool Registry
 
 Targeting the **Autonomous Data Intelligence for AI Agents** initiative, Voyant operates as a sprawling infrastructure to provide agents (like SomaAgent Hub) with data workflows, governance, ingestion, and querying tools.
 

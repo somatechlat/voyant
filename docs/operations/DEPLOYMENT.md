@@ -1,6 +1,6 @@
-# Voyant v3.0.0 — Deployment and Operations Guide
+# Voyant v4.0.0 — Deployment and Operations Guide
 
-**Document ID:** VOYANT-DEPLOYMENT-3.0.0
+**Document ID:** VOYANT-DEPLOYMENT-4.0.0
 **Status:** Active
 **Date:** 2026-09-04
 **Compliance:** ISO/IEC 12207, ISO/IEC 27001
@@ -243,5 +243,5 @@ docker compose logs voyant_vault --tail 20
 
 ---
 
-**Document Version:** 3.0.0
+**Document Version:** 4.0.0
 **Last Updated:** 2026-09-04

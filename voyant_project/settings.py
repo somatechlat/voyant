@@ -431,7 +431,7 @@ MCP_SERVER_INSTRUCTIONS = (
     "Execute data operations safely with proper permissions."
 )
 MCP_SERVER_TITLE = "Voyant Data Intelligence"
-MCP_SERVER_VERSION = "3.0.0"
+MCP_SERVER_VERSION = "4.0.0"
 MCP_DIRS = []  # Additional search paths for MCP modules
 MCP_PATCH_SDK_TOOL_LOGGING = True  # Enhanced logging for tool calls
 MCP_PATCH_SDK_GET_CONTEXT = True  # Add URL path params to Context object

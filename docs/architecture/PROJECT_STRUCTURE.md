@@ -1,6 +1,6 @@
-# Voyant v3.0.0 — Project Structure
+# Voyant v4.0.0 — Project Structure
 
-**Document ID:** VOYANT-STRUCTURE-3.0.0
+**Document ID:** VOYANT-STRUCTURE-4.0.0
 **Date:** 2026-09-04
 
 ---
@@ -148,5 +148,5 @@ voyant/
 
 ---
 
-**Document Version:** 3.0.0
+**Document Version:** 4.0.0
 **Last Updated:** 2026-09-04

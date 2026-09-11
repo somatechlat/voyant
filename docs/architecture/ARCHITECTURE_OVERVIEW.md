@@ -1,6 +1,6 @@
-# Voyant v3 Architecture and Design
+# Voyant v4.0.0 — Architecture Overview
 
-Document ID: VOYANT-DESIGN-3.0.0
+Document ID: VOYANT-DESIGN-4.0.0
 Status: Draft for execution
 Date: 2025-12-17
 

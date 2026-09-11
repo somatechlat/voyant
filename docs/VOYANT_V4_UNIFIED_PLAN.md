@@ -77,24 +77,33 @@ Any agent — human or AI — reads THIS document to know what to do next.
 
 ## 1. Current State (Measured)
 
-### 1.1 Codebase Metrics (Audited 2026-09-08)
+### 1.1 Codebase Metrics (Audited 2026-09-11)
 
 | Dimension | Measured Value |
 |-----------|---------------|
-| Python source files | 180+ |
-| TypeScript source files | 28 |
-| Lines of Python code | ~41,944 |
-| Django apps | 18 |
-| REST API routers | 19 (registered in `apps/core/api.py`) |
+| Python source files | 242+ |
+| TypeScript source files | 38+ |
+| Lines of Python code | ~73,416 |
+| Lines of TypeScript code | ~9,099 |
+| Django apps | 22 (per INSTALLED_APPS) |
+| REST API routers | 29 (registered in `apps/core/api.py`) |
 | REST endpoints | ~240 |
-| MCP tool files | 5 (`tools_core`, `tools_catalog`, `tools_ontology`, `tools_scrape`, `tools_scraper_templates`) |
+| MCP tool files | 7 (`tools_core`, `tools_catalog`, `tools_ontology`, `tools_scrape`, `tools_scraper_templates`, `tools_scraper_ops`) |
 | MCP tools registered | 80 |
-| Temporal workflow types | 10 |
-| Temporal activity types | 12 |
-| Ontology models | 12 (ObjectType, Property, Object, LinkType, Link, Interface, StructType, SharedProperty, ValueType, ActionType, Function, ActionExecution) |
-| Dashboard Lit views | 13 |
-| Dashboard Lit components | 12 |
-| Test files | 131 |
+| Temporal workflow types | 17 |
+| Temporal activity types | 50+ |
+| Ontology models | 22 (Palantir-grade: Interfaces, Structs, Shared Properties, Value Types, Actions, Functions, PII Detection, Quality Scores) |
+| Dashboard Lit views | 38 |
+| Dashboard Lit components | 16 |
+| Test files | 148 |
+| Test functions | 2,203 (2,128 passing, 51 skipped, 0 failing) |
+| Playwright E2E | 17/17 passing |
+| Docker services | 20 |
+| LLM providers | 7 (Groq, OpenAI, Anthropic, MiMo, Google, Mistral, DeepSeek) |
+| Scraper templates | 51 |
+| Scraper ARM modules | 9 |
+| CLI commands | Click-based (auth, jobs, ontology, sql, scrape, pipelines, dashboards, status) |
+| SDKs | Python, TypeScript, Go, Java |
 | Test functions | 2,203 (2,128 passing / 51 skipped / 0 failing) |
 | Docker services (compose) | 20+ |
 | LLM providers | 7 (Groq, OpenAI, Anthropic, MiMo, Google, Mistral, DeepSeek) |

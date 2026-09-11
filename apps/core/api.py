@@ -47,7 +47,7 @@ if "pytest" in sys.modules:
 api = NinjaAPI(
     title="Voyant API",
     description="Autonomous Data Intelligence for AI Agents",
-    version="3.0.0",
+    version="4.0.0",
     urls_namespace=urls_namespace,
 )
 

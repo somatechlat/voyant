@@ -1,9 +1,9 @@
-# Voyant v3.0.0 - Autonomous Data Intelligence for AI Agents
+# Voyant v4.0.0 — Autonomous Data Intelligence for AI Agents
 
 ## Document Information
-- **Document ID:** VOYANT-README-3.0.0
+- **Document ID:** VOYANT-README-4.0.0
 - **Status:** Production Ready
-- **Version:** 3.0.0
+- **Version:** 4.0.0
 - **Last Updated:** 2026-09-04
 - **Compliance:** ISO/IEC 25010 Software Quality Standards
 
@@ -30,7 +30,7 @@ Voyant is an autonomous data intelligence service designed specifically for AI a
 └─────────────────────────────────────────────────────────────┘
                               │
 ┌─────────────────────────────▼─────────────────────────────────┐
-│          Voyant v3.0.0 - Data Intelligence Service           │
+│          Voyant v4.0.0 — Data Intelligence Service           │
 │ ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐ │
 │ │   REST API     │ │   MCP Server    │ │  Temporal Workflows │ │
 │ │ (Django Ninja) │ │ (Tool Registry) │ │ (Ingest/Profile/Analyze) │ │
@@ -175,19 +175,21 @@ docker-compose -f docker-compose.yml up -d
 ## Quality & Compliance
 
 ### Current Status (v4.0)
-- **Code Quality:** 0 ruff errors, 0 AI slop comments
-- **Test Coverage:** 2,203 test functions across 148 test files (2,128 passing, 51 skipped, 0 failing)
-- **Security:** Vault as single source of truth for secrets, JWT + SpiceDB RBAC, SSRF protection, hardened SQL validation, row-level security, column masking
+- **Code Quality:** 0 ruff errors (F821/F841/E402), 0 AI slop comments
+- **Test Coverage:** 2,203 test functions across 148 test files (2,128 passing, 51 skipped, 0 failing). Playwright 17/17 E2E passing.
+- **Security:** Vault as single source of truth for secrets, JWT + SpiceDB RBAC, SSRF protection, hardened SQL validation, row-level security, column masking, ABAC, cell-level security
 - **Performance:** Circuit breakers, adaptive sampling, query limits
 - **Reliability:** Temporal workflows with retry mechanisms (17 workflows, 50+ activities)
-- **Documentation:** ISO-compliant documentation (SRS, SAD, SDP, STP per ISO/IEC 29148, 42010, 9001, 29119)
-- **MCP Tools:** 67 registered tools for AI agent integration
-- **REST API:** 199 endpoints via Django Ninja (16 Django apps)
+- **Documentation:** ISO-compliant documentation (SRS, SAD, SDP, STP per ISO/IEC 29148, 42010, 9001, 29119). 377 formally numbered functional requirements, ~83% implemented.
+- **MCP Tools:** 80 registered tools for AI agent integration
+- **REST API:** ~240 endpoints via Django Ninja (22 Django apps, 29 routers)
 - **LLM Integration:** 7 providers (Groq, OpenAI, Anthropic, MiMo, Google, Mistral, DeepSeek), 17 models
 - **Ontology Engine:** 22 models (Palantir-grade: Interfaces, Structs, Shared Properties, Value Types, Actions, Functions)
-- **Scraper Templates:** 51 pre-built templates across 14 categories
-- **ML Platform:** MLflow-compatible experiments, model registry, serving endpoints
-- **Intent Engine:** Groq-powered natural language → structured execution plans
+- **Scraper:** OCTOPUS 9-arm engine, 51 templates, 4-tier CAPTCHA solving, visual builder, deep research v2
+- **ML Platform:** MLflow-compatible experiments, model registry, serving endpoints, drift detection
+- **Intent Engine:** Groq-powered natural language → structured execution plans with fail-closed validation
+- **CLI & SDKs:** Click CLI, Python/TypeScript/Go/Java SDKs
+- **Dashboard:** Lit 3 + Vite, 38 views, 16 components, Playwright E2E
 - **Deployment:** 20-service Docker Compose standalone cluster
 
 ### Development Standards

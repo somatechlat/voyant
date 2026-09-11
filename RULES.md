@@ -128,3 +128,19 @@ At minimum, before claiming completion:
 - Relevant tests for touched paths pass.
 - Docs updated if behavior/architecture changed.
 - Risks, known limitations, and unverified areas are explicitly reported.
+
+---
+
+## 13) ISO Documentation Management & Control
+
+All documentation must follow ISO/IEC/IEEE standards for document management:
+
+- **Naming convention:** `VOYANT-{TYPE}-{SCOPE}-{VERSION}.md` (e.g., `VOYANT-SRS-V4.0.md`, `VOYANT-MOD-CATALOG-V4.0.md`).
+- **Document types:** SRS (29148), SAD (42010), STP (29119), SDP (9001), MOD (module spec), UDP (unified plan).
+- **Every document must have:** Document ID, Version, Date, Status, Author, Compliance references.
+- **Version control:** Every change increments the document version. Revision history table is mandatory.
+- **No duplicates:** One authoritative source per topic. Merge, don't fork.
+- **Traceability:** All requirements have IDs (e.g., ONT-F-001, DATA-F-001). All code references SRS-IDs.
+- **Index is truth:** `docs/README.md` is the master index. Every active document must be listed there.
+- **Archive, don't delete:** Superseded documents move to `docs/archive/`. Never remove historical records.
+- **Compliance:** ISO/IEC/IEEE 29148:2018 (requirements), ISO/IEC/IEEE 42010:2011 (architecture), ISO/IEC/IEEE 29119-1:2013 (testing), ISO 9001:2015 (quality).
