@@ -36,7 +36,7 @@ def large_db():
     # amount: random
     conn.execute("""
         CREATE TABLE sales_high_cardinality AS
-        SELECT 
+        SELECT
             (i % 10000)::VARCHAR as segment_id,
             (random() * 1000)::DOUBLE as amount,
             DATE '2024-01-01' + (i % 365) * INTERVAL '1' DAY as sale_date
@@ -46,7 +46,7 @@ def large_db():
     # 2. Large Time Series (1M rows, single continuous series)
     conn.execute("""
         CREATE TABLE time_series_large AS
-        SELECT 
+        SELECT
             DATE '2020-01-01' + (i % 3650) * INTERVAL '1' DAY as log_date, -- 10 years
             (random() * 100)::DOUBLE as value
         FROM range(1000000) t(i)
@@ -55,7 +55,7 @@ def large_db():
     # 3. Many Customers (100k customers, 1M rows)
     conn.execute("""
         CREATE TABLE customer_transactions AS
-        SELECT 
+        SELECT
             (i % 100000)::VARCHAR as customer_id,
             (random() * 500)::DOUBLE as amount
         FROM range(1000000) t(i)

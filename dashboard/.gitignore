@@ -27,6 +27,11 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .cache
 *.tsbuildinfo
 
+# playwright
+test-results
+playwright-report
+blob-report
+
 # IntelliJ based IDEs
 .idea
 

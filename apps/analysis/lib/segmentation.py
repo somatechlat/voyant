@@ -179,7 +179,9 @@ class SegmentProfiler:
                 numeric_columns=numeric_columns,
                 categorical_columns=categorical_columns or [],
             )
-            stats.percentage_of_total = len(seg_data) / total_rows if total_rows > 0 else 0
+            stats.percentage_of_total = (
+                len(seg_data) / total_rows if total_rows > 0 else 0
+            )
             segment_stats.append(stats)
 
         # Sort by count descending
@@ -292,8 +294,12 @@ class SegmentProfiler:
         )
 
         for col in numeric_columns:
-            values_a = [row[col] for row in data_a if col in row and row[col] is not None]
-            values_b = [row[col] for row in data_b if col in row and row[col] is not None]
+            values_a = [
+                row[col] for row in data_a if col in row and row[col] is not None
+            ]
+            values_b = [
+                row[col] for row in data_b if col in row and row[col] is not None
+            ]
 
             if values_a and values_b:
                 mean_a = sum(values_a) / len(values_a)
@@ -303,7 +309,9 @@ class SegmentProfiler:
                     "mean_a": mean_a,
                     "mean_b": mean_b,
                     "difference": mean_a - mean_b,
-                    "percent_diff": (((mean_a - mean_b) / mean_b * 100) if mean_b != 0 else 0),
+                    "percent_diff": (
+                        ((mean_a - mean_b) / mean_b * 100) if mean_b != 0 else 0
+                    ),
                 }
 
                 # Welch's t-test (approximate p-value)
@@ -407,8 +415,12 @@ def detect_segment_drift(
     old_result = profiler.profile(old_data, segment_column)
     new_result = profiler.profile(new_data, segment_column)
 
-    old_proportions = {s.segment_value: s.percentage_of_total for s in old_result.segments}
-    new_proportions = {s.segment_value: s.percentage_of_total for s in new_result.segments}
+    old_proportions = {
+        s.segment_value: s.percentage_of_total for s in old_result.segments
+    }
+    new_proportions = {
+        s.segment_value: s.percentage_of_total for s in new_result.segments
+    }
 
     all_segments = set(old_proportions.keys()) | set(new_proportions.keys())
 
@@ -424,6 +436,8 @@ def detect_segment_drift(
 
     return {
         "segment_column": segment_column,
-        "segments_changed": len([d for d in drifts.values() if abs(d["absolute_change"]) > 1]),
+        "segments_changed": len(
+            [d for d in drifts.values() if abs(d["absolute_change"]) > 1]
+        ),
         "drifts": drifts,
     }

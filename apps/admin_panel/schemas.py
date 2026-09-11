@@ -93,6 +93,7 @@ class SourceListItem(Schema):
     status: str
     created_at: str
     datahub_urn: str | None = None
+    connection_config: dict[str, Any] | None = None
 
 
 class SourceCreateRequest(Schema):

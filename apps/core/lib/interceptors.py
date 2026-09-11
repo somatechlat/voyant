@@ -47,4 +47,6 @@ class MetricsActivityInboundInterceptor(ActivityInboundInterceptor):
             self.metrics.activity_executions.labels(
                 activity_type=activity_type, status=status
             ).inc()
-            self.metrics.activity_duration.labels(activity_type=activity_type).observe(duration)
+            self.metrics.activity_duration.labels(activity_type=activity_type).observe(
+                duration
+            )

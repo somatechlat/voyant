@@ -58,4 +58,6 @@ def apply_policy(action: str, prompt: str, metadata: dict[str, Any]) -> None:
             exc.details or {"reason": get_message("ERR_POLICY_DENIED")},  # type: ignore[arg-type]
         ) from exc
     except SomaPolicyUnavailable as exc:
-        raise HttpError(503, get_message("ERR_POLICY_UNAVAILABLE", error=str(exc))) from exc
+        raise HttpError(
+            503, get_message("ERR_POLICY_UNAVAILABLE", error=str(exc))
+        ) from exc

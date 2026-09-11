@@ -307,7 +307,9 @@ def detect_anomalies(
         AnomalyResult with detected anomalies and statistics
     """
     if method not in _DETECTORS:
-        raise ValueError(f"Unknown method: {method}. Available: {list(_DETECTORS.keys())}")
+        raise ValueError(
+            f"Unknown method: {method}. Available: {list(_DETECTORS.keys())}"
+        )
 
     detector_cls = _DETECTORS[method]
 
@@ -368,6 +370,8 @@ def detect_column_anomalies(
                 values.append(float(val))
 
         if values:
-            results[column] = detect_anomalies(values, method=method, threshold=threshold)
+            results[column] = detect_anomalies(
+                values, method=method, threshold=threshold
+            )
 
     return results

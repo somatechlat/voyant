@@ -26,7 +26,11 @@ class TestEnforcementLevel:
         assert EnforcementLevel.AUDIT.value == "audit"
 
     def test_all_levels_exist(self):
-        levels = [EnforcementLevel.STRICT, EnforcementLevel.WARN, EnforcementLevel.AUDIT]
+        levels = [
+            EnforcementLevel.STRICT,
+            EnforcementLevel.WARN,
+            EnforcementLevel.AUDIT,
+        ]
         assert len(levels) == 3
 
 

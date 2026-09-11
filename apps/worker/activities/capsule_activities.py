@@ -78,7 +78,9 @@ class CapsuleActivities:
                 try:
                     return env.from_string(value).render(context)
                 except Exception as exc:
-                    logger.warning("Template substitution failed for '%s': %s", value, exc)
+                    logger.warning(
+                        "Template substitution failed for '%s': %s", value, exc
+                    )
                     return value
             if isinstance(value, dict):
                 return {k: _substitute(v) for k, v in value.items()}
@@ -149,12 +151,16 @@ class CapsuleActivities:
             instance.state = state
             instance.save(update_fields=["state", "updated_at"])
         except CapsuleInstance.DoesNotExist:
-            logger.warning("Cannot persist step result: instance %s not found", instance_id)
+            logger.warning(
+                "Cannot persist step result: instance %s not found", instance_id
+            )
         except Exception as exc:
             logger.error("Failed to persist step result: %s", exc)
             raise
 
-    async def _run_deep_research(self, params: dict[str, Any], tenant_id: str) -> dict[str, Any]:
+    async def _run_deep_research(
+        self, params: dict[str, Any], tenant_id: str
+    ) -> dict[str, Any]:
         from apps.core.config import get_settings
         from apps.core.lib.temporal_client import get_temporal_client
         from apps.scraper.deep_research_workflow import DeepResearchWorkflow
@@ -172,18 +178,22 @@ class CapsuleActivities:
             id=job_id,
             task_queue=get_settings().temporal_task_queue,
         )
-        return {"status": "started", "workflow_id": handle.id, "action": "deep_research"}
+        return {
+            "status": "started",
+            "workflow_id": handle.id,
+            "action": "deep_research",
+        }
 
-    async def _run_scrape(self, params: dict[str, Any], tenant_id: str) -> dict[str, Any]:
+    async def _run_scrape(
+        self, params: dict[str, Any], tenant_id: str
+    ) -> dict[str, Any]:
         from apps.core.config import get_settings
         from apps.core.lib.temporal_client import get_temporal_client
         from apps.scraper.workflow import ScrapeWorkflow
 
         client = await get_temporal_client()
         url = params.get("url", "")
-        job_id = (
-            f"urn:voyant:job:{tenant_id}:scrape:{hashlib.sha256(url.encode()).hexdigest()[:16]}"
-        )
+        job_id = f"urn:voyant:job:{tenant_id}:scrape:{hashlib.sha256(url.encode()).hexdigest()[:16]}"
         handle = await client.start_workflow(
             ScrapeWorkflow.run,
             {
@@ -194,18 +204,23 @@ class CapsuleActivities:
             id=job_id,
             task_queue=get_settings().temporal_task_queue,
         )
-        return {"status": "started", "workflow_id": handle.id, "action": "scrape", "url": url}
+        return {
+            "status": "started",
+            "workflow_id": handle.id,
+            "action": "scrape",
+            "url": url,
+        }
 
-    async def _run_ingest(self, params: dict[str, Any], tenant_id: str) -> dict[str, Any]:
+    async def _run_ingest(
+        self, params: dict[str, Any], tenant_id: str
+    ) -> dict[str, Any]:
         from apps.core.config import get_settings
         from apps.core.lib.temporal_client import get_temporal_client
         from apps.worker.workflows.ingest_workflow import IngestDataWorkflow
 
         client = await get_temporal_client()
         uri = params.get("generic_uri", "")
-        job_id = (
-            f"urn:voyant:job:{tenant_id}:ingest:{hashlib.sha256(uri.encode()).hexdigest()[:16]}"
-        )
+        job_id = f"urn:voyant:job:{tenant_id}:ingest:{hashlib.sha256(uri.encode()).hexdigest()[:16]}"
         handle = await client.start_workflow(
             IngestDataWorkflow.run,
             {
@@ -218,7 +233,9 @@ class CapsuleActivities:
         )
         return {"status": "started", "workflow_id": handle.id, "action": "ingest"}
 
-    async def _run_analyze(self, params: dict[str, Any], tenant_id: str) -> dict[str, Any]:
+    async def _run_analyze(
+        self, params: dict[str, Any], tenant_id: str
+    ) -> dict[str, Any]:
         from apps.analysis.lib.anomaly import detect_anomalies
         from apps.analysis.lib.ml_primitives import MLPrimitives
 
@@ -230,15 +247,21 @@ class CapsuleActivities:
         elif analysis_type == "regression":
             ml = MLPrimitives()
             target = params.get("target_column", "")
-            defaults = [c for c in (dataset[0].keys() if dataset else []) if c != target]
+            defaults = [
+                c for c in (dataset[0].keys() if dataset else []) if c != target
+            ]
             feature_cols = params.get("feature_columns", defaults)
-            result = ml.train_regression(data=dataset, target_col=target, feature_cols=feature_cols)
+            result = ml.train_regression(
+                data=dataset, target_col=target, feature_cols=feature_cols
+            )
         else:
             return {"error": f"Unknown analysis type: {analysis_type}"}
 
         return {"status": "completed", "action": "analyze", "result": result}
 
-    async def _run_search(self, params: dict[str, Any], tenant_id: str) -> dict[str, Any]:
+    async def _run_search(
+        self, params: dict[str, Any], tenant_id: str
+    ) -> dict[str, Any]:
         from apps.search.lib.milvus_store import get_vector_store
 
         limit = params.get("limit", 5)
@@ -247,7 +270,9 @@ class CapsuleActivities:
         results = store.search(query_vector=[], k=limit)
         return {"status": "completed", "action": "search", "results": results}
 
-    async def _run_sql_query(self, params: dict[str, Any], tenant_id: str) -> dict[str, Any]:
+    async def _run_sql_query(
+        self, params: dict[str, Any], tenant_id: str
+    ) -> dict[str, Any]:
         from apps.core.lib.trino import get_trino_client
 
         sql = params.get("sql", "")
@@ -270,7 +295,9 @@ class CapsuleActivities:
             logger.error("SQL query failed: %s", exc)
             return {"error": str(exc), "action": "sql_query"}
 
-    async def _run_render_plotly(self, params: dict[str, Any], tenant_id: str) -> dict[str, Any]:
+    async def _run_render_plotly(
+        self, params: dict[str, Any], tenant_id: str
+    ) -> dict[str, Any]:
         import pandas as pd
 
         from apps.core.lib.plotly_engine import PlotlyRenderer
@@ -297,20 +324,30 @@ class CapsuleActivities:
 
         return {"status": "completed", "action": "render_plotly", "artifact_uri": uri}
 
-    async def _run_render_pdf(self, params: dict[str, Any], tenant_id: str) -> dict[str, Any]:
+    async def _run_render_pdf(
+        self, params: dict[str, Any], tenant_id: str
+    ) -> dict[str, Any]:
         from apps.core.lib.pdf_engine import PDFAssembler
 
         template = params.get("template", "default")
-        uri = PDFAssembler.compile_pdf(template_name=template, params=params, tenant_id=tenant_id)
+        uri = PDFAssembler.compile_pdf(
+            template_name=template, params=params, tenant_id=tenant_id
+        )
         return {"status": "completed", "action": "render_pdf", "artifact_uri": uri}
 
-    async def _run_notify(self, params: dict[str, Any], tenant_id: str) -> dict[str, Any]:
+    async def _run_notify(
+        self, params: dict[str, Any], tenant_id: str
+    ) -> dict[str, Any]:
         message = params.get("message", "")
         level = params.get("level", "info")
-        logger.log(getattr(logging, level.upper(), logging.INFO), "[notify] %s", message)
+        logger.log(
+            getattr(logging, level.upper(), logging.INFO), "[notify] %s", message
+        )
         return {"status": "completed", "action": "notify", "message": message}
 
-    async def _run_audit_log(self, params: dict[str, Any], tenant_id: str) -> dict[str, Any]:
+    async def _run_audit_log(
+        self, params: dict[str, Any], tenant_id: str
+    ) -> dict[str, Any]:
         event_type = params.get("event_type", "capsule.audit")
         logger.info(
             "AUDIT: tenant=%s event=%s params=%s",
@@ -342,7 +379,10 @@ class CapsuleActivities:
                     consistency_score -= 0.1
                 keys_seen = current_keys if not keys_seen else keys_seen & current_keys
 
-        return {"consistent": consistency_score >= 0.8, "score": max(0.0, consistency_score)}
+        return {
+            "consistent": consistency_score >= 0.8,
+            "score": max(0.0, consistency_score),
+        }
 
     @activity.defn(name="capsule.generate_artifacts")
     async def generate_artifacts(
@@ -376,7 +416,11 @@ class CapsuleActivities:
             json.dumps(steps, sort_keys=True, default=str).encode()
         ).hexdigest()
         artifacts.append(
-            {"artifact_id": f"{instance_id}-checksum", "type": "checksum", "sha256": content_hash}
+            {
+                "artifact_id": f"{instance_id}-checksum",
+                "type": "checksum",
+                "sha256": content_hash,
+            }
         )
 
         return artifacts

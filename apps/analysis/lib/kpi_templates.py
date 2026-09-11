@@ -176,9 +176,13 @@ _register(
         SELECT
             {date_column} as period,
             COUNT(DISTINCT {customer_id_column}) as unique_customers,
-            LAG(COUNT(DISTINCT {customer_id_column})) OVER (ORDER BY {date_column}) as prev_customers,
+            LAG(COUNT(DISTINCT {customer_id_column}))
+                OVER (ORDER BY {date_column}) as prev_customers,
             COUNT(DISTINCT {customer_id_column}) -
-                COALESCE(LAG(COUNT(DISTINCT {customer_id_column})) OVER (ORDER BY {date_column}), 0) as net_new
+                COALESCE(
+                    LAG(COUNT(DISTINCT {customer_id_column}))
+                        OVER (ORDER BY {date_column}), 0
+                ) as net_new
         FROM {table}
         GROUP BY {date_column}
         ORDER BY {date_column}

@@ -1,9 +1,7 @@
 """Tests for apps.scraper.parsing.tika_client — TikaClient and TikaResult."""
 
-import pytest
 
 from apps.scraper.parsing.tika_client import TikaClient, TikaResult, get_tika_client
-
 
 # ---------------------------------------------------------------------------
 # TikaResult dataclass

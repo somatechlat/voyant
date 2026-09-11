@@ -21,7 +21,7 @@ class TestPDFAssemblerTemplateDir:
 
     def test_template_dir_path_construction(self):
         """Verify the template directory path is constructed correctly."""
-        lib_dir = os.path.dirname(os.path.abspath(
+        os.path.dirname(os.path.abspath(
             os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "apps", "core", "lib", "pdf_engine.py")
         ))
         # The template_dir is computed relative to the pdf_engine.py file

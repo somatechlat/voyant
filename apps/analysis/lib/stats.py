@@ -38,9 +38,12 @@ class StatisticalEngine:
         if len(df) < 3 or len(df) > 5000:
             # Shapiro-Wilk limit in R
             # Shapiro-Wilk limit in R
-            # Ideally we would fallback to Anderson-Darling, but for now we raise a clear validation error
+            # Ideally we would fallback to Anderson-Darling,
+            # but for now we raise a clear validation error
             # to avoid misleading results or silent failures.
-            logger.warning(f"Shapiro-Wilk test requires 3 <= N <= 5000. Found N={len(df)}")
+            logger.warning(
+                f"Shapiro-Wilk test requires 3 <= N <= 5000. Found N={len(df)}"
+            )
             raise ValidationError(
                 "VYNT-1002",
                 f"Shapiro-Wilk test requires 3 <= N <= 5000 rows. Provided: {len(df)}.",
@@ -89,7 +92,9 @@ class StatisticalEngine:
             "significant": float(p_val) < 0.05 if p_val is not None else False,
         }
 
-    def t_test(self, df: pd.DataFrame, group_col: str, value_col: str) -> dict[str, Any]:
+    def t_test(
+        self, df: pd.DataFrame, group_col: str, value_col: str
+    ) -> dict[str, Any]:
         """
         Run Welch Two Sample t-test.
         """
@@ -113,7 +118,9 @@ class StatisticalEngine:
             "mean_group2": float(self.r.eval("res$estimate[2]")),
         }
 
-    def correlation_matrix(self, df: pd.DataFrame, method: str = "pearson") -> pd.DataFrame:
+    def correlation_matrix(
+        self, df: pd.DataFrame, method: str = "pearson"
+    ) -> pd.DataFrame:
         """
         Calculate correlation matrix using R (faster/more robust for some types).
         """

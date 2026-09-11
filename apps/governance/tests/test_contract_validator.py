@@ -2,8 +2,8 @@
 
 from apps.governance.lib.contract_validator import (
     DataContractValidator,
-    DataQualityRuleValidator,
-    JSONSchemaValidator,
+    DataQualityRuleValidator,  # type: ignore[attr-defined]
+    JSONSchemaValidator,  # type: ignore[attr-defined]
     ValidationResult,
 )
 

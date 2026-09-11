@@ -13,7 +13,6 @@ Covers:
 """
 
 import uuid
-from datetime import timezone as tz
 
 import pytest
 from django.test import RequestFactory
@@ -35,7 +34,6 @@ from apps.workflows.api import (
     list_presets,
 )
 from apps.workflows.models import Artifact, Job, PresetJob
-
 
 # ---------------------------------------------------------------------------
 # Schema Validation Tests

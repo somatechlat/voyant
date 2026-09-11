@@ -129,7 +129,9 @@ def _scope_matches(scope: dict[str, Any], context: dict[str, Any]) -> bool:
 # ---------------------------------------------------------------------------
 
 
-def _evaluate_rules(rules: dict[str, Any], context: dict[str, Any]) -> tuple[bool, str | None]:
+def _evaluate_rules(
+    rules: dict[str, Any], context: dict[str, Any]
+) -> tuple[bool, str | None]:
     """Evaluate policy rules against the request context.
 
     Supported rule keys:
@@ -200,7 +202,10 @@ def _evaluate_rules(rules: dict[str, Any], context: dict[str, Any]) -> tuple[boo
     if max_body is not None:
         content_length: int = context.get("content_length", 0)
         if content_length > max_body:
-            return False, f"Request body ({content_length} bytes) exceeds limit ({max_body} bytes)"
+            return (
+                False,
+                f"Request body ({content_length} bytes) exceeds limit ({max_body} bytes)",
+            )
 
     # --- Required headers ---
     required_headers: list[str] | None = rules.get("required_headers")
@@ -234,7 +239,9 @@ def _evaluate_rules(rules: dict[str, Any], context: dict[str, Any]) -> tuple[boo
 class PolicyEvaluator:
     """Evaluates a single policy against a request context."""
 
-    def evaluate_policy(self, policy: Any, context: dict[str, Any]) -> PolicyEvaluationResult:
+    def evaluate_policy(
+        self, policy: Any, context: dict[str, Any]
+    ) -> PolicyEvaluationResult:
         """Evaluate if *context* violates *policy* rules.
 
         Args:
@@ -294,7 +301,9 @@ class PolicyEnforcer:
     def __init__(self, evaluator: PolicyEvaluator | None = None) -> None:
         self.evaluator: PolicyEvaluator = evaluator or PolicyEvaluator()
 
-    def enforce(self, policies: list[Any], context: dict[str, Any]) -> PolicyEvaluationResult:
+    def enforce(
+        self, policies: list[Any], context: dict[str, Any]
+    ) -> PolicyEvaluationResult:
         """Enforce all applicable policies for the given context.
 
         Returns the most restrictive decision across all policies.
@@ -312,7 +321,11 @@ class PolicyEnforcer:
         most_restrictive: PolicyEvaluationResult = PolicyEvaluationResult(
             decision=PolicyDecision.ALLOW,
         )
-        priority = {PolicyDecision.DENY: 0, PolicyDecision.DEFER: 1, PolicyDecision.ALLOW: 2}
+        priority = {
+            PolicyDecision.DENY: 0,
+            PolicyDecision.DEFER: 1,
+            PolicyDecision.ALLOW: 2,
+        }
 
         for policy in policies:
             result = self.evaluator.evaluate_policy(policy, context)

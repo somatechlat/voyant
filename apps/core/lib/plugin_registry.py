@@ -79,7 +79,9 @@ class PluginRegistry:
 
     def __init__(self):
         if PluginRegistry._instance is not None:
-            raise RuntimeError("PluginRegistry is a singleton and should not be re-instantiated.")
+            raise RuntimeError(
+                "PluginRegistry is a singleton and should not be re-instantiated."
+            )
         self._plugins: dict[str, type[VoyantPlugin]] = {}
         self._metadata: dict[str, PluginMetadata] = {}
         self._instances: dict[str, VoyantPlugin] = {}

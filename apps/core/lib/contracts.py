@@ -146,7 +146,8 @@ class DataContract:
         updated_at: ISO 8601 timestamp of the last update.
         tags: A list of tags for categorizing and searching for the contract.
         sla_freshness_hours: Service Level Agreement for how recent the data must be.
-        sla_completeness_pct: Service Level Agreement for the minimum percentage of data completeness.
+        sla_completeness_pct: Service Level Agreement for the
+            minimum percentage of data completeness.
     """
 
     name: str

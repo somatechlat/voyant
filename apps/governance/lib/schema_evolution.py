@@ -23,7 +23,9 @@ logger = logging.getLogger(__name__)
 
 class CompatibilityLevel(StrEnum):
     FULL = "full"  # Fully compatible in both directions.
-    BACKWARD = "backward"  # New schema can read old data (e.g., column added with default).
+    BACKWARD = (
+        "backward"  # New schema can read old data (e.g., column added with default).
+    )
     FORWARD = "forward"  # Old schema can read new data (e.g., column removed).
     NONE = "none"  # A breaking change exists between versions.
 
@@ -349,7 +351,9 @@ class SchemaEvolutionRegistry:
                     changes_json,
                 ),
             )
-            logger.info(f"Registered schema {table_name} v{version} with {len(changes)} changes.")
+            logger.info(
+                f"Registered schema {table_name} v{version} with {len(changes)} changes."
+            )
 
             return SchemaVersion(
                 version=version,
@@ -374,7 +378,9 @@ class SchemaEvolutionRegistry:
         version: str | None = None,
     ) -> SchemaVersion | None:
         if version:
-            query = "SELECT * FROM schema_versions WHERE table_name = ? AND version = ?;"
+            query = (
+                "SELECT * FROM schema_versions WHERE table_name = ? AND version = ?;"
+            )
             params = (table_name, version)
         else:
             query = "SELECT * FROM schema_versions WHERE table_name = ? ORDER BY created_at DESC LIMIT 1;"
@@ -398,24 +404,32 @@ class SchemaEvolutionRegistry:
                     "created_at": datetime.fromtimestamp(v.created_at).isoformat(),
                     "description": v.description,
                     "changes_count": len(v.changes_from_previous),
-                    "breaking_changes": sum(1 for c in v.changes_from_previous if c.is_breaking),
+                    "breaking_changes": sum(
+                        1 for c in v.changes_from_previous if c.is_breaking
+                    ),
                 }
             )
         return history
 
     def _row_to_version(self, row: tuple) -> SchemaVersion:
-        _, version_str, schema_str, created_at, created_by, description, changes_str = row
+        _, version_str, schema_str, created_at, created_by, description, changes_str = (
+            row
+        )
         return SchemaVersion(
             version=version_str,
             schema=TableSchema.from_dict(json.loads(schema_str)),
             created_at=created_at,
             created_by=created_by,
             description=description,
-            changes_from_previous=[SchemaChange.from_dict(c) for c in json.loads(changes_str)],
+            changes_from_previous=[
+                SchemaChange.from_dict(c) for c in json.loads(changes_str)
+            ],
         )
 
     def list_tables(self) -> list[str]:
-        result = self._conn.execute("SELECT DISTINCT table_name FROM schema_versions;").fetchall()
+        result = self._conn.execute(
+            "SELECT DISTINCT table_name FROM schema_versions;"
+        ).fetchall()
         return [r[0] for r in result]
 
     def clear(self):

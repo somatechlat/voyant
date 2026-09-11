@@ -21,7 +21,9 @@ class SearchActivities:
         self.base_url = base_url or get_settings().searxng_url
 
     @activity.defn(name="execute_searxng_query")
-    async def execute_searxng_query(self, params: dict[str, Any]) -> list[dict[str, str]]:
+    async def execute_searxng_query(
+        self, params: dict[str, Any]
+    ) -> list[dict[str, str]]:
         """
         Executes a query against the sovereign internal engine.
         Returns a structured mathematical list of dictionaries [URL, Title, Snippet].
@@ -30,7 +32,9 @@ class SearchActivities:
         max_results = params.get("max_results", 10)
         tenant_id = params.get("tenant_id", "default")
 
-        logger.info(f"[SEARCH_NODE] Executing Deep Research query for {tenant_id}: '{query}'")
+        logger.info(
+            f"[SEARCH_NODE] Executing Deep Research query for {tenant_id}: '{query}'"
+        )
 
         # Format the URL securely
         encoded_query = urllib.parse.quote(query)
@@ -64,7 +68,9 @@ class SearchActivities:
                         }
                     )
 
-                logger.info(f"[SEARCH_NODE] Yielded {len(extracted)} valid URLs for extraction.")
+                logger.info(
+                    f"[SEARCH_NODE] Yielded {len(extracted)} valid URLs for extraction."
+                )
                 return extracted
 
         except httpx.RequestError as e:

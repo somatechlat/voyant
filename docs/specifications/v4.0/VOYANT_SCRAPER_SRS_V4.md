@@ -184,14 +184,89 @@ The Scraper Module provides enterprise-grade web data extraction: no-code visual
 
 ### 4.3 Anti-Bot Engine (P0)
 
+#### 4.3.1 CAPTCHA Solving — Hybrid AI-Native + Human Fallback
+
+The system SHALL implement a 4-tier CAPTCHA solving strategy with cascading fallback:
+
+| Tier | Method | CAPTCHA Types | Accuracy Target | Latency | Cost |
+|------|--------|--------------|-----------------|---------|------|
+| 1 | Behavioral Simulation | reCAPTCHA v3 | 70% | <1s | Free |
+| 2 | Audio Bypass (Whisper STT) | reCAPTCHA v2 (audio) | 90% | 2-3s | Free |
+| 3 | Vision LLM (GPT-4V/Claude) | hCaptcha, text CAPTCHAs, image grids | 70-85% | 3-5s | ~$0.01 |
+| 4 | Human Solving Farm | All types (fallback) | 95% | 10-60s | $1-3/1K |
+
+**Design Principles:**
+- Tiers are attempted in order (1→2→3→4); first success wins
+- Each tier is optional (graceful degradation if not configured)
+- Tier 1 and 2 are self-hosted (zero external dependencies)
+- Tier 3 requires any configured LLM provider (7 already configured)
+- Tier 4 requires commercial API key (2Captcha/AntiCaptcha/CapSolver)
+- All tiers log solve method, latency, and success/failure for monitoring
+
 | ID | Requirement | Acceptance Criteria |
 |----|-------------|-------------------|
-| SCR-F-020 | System SHALL solve reCAPTCHA v2/v3 automatically | >90% solve rate |
-| SCR-F-021 | System SHALL solve hCaptcha automatically | >85% solve rate |
-| SCR-F-022 | System SHALL solve Cloudflare Turnstile | >85% solve rate |
+| SCR-F-020 | System SHALL solve reCAPTCHA v2/v3 automatically | >90% solve rate (hybrid) |
+| SCR-F-020a | System SHALL simulate human behavioral signals for reCAPTCHA v3 | Score >= 0.7 on 70% of attempts |
+| SCR-F-020b | System SHALL solve reCAPTCHA v2 audio challenges via speech-to-text | >90% accuracy on audio CAPTCHAs |
+| SCR-F-020c | System SHALL solve image CAPTCHAs via vision LLM | >70% accuracy on text/image CAPTCHAs |
+| SCR-F-020d | System SHALL fall back to human solving farm when AI methods fail | 100% fallback coverage |
+| SCR-F-021 | System SHALL solve hCaptcha automatically | >85% solve rate (hybrid) |
+| SCR-F-022 | System SHALL solve Cloudflare Turnstile | >85% solve rate (hybrid) |
 | SCR-F-023 | System SHALL rotate IP addresses across proxy pools | No IP reuse within configurable window |
 | SCR-F-024 | System SHALL randomize browser fingerprints | WebGL, Canvas, Audio, Navigator spoofing |
 | SCR-F-025 | System SHALL support residential proxy providers | Integration with BrightData/SmartProxy/Oxylabs |
+
+#### 4.3.2 AI-Native CAPTCHA Solver Architecture
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                  HybridCaptchaSolver                         │
+│                                                              │
+│  ┌─────────────┐   ┌─────────────┐   ┌─────────────┐       │
+│  │ BehavioralSim│   │ AudioSolver │   │ VisionSolver│       │
+│  │ (Tier 1)    │   │ (Tier 2)    │   │ (Tier 3)    │       │
+│  │             │   │             │   │             │       │
+│  │ Mouse move  │   │ Click audio │   │ Screenshot  │       │
+│  │ Scroll sim  │   │ Download mp3│   │ Send to LLM │       │
+│  │ Type timing │   │ Whisper STT │   │ Parse answer│       │
+│  │ Canvas/WebGL│   │ Submit text │   │ Submit      │       │
+│  └──────┬──────┘   └──────┬──────┘   └──────┬──────┘       │
+│         │ fail             │ fail             │ fail         │
+│         ▼                  ▼                  ▼              │
+│  ┌─────────────────────────────────────────────────────┐     │
+│  │              HumanFarmSolver (Tier 4)                │     │
+│  │  2Captcha → AntiCaptcha → CapSolver (chain)         │     │
+│  └─────────────────────────────────────────────────────┘     │
+└──────────────────────────────────────────────────────────────┘
+```
+
+**Tier 1 — Behavioral Simulation (reCAPTCHA v3 only):**
+- Simulate realistic mouse movements using Bezier curves
+- Simulate scroll events with natural timing
+- Simulate keyboard events with variable delay (50-150ms per keystroke)
+- Canvas fingerprint: inject realistic noise (already in fingerprint.py)
+- WebGL fingerprint: randomized vendor/renderer (already in fingerprint.py)
+- Page dwell time: minimum 3 seconds before interaction
+- Navigator properties: hardwareConcurrency, deviceMemory, plugins
+
+**Tier 2 — Audio Bypass (reCAPTCHA v2):**
+- Click the audio challenge button in the CAPTCHA iframe
+- Download the audio challenge MP3
+- Transcribe using Whisper (faster-whisper for speed, or OpenAI Whisper API)
+- Submit transcribed text as answer
+- Retry once if transcription confidence is low
+
+**Tier 3 — Vision LLM (hCaptcha, text CAPTCHAs):**
+- Screenshot the CAPTCHA element
+- Send image to configured LLM with vision capability
+- Prompt: "What text/characters are shown in this CAPTCHA image? Answer with only the characters."
+- Parse LLM response, extract answer
+- For hCaptcha image grids: "Which images contain [object]? List the positions (1-9)."
+
+**Tier 4 — Human Farm (fallback):**
+- Existing MultiProviderCaptchaSolver (2Captcha → AntiCaptcha → CapSolver)
+- Guaranteed solve for all CAPTCHA types
+- Used only when Tiers 1-3 fail
 
 ### 4.4 Browser Automation (P0)
 
@@ -497,4 +572,11 @@ The Scraper Module provides enterprise-grade web data extraction: no-code visual
 - Created: 2026-09-05
 - Author: Voyant Engineering
 - Review cycle: Every sprint
+
+### Revision History
+
+| Version | Date | Author | Changes |
+|---------|------|--------|---------|
+| 4.0.0-draft | 2026-09-05 | Voyant Engineering | Initial SRS |
+| 4.0.1 | 2026-09-09 | MiMoCode Agent | §4.3 expanded: AI-native CAPTCHA solver design (4-tier hybrid: behavioral simulation → audio bypass → vision LLM → human farm fallback). Added SCR-F-020a through SCR-F-020d. Architecture diagram added. |
 - Next review: 2026-09-19

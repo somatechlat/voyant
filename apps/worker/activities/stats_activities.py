@@ -74,7 +74,9 @@ class StatsActivities:
                             columns.append(ColumnSchema(name=k, data_type=dtype))
                     else:
                         # Data is a single list, assume single column
-                        columns.append(ColumnSchema(name="value", data_type=type(data[0]).__name__))
+                        columns.append(
+                            ColumnSchema(name="value", data_type=type(data[0]).__name__)
+                        )
 
                 if columns:
                     # Track schema with a timestamp as version
@@ -93,7 +95,9 @@ class StatsActivities:
             )
         except Exception as e:
             logger.error(f"Distribution analysis failed: {e}")
-            raise ApplicationError(f"Distribution analysis failed: {e}", non_retryable=False) from e
+            raise ApplicationError(
+                f"Distribution analysis failed: {e}", non_retryable=False
+            ) from e
 
     @activity.defn(name="calculate_correlation")
     def calculate_correlation(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -162,7 +166,9 @@ class StatsActivities:
             )
         except Exception as e:
             logger.error(f"Distribution fitting failed: {e}")
-            raise ApplicationError(f"Distribution fitting failed: {e}", non_retryable=False) from e
+            raise ApplicationError(
+                f"Distribution fitting failed: {e}", non_retryable=False
+            ) from e
 
     @activity.defn(name="calculate_market_share")
     def calculate_market_share(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -283,7 +289,9 @@ class StatsActivities:
                     "method": res["method"],
                 }
             else:
-                raise ValueError(f"Hypothesis test type '{test_type}' is not supported.")
+                raise ValueError(
+                    f"Hypothesis test type '{test_type}' is not supported."
+                )
 
         except CircuitBreakerOpenError:
             raise ApplicationError(
@@ -291,7 +299,9 @@ class StatsActivities:
                 non_retryable=True,
             )
         except ValueError as e:
-            raise ApplicationError(f"Invalid test parameters: {e}", non_retryable=True) from e
+            raise ApplicationError(
+                f"Invalid test parameters: {e}", non_retryable=True
+            ) from e
         except Exception as e:
             logger.error(f"Hypothesis test failed: {e}")
             raise ApplicationError(

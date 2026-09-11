@@ -26,6 +26,7 @@ from django.db import transaction
 from django.db.models import Q, QuerySet
 from django.utils import timezone
 
+from apps.core.events import publish_ontology_change
 from apps.ontology.models import (
     Cardinality,
     Link,
@@ -95,6 +96,13 @@ class ObjectTypeService:
                 metadata=prop.get("metadata", {}),
             )
         logger.info("Created object type %s/%s", tenant_id, name)
+        publish_ontology_change(
+            tenant_id,
+            "object_type.created",
+            "ObjectType",
+            str(ot.id),
+            {"name": name},
+        )
         return ot
 
     @staticmethod
@@ -142,7 +150,9 @@ class ObjectTypeService:
                     old.property_type = prop.get("property_type", old.property_type)
                     old.required = prop.get("required", old.required)
                     old.default_value = prop.get("default_value", old.default_value)
-                    old.validation_rules = prop.get("validation_rules", old.validation_rules)
+                    old.validation_rules = prop.get(
+                        "validation_rules", old.validation_rules
+                    )
                     old.metadata = prop.get("metadata", old.metadata)
                     old.save()
                 else:
@@ -161,6 +171,13 @@ class ObjectTypeService:
         ot.version += 1
         ot.save()
         logger.info("Updated object type %s/%s to v%d", tenant_id, ot.name, ot.version)
+        publish_ontology_change(
+            tenant_id,
+            "object_type.updated",
+            "ObjectType",
+            str(ot.id),
+            {"name": ot.name, "version": ot.version},
+        )
         return ot
 
     @staticmethod
@@ -181,6 +198,12 @@ class ObjectTypeService:
         ot.deleted_at = timezone.now()
         ot.save(update_fields=["deleted_at", "updated_at"])
         logger.info("Soft-deleted object type %s/%s", tenant_id, type_id)
+        publish_ontology_change(
+            tenant_id,
+            "object_type.deleted",
+            "ObjectType",
+            type_id,
+        )
 
 
 # =========================================================================
@@ -230,6 +253,13 @@ class ObjectService:
             version=1,
         )
         logger.info("Created object %s in type %s", obj.id, ot.name)
+        publish_ontology_change(
+            tenant_id,
+            "object.created",
+            "Object",
+            str(obj.id),
+            {"object_type": ot.name},
+        )
         return obj
 
     @staticmethod
@@ -268,6 +298,13 @@ class ObjectService:
         obj.version += 1
         obj.save(update_fields=["properties", "version", "updated_at"])
         logger.info("Updated object %s to v%d", obj.id, obj.version)
+        publish_ontology_change(
+            tenant_id,
+            "object.updated",
+            "Object",
+            str(obj.id),
+            {"object_type": ot.name, "version": obj.version},
+        )
         return obj
 
     @staticmethod
@@ -291,6 +328,12 @@ class ObjectService:
             )
         obj.deleted_at = timezone.now()
         obj.save(update_fields=["deleted_at", "updated_at"])
+        publish_ontology_change(
+            tenant_id,
+            "object.deleted",
+            "Object",
+            object_id,
+        )
 
     @staticmethod
     @transaction.atomic
@@ -364,13 +407,15 @@ class LinkTypeService:
 
     @staticmethod
     def list(tenant_id: str) -> QuerySet[LinkType]:
-        return LinkType.objects.filter(tenant_id=tenant_id, deleted_at__isnull=True).order_by(
-            "name"
-        )
+        return LinkType.objects.filter(
+            tenant_id=tenant_id, deleted_at__isnull=True
+        ).order_by("name")
 
     @staticmethod
     def get(tenant_id: str, lt_id: str) -> LinkType:
-        return LinkType.objects.get(tenant_id=tenant_id, id=lt_id, deleted_at__isnull=True)
+        return LinkType.objects.get(
+            tenant_id=tenant_id, id=lt_id, deleted_at__isnull=True
+        )
 
     @staticmethod
     @transaction.atomic
@@ -401,6 +446,13 @@ class LinkTypeService:
             inverse_name=inverse_name,
         )
         logger.info("Created link type %s/%s", tenant_id, name)
+        publish_ontology_change(
+            tenant_id,
+            "link_type.created",
+            "LinkType",
+            str(lt.id),
+            {"name": name},
+        )
         return lt
 
     @staticmethod
@@ -418,6 +470,12 @@ class LinkTypeService:
             )
         lt.deleted_at = timezone.now()
         lt.save(update_fields=["deleted_at", "updated_at"])
+        publish_ontology_change(
+            tenant_id,
+            "link_type.deleted",
+            "LinkType",
+            lt_id,
+        )
 
 
 # =========================================================================
@@ -493,14 +551,33 @@ class LinkService:
             properties=properties or {},
         )
         logger.info("Created link %s", link.id)
+        publish_ontology_change(
+            tenant_id,
+            "link.created",
+            "Link",
+            str(link.id),
+            {
+                "link_type": lt.name,
+                "source_object_id": source_object_id,
+                "target_object_id": target_object_id,
+            },
+        )
         return link
 
     @staticmethod
     @transaction.atomic
     def delete(tenant_id: str, link_id: str) -> None:
-        link = Link.objects.get(tenant_id=tenant_id, id=link_id, deleted_at__isnull=True)
+        link = Link.objects.get(
+            tenant_id=tenant_id, id=link_id, deleted_at__isnull=True
+        )
         link.deleted_at = timezone.now()
         link.save(update_fields=["deleted_at", "updated_at"])
+        publish_ontology_change(
+            tenant_id,
+            "link.deleted",
+            "Link",
+            link_id,
+        )
 
     @staticmethod
     def traverse(

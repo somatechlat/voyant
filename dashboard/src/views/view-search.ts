@@ -38,15 +38,15 @@ export class ViewSearch extends LitElement {
     render() {
         return html`
         <saas-sidebar currentPath="/admin/search"></saas-sidebar>
-        <main class="ml-60 min-h-screen bg-surface p-8">
+        <main class="ml-60 min-h-screen bg-surface p-8" role="main" aria-label="Search index management">
             <h1 class="text-2xl font-black font-display tracking-tight mb-6">Search Index</h1>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                 <div class="bg-white rounded-xl border border-gray-100 p-5">
                     <h3 class="text-sm font-semibold text-gray-500 mb-3">Search</h3>
-                    <div class="flex gap-2">
-                        <input type="text" class="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand" placeholder="Search query..." .value=${this.query} @input=${(e: Event) => { this.query = (e.target as HTMLInputElement).value; }} @keydown=${(e: KeyboardEvent) => { if (e.key === 'Enter') this.search(); }} />
-                        <button class="px-4 py-2 text-sm font-semibold bg-brand text-white rounded-lg hover:bg-black transition-colors" @click=${() => this.search()}>Search</button>
+                    <div class="flex gap-2" role="search" aria-label="Search indexed documents">
+                        <input type="text" class="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand" aria-label="Search query" placeholder="Search query..." .value=${this.query} @input=${(e: Event) => { this.query = (e.target as HTMLInputElement).value; }} @keydown=${(e: KeyboardEvent) => { if (e.key === 'Enter') this.search(); }} />
+                        <button class="px-4 py-2 text-sm font-semibold bg-brand text-white rounded-lg hover:bg-black transition-colors" aria-label="Run search" @click=${() => this.search()}>Search</button>
                     </div>
                 </div>
                 <div class="bg-white rounded-xl border border-gray-100 p-5">
@@ -59,8 +59,8 @@ export class ViewSearch extends LitElement {
                 </div>
             </div>
 
-            ${this.loading ? html`<div class="text-center text-gray-400 py-8">Searching...</div>` : html`
-            <div class="space-y-3">
+            ${this.loading ? html`<div class="text-center text-gray-400 py-8" role="status" aria-live="polite">Searching...</div>` : html`
+            <div class="space-y-3" aria-live="polite">
                 ${this.results.map(r => html`
                 <div class="bg-white rounded-xl border border-gray-100 p-5 flex items-start justify-between hover:border-brand transition-all">
                     <div class="flex-1">
@@ -70,7 +70,7 @@ export class ViewSearch extends LitElement {
                         </div>
                         <p class="text-sm text-gray-600">${(r.text_preview as string) || JSON.stringify(r.metadata).slice(0, 200)}</p>
                     </div>
-                    <button class="text-xs text-red-500 hover:underline ml-4" @click=${() => this.deleteItem(r.id as string)}>Delete</button>
+                    <button class="text-xs text-red-500 hover:underline ml-4" aria-label="Delete search result ${r.id}" @click=${() => this.deleteItem(r.id as string)}>Delete</button>
                 </div>`)}
                 ${this.results.length === 0 && this.query ? html`<div class="text-center text-gray-400 py-8">No results</div>` : ''}
             </div>`}

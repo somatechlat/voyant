@@ -115,7 +115,7 @@ class TestExtractData:
 
     def test_basic_extraction(self, activities):
         html = "<html><body><h1>Title</h1><p>Content</p></body></html>"
-        result = activities.extract_data.__wrapped__(
+        activities.extract_data.__wrapped__(
             activities, {"html": html, "selectors": {"heading": "h1"}, "url": "https://example.com"}
         ) if hasattr(activities.extract_data, '__wrapped__') else None
         # The activity is decorated; test the underlying logic via _extract_single

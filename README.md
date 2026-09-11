@@ -50,7 +50,7 @@ Voyant is an autonomous data intelligence service designed specifically for AI a
 
 ### 1. Agent-First Data Intelligence
 - **One-Call Analyze:** Complete data analysis pipeline from source to artifacts
-- **MCP Tool Integration:** 45 tools for agent orchestration
+- **MCP Tool Integration:** 67 tools for agent orchestration
 - **Pure Execution:** DataScraper module for web scraping without LLM integration
 
 ### 2. Data Ingestion & Processing
@@ -92,7 +92,7 @@ Voyant is an autonomous data intelligence service designed specifically for AI a
 - Capsules: `/v1/capsules/*`
 - Presets: `/v1/presets/*`
 
-### MCP Tools Available (45 Total)
+### MCP Tools Available (67 Total)
 
 **Core Tools:** `voyant.analyze`, `voyant.ingest`, `voyant.profile`, `voyant.quality`, `voyant.search`, `voyant.sql_query`, `voyant.connect`, `voyant.sources.list`, `voyant.sources.get`, `voyant.sources.create`, `voyant.sources.delete`, `voyant.jobs.list`, `voyant.jobs.get`, `voyant.artifacts.list`, `voyant.artifacts.get`, `voyant.health`
 
@@ -181,8 +181,8 @@ docker-compose -f docker-compose.yml up -d
 - **Performance:** Circuit breakers, adaptive sampling, query limits
 - **Reliability:** Temporal workflows with retry mechanisms (17 workflows, 50+ activities)
 - **Documentation:** ISO-compliant documentation (SRS, SAD, SDP, STP per ISO/IEC 29148, 42010, 9001, 29119)
-- **MCP Tools:** 46 registered tools for AI agent integration
-- **REST API:** 146 endpoints via Django Ninja (19 Django apps)
+- **MCP Tools:** 67 registered tools for AI agent integration
+- **REST API:** 199 endpoints via Django Ninja (16 Django apps)
 - **LLM Integration:** 7 providers (Groq, OpenAI, Anthropic, MiMo, Google, Mistral, DeepSeek), 17 models
 - **Ontology Engine:** 22 models (Palantir-grade: Interfaces, Structs, Shared Properties, Value Types, Actions, Functions)
 - **Scraper Templates:** 51 pre-built templates across 14 categories

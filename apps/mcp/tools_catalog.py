@@ -53,7 +53,9 @@ def tool_lineage(urn: str, direction: str = "both", depth: int = 3):
       }
     }
     """
-    directions = ["UPSTREAM", "DOWNSTREAM"] if direction == "both" else [direction.upper()]
+    directions = (
+        ["UPSTREAM", "DOWNSTREAM"] if direction == "both" else [direction.upper()]
+    )
     edges = []
     nodes = set([urn])
     for d in directions:
@@ -94,7 +96,9 @@ def tool_preset(preset_name: str, payload, tenant_id=None):
 
 @mcp_app.tool(name="voyant.sources.list")
 def tool_sources_list(tenant_id=None):
-    sources = Source.objects.filter(tenant_id=_tenant(tenant_id)).order_by("-created_at")
+    sources = Source.objects.filter(tenant_id=_tenant(tenant_id)).order_by(
+        "-created_at"
+    )
     return [
         {
             "source_id": str(s.id),
@@ -162,7 +166,9 @@ def tool_jobs_cancel(job_id: str, tenant_id=None):
                 run_async(handle.cancel)
                 break
             except Exception as inner_exc:
-                logger.debug("Workflow prefix %s not found for %s: %s", prefix, job_id, inner_exc)
+                logger.debug(
+                    "Workflow prefix %s not found for %s: %s", prefix, job_id, inner_exc
+                )
                 continue
     except Exception as exc:
         logger.warning("Failed to cancel Temporal workflows for %s: %s", job_id, exc)
@@ -173,9 +179,9 @@ def tool_jobs_cancel(job_id: str, tenant_id=None):
 
 @mcp_app.tool(name="voyant.artifacts.list")
 def tool_artifacts_list(job_id: str, tenant_id=None):
-    rows = Artifact.objects.filter(job_id=job_id, tenant_id=_tenant(tenant_id)).order_by(
-        "-created_at"
-    )
+    rows = Artifact.objects.filter(
+        job_id=job_id, tenant_id=_tenant(tenant_id)
+    ).order_by("-created_at")
     return [
         {
             "artifact_id": r.artifact_id,
@@ -378,7 +384,10 @@ def tool_vector_search(query: str, limit: int = 5, tenant_id=None):
         filter_metadata={"tenant_id": _tenant(tenant_id)},
         query_sparse_vector=sparse_vec,
     )
-    return [{"id": item.id, "score": score, "metadata": item.metadata} for item, score in results]
+    return [
+        {"id": item.id, "score": score, "metadata": item.metadata}
+        for item, score in results
+    ]
 
 
 @mcp_app.tool(name="voyant.vector.index")

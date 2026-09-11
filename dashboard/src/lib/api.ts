@@ -13,7 +13,7 @@ export class ApiError extends Error {
     }
 }
 
-function getToken(): string | null {
+export function getToken(): string | null {
     return localStorage.getItem('voyant_token');
 }
 
@@ -205,4 +205,10 @@ export interface TenantInfo {
     source_count: number;
     artifact_count: number;
     last_activity: string | null;
+}
+
+export interface TableInfo {
+    name: string;
+    table_schema: string | null;
+    type: string;
 }

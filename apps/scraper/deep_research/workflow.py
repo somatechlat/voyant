@@ -125,7 +125,9 @@ class DeepResearchWorkflowV2:
                     )
                 )
 
-            per_query_results: list[list[dict[str, Any]]] = await asyncio.gather(*search_futures)
+            per_query_results: list[list[dict[str, Any]]] = await asyncio.gather(
+                *search_futures
+            )
 
             # Flatten and deduplicate by URL.
             layer_results: list[dict[str, Any]] = []
@@ -138,7 +140,9 @@ class DeepResearchWorkflowV2:
                         layer_results.append(item)
 
             if not layer_results:
-                workflow.logger.warning(f"[DeepResearchV2] no search results at layer {layer}")
+                workflow.logger.warning(
+                    f"[DeepResearchV2] no search results at layer {layer}"
+                )
                 break
 
             all_search_results.extend(layer_results)
@@ -205,7 +209,9 @@ class DeepResearchWorkflowV2:
             total_urls_processed += len(url_texts)
 
             if not url_texts:
-                workflow.logger.warning(f"[DeepResearchV2] no extractable content at layer {layer}")
+                workflow.logger.warning(
+                    f"[DeepResearchV2] no extractable content at layer {layer}"
+                )
                 break
 
             # 5. Source scoring.
@@ -221,7 +227,9 @@ class DeepResearchWorkflowV2:
             )
 
             # Retain only scored URLs.
-            scored_url_texts = {url: txt for url, txt in url_texts.items() if url in scored}
+            scored_url_texts = {
+                url: txt for url, txt in url_texts.items() if url in scored
+            }
 
             if not scored_url_texts:
                 workflow.logger.warning(
@@ -244,7 +252,9 @@ class DeepResearchWorkflowV2:
             removed_urls = dedup.get("removed_urls", [])
             total_deduplicated += len(removed_urls)
 
-            deduped_texts = {u: scored_url_texts[u] for u in keep_urls if u in scored_url_texts}
+            deduped_texts = {
+                u: scored_url_texts[u] for u in keep_urls if u in scored_url_texts
+            }
 
             # Merge into global corpus.
             all_url_texts.update(deduped_texts)
@@ -255,7 +265,9 @@ class DeepResearchWorkflowV2:
                 {
                     "url_texts": deduped_texts,
                     "search_results": [
-                        item for item in layer_results if item.get("url") in deduped_texts
+                        item
+                        for item in layer_results
+                        if item.get("url") in deduped_texts
                     ],
                 },
                 start_to_close_timeout=timedelta(minutes=2),
@@ -278,7 +290,9 @@ class DeepResearchWorkflowV2:
                 break
 
         if not all_url_texts:
-            return self._error_result(job_id, "No usable content found across all search layers")
+            return self._error_result(
+                job_id, "No usable content found across all search layers"
+            )
 
         # ------------------------------------------------------------------
         # STEP 9: Cross-reference validation (full corpus)

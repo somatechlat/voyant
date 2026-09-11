@@ -4,7 +4,7 @@ Test Plugin Registry
 Verifies the "Platform of Platforms" pattern implementation.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 
@@ -27,7 +27,7 @@ from apps.core.lib.plugin_registry import (
     order=10,
 )
 class TestVizGenerator(GeneratorPlugin):
-    def generate(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    def generate(self, context: dict[str, Any]) -> dict[str, Any]:
         return {"test_artifact": "generated"}
 
 
@@ -38,7 +38,7 @@ class TestVizGenerator(GeneratorPlugin):
     order=20,
 )
 class TestReportGenerator(GeneratorPlugin):
-    def generate(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    def generate(self, context: dict[str, Any]) -> dict[str, Any]:
         return {"report": "done"}
 
 

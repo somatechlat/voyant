@@ -381,11 +381,22 @@ class RowSecurityPolicy(TenantModel, UUIDModel):
 
     name = models.CharField(max_length=255, help_text="Policy name")
     description = models.TextField(blank=True, default="")
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_ACTIVE, db_index=True)
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_ACTIVE,
+        db_index=True,
+    )
 
     # Target
-    table_name = models.CharField(max_length=255, help_text="Table this policy applies to")
-    column_name = models.CharField(max_length=255, blank=True, help_text="Column to filter on (optional)")
+    table_name = models.CharField(
+        max_length=255, help_text="Table this policy applies to"
+    )
+    column_name = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Column to filter on (optional)",
+    )
 
     # Filter
     filter_type = models.CharField(
@@ -399,9 +410,15 @@ class RowSecurityPolicy(TenantModel, UUIDModel):
     )
     filter_config = models.JSONField(
         default=dict,
-        help_text='Filter config: {"column": "tenant_id", "role_map": {"admin": ["*"], "analyst": ["dept_a"]}}',
+        help_text=(
+            'Filter config: {"column": "tenant_id",'
+            ' "role_map": {"admin": ["*"], "analyst": ["dept_a"]}}'
+        ),
     )
-    custom_sql = models.TextField(blank=True, help_text="Custom SQL WHERE clause (for custom_sql type)")
+    custom_sql = models.TextField(
+        blank=True,
+        help_text="Custom SQL WHERE clause (for custom_sql type)",
+    )
 
     # Scope
     applies_to_roles = models.JSONField(
@@ -412,7 +429,7 @@ class RowSecurityPolicy(TenantModel, UUIDModel):
     applies_to_users = models.JSONField(
         default=list,
         blank=True,
-        help_text='Specific user IDs this policy applies to',
+        help_text="Specific user IDs this policy applies to",
     )
 
     class Meta(TenantModel.Meta, UUIDModel.Meta):
@@ -457,10 +474,17 @@ class ColumnMaskPolicy(TenantModel, UUIDModel):
 
     name = models.CharField(max_length=255, help_text="Policy name")
     description = models.TextField(blank=True, default="")
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_ACTIVE, db_index=True)
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_ACTIVE,
+        db_index=True,
+    )
 
     # Target
-    table_name = models.CharField(max_length=255, help_text="Table this policy applies to")
+    table_name = models.CharField(
+        max_length=255, help_text="Table this policy applies to"
+    )
     column_name = models.CharField(max_length=255, help_text="Column to mask")
 
     # Masking
@@ -473,7 +497,7 @@ class ColumnMaskPolicy(TenantModel, UUIDModel):
     # Scope
     applies_to_roles = models.JSONField(
         default=list,
-        help_text='Roles this mask applies to (empty = all roles)',
+        help_text="Roles this mask applies to (empty = all roles)",
     )
     exempt_roles = models.JSONField(
         default=list,
@@ -512,8 +536,13 @@ class DataClassification(TenantModel, UUIDModel):
         (LEVEL_RESTRICTED, "Restricted"),
     ]
 
-    name = models.CharField(max_length=255, help_text="Classification name (e.g. 'PII', 'Financial')")
-    level = models.CharField(max_length=20, choices=LEVEL_CHOICES, default=LEVEL_INTERNAL)
+    name = models.CharField(
+        max_length=255,
+        help_text="Classification name (e.g. 'PII', 'Financial')",
+    )
+    level = models.CharField(
+        max_length=20, choices=LEVEL_CHOICES, default=LEVEL_INTERNAL
+    )
     description = models.TextField(blank=True, default="")
 
     # Target (what this classification applies to)
@@ -525,12 +554,17 @@ class DataClassification(TenantModel, UUIDModel):
             ("object_type", "Ontology Object Type"),
         ],
     )
-    target_name = models.CharField(max_length=255, help_text="Name of the target (table, column, etc.)")
+    target_name = models.CharField(
+        max_length=255,
+        help_text="Name of the target (table, column, etc.)",
+    )
 
     # Compliance
     requires_encryption = models.BooleanField(default=False)
     requires_masking = models.BooleanField(default=False)
-    retention_days = models.IntegerField(null=True, blank=True, help_text="Data retention period")
+    retention_days = models.IntegerField(
+        null=True, blank=True, help_text="Data retention period"
+    )
 
     class Meta(TenantModel.Meta, UUIDModel.Meta):
         db_table = "governance_classification"
@@ -540,3 +574,157 @@ class DataClassification(TenantModel, UUIDModel):
 
     def __str__(self) -> str:
         return f"Classification({self.name} [{self.level}] on {self.target_name})"
+
+
+# ---------------------------------------------------------------------------
+# Security Policy (RLS — GOV-F-006)
+# ---------------------------------------------------------------------------
+
+
+class SecurityPolicy(TenantModel, UUIDModel):
+    """Row-level security policy for query-time WHERE clause injection.
+
+    GOV-F-006: Defines row filters that restrict which rows a given set of
+    roles can see in a table.  Enforced at query time by the Trino client
+    which injects an additional WHERE clause before execution.
+    """
+
+    STATUS_ACTIVE = "active"
+    STATUS_INACTIVE = "inactive"
+    STATUS_CHOICES = [
+        (STATUS_ACTIVE, "Active"),
+        (STATUS_INACTIVE, "Inactive"),
+    ]
+
+    name = models.CharField(max_length=255, help_text="Policy name")
+    description = models.TextField(blank=True, default="")
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_ACTIVE,
+        db_index=True,
+    )
+
+    # Target
+    table_name = models.CharField(
+        max_length=255,
+        help_text="Fully-qualified table name (e.g. catalog.schema.table)",
+    )
+    column_name = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        help_text="Column to filter on (optional, for documentation)",
+    )
+
+    # Filter
+    filter_expression = models.TextField(
+        help_text='SQL WHERE clause fragment, e.g. "tenant_id = current_user"',
+    )
+
+    # Scope
+    roles = models.JSONField(
+        default=list,
+        help_text='Roles this policy applies to: ["analyst", "viewer"]',
+    )
+
+    class Meta(TenantModel.Meta, UUIDModel.Meta):
+        db_table = "governance_security_policy"
+        verbose_name = "Security Policy"
+        verbose_name_plural = "Security Policies"
+        indexes = [
+            models.Index(fields=["tenant_id", "table_name"]),
+            models.Index(fields=["tenant_id", "status"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"SecurityPolicy({self.name} on {self.table_name})"
+
+
+# ---------------------------------------------------------------------------
+# Column Mask (GOV-F-007)
+# ---------------------------------------------------------------------------
+
+
+class ColumnMask(TenantModel, UUIDModel):
+    """Column-level masking policy for sensitive data protection.
+
+    GOV-F-007: Defines masking transformations applied to column values at
+    query time based on the user's role.  Enforced by the Trino client which
+    rewrites SELECT clauses to wrap masked columns.
+    """
+
+    STATUS_ACTIVE = "active"
+    STATUS_INACTIVE = "inactive"
+    STATUS_CHOICES = [
+        (STATUS_ACTIVE, "Active"),
+        (STATUS_INACTIVE, "Inactive"),
+    ]
+
+    MASK_TYPE_CHOICES = [
+        ("null", "Null (replace with NULL)"),
+        ("hash", "Hash (SHA-256 of value)"),
+        ("partial", "Partial (show first/last N chars)"),
+        ("redact", "Redact (replace with [REDACTED])"),
+    ]
+
+    name = models.CharField(max_length=255, help_text="Policy name")
+    description = models.TextField(blank=True, default="")
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_ACTIVE,
+        db_index=True,
+    )
+
+    # Target
+    table_name = models.CharField(
+        max_length=255,
+        help_text="Fully-qualified table name (e.g. catalog.schema.table)",
+    )
+    column_name = models.CharField(
+        max_length=255,
+        help_text="Column to mask",
+    )
+
+    # Masking
+    mask_type = models.CharField(
+        max_length=20,
+        choices=MASK_TYPE_CHOICES,
+        help_text="Masking strategy to apply",
+    )
+    mask_config = models.JSONField(
+        default=dict,
+        help_text='Config: {"show_first": 2, "show_last": 4, "mask_char": "*"}',
+    )
+
+    # Scope
+    roles = models.JSONField(
+        default=list,
+        help_text='Roles this mask applies to (empty = all roles): ["analyst"]',
+    )
+    exempt_roles = models.JSONField(
+        default=list,
+        help_text='Roles exempt from this mask: ["admin", "data_steward"]',
+    )
+
+    class Meta(TenantModel.Meta, UUIDModel.Meta):
+        db_table = "governance_column_mask_def"
+        verbose_name = "Column Mask"
+        verbose_name_plural = "Column Masks"
+        indexes = [
+            models.Index(fields=["tenant_id", "table_name"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"ColumnMask({self.name} on {self.table_name}.{self.column_name})"
+
+
+# ---------------------------------------------------------------------------
+# Cell-Level Security (GOV-F-011)
+# ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# ABAC Policies (GOV-F-012)
+# ---------------------------------------------------------------------------
+from apps.governance.abac import ABACPolicy  # noqa: E402, F401
+from apps.governance.cell_security import CellSecurityPolicy  # noqa: E402, F401

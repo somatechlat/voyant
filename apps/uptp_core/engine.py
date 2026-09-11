@@ -14,7 +14,9 @@ logger = logging.getLogger(__name__)
 
 # Non-blocking thread pool for Temporal workflow dispatch.
 # Prevents Gunicorn sync workers from blocking on async Temporal client setup.
-_temporal_dispatch_pool = ThreadPoolExecutor(max_workers=10, thread_name_prefix="uptp_dispatch")
+_temporal_dispatch_pool = ThreadPoolExecutor(
+    max_workers=10, thread_name_prefix="uptp_dispatch"
+)
 
 
 def _dispatch_workflow(workflow_cls, args: dict, execution_urn: str) -> None:
@@ -60,10 +62,14 @@ class UPTPExecutionEngine:
         )
 
         if not request.template_id:
-            raise ValidationError("A valid template_id must be provided to the UPTP Engine.")
+            raise ValidationError(
+                "A valid template_id must be provided to the UPTP Engine."
+            )
 
         job_uuid = uuid.uuid4().hex
-        execution_urn = f"urn:voyant:job:{request.tenant_id}:{request.template_id}:{job_uuid}"
+        execution_urn = (
+            f"urn:voyant:job:{request.tenant_id}:{request.template_id}:{job_uuid}"
+        )
 
         if request.category == "ingestion":
             if request.template_id == "ingest.web.deep_research":
@@ -181,7 +187,9 @@ class UPTPExecutionEngine:
                         tenant_id=request.tenant_id,
                     )
                 else:
-                    raise ValueError(f"Unsupported chart template: {request.template_id}")
+                    raise ValueError(
+                        f"Unsupported chart template: {request.template_id}"
+                    )
 
                 return {
                     "status": "success",
@@ -217,5 +225,8 @@ class UPTPExecutionEngine:
             "status": "accepted",
             "dispatch_type": dispatch_status,
             "job_urn": execution_urn,
-            "message": f"Successfully routed natively to Physical execution engine for {request.category.value}.",
+            "message": (
+                f"Successfully routed natively to Physical"
+                f" execution engine for {request.category.value}."
+            ),
         }

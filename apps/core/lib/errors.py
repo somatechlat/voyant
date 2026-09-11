@@ -514,8 +514,10 @@ class ServiceUnavailableError(VoyantError):
             http_status=503,
             description="The service is temporarily unavailable, likely due to high failure rates.",
             resolution=(
-                '- `outlier_strategy` (str, optional): Strategy for outliers ("remove", "cap", "winsorize").\n'
-                "- `outlier_threshold` (float, optional): Threshold for outlier detection (e.g., Z-score)."
+                "- `outlier_strategy` (str, optional): "
+                'Strategy for outliers ("remove", "cap", "winsorize").\n'
+                "- `outlier_threshold` (float, optional): "
+                "Threshold for outlier detection (e.g., Z-score)."
             ),
             retry_allowed=True,
         )
@@ -570,7 +572,9 @@ def get_error_catalog() -> dict[str, dict[str, Any]]:
 
 def get_errors_by_category(category: ErrorCategory) -> list[dict[str, Any]]:
     """Get all errors in a category."""
-    return [defn.to_dict() for defn in ERROR_CATALOG.values() if defn.category == category]
+    return [
+        defn.to_dict() for defn in ERROR_CATALOG.values() if defn.category == category
+    ]
 
 
 def list_error_codes() -> list[str]:

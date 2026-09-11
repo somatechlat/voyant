@@ -51,7 +51,9 @@ class ExecutionStep(BaseModel):
 
 
 class ParameterSchema(BaseModel):
-    type: str = Field(..., pattern=r"^(string|integer|number|boolean|array|object|daterange)$")
+    type: str = Field(
+        ..., pattern=r"^(string|integer|number|boolean|array|object|daterange)$"
+    )
     required: bool = Field(default=False)
     default: Any = None
     description: str = Field(default="")

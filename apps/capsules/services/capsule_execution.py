@@ -21,13 +21,17 @@ from apps.core.config import get_settings
 logger = logging.getLogger(__name__)
 
 # Background thread pool for Temporal workflow dispatch (avoids blocking sync workers)
-_capsule_dispatch_pool = ThreadPoolExecutor(max_workers=10, thread_name_prefix="capsule_dispatch")
+_capsule_dispatch_pool = ThreadPoolExecutor(
+    max_workers=10, thread_name_prefix="capsule_dispatch"
+)
 
 # Sandboxed Jinja2 for parameter substitution
 _jinja_env = SandboxedEnvironment()
 
 
-def validate_parameters(capsule: Capsule, parameter_values: dict) -> tuple[bool, str | None]:
+def validate_parameters(
+    capsule: Capsule, parameter_values: dict
+) -> tuple[bool, str | None]:
     """Validate runtime parameters against the capsule's parameter schema."""
     schema = capsule.parameters_schema
     if not schema:
@@ -51,7 +55,10 @@ def validate_parameters(capsule: Capsule, parameter_values: dict) -> tuple[bool,
                 return False, f"Parameter {param_name} must be a boolean"
 
             if "options" in param_def and value not in param_def["options"]:
-                return False, f"Parameter {param_name} must be one of {param_def['options']}"
+                return (
+                    False,
+                    f"Parameter {param_name} must be one of {param_def['options']}",
+                )
 
     return True, None
 
@@ -87,7 +94,9 @@ def substitute_parameters(
     def _resolve(value: Any) -> Any:
         if isinstance(value, str):
             try:
-                return _jinja_env.from_string(value).render(**parameters, steps=step_results)
+                return _jinja_env.from_string(value).render(
+                    **parameters, steps=step_results
+                )
             except Exception as exc:
                 logger.warning("Template substitution failed for '%s': %s", value, exc)
                 return value
@@ -131,7 +140,9 @@ def execute_capsule_sync(
     if len(graph) == 1:
         step = graph[0]
         _check_capabilities(capsule, step["action"])
-        resolved_params = substitute_parameters(step.get("params", {}), parameter_values)
+        resolved_params = substitute_parameters(
+            step.get("params", {}), parameter_values
+        )
 
         from apps.uptp_core.engine import UPTPExecutionEngine
         from apps.uptp_core.schemas import TemplateCategory, TemplateExecutionRequest
@@ -276,6 +287,8 @@ def get_instance_status(instance_id: str) -> dict:
         "state": instance.state,
         "parameter_values": instance.parameter_values,
         "started_at": instance.started_at.isoformat() if instance.started_at else None,
-        "completed_at": instance.completed_at.isoformat() if instance.completed_at else None,
+        "completed_at": (
+            instance.completed_at.isoformat() if instance.completed_at else None
+        ),
         "error_message": instance.error_message,
     }

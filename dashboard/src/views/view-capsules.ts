@@ -25,12 +25,12 @@ export class ViewCapsules extends LitElement {
     render() {
         return html`
         <saas-sidebar currentPath="/admin/capsules"></saas-sidebar>
-        <main class="ml-60 min-h-screen bg-surface p-8">
+        <main class="ml-60 min-h-screen bg-surface p-8" role="main" aria-label="Capsules management">
             <h1 class="text-2xl font-black font-display tracking-tight mb-6">Capsules</h1>
-            ${this.loading ? html`<div class="text-center text-gray-400 py-16">Loading...</div>` : html`
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            ${this.loading ? html`<div class="text-center text-gray-400 py-16" role="status" aria-live="polite">Loading...</div>` : html`
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" aria-live="polite">
                 ${this.capsules.map(c => html`
-                <div class="bg-white rounded-xl border border-gray-100 p-5 hover:border-brand hover:shadow-md transition-all group">
+                <div class="bg-white rounded-xl border border-gray-100 p-5 hover:border-brand hover:shadow-md transition-all group" role="article" aria-label="Capsule: ${c.name}, status ${c.status}">
                     <div class="flex items-start justify-between mb-3">
                         <div>
                             <h3 class="font-bold text-sm group-hover:text-brand transition-colors">${c.name}</h3>
@@ -45,9 +45,9 @@ export class ViewCapsules extends LitElement {
                         <span>${c.tenant_id}</span>
                     </div>
                     <div class="flex gap-2 mt-4 pt-3 border-t border-gray-50">
-                        ${c.status === 'certified' ? html`<button class="text-xs text-brand font-semibold hover:underline" @click=${() => api.post(`/admin/capsules/${c.id}/activate`).then(() => this.connectedCallback())}>Activate</button>` : ''}
-                        ${c.status === 'active' ? html`<button class="text-xs text-amber-600 font-semibold hover:underline" @click=${() => api.post(`/admin/capsules/${c.id}/suspend`, {reason: 'Admin'}).then(() => this.connectedCallback())}>Suspend</button>` : ''}
-                        ${c.status === 'active' || c.status === 'suspended' ? html`<button class="text-xs text-gray-400 font-semibold hover:underline" @click=${() => api.post(`/admin/capsules/${c.id}/archive`).then(() => this.connectedCallback())}>Archive</button>` : ''}
+                        ${c.status === 'certified' ? html`<button class="text-xs text-brand font-semibold hover:underline" aria-label="Activate capsule ${c.name}" @click=${() => api.post(`/admin/capsules/${c.id}/activate`).then(() => this.connectedCallback())}>Activate</button>` : ''}
+                        ${c.status === 'active' ? html`<button class="text-xs text-amber-600 font-semibold hover:underline" aria-label="Suspend capsule ${c.name}" @click=${() => api.post(`/admin/capsules/${c.id}/suspend`, {reason: 'Admin'}).then(() => this.connectedCallback())}>Suspend</button>` : ''}
+                        ${c.status === 'active' || c.status === 'suspended' ? html`<button class="text-xs text-gray-400 font-semibold hover:underline" aria-label="Archive capsule ${c.name}" @click=${() => api.post(`/admin/capsules/${c.id}/archive`).then(() => this.connectedCallback())}>Archive</button>` : ''}
                     </div>
                 </div>`)}
                 ${this.capsules.length === 0 ? html`<div class="col-span-3 text-center text-gray-400 py-12">No capsules installed</div>` : ''}

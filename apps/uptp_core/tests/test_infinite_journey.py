@@ -50,7 +50,9 @@ print(f"Computed Mean: {result}")
     except Exception as e:
         # Since Docker socket might not be fully mounted in the test environment,
         # we trap and verify the real Docker error rather than simulating.
-        assert "Error while fetching server API version" in str(e) or "Sandbox error" in str(e)
+        assert "Error while fetching server API version" in str(
+            e
+        ) or "Sandbox error" in str(e)
 
     # STEP 3: Route Document Assembly (Layer 5)
     pdf_res = PDFAssembler.compile_pdf(

@@ -1,4 +1,4 @@
-"""Scraper v4.0 — 50 pre-built templates for popular websites."""
+"""Scraper v4.0 — 51 pre-built templates for popular websites."""
 
 TEMPLATES = [
     # ── E-Commerce (10) ──────────────────────────────────────────────────
@@ -16,7 +16,10 @@ TEMPLATES = [
             "image": ".s-image",
         },
         "workflow": [
-            {"action": "navigate", "url": "https://www.amazon.com/s?k={{search_query}}"},
+            {
+                "action": "navigate",
+                "url": "https://www.amazon.com/s?k={{search_query}}",
+            },
             {"action": "scroll", "times": 3},
             {"action": "extract"},
         ],
@@ -42,7 +45,14 @@ TEMPLATES = [
             {"action": "extract"},
         ],
         "parameters": [{"name": "product_url", "type": "string", "required": True}],
-        "output_fields": ["title", "price", "rating", "description", "images", "reviews_count"],
+        "output_fields": [
+            "title",
+            "price",
+            "rating",
+            "description",
+            "images",
+            "reviews_count",
+        ],
     },
     {
         "name": "Amazon Product Reviews",
@@ -80,7 +90,10 @@ TEMPLATES = [
             "condition": ".SECONDARY_INFO",
         },
         "workflow": [
-            {"action": "navigate", "url": "https://www.ebay.com/sch/i.html?_nkw={{search_query}}"},
+            {
+                "action": "navigate",
+                "url": "https://www.ebay.com/sch/i.html?_nkw={{search_query}}",
+            },
             {"action": "scroll", "times": 3},
             {"action": "extract"},
         ],
@@ -100,7 +113,10 @@ TEMPLATES = [
             "rating": ".w_iUH7",
         },
         "workflow": [
-            {"action": "navigate", "url": "https://www.walmart.com/search?q={{search_query}}"},
+            {
+                "action": "navigate",
+                "url": "https://www.walmart.com/search?q={{search_query}}",
+            },
             {"action": "scroll", "times": 3},
             {"action": "extract"},
         ],
@@ -120,7 +136,10 @@ TEMPLATES = [
             "min_order": ".min-order-limit",
         },
         "workflow": [
-            {"action": "navigate", "url": "https://www.alibaba.com/trade/search?SearchText={{search_query}}"},
+            {
+                "action": "navigate",
+                "url": "https://www.alibaba.com/trade/search?SearchText={{search_query}}",
+            },
             {"action": "scroll", "times": 3},
             {"action": "extract"},
         ],
@@ -140,7 +159,10 @@ TEMPLATES = [
             "orders": ".item-trade",
         },
         "workflow": [
-            {"action": "navigate", "url": "https://www.aliexpress.com/wholesale?SearchText={{search_query}}"},
+            {
+                "action": "navigate",
+                "url": "https://www.aliexpress.com/wholesale?SearchText={{search_query}}",
+            },
             {"action": "scroll", "times": 3},
             {"action": "extract"},
         ],
@@ -180,7 +202,10 @@ TEMPLATES = [
             "shop": ".v2-listing-card__shop",
         },
         "workflow": [
-            {"action": "navigate", "url": "https://www.etsy.com/search?q={{search_query}}"},
+            {
+                "action": "navigate",
+                "url": "https://www.etsy.com/search?q={{search_query}}",
+            },
             {"action": "scroll", "times": 3},
             {"action": "extract"},
         ],
@@ -200,7 +225,10 @@ TEMPLATES = [
             "rating": ".c-stars-v4",
         },
         "workflow": [
-            {"action": "navigate", "url": "https://www.bestbuy.com/site/searchpage.jsp?st={{search_query}}"},
+            {
+                "action": "navigate",
+                "url": "https://www.bestbuy.com/site/searchpage.jsp?st={{search_query}}",
+            },
             {"action": "scroll", "times": 3},
             {"action": "extract"},
         ],
@@ -222,7 +250,10 @@ TEMPLATES = [
             "phone": ".rllt__details div:nth-child(4)",
         },
         "workflow": [
-            {"action": "navigate", "url": "https://www.google.com/maps/search/{{search_query}}"},
+            {
+                "action": "navigate",
+                "url": "https://www.google.com/maps/search/{{search_query}}",
+            },
             {"action": "wait", "selector": ".qBF1Pd"},
             {"action": "scroll", "times": 5},
             {"action": "extract"},
@@ -288,7 +319,10 @@ TEMPLATES = [
             "date": "time",
         },
         "workflow": [
-            {"action": "navigate", "url": "https://x.com/search?q={{search_query}}&src=typed_query"},
+            {
+                "action": "navigate",
+                "url": "https://x.com/search?q={{search_query}}&src=typed_query",
+            },
             {"action": "scroll", "times": 5},
             {"action": "extract"},
         ],
@@ -329,7 +363,10 @@ TEMPLATES = [
             "url": "#video-title[href]",
         },
         "workflow": [
-            {"action": "navigate", "url": "https://www.youtube.com/results?search_query={{search_query}}"},
+            {
+                "action": "navigate",
+                "url": "https://www.youtube.com/results?search_query={{search_query}}",
+            },
             {"action": "scroll", "times": 3},
             {"action": "extract"},
         ],
@@ -371,7 +408,10 @@ TEMPLATES = [
             "url": "a[data-click-id='body']",
         },
         "workflow": [
-            {"action": "navigate", "url": "https://www.reddit.com/search/?q={{search_query}}"},
+            {
+                "action": "navigate",
+                "url": "https://www.reddit.com/search/?q={{search_query}}",
+            },
             {"action": "scroll", "times": 5},
             {"action": "extract"},
         ],
@@ -391,7 +431,10 @@ TEMPLATES = [
             "url": "a[data-click-id='body']",
         },
         "workflow": [
-            {"action": "navigate", "url": "https://www.reddit.com/r/{{subreddit}}/hot/"},
+            {
+                "action": "navigate",
+                "url": "https://www.reddit.com/r/{{subreddit}}/hot/",
+            },
             {"action": "scroll", "times": 5},
             {"action": "extract"},
         ],
@@ -467,7 +510,10 @@ TEMPLATES = [
             "website": ".website a[href]",
         },
         "workflow": [
-            {"action": "navigate", "url": "https://www.yellowpages.com/search?search_terms={{search_query}}&geo_location_terms={{location}}"},
+            {
+                "action": "navigate",
+                "url": "https://www.yellowpages.com/search?search_terms={{search_query}}&geo_location_terms={{location}}",
+            },
             {"action": "scroll", "times": 3},
             {"action": "extract"},
         ],
@@ -491,7 +537,10 @@ TEMPLATES = [
             "price": ".priceRange__09f24__pNRiI",
         },
         "workflow": [
-            {"action": "navigate", "url": "https://www.yelp.com/search?find_desc={{search_query}}&find_loc={{location}}"},
+            {
+                "action": "navigate",
+                "url": "https://www.yelp.com/search?find_desc={{search_query}}&find_loc={{location}}",
+            },
             {"action": "scroll", "times": 3},
             {"action": "extract"},
         ],
@@ -516,7 +565,10 @@ TEMPLATES = [
             "summary": ".job-snippet",
         },
         "workflow": [
-            {"action": "navigate", "url": "https://www.indeed.com/jobs?q={{search_query}}&l={{location}}"},
+            {
+                "action": "navigate",
+                "url": "https://www.indeed.com/jobs?q={{search_query}}&l={{location}}",
+            },
             {"action": "scroll", "times": 3},
             {"action": "extract"},
         ],
@@ -558,7 +610,10 @@ TEMPLATES = [
             "location": ".job-card-container__metadata-item",
         },
         "workflow": [
-            {"action": "navigate", "url": "https://www.linkedin.com/jobs/search/?keywords={{search_query}}"},
+            {
+                "action": "navigate",
+                "url": "https://www.linkedin.com/jobs/search/?keywords={{search_query}}",
+            },
             {"action": "scroll", "times": 3},
             {"action": "extract"},
         ],
@@ -581,7 +636,10 @@ TEMPLATES = [
             "url": ".property-card-link[href]",
         },
         "workflow": [
-            {"action": "navigate", "url": "https://www.zillow.com/homes/{{location}}_rb/"},
+            {
+                "action": "navigate",
+                "url": "https://www.zillow.com/homes/{{location}}_rb/",
+            },
             {"action": "scroll", "times": 5},
             {"action": "extract"},
         ],
@@ -622,7 +680,10 @@ TEMPLATES = [
             "baths": ".property-baths",
         },
         "workflow": [
-            {"action": "navigate", "url": "https://www.realtor.com/realestateandhomes-search/{{location}}"},
+            {
+                "action": "navigate",
+                "url": "https://www.realtor.com/realestateandhomes-search/{{location}}",
+            },
             {"action": "scroll", "times": 3},
             {"action": "extract"},
         ],
@@ -643,7 +704,10 @@ TEMPLATES = [
             "url": "article a[href]",
         },
         "workflow": [
-            {"action": "navigate", "url": "https://news.google.com/search?q={{search_query}}"},
+            {
+                "action": "navigate",
+                "url": "https://news.google.com/search?q={{search_query}}",
+            },
             {"action": "scroll", "times": 3},
             {"action": "extract"},
         ],
@@ -722,7 +786,10 @@ TEMPLATES = [
             "industry": ".industry-list",
         },
         "workflow": [
-            {"action": "navigate", "url": "https://www.crunchbase.com/organization/{{company_slug}}"},
+            {
+                "action": "navigate",
+                "url": "https://www.crunchbase.com/organization/{{company_slug}}",
+            },
             {"action": "extract"},
         ],
         "parameters": [{"name": "company_slug", "type": "string", "required": True}],
@@ -742,7 +809,10 @@ TEMPLATES = [
             "address": "[data-testid='address']",
         },
         "workflow": [
-            {"action": "navigate", "url": "https://www.booking.com/searchresults.html?ss={{destination}}&checkin={{checkin}}&checkout={{checkout}}"},
+            {
+                "action": "navigate",
+                "url": "https://www.booking.com/searchresults.html?ss={{destination}}&checkin={{checkin}}&checkout={{checkout}}",
+            },
             {"action": "scroll", "times": 3},
             {"action": "extract"},
         ],
@@ -767,7 +837,10 @@ TEMPLATES = [
             "price": ".price",
         },
         "workflow": [
-            {"action": "navigate", "url": "https://www.google.com/travel/flights/search?tfs=CBwQAhoeagwIAhIIL20vMGpmcnoSCggCEgYvbS8wN20yGgJAAUABSAFwAYIBCwj___________8BQAFIAZgBAQ&hl=en&gl=us&curr=USD"},
+            {
+                "action": "navigate",
+                "url": "https://www.google.com/travel/flights/search?tfs=CBwQAhoeagwIAhIIL20vMGpmcnoSCggCEgYvbS8wN20yGgJAAUABSAFwAYIBCwj___________8BQAFIAZgBAQ&hl=en&gl=us&curr=USD",
+            },
             {"action": "extract"},
         ],
         "parameters": [],
@@ -808,7 +881,10 @@ TEMPLATES = [
             "skills": ".skills",
         },
         "workflow": [
-            {"action": "navigate", "url": "https://www.coursera.org/search?query={{search_query}}"},
+            {
+                "action": "navigate",
+                "url": "https://www.coursera.org/search?query={{search_query}}",
+            },
             {"action": "scroll", "times": 3},
             {"action": "extract"},
         ],
@@ -829,7 +905,10 @@ TEMPLATES = [
             "url": ".gs_rt a[href]",
         },
         "workflow": [
-            {"action": "navigate", "url": "https://scholar.google.com/scholar?q={{search_query}}"},
+            {
+                "action": "navigate",
+                "url": "https://scholar.google.com/scholar?q={{search_query}}",
+            },
             {"action": "extract"},
         ],
         "parameters": [{"name": "search_query", "type": "string", "required": True}],
@@ -844,8 +923,19 @@ TEMPLATES = [
         "engine": "httpx",
         "selectors": {},
         "workflow": [
-            {"action": "api", "url": "https://api.github.com/search/repositories?q={{search_query}}&sort=stars"},
-            {"action": "extract_json", "fields": ["items[].full_name", "items[].description", "items[].stargazers_count", "items[].language"]},
+            {
+                "action": "api",
+                "url": "https://api.github.com/search/repositories?q={{search_query}}&sort=stars",
+            },
+            {
+                "action": "extract_json",
+                "fields": [
+                    "items[].full_name",
+                    "items[].description",
+                    "items[].stargazers_count",
+                    "items[].language",
+                ],
+            },
         ],
         "parameters": [{"name": "search_query", "type": "string", "required": True}],
         "output_fields": ["name", "description", "stars", "language"],
@@ -858,8 +948,18 @@ TEMPLATES = [
         "engine": "httpx",
         "selectors": {},
         "workflow": [
-            {"action": "api", "url": "https://registry.npmjs.org/-/v1/search?text={{search_query}}&size=20"},
-            {"action": "extract_json", "fields": ["objects[].package.name", "objects[].package.description", "objects[].package.version"]},
+            {
+                "action": "api",
+                "url": "https://registry.npmjs.org/-/v1/search?text={{search_query}}&size=20",
+            },
+            {
+                "action": "extract_json",
+                "fields": [
+                    "objects[].package.name",
+                    "objects[].package.description",
+                    "objects[].package.version",
+                ],
+            },
         ],
         "parameters": [{"name": "search_query", "type": "string", "required": True}],
         "output_fields": ["name", "description", "version"],
@@ -872,8 +972,19 @@ TEMPLATES = [
         "engine": "httpx",
         "selectors": {},
         "workflow": [
-            {"action": "api", "url": "https://api.stackexchange.com/2.3/search?order=desc&sort=activity&intitle={{search_query}}&site=stackoverflow"},
-            {"action": "extract_json", "fields": ["items[].title", "items[].link", "items[].score", "items[].answer_count"]},
+            {
+                "action": "api",
+                "url": "https://api.stackexchange.com/2.3/search?order=desc&sort=activity&intitle={{search_query}}&site=stackoverflow",
+            },
+            {
+                "action": "extract_json",
+                "fields": [
+                    "items[].title",
+                    "items[].link",
+                    "items[].score",
+                    "items[].answer_count",
+                ],
+            },
         ],
         "parameters": [{"name": "search_query", "type": "string", "required": True}],
         "output_fields": ["title", "url", "score", "answers"],
@@ -891,7 +1002,10 @@ TEMPLATES = [
             "snippet": ".VwiC3b",
         },
         "workflow": [
-            {"action": "navigate", "url": "https://www.google.com/search?q={{search_query}}"},
+            {
+                "action": "navigate",
+                "url": "https://www.google.com/search?q={{search_query}}",
+            },
             {"action": "extract"},
         ],
         "parameters": [{"name": "search_query", "type": "string", "required": True}],
@@ -909,7 +1023,10 @@ TEMPLATES = [
             "snippet": ".b_caption p",
         },
         "workflow": [
-            {"action": "navigate", "url": "https://www.bing.com/search?q={{search_query}}"},
+            {
+                "action": "navigate",
+                "url": "https://www.bing.com/search?q={{search_query}}",
+            },
             {"action": "extract"},
         ],
         "parameters": [{"name": "search_query", "type": "string", "required": True}],
@@ -929,7 +1046,10 @@ TEMPLATES = [
             "categories": ".categories",
         },
         "workflow": [
-            {"action": "navigate", "url": "https://www.yellowpages.com/search?search_terms={{search_query}}&geo_location_terms={{location}}"},
+            {
+                "action": "navigate",
+                "url": "https://www.yellowpages.com/search?search_terms={{search_query}}&geo_location_terms={{location}}",
+            },
             {"action": "scroll", "times": 3},
             {"action": "extract"},
         ],
@@ -953,7 +1073,10 @@ TEMPLATES = [
             "location": ".location",
         },
         "workflow": [
-            {"action": "navigate", "url": "https://clutch.co/search?query={{search_query}}"},
+            {
+                "action": "navigate",
+                "url": "https://clutch.co/search?query={{search_query}}",
+            },
             {"action": "scroll", "times": 3},
             {"action": "extract"},
         ],
@@ -974,7 +1097,10 @@ TEMPLATES = [
             "url": "a[href*='/video/']",
         },
         "workflow": [
-            {"action": "navigate", "url": "https://www.tiktok.com/search?q={{search_query}}"},
+            {
+                "action": "navigate",
+                "url": "https://www.tiktok.com/search?q={{search_query}}",
+            },
             {"action": "scroll", "times": 5},
             {"action": "extract"},
         ],
@@ -994,7 +1120,10 @@ TEMPLATES = [
             "url": "a[href*='/p/']",
         },
         "workflow": [
-            {"action": "navigate", "url": "https://www.instagram.com/explore/tags/{{hashtag}}"},
+            {
+                "action": "navigate",
+                "url": "https://www.instagram.com/explore/tags/{{hashtag}}",
+            },
             {"action": "scroll", "times": 5},
             {"action": "extract"},
         ],
@@ -1013,7 +1142,10 @@ TEMPLATES = [
             "url": "a[href*='/posts/']",
         },
         "workflow": [
-            {"action": "navigate", "url": "https://www.facebook.com/search/posts/?q={{search_query}}"},
+            {
+                "action": "navigate",
+                "url": "https://www.facebook.com/search/posts/?q={{search_query}}",
+            },
             {"action": "scroll", "times": 5},
             {"action": "extract"},
         ],
@@ -1034,5 +1166,25 @@ TEMPLATES = [
         ],
         "parameters": [{"name": "target_url", "type": "string", "required": True}],
         "output_fields": ["markdown", "title", "url"],
+    },
+    # ── Additional (1) ───────────────────────────────────────────────────────
+    {
+        "name": "X/Twitter Trending Topics",
+        "category": "social",
+        "site_pattern": "x.com",
+        "description": "Extract trending topics and hashtags from X/Twitter Explore",
+        "engine": "playwright",
+        "selectors": {
+            "trend_name": "[data-testid='trend']",
+            "tweet_count": "[data-testid='trend'] + div",
+            "category": "[data-testid='trend-category']",
+        },
+        "workflow": [
+            {"action": "navigate", "url": "https://x.com/explore/tabs/trending"},
+            {"action": "scroll", "times": 3},
+            {"action": "extract"},
+        ],
+        "parameters": [],
+        "output_fields": ["trend_name", "tweet_count", "category"],
     },
 ]

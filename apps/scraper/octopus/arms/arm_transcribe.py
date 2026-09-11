@@ -26,7 +26,9 @@ settings = get_settings()
 async def _fetch_media(url: str) -> str:
     """Download media to a temporary file and return its path."""
     validate_url(url)
-    async with httpx.AsyncClient(timeout=settings.scraper_default_timeout_seconds) as client:
+    async with httpx.AsyncClient(
+        timeout=settings.scraper_default_timeout_seconds
+    ) as client:
         resp = await client.get(url)
         resp.raise_for_status()
         ct = resp.headers.get("content-type", "")

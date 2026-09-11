@@ -118,7 +118,9 @@ class Settings(BaseSettings):
     # --------------------------------------------------------------------------
     # Core Application Environment
     # --------------------------------------------------------------------------
-    env: str = Field(default="local", description="Environment: local, staging, production")
+    env: str = Field(
+        default="local", description="Environment: local, staging, production"
+    )
     deployment_mode: str = Field(
         default="integrated",
         description="Deployment mode: integrated or standalone.",
@@ -272,13 +274,20 @@ class Settings(BaseSettings):
         description="Secret key for MinIO.",
     )
     minio_bucket_name: str = Field(
-        default="voyant-artifacts", description="MinIO bucket name for artifact storage."
+        default="voyant-artifacts",
+        description="MinIO bucket name for artifact storage.",
     )
-    minio_secure: bool = Field(default=False, description="Use HTTPS for MinIO connection.")
-    trino_host: str = Field(default="", description="Hostname for the Trino SQL query engine.")
+    minio_secure: bool = Field(
+        default=False, description="Use HTTPS for MinIO connection."
+    )
+    trino_host: str = Field(
+        default="", description="Hostname for the Trino SQL query engine."
+    )
     trino_port: int = Field(default=45090, description="Port for Trino.")
     trino_user: str = Field(default="", description="Username for Trino.")
-    trino_catalog: str = Field(default="iceberg", description="Default Trino catalog to query.")
+    trino_catalog: str = Field(
+        default="iceberg", description="Default Trino catalog to query."
+    )
     trino_schema: str = Field(default="", description="Default Trino schema to query.")
 
     # --------------------------------------------------------------------------
@@ -318,7 +327,9 @@ class Settings(BaseSettings):
         description="Automatically create Milvus collections on first use.",
     )
 
-    r_engine_host: str = Field(default="", description="Hostname for the R-Engine (pyRserve).")
+    r_engine_host: str = Field(
+        default="", description="Hostname for the R-Engine (pyRserve)."
+    )
     r_engine_port: int = Field(default=45311, description="Port for the R-Engine.")
     datahub_gms_url: str = Field(
         default="",
@@ -590,7 +601,9 @@ class Settings(BaseSettings):
     enable_mfa: bool = Field(
         default=False, description="Enable Multi-Factor Authentication requirements."
     )
-    enable_charts: bool = Field(default=True, description="Enable chart generation capabilities.")
+    enable_charts: bool = Field(
+        default=True, description="Enable chart generation capabilities."
+    )
     enable_narrative: bool = Field(
         default=True, description="Enable narrative generation capabilities."
     )
@@ -669,8 +682,12 @@ class Settings(BaseSettings):
     max_upload_size_mb: int = Field(
         default=100, description="Maximum size for file uploads in megabytes."
     )
-    session_ttl_hours: int = Field(default=8, description="Maximum session lifetime in hours.")
-    session_idle_minutes: int = Field(default=30, description="Session idle timeout in minutes.")
+    session_ttl_hours: int = Field(
+        default=8, description="Maximum session lifetime in hours."
+    )
+    session_idle_minutes: int = Field(
+        default=30, description="Session idle timeout in minutes."
+    )
     default_tenant_id: str = Field(
         default="default",
         alias="DEFAULT_TENANT_ID",
@@ -688,7 +705,10 @@ class Settings(BaseSettings):
     )
     scraper_allow_local_hosts: bool = Field(
         default=False,
-        description="Whether to allow scraping of local/internal hostnames (e.g., localhost). Use with caution.",
+        description=(
+            "Whether to allow scraping of local/internal hostnames"
+            " (e.g., localhost). Use with caution."
+        ),
     )
     scraper_default_ocr_language: str = Field(
         default="spa+eng",
@@ -781,6 +801,40 @@ class Settings(BaseSettings):
         description="Whisper model name to load when transcription is enabled.",
     )
 
+    # --------------------------------------------------------------------------
+    # Anti-Bot Engine — CAPTCHA Solving & Proxy Configuration
+    # --------------------------------------------------------------------------
+    captcha_2captcha_key: str = Field(
+        default="",
+        alias="VOYANT_CAPTCHA_2CAPTCHA_KEY",
+        description="API key for 2Captcha solving service.",
+    )
+    captcha_anticaptcha_key: str = Field(
+        default="",
+        alias="VOYANT_CAPTCHA_ANTICAPTCHA_KEY",
+        description="API key for Anti-Captcha solving service.",
+    )
+    captcha_capsolver_key: str = Field(
+        default="",
+        alias="VOYANT_CAPTCHA_CAPSOLVER_KEY",
+        description="API key for CapSolver solving service.",
+    )
+    captcha_ai_enabled: bool = Field(
+        default=True,
+        alias="VOYANT_CAPTCHA_AI_ENABLED",
+        description="Enable AI-native CAPTCHA solving tiers (behavioral, audio, vision).",
+    )
+    captcha_whisper_model: str = Field(
+        default="base",
+        alias="VOYANT_CAPTCHA_WHISPER_MODEL",
+        description="Whisper model size for audio CAPTCHA bypass (tiny/base/small/medium/large).",
+    )
+    captcha_vision_llm_provider: str = Field(
+        default="groq",
+        alias="VOYANT_CAPTCHA_VISION_LLM_PROVIDER",
+        description="LLM provider slug for vision-based CAPTCHA solving.",
+    )
+
 
 def _resolve_vault_secrets(settings: Settings) -> dict[str, str]:
     """
@@ -804,7 +858,9 @@ def _resolve_vault_secrets(settings: Settings) -> dict[str, str]:
             token=settings.secrets_vault_token,
         )
         if not client.is_authenticated():
-            logger.warning("Vault authentication failed — secrets not loaded from Vault")
+            logger.warning(
+                "Vault authentication failed — secrets not loaded from Vault"
+            )
             return {}
 
         mount = settings.secrets_vault_mount_point
@@ -860,7 +916,9 @@ def get_settings() -> Settings:
 
         apps.get_model("core", "SystemSetting")
     except Exception as exc:
-        logger.debug("Could not load ORM settings overrides (DB may not be ready): %s", exc)
+        logger.debug(
+            "Could not load ORM settings overrides (DB may not be ready): %s", exc
+        )
     if overrides:
         settings = settings.model_copy(update=overrides)
 

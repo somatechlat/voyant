@@ -46,7 +46,9 @@ class IngestActivities:
         mode = params.get("mode", "full")
         tables = params.get("tables")
 
-        activity.logger.info(f"Starting ingestion activity for job {job_id}, source {source_id}")
+        activity.logger.info(
+            f"Starting ingestion activity for job {job_id}, source {source_id}"
+        )
 
         try:
             # Ingestion pipeline steps with regular heartbeating.
@@ -76,14 +78,22 @@ class IngestActivities:
 
             # Query actual row count from DuckDB for the source table.
             try:
-                conn = duckdb.connect(database=self.settings.duckdb_path, read_only=True)
+                conn = duckdb.connect(
+                    database=self.settings.duckdb_path, read_only=True
+                )
                 if not source_id or not _SAFE_IDENTIFIER.match(source_id):
-                    raise ValueError(f"Invalid source identifier for row count query: {source_id}")
-                row_result = conn.execute(f"SELECT COUNT(*) FROM {source_id}").fetchone()
+                    raise ValueError(
+                        f"Invalid source identifier for row count query: {source_id}"
+                    )
+                row_result = conn.execute(
+                    f"SELECT COUNT(*) FROM {source_id}"
+                ).fetchone()
                 row_count = row_result[0] if row_result else 0
                 conn.close()
             except Exception as count_error:
-                activity.logger.warning(f"Could not count rows in {source_id}: {count_error}")
+                activity.logger.warning(
+                    f"Could not count rows in {source_id}: {count_error}"
+                )
                 row_count = 0  # Graceful degradation
 
             result = {
@@ -103,9 +113,13 @@ class IngestActivities:
             activity.logger.error(f"DuckDB error during ingestion: {e}")
             raise
         except CircuitBreakerOpenError:
-            raise ApplicationError("Ingestion service circuit breaker is open", non_retryable=True)
+            raise ApplicationError(
+                "Ingestion service circuit breaker is open", non_retryable=True
+            )
         except ValueError as e:
-            raise ApplicationError(f"Invalid ingestion parameters: {e}", non_retryable=True)
+            raise ApplicationError(
+                f"Invalid ingestion parameters: {e}", non_retryable=True
+            )
         except Exception as e:
             activity.logger.error(f"Ingestion failed: {e}")
             raise
@@ -133,7 +147,9 @@ class IngestActivities:
             # --- UPTP Generic URI Resolution ---
             if generic_uri:
                 activity.heartbeat("Parsing UPTP generic URI configuration")
-                activity.logger.info(f"Deconstructing generic URI for tenant {tenant_id}")
+                activity.logger.info(
+                    f"Deconstructing generic URI for tenant {tenant_id}"
+                )
 
                 parsed_source = URIParser.parse_uri(generic_uri)
                 destination_namespace = f"tenant_{tenant_id}_iceberg"
@@ -268,7 +284,9 @@ class IngestActivities:
                     connection_config=destination_config,
                 )
                 airbyte_dest_id = dest_result.get("destination_id")
-                activity.logger.info(f"Airbyte destination provisioned: {airbyte_dest_id}")
+                activity.logger.info(
+                    f"Airbyte destination provisioned: {airbyte_dest_id}"
+                )
                 result["airbyte_destination_id"] = airbyte_dest_id
                 result["destination_status"] = "provisioned"
 
@@ -285,7 +303,9 @@ class IngestActivities:
             raise
 
     @activity.defn(name="validate_contract_activity")
-    async def validate_contract_activity(self, params: dict[str, Any]) -> dict[str, Any]:
+    async def validate_contract_activity(
+        self, params: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Validate the data contract for the given source before ingestion.
 
@@ -299,7 +319,9 @@ class IngestActivities:
         contract = get_contract(source_id) if source_id else None
 
         if not contract:
-            activity.logger.info(f"No contract found for {source_id}, skipping validation")
+            activity.logger.info(
+                f"No contract found for {source_id}, skipping validation"
+            )
             return {"valid": True, "skipped": True}
 
         activity.logger.info(f"Validating contract for {source_id} v{contract.version}")

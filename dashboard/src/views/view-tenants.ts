@@ -20,11 +20,11 @@ export class ViewTenants extends LitElement {
     render() {
         return html`
         <saas-sidebar currentPath="/admin/tenants"></saas-sidebar>
-        <main class="ml-60 min-h-screen bg-surface p-8">
+        <main class="ml-60 min-h-screen bg-surface p-8" role="main" aria-label="Tenants management">
             <h1 class="text-2xl font-black font-display tracking-tight mb-6">Tenants</h1>
-            ${this.loading ? html`<div class="text-center text-gray-400 py-16">Loading...</div>` : html`
-            <div class="bg-white rounded-xl border border-gray-100 overflow-hidden">
-                <table class="w-full text-sm">
+            ${this.loading ? html`<div class="text-center text-gray-400 py-16" role="status" aria-live="polite">Loading...</div>` : html`
+            <div class="bg-white rounded-xl border border-gray-100 overflow-hidden" aria-live="polite">
+                <table class="w-full text-sm" role="table" aria-label="Tenants list">
                     <thead><tr class="border-b border-gray-100 text-left text-xs text-gray-400 uppercase tracking-wider">
                         <th class="px-5 py-3">Tenant ID</th><th class="px-5 py-3">Realm</th><th class="px-5 py-3">Jobs</th><th class="px-5 py-3">Sources</th><th class="px-5 py-3">Artifacts</th><th class="px-5 py-3">Last Activity</th>
                     </tr></thead>

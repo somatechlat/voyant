@@ -26,7 +26,9 @@ class QualityWorkflow:
         """
         table = params.get("table") or params.get("source_id")
         if not table:
-            raise ApplicationError("table or source_id is required for quality workflow")
+            raise ApplicationError(
+                "table or source_id is required for quality workflow"
+            )
 
         retry_policy = RetryPolicy(
             initial_interval=timedelta(seconds=1),

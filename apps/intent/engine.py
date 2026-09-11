@@ -1,14 +1,17 @@
 """
-Intent Engine — NL → structured execution plan via Groq LLM.
+Intent Engine — NL → structured execution plan via LLM with failover.
 
 Translates natural language intent into MCP tool calls.
-Supports all46 VOYANT MCP tools with full execution.
+Supports all 46+ VOYANT MCP tools with full execution.
+Hardened: cost limits, rate limits, plan validation, LLM failover.
 """
 
 from __future__ import annotations
 
 import json
 import logging
+import re
+import time
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any
@@ -18,6 +21,126 @@ import httpx
 from apps.core.config import get_settings
 
 logger = logging.getLogger(__name__)
+
+
+# ── Cost / resource limit exceptions ───────────────────────────────────────
+
+
+class PlanLimitExceeded(Exception):
+    """Raised when a plan exceeds configured resource limits."""
+
+    def __init__(
+        self, message: str, limit_type: str, detail: dict[str, Any] | None = None
+    ):
+        super().__init__(message)
+        self.limit_type = limit_type
+        self.detail = detail or {}
+
+
+class PlanValidationError(Exception):
+    """Raised when a plan fails structural or security validation."""
+
+    def __init__(
+        self, message: str, field: str = "", detail: dict[str, Any] | None = None
+    ):
+        super().__init__(message)
+        self.field = field
+        self.detail = detail or {}
+
+
+class AllProvidersFailed(Exception):
+    """Raised when every LLM provider in the failover chain has failed."""
+
+    def __init__(self, message: str, failures: list[dict[str, Any]] | None = None):
+        super().__init__(message)
+        self.failures = failures or []
+
+
+# ── LLM Failover Provider Chain ────────────────────────────────────────────
+
+
+@dataclass
+class LLMProviderConfig:
+    """Configuration for a single LLM provider in the failover chain."""
+
+    name: str
+    api_url: str
+    api_key: str
+    model: str
+    timeout_seconds: int = 30
+    priority: int = 0  # lower = tried first
+
+
+# Default failover order: Groq → OpenAI → Anthropic → MiMo
+FAILOVER_CHAIN: list[LLMProviderConfig] = []
+
+
+def _build_failover_chain() -> list[LLMProviderConfig]:
+    """Build the failover chain from settings and LLMProvider model."""
+    settings = get_settings()
+    chain: list[LLMProviderConfig] = []
+
+    # Always add the primary configured provider first
+    if settings.llm_api_key:
+        chain.append(
+            LLMProviderConfig(
+                name=settings.llm_provider or "primary",
+                api_url=settings.llm_api_url,
+                api_key=settings.llm_api_key,
+                model=settings.llm_model,
+                timeout_seconds=settings.llm_timeout_seconds,
+                priority=0,
+            )
+        )
+
+    # Try to load additional providers from the DB
+    try:
+        from apps.llm_providers.models import LLMProvider
+
+        provider_order = ["groq", "openai", "anthropic", "mimo"]
+        for idx, slug in enumerate(provider_order, start=1):
+            # Skip if it's the same as the primary
+            if slug == (settings.llm_provider or "").lower():
+                continue
+            try:
+                provider = LLMProvider.objects.filter(
+                    slug=slug, status="active"
+                ).first()
+                if provider and provider.api_key:
+                    model_obj = provider.models.filter(  # type: ignore[attr-defined]
+                        status="active", is_default=True
+                    ).first()
+                    model_name = model_obj.name if model_obj else "default"
+                    chain.append(
+                        LLMProviderConfig(
+                            name=slug,
+                            api_url=provider.api_base_url,
+                            api_key=provider.api_key,
+                            model=model_name,
+                            timeout_seconds=provider.timeout_seconds,
+                            priority=idx,
+                        )
+                    )
+            except Exception:
+                pass  # DB may not be available in tests
+    except Exception:
+        pass  # ORM not available
+
+    return chain
+
+
+def get_failover_chain() -> list[LLMProviderConfig]:
+    """Get or build the failover chain (cached)."""
+    global FAILOVER_CHAIN
+    if not FAILOVER_CHAIN:
+        FAILOVER_CHAIN = _build_failover_chain()
+    return FAILOVER_CHAIN
+
+
+def reset_failover_chain() -> None:
+    """Reset the cached failover chain (for testing or config changes)."""
+    global FAILOVER_CHAIN
+    FAILOVER_CHAIN = []
 
 
 class IntentType(StrEnum):
@@ -122,7 +245,8 @@ ONTOLOGY:
 - voyant.ontology.objects.get: Get object (params: object_id)
 - voyant.ontology.objects.update: Update object (params: object_id, properties)
 - voyant.ontology.objects.batch_create: Batch create (params: type_id, items)
-- voyant.ontology.links.create: Create link (params: link_type_id, source_object_id, target_object_id)
+- voyant.ontology.links.create: Create link
+  (params: link_type_id, source_object_id, target_object_id)
 - voyant.ontology.links.delete: Delete link (params: link_id)
 - voyant.ontology.traverse: Traverse graph (params: object_id, direction, max_depth)
 - voyant.ontology.interfaces.list: List interfaces
@@ -136,7 +260,8 @@ DISCOVERY:
 - voyant.discovery.scan: Scan OpenAPI spec (params: url)
 """
 
-INTENT_SYSTEM_PROMPT = f"""You are Voyant's Intent Engine. Translate natural language into structured JSON execution plans.
+INTENT_SYSTEM_PROMPT = f"""You are Voyant's Intent Engine.
+Translate natural language into structured JSON execution plans.
 
 {TOOL_CATALOG}
 
@@ -159,31 +284,166 @@ Rules:
 """
 
 
+# ── Valid tool names (extracted from TOOL_CATALOG) ─────────────────────────
+
+VALID_TOOL_NAMES: set[str] = {
+    # DATA OPERATIONS
+    "voyant.sql",
+    "voyant.sql.execute",
+    "voyant.ingest",
+    "voyant.profile",
+    "voyant.quality",
+    "voyant.analyze",
+    "voyant.kpi",
+    "voyant.search",
+    "voyant.discover",
+    "voyant.connect",
+    # SOURCE MANAGEMENT
+    "voyant.sources.list",
+    "voyant.sources.get",
+    "voyant.sources.delete",
+    # JOB MANAGEMENT
+    "voyant.jobs.list",
+    "voyant.jobs.cancel",
+    "voyant.status",
+    "voyant.artifact",
+    "voyant.artifacts.list",
+    # DATA DISCOVERY
+    "voyant.tables.list",
+    "voyant.tables.columns",
+    "voyant.lineage",
+    "voyant.governance.schema",
+    # VECTOR OPERATIONS
+    "voyant.vector.search",
+    "voyant.vector.index",
+    # PRESETS & KPIs
+    "voyant.preset",
+    "voyant.presets.list",
+    "voyant.presets.get",
+    "voyant.kpi_templates.list",
+    "voyant.kpi_templates.get",
+    "voyant.kpi_templates.render",
+    "voyant.kpi_templates.categories",
+    # GOVERNANCE
+    "voyant.quotas.tiers",
+    "voyant.quotas.usage",
+    "voyant.quotas.limits",
+    "voyant.quotas.set_tier",
+    # SCRAPER
+    "scrape.fetch",
+    "scrape.extract",
+    "scrape.ocr",
+    "scrape.parse_pdf",
+    "scrape.transcribe",
+    "scrape.deep_archive",
+    "voyant.scraper.template.run",
+    # ONTOLOGY
+    "voyant.ontology.types.list",
+    "voyant.ontology.types.get",
+    "voyant.ontology.types.create",
+    "voyant.ontology.objects.list",
+    "voyant.ontology.objects.create",
+    "voyant.ontology.objects.get",
+    "voyant.ontology.objects.update",
+    "voyant.ontology.objects.batch_create",
+    "voyant.ontology.links.create",
+    "voyant.ontology.links.delete",
+    "voyant.ontology.traverse",
+    "voyant.ontology.interfaces.list",
+    "voyant.ontology.actions.execute",
+    "voyant.ontology.functions.run",
+    # DISCOVERY
+    "voyant.discovery.services.list",
+    "voyant.discovery.services.get",
+    "voyant.discovery.services.register",
+    "voyant.discovery.scan",
+}
+
+# Patterns for SQL injection detection in parameters
+_SQL_INJECTION_PATTERNS = [
+    re.compile(r";\s*(DROP|DELETE|INSERT|UPDATE|ALTER|CREATE|TRUNCATE)", re.IGNORECASE),
+    re.compile(r"UNION\s+(ALL\s+)?SELECT", re.IGNORECASE),
+    re.compile(r"--\s*$", re.MULTILINE),
+    re.compile(r"/\*.*\*/", re.DOTALL),
+    re.compile(r"'\s*OR\s+'", re.IGNORECASE),
+    re.compile(r"'\s*OR\s+1\s*=\s*1", re.IGNORECASE),
+]
+
+# Patterns for prompt injection detection
+_PROMPT_INJECTION_PATTERNS = [
+    re.compile(r"ignore\s+(all\s+)?previous\s+instructions", re.IGNORECASE),
+    re.compile(r"ignore\s+(all\s+)?prior\s+instructions", re.IGNORECASE),
+    re.compile(r"disregard\s+(all\s+)?previous", re.IGNORECASE),
+    re.compile(r"forget\s+(all\s+)?previous", re.IGNORECASE),
+    re.compile(r"you\s+are\s+now\s+", re.IGNORECASE),
+    re.compile(r"system\s*:\s*", re.IGNORECASE),
+    re.compile(r"<\|im_start\|>", re.IGNORECASE),
+    re.compile(r"<\|im_end\|>", re.IGNORECASE),
+]
+
+
 class IntentEngine:
     """
-    Core intent engine with Groq LLM integration.
+    Core intent engine with LLM integration and failover.
 
-    Translates natural language into execution plans using Groq's
-    openai/gpt-oss-120b model via OpenAI-compatible API.
+    Translates natural language into execution plans using LLM providers
+    with automatic failover: Groq → OpenAI → Anthropic → MiMo.
+
+    Hardened with:
+    - Cost limits (max tokens, max tool calls, max execution time)
+    - Plan validation (tool names, parameters, tenant scope)
+    - LLM failover chain
+    - Adversarial input detection
     """
 
     def __init__(self):
         self._plan_cache: dict[str, IntentPlan] = {}
         self._settings = get_settings()
+        # Configurable limits with defaults from ADR-003
+        self.max_tokens_per_plan: int = getattr(
+            self._settings, "intent_max_tokens_per_plan", 4096
+        )
+        self.max_tool_calls_per_plan: int = getattr(
+            self._settings, "intent_max_tool_calls_per_plan", 10
+        )
+        self.max_execution_time_seconds: float = getattr(
+            self._settings, "intent_max_execution_time_seconds", 30.0
+        )
 
     def classify_intent(self, text: str) -> IntentType:
         """Fast keyword-based intent classification (no LLM call)."""
         text_lower = text.lower()
 
-        ontology_keywords = ["object type", "link type", "create type", "ontology", "traverse", "interface"]
+        ontology_keywords = [
+            "object type",
+            "link type",
+            "create type",
+            "ontology",
+            "traverse",
+            "interface",
+        ]
         if any(kw in text_lower for kw in ontology_keywords):
             return IntentType.ONTOLOGY
 
-        governance_keywords = ["quota", "governance", "policy", "lineage", "classification", "security"]
+        governance_keywords = [
+            "quota",
+            "governance",
+            "policy",
+            "lineage",
+            "classification",
+            "security",
+        ]
         if any(kw in text_lower for kw in governance_keywords):
             return IntentType.GOVERNANCE
 
-        scraper_keywords = ["scrape", "crawl", "fetch page", "parse html", "ocr", "transcribe"]
+        scraper_keywords = [
+            "scrape",
+            "crawl",
+            "fetch page",
+            "parse html",
+            "ocr",
+            "transcribe",
+        ]
         if any(kw in text_lower for kw in scraper_keywords):
             return IntentType.SCRAPER
 
@@ -191,7 +451,17 @@ class IntentEngine:
         if any(kw in text_lower for kw in pipeline_keywords):
             return IntentType.PIPELINE
 
-        analyze_keywords = ["analyze", "anomal", "forecast", "predict", "cluster", "segment", "trend", "profile", "quality"]
+        analyze_keywords = [
+            "analyze",
+            "anomal",
+            "forecast",
+            "predict",
+            "cluster",
+            "segment",
+            "trend",
+            "profile",
+            "quality",
+        ]
         if any(kw in text_lower for kw in analyze_keywords):
             return IntentType.ANALYZE
 
@@ -213,25 +483,33 @@ class IntentEngine:
 
             for ot in types[:50]:
                 props = Property.objects.filter(object_type=ot)
-                schema["object_types"].append({
-                    "name": ot.name,
-                    "description": ot.description,
-                    "properties": [
-                        {"name": p.name, "type": p.property_type, "required": p.required}
-                        for p in props
-                    ],
-                })
+                schema["object_types"].append(
+                    {
+                        "name": ot.name,
+                        "description": ot.description,
+                        "properties": [
+                            {
+                                "name": p.name,
+                                "type": p.property_type,
+                                "required": p.required,
+                            }
+                            for p in props
+                        ],
+                    }
+                )
 
             links = LinkType.objects.filter(
                 tenant_id=tenant_id, deleted_at__isnull=True
             )
             for lt in links[:100]:
-                schema["link_types"].append({
-                    "name": lt.name,
-                    "source": lt.source_object_type.name,
-                    "target": lt.target_object_type.name,
-                    "cardinality": lt.cardinality,
-                })
+                schema["link_types"].append(
+                    {
+                        "name": lt.name,
+                        "source": lt.source_object_type.name,
+                        "target": lt.target_object_type.name,
+                        "cardinality": lt.cardinality,
+                    }
+                )
 
             return schema
         except Exception as exc:
@@ -244,7 +522,15 @@ class IntentEngine:
         tenant_id: str,
         intent_type: IntentType | None = None,
     ) -> IntentPlan:
-        """Generate an execution plan from natural language intent."""
+        """Generate an execution plan from natural language intent.
+
+        Raises:
+            PlanLimitExceeded: If the plan exceeds resource limits.
+            PlanValidationError: If the plan fails validation.
+        """
+        # Pre-check: detect prompt injection in the raw intent
+        self._check_prompt_injection(intent)
+
         cache_key = f"{tenant_id}:{intent}"
         if self._settings.llm_cache_enabled and cache_key in self._plan_cache:
             cached = self._plan_cache[cache_key]
@@ -256,10 +542,17 @@ class IntentEngine:
 
         schema = self.resolve_schema(tenant_id)
 
-        if self._settings.llm_provider == "none" or not self._settings.intent_engine_enabled:
+        if (
+            self._settings.llm_provider == "none"
+            or not self._settings.intent_engine_enabled
+        ):
             plan = self._generate_fallback(intent, intent_type, schema, tenant_id)
         else:
             plan = self._call_llm(intent, intent_type, schema, tenant_id)
+
+        # Validate plan against limits and security constraints
+        self._validate_plan_limits(plan)
+        self._validate_plan_security(plan, tenant_id)
 
         if self._settings.llm_cache_enabled:
             self._plan_cache[cache_key] = plan
@@ -273,7 +566,11 @@ class IntentEngine:
         schema: dict[str, Any],
         tenant_id: str,
     ) -> IntentPlan:
-        """Call Groq LLM for plan generation."""
+        """Call LLM with failover chain for plan generation.
+
+        Tries providers in order: primary → Groq → OpenAI → Anthropic → MiMo.
+        Falls back to keyword-based plan if all providers fail.
+        """
         schema_str = json.dumps(schema, indent=2)[:3000]
 
         user_message = f"""Intent: {intent}
@@ -285,35 +582,76 @@ Ontology Schema:
 
 Generate a JSON execution plan for this intent."""
 
-        try:
-            response = httpx.post(
-                f"{self._settings.llm_api_url}/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {self._settings.llm_api_key}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": self._settings.llm_model,
-                    "messages": [
-                        {"role": "system", "content": INTENT_SYSTEM_PROMPT},
-                        {"role": "user", "content": user_message},
-                    ],
-                    "temperature": self._settings.llm_temperature,
-                    "max_tokens": self._settings.llm_max_tokens,
-                    "response_format": {"type": "json_object"},
-                },
-                timeout=self._settings.llm_timeout_seconds,
-            )
-            response.raise_for_status()
+        chain = get_failover_chain()
+        failures: list[dict[str, Any]] = []
 
-            data = response.json()
-            content = data["choices"][0]["message"]["content"]
+        for provider_cfg in chain:
+            try:
+                plan = self._call_single_provider(
+                    provider_cfg, user_message, intent_type
+                )
+                if failures:
+                    logger.warning(
+                        "LLM failover succeeded: used %s after %d failures",
+                        provider_cfg.name,
+                        len(failures),
+                    )
+                return plan
+            except Exception as exc:
+                failure_info = {
+                    "provider": provider_cfg.name,
+                    "error": str(exc),
+                    "error_type": type(exc).__name__,
+                }
+                failures.append(failure_info)
+                logger.warning(
+                    "LLM provider %s failed (%s), trying next...",
+                    provider_cfg.name,
+                    exc,
+                )
 
-            return self._parse_plan(content, intent_type)
+        # All providers failed — log and fall back
+        logger.error(
+            "All %d LLM providers failed: %s",
+            len(failures),
+            json.dumps(failures),
+        )
+        return self._generate_fallback(intent, intent_type, schema, tenant_id)
 
-        except Exception as exc:
-            logger.error("LLM call failed: %s", exc)
-            return self._generate_fallback(intent, intent_type, schema, tenant_id)
+    def _call_single_provider(
+        self,
+        provider: LLMProviderConfig,
+        user_message: str,
+        intent_type: IntentType,
+    ) -> IntentPlan:
+        """Call a single LLM provider and parse the response.
+
+        Raises httpx.HTTPError, httpx.TimeoutException, or ValueError on failure.
+        """
+        response = httpx.post(
+            f"{provider.api_url}/chat/completions",
+            headers={
+                "Authorization": f"Bearer {provider.api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": provider.model,
+                "messages": [
+                    {"role": "system", "content": INTENT_SYSTEM_PROMPT},
+                    {"role": "user", "content": user_message},
+                ],
+                "temperature": self._settings.llm_temperature,
+                "max_tokens": self._settings.llm_max_tokens,
+                "response_format": {"type": "json_object"},
+            },
+            timeout=provider.timeout_seconds,
+        )
+        response.raise_for_status()
+
+        data = response.json()
+        content = data["choices"][0]["message"]["content"]
+
+        return self._parse_plan(content, intent_type)
 
     def _parse_plan(self, content: str, intent_type: IntentType) -> IntentPlan:
         """Parse LLM JSON response into IntentPlan."""
@@ -351,45 +689,59 @@ Generate a JSON execution plan for this intent."""
             ot = schema["object_types"][0]
             props = [p["name"] for p in ot.get("properties", [])][:20]
             columns = ", ".join(props) if props else "*"
-            steps.append({
-                "tool": "voyant.sql",
-                "params": {"sql": f"SELECT {columns} FROM {ot['name'].lower()} LIMIT 1000"},
-            })
+            steps.append(
+                {
+                    "tool": "voyant.sql",
+                    "params": {
+                        "sql": f"SELECT {columns} FROM {ot['name'].lower()} LIMIT 1000"
+                    },
+                }
+            )
             assumptions.append(f"Fallback: querying {ot['name']}")
 
         elif intent_type == IntentType.SEARCH:
-            steps.append({
-                "tool": "voyant.vector.search",
-                "params": {"query": intent, "limit": 5},
-            })
+            steps.append(
+                {
+                    "tool": "voyant.vector.search",
+                    "params": {"query": intent, "limit": 5},
+                }
+            )
             assumptions.append("Fallback: semantic vector search")
 
         elif intent_type == IntentType.ANALYZE:
-            steps.append({
-                "tool": "voyant.analyze",
-                "params": {"analyzers": ["profiling"]},
-            })
+            steps.append(
+                {
+                    "tool": "voyant.analyze",
+                    "params": {"analyzers": ["profiling"]},
+                }
+            )
             assumptions.append("Fallback: general profiling analysis")
 
         elif intent_type == IntentType.ONTOLOGY:
-            steps.append({
-                "tool": "voyant.ontology.types.list",
-                "params": {},
-            })
+            steps.append(
+                {
+                    "tool": "voyant.ontology.types.list",
+                    "params": {},
+                }
+            )
             assumptions.append("Fallback: listing ontology types")
 
         elif intent_type == IntentType.GOVERNANCE:
-            steps.append({
-                "tool": "voyant.quotas.usage",
-                "params": {},
-            })
+            steps.append(
+                {
+                    "tool": "voyant.quotas.usage",
+                    "params": {},
+                }
+            )
             assumptions.append("Fallback: checking quota usage")
 
         elif intent_type == IntentType.SCRAPER:
-            steps.append({
-                "tool": "voyant.scraper.template.run",
-                "params": {"template_id": "", "parameters": {}},
-            })
+            steps.append(
+                {
+                    "tool": "voyant.scraper.template.run",
+                    "params": {"template_id": "", "parameters": {}},
+                }
+            )
             assumptions.append("Fallback: scraper template (needs template_id)")
 
         return IntentPlan(
@@ -399,10 +751,164 @@ Generate a JSON execution plan for this intent."""
             assumptions=assumptions,
         )
 
-    def execute_plan(self, plan: IntentPlan, tenant_id: str) -> dict[str, Any]:
-        """Execute a validated plan."""
-        results = []
+    def _check_prompt_injection(self, intent: str) -> None:
+        """Detect prompt injection attempts in the raw intent text.
+
+        Raises PlanValidationError if injection patterns are detected.
+        This is a defense-in-depth check — the LLM system prompt also
+        instructs the model to reject injection attempts.
+        """
+        for pattern in _PROMPT_INJECTION_PATTERNS:
+            if pattern.search(intent):
+                logger.warning(
+                    "Prompt injection detected in intent: %s",
+                    intent[:200],
+                )
+                raise PlanValidationError(
+                    "Prompt injection detected in intent. Request rejected.",
+                    field="intent",
+                    detail={"pattern": pattern.pattern},
+                )
+
+    def _validate_plan_limits(self, plan: IntentPlan) -> None:
+        """Validate plan against configurable resource limits.
+
+        Checks:
+        - Max tool calls per plan
+        - Max tokens (estimated from plan size)
+        - Max execution time (wall-clock estimate)
+
+        Raises PlanLimitExceeded if any limit is violated.
+        """
+        # Max tool calls
+        if len(plan.steps) > self.max_tool_calls_per_plan:
+            raise PlanLimitExceeded(
+                f"Plan has {len(plan.steps)} steps, exceeding limit of "
+                f"{self.max_tool_calls_per_plan}. Reduce the number of steps.",
+                limit_type="max_tool_calls",
+                detail={
+                    "actual": len(plan.steps),
+                    "limit": self.max_tool_calls_per_plan,
+                },
+            )
+
+        # Estimate token usage from plan JSON size
+        plan_json = json.dumps(plan.to_dict())
+        estimated_tokens = len(plan_json) // 4  # rough estimate: ~4 chars per token
+        if estimated_tokens > self.max_tokens_per_plan:
+            raise PlanLimitExceeded(
+                f"Plan estimated at {estimated_tokens} tokens, exceeding limit of "
+                f"{self.max_tokens_per_plan}. Simplify the plan.",
+                limit_type="max_tokens",
+                detail={
+                    "estimated_tokens": estimated_tokens,
+                    "limit": self.max_tokens_per_plan,
+                },
+            )
+
+    def _validate_plan_security(self, plan: IntentPlan, tenant_id: str) -> None:
+        """Validate plan against security constraints.
+
+        Checks:
+        - All tool names are in the valid tool catalog
+        - Parameters don't contain SQL injection patterns
+        - No cross-tenant resource access attempts
+        - Parameter types are reasonable
+
+        Raises PlanValidationError if validation fails.
+        """
         for i, step in enumerate(plan.steps):
+            tool = step.get("tool", "")
+            params = step.get("params", {})
+
+            # 1. Validate tool name exists in catalog
+            if not tool:
+                raise PlanValidationError(
+                    f"Step {i} has no tool name.",
+                    field="tool",
+                    detail={"step": i},
+                )
+            if tool not in VALID_TOOL_NAMES:
+                raise PlanValidationError(
+                    f"Step {i} references unknown tool '{tool}'. "
+                    f"Only tools from the approved catalog are allowed.",
+                    field="tool",
+                    detail={"step": i, "tool": tool},
+                )
+
+            # 2. Validate params is a dict
+            if not isinstance(params, dict):
+                raise PlanValidationError(
+                    f"Step {i} has invalid parameters (expected dict, got {type(params).__name__}).",
+                    field="params",
+                    detail={"step": i},
+                )
+
+            # 3. Check for SQL injection in string parameters
+            self._check_sql_injection(params, step_index=i)
+
+            # 4. Validate tenant scope — reject tenant_id params that don't match
+            if "tenant_id" in params and params["tenant_id"] != tenant_id:
+                raise PlanValidationError(
+                    f"Step {i} attempts to access resources for tenant "
+                    f"'{params['tenant_id']}' but caller belongs to '{tenant_id}'.",
+                    field="tenant_id",
+                    detail={
+                        "step": i,
+                        "requested_tenant": params["tenant_id"],
+                        "caller_tenant": tenant_id,
+                    },
+                )
+
+    def _check_sql_injection(self, params: dict, step_index: int) -> None:
+        """Check parameter values for SQL injection patterns.
+
+        Raises PlanValidationError if injection patterns are found.
+        """
+        for key, value in params.items():
+            if not isinstance(value, str):
+                continue
+            for pattern in _SQL_INJECTION_PATTERNS:
+                if pattern.search(value):
+                    logger.warning(
+                        "SQL injection pattern detected in step %d, param '%s'",
+                        step_index,
+                        key,
+                    )
+                    raise PlanValidationError(
+                        f"Step {step_index} parameter '{key}' contains "
+                        f"suspicious SQL pattern. Request rejected.",
+                        field=key,
+                        detail={"step": step_index, "param": key},
+                    )
+
+    def execute_plan(self, plan: IntentPlan, tenant_id: str) -> dict[str, Any]:
+        """Execute a validated plan with wall-clock timeout enforcement."""
+        results = []
+        start_time = time.monotonic()
+        for i, step in enumerate(plan.steps):
+            # Check wall-clock timeout before each step
+            elapsed = time.monotonic() - start_time
+            if elapsed > self.max_execution_time_seconds:
+                logger.warning(
+                    "Plan execution exceeded time limit (%.1fs > %.1fs) at step %d",
+                    elapsed,
+                    self.max_execution_time_seconds,
+                    i,
+                )
+                results.append(
+                    {
+                        "step": i,
+                        "tool": step.get("tool", ""),
+                        "error": (
+                            f"Execution timed out after {elapsed:.1f}s "
+                            f"(limit: {self.max_execution_time_seconds}s). "
+                            f"{len(plan.steps) - i} steps skipped."
+                        ),
+                    }
+                )
+                break
+
             tool = step.get("tool", "")
             params = step.get("params", {})
 
@@ -447,6 +953,7 @@ Generate a JSON execution plan for this intent."""
 
 def _handle_sql(params: dict, tenant_id: str) -> dict:
     from apps.core.lib.trino import get_trino_client
+
     client = get_trino_client()
     result = client.execute(params.get("sql", ""), limit=params.get("limit", 1000))
     return {
@@ -459,6 +966,7 @@ def _handle_sql(params: dict, tenant_id: str) -> dict:
 def _handle_search(params: dict, tenant_id: str) -> dict:
     from apps.search.lib.embeddings import DenseEmbedder, SparseEmbedder
     from apps.search.lib.milvus_store import get_vector_store
+
     store = get_vector_store()
     dense = DenseEmbedder()
     sparse = SparseEmbedder()
@@ -466,7 +974,7 @@ def _handle_search(params: dict, tenant_id: str) -> dict:
     dense_result = dense.embed(query)
     sparse_result = sparse.embed(query)
     query_vector = dense_result.embeddings[0]
-    query_sparse = sparse_result.vectors[0] if sparse_result.vectors else None
+    query_sparse = sparse_result.vectors[0] if sparse_result.vectors else None  # type: ignore[attr-defined]
     results = store.search(
         query_vector=query_vector,
         k=params.get("limit", 5),
@@ -485,6 +993,7 @@ def _handle_search(params: dict, tenant_id: str) -> dict:
 def _handle_ingest(params: dict, tenant_id: str) -> dict:
     from apps.core.lib.workflow_utils import dispatch_workflow
     from apps.worker.workflows.ingest_workflow import IngestDataWorkflow
+
     job = dispatch_workflow(
         workflow_cls=IngestDataWorkflow,
         job_type="ingest",
@@ -498,6 +1007,7 @@ def _handle_ingest(params: dict, tenant_id: str) -> dict:
 def _handle_profile(params: dict, tenant_id: str) -> dict:
     from apps.core.lib.workflow_utils import dispatch_workflow
     from apps.worker.workflows.profile_workflow import ProfileWorkflow
+
     job = dispatch_workflow(
         workflow_cls=ProfileWorkflow,
         job_type="profile",
@@ -511,6 +1021,7 @@ def _handle_profile(params: dict, tenant_id: str) -> dict:
 def _handle_quality(params: dict, tenant_id: str) -> dict:
     from apps.core.lib.workflow_utils import dispatch_workflow
     from apps.worker.workflows.quality_workflow import QualityWorkflow
+
     job = dispatch_workflow(
         workflow_cls=QualityWorkflow,
         job_type="quality",
@@ -524,6 +1035,7 @@ def _handle_quality(params: dict, tenant_id: str) -> dict:
 def _handle_analyze(params: dict, tenant_id: str) -> dict:
     from apps.core.lib.workflow_utils import dispatch_workflow
     from apps.worker.workflows.analyze_workflow import AnalyzeWorkflow
+
     job = dispatch_workflow(
         workflow_cls=AnalyzeWorkflow,
         job_type="analyze",
@@ -536,6 +1048,7 @@ def _handle_analyze(params: dict, tenant_id: str) -> dict:
 
 def _handle_kpi(params: dict, tenant_id: str) -> dict:
     from apps.core.lib.trino import get_trino_client
+
     client = get_trino_client()
     kpis = params.get("kpis", [])
     results = []
@@ -543,18 +1056,26 @@ def _handle_kpi(params: dict, tenant_id: str) -> dict:
         sql = kpi.get("sql", "")
         if sql:
             result = client.execute(sql, limit=params.get("limit", 1000))
-            results.append({"kpi": kpi.get("name", "unknown"), "rows": result.rows[:10], "columns": result.columns})
+            results.append(
+                {
+                    "kpi": kpi.get("name", "unknown"),
+                    "rows": result.rows[:10],
+                    "columns": result.columns,
+                }
+            )
     return {"kpis": results, "count": len(results)}
 
 
 def _handle_discover(params: dict, tenant_id: str) -> dict:
-    from apps.discovery.source_detection import SourceDetection
+    from apps.discovery.source_detection import SourceDetection  # type: ignore[attr-defined]
+
     hint = params.get("hint", "")
     return SourceDetection.detect(hint)
 
 
 def _handle_connect(params: dict, tenant_id: str) -> dict:
     from apps.discovery.models import Source
+
     source = Source.objects.create(
         tenant_id=tenant_id,
         name=params.get("name", ""),
@@ -566,7 +1087,10 @@ def _handle_connect(params: dict, tenant_id: str) -> dict:
 
 def _handle_status(params: dict, tenant_id: str) -> dict:
     from apps.workflows.models import Job
-    job = Job.objects.filter(job_id=params.get("job_id", ""), tenant_id=tenant_id).first()
+
+    job = Job.objects.filter(
+        job_id=params.get("job_id", ""), tenant_id=tenant_id
+    ).first()
     if not job:
         return {"error": "Job not found"}
     return {"job_id": str(job.job_id), "status": job.status, "progress": job.progress}
@@ -574,10 +1098,18 @@ def _handle_status(params: dict, tenant_id: str) -> dict:
 
 def _handle_artifact(params: dict, tenant_id: str) -> dict:
     from apps.workflows.models import Artifact
-    artifact = Artifact.objects.filter(artifact_id=params.get("artifact_id", "")).first()
+
+    artifact = Artifact.objects.filter(
+        artifact_id=params.get("artifact_id", "")
+    ).first()
     if not artifact:
         return {"error": "Artifact not found"}
-    return {"artifact_id": str(artifact.artifact_id), "type": artifact.artifact_type, "format": artifact.format, "size": artifact.size_bytes}
+    return {
+        "artifact_id": str(artifact.artifact_id),
+        "type": artifact.artifact_type,
+        "format": artifact.format,
+        "size": artifact.size_bytes,
+    }
 
 
 # ── Prefix-based handlers ──────────────────────────────────────────────────
@@ -592,38 +1124,84 @@ def _handle_ontology(tool: str, params: dict, tenant_id: str) -> dict:
 
     if tool == "voyant.ontology.types.list":
         types = ObjectTypeService.list(tenant_id)
-        return {"types": [{"id": str(t.id), "name": t.name, "description": t.description} for t in types]}
+        return {
+            "types": [
+                {"id": str(t.id), "name": t.name, "description": t.description}
+                for t in types
+            ]
+        }
 
     if tool == "voyant.ontology.types.get":
         ot = ObjectTypeService.get(tenant_id, params.get("type_id", ""))
-        return {"id": str(ot.id), "name": ot.name, "description": ot.description, "version": ot.version}
+        return {
+            "id": str(ot.id),
+            "name": ot.name,
+            "description": ot.description,
+            "version": ot.version,
+        }
 
     if tool == "voyant.ontology.types.create":
-        ot = ObjectTypeService.create(tenant_id, name=params.get("name", ""), description=params.get("description", ""), properties=params.get("properties", []))
+        ot = ObjectTypeService.create(
+            tenant_id,
+            name=params.get("name", ""),
+            description=params.get("description", ""),
+            properties=params.get("properties", []),
+        )
         return {"id": str(ot.id), "name": ot.name}
 
     if tool == "voyant.ontology.objects.list":
         objs = ObjectService.list(tenant_id, object_type_id=params.get("type_id"))
-        return {"objects": [{"id": str(o.id), "properties": o.properties, "type": o.object_type.name} for o in objs[:params.get("limit", 100)]]}
+        return {
+            "objects": [
+                {
+                    "id": str(o.id),
+                    "properties": o.properties,
+                    "type": o.object_type.name,
+                }
+                for o in objs[: params.get("limit", 100)]
+            ]
+        }
 
     if tool == "voyant.ontology.objects.create":
-        obj = ObjectService.create(tenant_id, params.get("type_id", ""), params.get("properties", {}))
+        obj = ObjectService.create(
+            tenant_id,
+            params.get("type_id", ""),
+            params.get("properties", {}),
+        )
         return {"id": str(obj.id), "properties": obj.properties}
 
     if tool == "voyant.ontology.objects.get":
         obj = ObjectService.get(tenant_id, params.get("object_id", ""))
-        return {"id": str(obj.id), "properties": obj.properties, "type": obj.object_type.name}
+        return {
+            "id": str(obj.id),
+            "properties": obj.properties,
+            "type": obj.object_type.name,
+        }
 
     if tool == "voyant.ontology.objects.update":
-        obj = ObjectService.update(tenant_id, params.get("object_id", ""), params.get("properties", {}))
+        obj = ObjectService.update(
+            tenant_id,
+            params.get("object_id", ""),
+            params.get("properties", {}),
+        )
         return {"id": str(obj.id), "version": obj.version}
 
     if tool == "voyant.ontology.objects.batch_create":
-        objects = ObjectService.batch_create(tenant_id, params.get("type_id", ""), params.get("items", []))
+        objects = ObjectService.batch_create(
+            tenant_id,
+            params.get("type_id", ""),
+            params.get("items", []),
+        )
         return {"created": len(objects)}
 
     if tool == "voyant.ontology.links.create":
-        link = LinkService.create(tenant_id, params.get("link_type_id", ""), params.get("source_object_id", ""), params.get("target_object_id", ""), params.get("properties"))
+        link = LinkService.create(
+            tenant_id,
+            params.get("link_type_id", ""),
+            params.get("source_object_id", ""),
+            params.get("target_object_id", ""),
+            params.get("properties"),
+        )
         return {"id": str(link.id)}
 
     if tool == "voyant.ontology.links.delete":
@@ -631,36 +1209,65 @@ def _handle_ontology(tool: str, params: dict, tenant_id: str) -> dict:
         return {"status": "deleted"}
 
     if tool == "voyant.ontology.traverse":
-        results = LinkService.traverse(tenant_id, params.get("object_id", ""), link_type_name=params.get("link_type_name"), direction=params.get("direction", "outgoing"), max_depth=min(params.get("max_depth", 1), 10))
+        results = LinkService.traverse(
+            tenant_id,
+            params.get("object_id", ""),
+            link_type_name=params.get("link_type_name"),
+            direction=params.get("direction", "outgoing"),
+            max_depth=min(params.get("max_depth", 1), 10),
+        )
         return {"results": results, "count": len(results)}
 
     if tool == "voyant.ontology.interfaces.list":
         from apps.ontology.models import Interface
+
         ifaces = Interface.objects.filter(tenant_id=tenant_id, deleted_at__isnull=True)
         return {"interfaces": [{"id": str(i.id), "name": i.name} for i in ifaces]}
 
     if tool == "voyant.ontology.actions.execute":
         from apps.ontology.action_executor import ActionExecutor
+
         executor = ActionExecutor()
-        result = executor.execute(tenant_id, params.get("action_type_id", ""), params.get("object_id", ""), params.get("params", {}))
-        return {"success": result.success, "changes": result.changes, "errors": result.errors}
+        result = executor.execute(
+            tenant_id,
+            params.get("action_type_id", ""),
+            params.get("object_id", ""),
+            params.get("params", {}),
+        )
+        return {
+            "success": result.success,
+            "changes": result.changes,
+            "errors": result.errors,
+        }
 
     if tool == "voyant.ontology.functions.run":
         from apps.ontology.function_runner import FunctionRunner
+
         runner = FunctionRunner()
-        result = runner.run(tenant_id, params.get("function_id", ""), params.get("input_data", {}))
-        return {"success": result.success, "output": result.output, "duration_ms": result.duration_ms}
+        result = runner.run(
+            tenant_id,
+            params.get("function_id", ""),
+            params.get("input_data", {}),
+        )
+        return {
+            "success": result.success,
+            "output": result.output,
+            "duration_ms": result.duration_ms,
+        }
 
     return {"error": f"Unknown ontology tool: {tool}"}
 
 
 def _handle_discovery(tool: str, params: dict, tenant_id: str) -> dict:
-    from apps.discovery.lib.catalog import get_catalog
+    from apps.discovery.lib.catalog import get_catalog  # type: ignore[attr-defined]
+
     catalog = get_catalog()
 
     if tool == "voyant.discovery.services.list":
         services = catalog.list_services(tag=params.get("tag"))
-        return {"services": [{"name": s.name, "base_url": s.base_url} for s in services]}
+        return {
+            "services": [{"name": s.name, "base_url": s.base_url} for s in services]
+        }
 
     if tool == "voyant.discovery.services.get":
         svc = catalog.get(params.get("name", ""))
@@ -679,40 +1286,51 @@ def _handle_discovery(tool: str, params: dict, tenant_id: str) -> dict:
 
     if tool == "voyant.discovery.scan":
         from apps.discovery.lib.spec_parser import SpecParser
+
         parser = SpecParser()
         spec = parser.parse_from_url(params.get("url", ""))
-        return {"title": spec.title, "version": spec.version, "endpoints": len(spec.endpoints)}
+        return {
+            "title": spec.title,
+            "version": spec.version,
+            "endpoints": len(spec.endpoints),
+        }
 
     return {"error": f"Unknown discovery tool: {tool}"}
 
 
 def _handle_quotas(tool: str, params: dict, tenant_id: str) -> dict:
     from apps.core.lib.tenant_quotas import QuotaManager
+
     manager = QuotaManager()
 
     if tool == "voyant.quotas.tiers":
-        return {"tiers": [t.value for t in manager.list_tiers()]}
+        return {"tiers": [t.value for t in manager.list_tiers()]}  # type: ignore[attr-defined]
 
     if tool == "voyant.quotas.usage":
-        return manager.get_usage(tenant_id)
+        return manager.get_usage(tenant_id)  # type: ignore[attr-defined]
 
     if tool == "voyant.quotas.limits":
-        return manager.get_limits(tenant_id)
+        return manager.get_limits(tenant_id)  # type: ignore[attr-defined]
 
     if tool == "voyant.quotas.set_tier":
-        manager.set_tier(tenant_id, params.get("tier", "free"))
+        manager.set_tier(tenant_id, params.get("tier", "free"))  # type: ignore[attr-defined]
         return {"status": "updated", "tier": params.get("tier")}
 
     return {"error": f"Unknown quota tool: {tool}"}
 
 
 def _handle_kpi_templates(tool: str, params: dict, tenant_id: str) -> dict:
-    from apps.analysis.lib.kpi_templates import KPITemplateRegistry
+    from apps.analysis.lib.kpi_templates import KPITemplateRegistry  # type: ignore[attr-defined]
+
     registry = KPITemplateRegistry()
 
     if tool == "voyant.kpi_templates.list":
         templates = registry.list_templates(category=params.get("category"))
-        return {"templates": [{"name": t["name"], "category": t["category"]} for t in templates]}
+        return {
+            "templates": [
+                {"name": t["name"], "category": t["category"]} for t in templates
+            ]
+        }
 
     if tool == "voyant.kpi_templates.get":
         template = registry.get_template(params.get("name", ""))
@@ -734,14 +1352,28 @@ def _handle_presets(tool: str, params: dict, tenant_id: str) -> dict:
     from apps.workflows.models import PresetJob
 
     if tool == "voyant.presets.list":
-        presets = PresetJob.objects.filter(tenant_id=tenant_id).order_by("-created_at")[:20]
-        return {"presets": [{"id": str(p.id), "name": p.preset_name, "status": p.status} for p in presets]}
+        presets = PresetJob.objects.filter(tenant_id=tenant_id).order_by("-created_at")[
+            :20
+        ]
+        return {
+            "presets": [
+                {"id": str(p.id), "name": p.preset_name, "status": p.status}
+                for p in presets
+            ]
+        }
 
     if tool == "voyant.presets.get":
-        preset = PresetJob.objects.filter(id=params.get("job_id", ""), tenant_id=tenant_id).first()
+        preset = PresetJob.objects.filter(
+            id=params.get("job_id", ""), tenant_id=tenant_id
+        ).first()
         if not preset:
             return {"error": "Preset not found"}
-        return {"id": str(preset.id), "name": preset.preset_name, "status": preset.status, "parameters": preset.parameters}
+        return {
+            "id": str(preset.id),
+            "name": preset.preset_name,
+            "status": preset.status,
+            "parameters": preset.parameters,
+        }
 
     return {"error": f"Unknown preset tool: {tool}"}
 
@@ -753,6 +1385,7 @@ def _handle_vector(tool: str, params: dict, tenant_id: str) -> dict:
     if tool == "voyant.vector.index":
         from apps.search.lib.embeddings import DenseEmbedder
         from apps.search.lib.milvus_store import get_vector_store
+
         store = get_vector_store()
         embedder = DenseEmbedder()
         text = params.get("text", "")
@@ -773,16 +1406,35 @@ def _handle_sources(tool: str, params: dict, tenant_id: str) -> dict:
 
     if tool == "voyant.sources.list":
         sources = Source.objects.filter(tenant_id=tenant_id)
-        return {"sources": [{"id": str(s.id), "name": s.name, "type": s.source_type, "status": s.status} for s in sources]}
+        return {
+            "sources": [
+                {
+                    "id": str(s.id),
+                    "name": s.name,
+                    "type": s.source_type,
+                    "status": s.status,
+                }
+                for s in sources
+            ]
+        }
 
     if tool == "voyant.sources.get":
-        source = Source.objects.filter(id=params.get("source_id", ""), tenant_id=tenant_id).first()
+        source = Source.objects.filter(
+            id=params.get("source_id", ""), tenant_id=tenant_id
+        ).first()
         if not source:
             return {"error": "Source not found"}
-        return {"id": str(source.id), "name": source.name, "type": source.source_type, "config": source.connection_config}
+        return {
+            "id": str(source.id),
+            "name": source.name,
+            "type": source.source_type,
+            "config": source.connection_config,
+        }
 
     if tool == "voyant.sources.delete":
-        Source.objects.filter(id=params.get("source_id", ""), tenant_id=tenant_id).delete()
+        Source.objects.filter(
+            id=params.get("source_id", ""), tenant_id=tenant_id
+        ).delete()
         return {"status": "deleted"}
 
     return {"error": f"Unknown sources tool: {tool}"}
@@ -797,11 +1449,18 @@ def _handle_jobs(tool: str, params: dict, tenant_id: str) -> dict:
             qs = qs.filter(status=params["status"])
         if params.get("job_type"):
             qs = qs.filter(job_type=params["job_type"])
-        jobs = qs.order_by("-created_at")[:params.get("limit", 50)]
-        return {"jobs": [{"id": str(j.job_id), "type": j.job_type, "status": j.status} for j in jobs]}
+        jobs = qs.order_by("-created_at")[: params.get("limit", 50)]
+        return {
+            "jobs": [
+                {"id": str(j.job_id), "type": j.job_type, "status": j.status}
+                for j in jobs
+            ]
+        }
 
     if tool == "voyant.jobs.cancel":
-        job = Job.objects.filter(job_id=params.get("job_id", ""), tenant_id=tenant_id).first()
+        job = Job.objects.filter(
+            job_id=params.get("job_id", ""), tenant_id=tenant_id
+        ).first()
         if not job:
             return {"error": "Job not found"}
         job.status = "cancelled"
@@ -816,13 +1475,24 @@ def _handle_artifacts(tool: str, params: dict, tenant_id: str) -> dict:
 
     if tool == "voyant.artifacts.list":
         arts = Artifact.objects.filter(job_id=params.get("job_id", ""))
-        return {"artifacts": [{"id": str(a.artifact_id), "type": a.artifact_type, "format": a.format, "size": a.size_bytes} for a in arts]}
+        return {
+            "artifacts": [
+                {
+                    "id": str(a.artifact_id),
+                    "type": a.artifact_type,
+                    "format": a.format,
+                    "size": a.size_bytes,
+                }
+                for a in arts
+            ]
+        }
 
     return {"error": f"Unknown artifacts tool: {tool}"}
 
 
 def _handle_tables(tool: str, params: dict, tenant_id: str) -> dict:
     from apps.core.lib.trino import get_trino_client
+
     client = get_trino_client()
 
     if tool == "voyant.tables.list":
@@ -840,8 +1510,9 @@ def _handle_tables(tool: str, params: dict, tenant_id: str) -> dict:
 def _handle_governance(tool: str, params: dict, tenant_id: str) -> dict:
     if tool == "voyant.governance.schema":
         from apps.governance.lib.datahub import DataHubClient
+
         client = DataHubClient()
-        schema = client.get_schema(params.get("urn", ""))
+        schema = client.get_schema(params.get("urn", ""))  # type: ignore[attr-defined]
         return {"schema": schema}
 
     return {"error": f"Unknown governance tool: {tool}"}
@@ -849,34 +1520,61 @@ def _handle_governance(tool: str, params: dict, tenant_id: str) -> dict:
 
 def _handle_scrape(tool: str, params: dict, tenant_id: str) -> dict:
     if tool == "scrape.fetch":
-        from apps.scraper.lib.octopus.dispatcher import OctopusDispatcher
+        from apps.scraper.lib.octopus.dispatcher import (
+            OctopusDispatcher,  # type: ignore[reportMissingImports]
+        )
+
         dispatcher = OctopusDispatcher()
-        result = dispatcher.fetch(url=params.get("url", ""), engine=params.get("engine", "playwright"), timeout=params.get("timeout", 30))
+        result = dispatcher.fetch(
+            url=params.get("url", ""),
+            engine=params.get("engine", "playwright"),
+            timeout=params.get("timeout", 30),
+        )
         return {"status": "fetched", "url": params.get("url"), "size": len(str(result))}
 
     if tool == "scrape.extract":
-        from apps.scraper.lib.html_parser import extract_data
-        result = extract_data(html=params.get("html", ""), selectors=params.get("selectors", {}), url=params.get("url", ""))
+        from apps.scraper.lib.html_parser import extract_data  # type: ignore[reportMissingImports]
+
+        result = extract_data(
+            html=params.get("html", ""),
+            selectors=params.get("selectors", {}),
+            url=params.get("url", ""),
+        )
         return {"data": result}
 
     if tool == "scrape.ocr":
-        from apps.scraper.lib.ocr import process_ocr
-        result = process_ocr(images=params.get("images", []), language=params.get("language", "spa+eng"))
+        from apps.scraper.lib.ocr import process_ocr  # type: ignore[reportMissingImports]
+
+        result = process_ocr(
+            images=params.get("images", []),
+            language=params.get("language", "spa+eng"),
+        )
         return {"text": result}
 
     if tool == "scrape.parse_pdf":
-        from apps.scraper.lib.pdf_parser import parse_pdf
-        result = parse_pdf(pdf_url=params.get("pdf_url", ""), extract_tables=params.get("extract_tables", False))
+        from apps.scraper.lib.pdf_parser import parse_pdf  # type: ignore[reportMissingImports]
+
+        result = parse_pdf(
+            pdf_url=params.get("pdf_url", ""),
+            extract_tables=params.get("extract_tables", False),
+        )
         return {"content": result}
 
     if tool == "scrape.transcribe":
-        return {"status": "not_available", "reason": "Transcription requires Whisper model"}
+        return {
+            "status": "not_available",
+            "reason": "Transcription requires Whisper model",
+        }
 
     if tool == "scrape.deep_archive":
-        return {"status": "not_available", "reason": "Deep archive requires Playwright setup"}
+        return {
+            "status": "not_available",
+            "reason": "Deep archive requires Playwright setup",
+        }
 
     if tool == "voyant.scraper.template.run":
         from apps.scraper.models import ScrapeTemplate
+
         template = ScrapeTemplate.objects.filter(id=params.get("template_id")).first()
         if not template:
             return {"error": "Template not found"}
@@ -913,3 +1611,10 @@ def get_intent_engine() -> IntentEngine:
     if _engine is None:
         _engine = IntentEngine()
     return _engine
+
+
+def reset_intent_engine() -> None:
+    """Reset the singleton engine (for testing or config changes)."""
+    global _engine
+    _engine = None
+    reset_failover_chain()

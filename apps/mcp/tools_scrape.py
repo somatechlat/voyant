@@ -166,7 +166,11 @@ def tool_scrape_transcribe(media_urls, language: str = "es"):
 
 @mcp_app.tool(name="voyant.templates.execute")
 def tool_execute_template(
-    template_id: str, category: str, tenant_id: str, params: dict, job_name: str | None = None
+    template_id: str,
+    category: str,
+    tenant_id: str,
+    params: dict,
+    job_name: str | None = None,
 ):
     """
     [UPTP Core Router] Universal Data Box execution entry point.

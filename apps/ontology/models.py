@@ -41,6 +41,25 @@ class ObjectType(TenantModel, UUIDModel):
         default=1,
         help_text="Auto-incrementing schema version",
     )
+    backing_dataset = models.CharField(
+        max_length=512,
+        blank=True,
+        default="",
+        help_text=(
+            "Fully-qualified Iceberg table name (schema.table) that stores "
+            "instances of this object type. Used by the Ontology Query Engine "
+            "to translate semantic queries into Trino SQL against the lakehouse."
+        ),
+    )
+    primary_key_column = models.CharField(
+        max_length=255,
+        blank=True,
+        default="id",
+        help_text=(
+            "Name of the column in the backing dataset that serves as the "
+            "primary key. Used for cursor-based (keyset) pagination."
+        ),
+    )
     deleted_at = models.DateTimeField(
         null=True,
         blank=True,
@@ -180,7 +199,9 @@ class Object(TenantModel, UUIDModel):
         db_table = "ontology_object"
         indexes = [
             models.Index(fields=["object_type_id"], name="idx_obj_type"),
-            models.Index(fields=["tenant_id", "object_type_id"], name="idx_obj_tenant_type"),
+            models.Index(
+                fields=["tenant_id", "object_type_id"], name="idx_obj_tenant_type"
+            ),
             models.Index(
                 fields=["tenant_id", "-created_at"],
                 name="idx_obj_tenant_created",
@@ -188,7 +209,11 @@ class Object(TenantModel, UUIDModel):
         ]
 
     def __str__(self) -> str:
-        label = self.properties.get("name") or self.properties.get("title") or str(self.id)[:8]
+        label = (
+            self.properties.get("name")
+            or self.properties.get("title")
+            or str(self.id)[:8]
+        )
         return f"{self.object_type.name}:{label}"
 
 
@@ -520,7 +545,9 @@ class ValueType(TenantModel, UUIDModel):
 
     # Permissions
     created_by = models.CharField(max_length=256, blank=True)
-    is_system = models.BooleanField(default=False, help_text="System value types cannot be deleted")
+    is_system = models.BooleanField(
+        default=False, help_text="System value types cannot be deleted"
+    )
 
     deleted_at = models.DateTimeField(null=True, blank=True, db_index=True)
 
@@ -604,7 +631,9 @@ class ActionType(TenantModel, UUIDModel):
     )
 
     # Undo support
-    undoable = models.BooleanField(default=False, help_text="Whether this action supports undo")
+    undoable = models.BooleanField(
+        default=False, help_text="Whether this action supports undo"
+    )
     undo_rules = models.JSONField(
         default=list,
         blank=True,
@@ -616,6 +645,13 @@ class ActionType(TenantModel, UUIDModel):
         max_length=256,
         blank=True,
         help_text="Permission required to execute this action",
+    )
+
+    # Approval gate
+    requires_approval = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="If true, executing this action creates an approval request instead of executing immediately",
     )
 
     deleted_at = models.DateTimeField(null=True, blank=True, db_index=True)
@@ -630,8 +666,12 @@ class ActionType(TenantModel, UUIDModel):
             ),
         ]
         indexes = [
-            models.Index(fields=["tenant_id", "status"], name="idx_action_tenant_status"),
-            models.Index(fields=["target_object_type_id"], name="idx_action_target_type"),
+            models.Index(
+                fields=["tenant_id", "status"], name="idx_action_tenant_status"
+            ),
+            models.Index(
+                fields=["target_object_type_id"], name="idx_action_target_type"
+            ),
         ]
 
     def __str__(self) -> str:
@@ -743,7 +783,9 @@ class Function(TenantModel, UUIDModel):
         indexes = [
             models.Index(fields=["tenant_id", "status"], name="idx_func_tenant_status"),
             models.Index(fields=["attached_to_type_id"], name="idx_func_attached_type"),
-            models.Index(fields=["attached_to_action_id"], name="idx_func_attached_action"),
+            models.Index(
+                fields=["attached_to_action_id"], name="idx_func_attached_action"
+            ),
         ]
 
     def __str__(self) -> str:
@@ -752,3 +794,153 @@ class Function(TenantModel, UUIDModel):
 
 # Re-export ActionExecution so Django's migration framework discovers it.
 from apps.ontology.action_executor import ActionExecution  # noqa: E402, F401
+
+# ---------------------------------------------------------------------------
+# 4.4 Catalog — PII Detection & Data Quality (§4.4)
+# ---------------------------------------------------------------------------
+
+
+class PIIDetection(TenantModel, UUIDModel):
+    """
+    Stores PII detection results for dataset columns.
+
+    §4.4 CATALOG: PII Detection Engine with pattern-based, name-based,
+    and ML-based detection.  Confidence scoring from 0.0–1.0 with
+    auto-classification at confidence > 0.85.
+    """
+
+    PII_TYPE_EMAIL = "email"
+    PII_TYPE_PHONE = "phone"
+    PII_TYPE_SSN = "ssn"
+    PII_TYPE_CREDIT_CARD = "credit_card"
+    PII_TYPE_IP_ADDRESS = "ip_address"
+    PII_TYPE_NAME = "name"
+    PII_TYPE_ADDRESS = "address"
+    PII_TYPE_DOB = "dob"
+    PII_TYPE_CHOICES = [
+        (PII_TYPE_EMAIL, "Email Address"),
+        (PII_TYPE_PHONE, "Phone Number"),
+        (PII_TYPE_SSN, "Social Security Number"),
+        (PII_TYPE_CREDIT_CARD, "Credit Card Number"),
+        (PII_TYPE_IP_ADDRESS, "IP Address"),
+        (PII_TYPE_NAME, "Person Name"),
+        (PII_TYPE_ADDRESS, "Physical Address"),
+        (PII_TYPE_DOB, "Date of Birth"),
+    ]
+
+    METHOD_REGEX = "regex"
+    METHOD_NAME_PATTERN = "name_pattern"
+    METHOD_ML = "ml"
+    METHOD_CHOICES = [
+        (METHOD_REGEX, "Regex Pattern"),
+        (METHOD_NAME_PATTERN, "Column Name Pattern"),
+        (METHOD_ML, "Machine Learning"),
+    ]
+
+    column_name = models.CharField(
+        max_length=255,
+        help_text="Name of the column where PII was detected",
+    )
+    dataset_urn = models.CharField(
+        max_length=512,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="URN of the dataset this detection belongs to",
+    )
+    pii_type = models.CharField(
+        max_length=32,
+        choices=PII_TYPE_CHOICES,
+        help_text="Type of PII detected",
+    )
+    confidence = models.FloatField(
+        help_text="Detection confidence score (0.0 to 1.0)",
+    )
+    method = models.CharField(
+        max_length=32,
+        choices=METHOD_CHOICES,
+        help_text="Detection method used",
+    )
+    detected_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="When the detection was performed",
+    )
+    auto_classified = models.BooleanField(
+        default=False,
+        help_text="True if auto-classified (confidence > 0.85)",
+    )
+
+    class Meta(TenantModel.Meta, UUIDModel.Meta):
+        db_table = "ontology_pii_detection"
+        indexes = [
+            models.Index(
+                fields=["tenant_id", "dataset_urn"],
+                name="idx_pii_tenant_dataset",
+            ),
+            models.Index(
+                fields=["tenant_id", "column_name"],
+                name="idx_pii_tenant_column",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"PII({self.column_name}: {self.pii_type} [{self.confidence:.2f}])"
+
+
+class QualityScore(TenantModel, UUIDModel):
+    """
+    Stores computed data quality scores for datasets.
+
+    §4.4 CATALOG: Data Quality Scoring with five dimensions:
+    completeness, uniqueness, timeliness, consistency, accuracy.
+    Each scored 0–100 with weighted overall score.
+    """
+
+    dataset_id = models.CharField(
+        max_length=512,
+        db_index=True,
+        help_text="Identifier of the dataset (URN or ID)",
+    )
+    overall = models.FloatField(
+        help_text="Weighted overall quality score (0–100)",
+    )
+    completeness = models.FloatField(
+        help_text="% of non-null values across all columns",
+    )
+    uniqueness = models.FloatField(
+        help_text="% of unique values in key columns",
+    )
+    timeliness = models.FloatField(
+        help_text="Freshness score based on expected update frequency",
+    )
+    consistency = models.FloatField(
+        help_text="% of values matching expected format/type",
+    )
+    accuracy = models.FloatField(
+        help_text="% of values within expected range",
+    )
+    computed_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="When the quality score was computed",
+    )
+    report = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Detailed per-column quality report",
+    )
+
+    class Meta(TenantModel.Meta, UUIDModel.Meta):
+        db_table = "ontology_quality_score"
+        indexes = [
+            models.Index(
+                fields=["tenant_id", "dataset_id"],
+                name="idx_qs_tenant_dataset",
+            ),
+            models.Index(
+                fields=["tenant_id", "-computed_at"],
+                name="idx_qs_tenant_computed",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"Quality({self.dataset_id}: {self.overall:.1f})"

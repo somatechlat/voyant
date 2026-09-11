@@ -1,7 +1,7 @@
 """Tests for apps/streaming/flink_client.py."""
 
-import pytest
 import httpx
+import pytest
 
 from apps.streaming.flink_client import FlinkClient, FlinkClientError
 

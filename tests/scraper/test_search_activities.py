@@ -1,6 +1,5 @@
 """Tests for apps.scraper.search_activities — SearchActivities class."""
 
-import pytest
 
 from apps.scraper.search_activities import SearchActivities
 

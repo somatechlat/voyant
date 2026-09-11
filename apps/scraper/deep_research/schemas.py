@@ -16,7 +16,9 @@ class ResearchConfig(BaseModel):
     """Input configuration for a DeepResearchWorkflowV2 run."""
 
     query: str = Field(..., description="Primary research query.")
-    breadth: int = Field(default=3, ge=1, le=10, description="Number of parallel sub-queries.")
+    breadth: int = Field(
+        default=3, ge=1, le=10, description="Number of parallel sub-queries."
+    )
     depth: int = Field(default=2, ge=1, le=5, description="Recursive depth levels.")
     tenant_id: str = Field(..., description="Tenant isolation identifier.")
     realm: str = Field(default="default", description="Security / data realm.")
@@ -25,10 +27,16 @@ class ResearchConfig(BaseModel):
         default=5, ge=1, le=20, description="Max URLs to fetch per sub-query."
     )
     min_source_score: float = Field(
-        default=0.15, ge=0.0, le=1.0, description="Minimum source credibility to retain."
+        default=0.15,
+        ge=0.0,
+        le=1.0,
+        description="Minimum source credibility to retain.",
     )
     dedup_threshold: float = Field(
-        default=0.85, ge=0.0, le=1.0, description="Jaccard threshold for near-duplicate removal."
+        default=0.85,
+        ge=0.0,
+        le=1.0,
+        description="Jaccard threshold for near-duplicate removal.",
     )
     require_cross_validation: bool = Field(
         default=True, description="Require >=2 sources to accept a claim."
@@ -43,7 +51,9 @@ class Citation(BaseModel):
     url: str
     title: str = ""
     domain: str = ""
-    accessed_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat() + "Z")
+    accessed_at: str = Field(
+        default_factory=lambda: datetime.now(UTC).isoformat() + "Z"
+    )
     credibility_score: float = 0.0
     freshness_score: float = 0.0
 
@@ -57,7 +67,9 @@ class EvidenceChunk(BaseModel):
     source_url: str
     source_title: str = ""
     relevance_score: float = 0.0
-    extracted_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat() + "Z")
+    extracted_at: str = Field(
+        default_factory=lambda: datetime.now(UTC).isoformat() + "Z"
+    )
 
     model_config = ConfigDict(extra="forbid")
 
@@ -82,7 +94,9 @@ class ResearchReport(BaseModel):
     findings: list[Finding] = Field(default_factory=list)
     citations: list[Citation] = Field(default_factory=list)
     confidence_score: float = 0.0
-    generated_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat() + "Z")
+    generated_at: str = Field(
+        default_factory=lambda: datetime.now(UTC).isoformat() + "Z"
+    )
     query: str = ""
     breadth: int = 0
     depth: int = 0

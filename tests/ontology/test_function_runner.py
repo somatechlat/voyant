@@ -15,20 +15,20 @@ Uses @pytest.mark.django_db for ORM access.
 from __future__ import annotations
 
 import json
-import pytest
 from unittest.mock import patch
 
+import pytest
+
 from apps.ontology.function_runner import (
-    FunctionRunner,
     FunctionResult,
-    _FunctionCache,
+    FunctionRunner,
     _build_python_wrapper,
-    _parse_output,
-    _ExecutionError,
     _detect_ts_runtime,
-    invalidate_function_cache,
-    clear_function_cache,
+    _ExecutionError,
     _function_cache,
+    _parse_output,
+    clear_function_cache,
+    invalidate_function_cache,
 )
 from apps.ontology.models import Function
 

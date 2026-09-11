@@ -13,7 +13,6 @@ from django.core.management.base import BaseCommand
 
 from apps.discovery.models import Source
 
-
 PRESET_SOURCES = [
     # ── Infrastructure (already running in Docker) ───────────────────────
     {
@@ -74,7 +73,12 @@ PRESET_SOURCES = [
         "source_type": "kafka",
         "connection_config": {
             "bootstrap_servers": "voyant_kafka:9092",
-            "topics": ["voyant.jobs", "voyant.quality.alerts", "voyant.lineage", "voyant.audit"],
+            "topics": [
+                "voyant.jobs",
+                "voyant.quality.alerts",
+                "voyant.lineage",
+                "voyant.audit",
+            ],
             "description": "Event streaming — job events, quality alerts, lineage, audit",
         },
         "status": "active",
@@ -98,7 +102,6 @@ PRESET_SOURCES = [
         },
         "status": "active",
     },
-
     # ── XTRIM Demo Data (CSV files) ─────────────────────────────────────
     {
         "name": "XTRIM Clientes",
@@ -109,7 +112,16 @@ PRESET_SOURCES = [
             "demo": True,
             "table_name": "xtrim_clientes",
             "row_count": 15,
-            "fields": ["id", "nombre", "email", "ciudad", "plan", "tipo_fibra", "estado", "fecha_registro"],
+            "fields": [
+                "id",
+                "nombre",
+                "email",
+                "ciudad",
+                "plan",
+                "tipo_fibra",
+                "estado",
+                "fecha_registro",
+            ],
         },
         "status": "active",
     },
@@ -122,7 +134,15 @@ PRESET_SOURCES = [
             "demo": True,
             "table_name": "xtrim_facturas",
             "row_count": 25,
-            "fields": ["id", "cliente_id", "monto", "fecha_emision", "fecha_vencimiento", "estado_pago", "metodo_pago"],
+            "fields": [
+                "id",
+                "cliente_id",
+                "monto",
+                "fecha_emision",
+                "fecha_vencimiento",
+                "estado_pago",
+                "metodo_pago",
+            ],
         },
         "status": "active",
     },
@@ -135,7 +155,14 @@ PRESET_SOURCES = [
             "demo": True,
             "table_name": "xtrim_servicios",
             "row_count": 20,
-            "fields": ["id", "nombre", "tipo", "precio", "velocidad_mbps", "incluye_streaming"],
+            "fields": [
+                "id",
+                "nombre",
+                "tipo",
+                "precio",
+                "velocidad_mbps",
+                "incluye_streaming",
+            ],
         },
         "status": "active",
     },
@@ -148,25 +175,42 @@ PRESET_SOURCES = [
             "demo": True,
             "table_name": "xtrim_tickets",
             "row_count": 15,
-            "fields": ["id", "cliente_id", "tipo_problema", "descripcion", "estado", "tiempo_resolucion_min", "agente"],
+            "fields": [
+                "id",
+                "cliente_id",
+                "tipo_problema",
+                "descripcion",
+                "estado",
+                "tiempo_resolucion_min",
+                "agente",
+            ],
         },
         "status": "active",
     },
-
     # ── Knowledge Sources (indexed in Milvus) ────────────────────────────
     {
         "name": "XTRIM Knowledge Base",
         "source_type": "vector_knowledge",
         "connection_config": {
-            "description": "XTRIM telecom knowledge — commercial guide, support procedures, billing policies, call center manual",
+            "description": (
+                "XTRIM telecom knowledge — commercial guide,"
+                " support procedures, billing policies,"
+                " call center manual"
+            ),
             "documents": 4,
             "vector_db": "milvus",
             "collection": "voyant_documents",
-            "categories": ["planes", "soporte", "cobranza", "callcenter", "cobertura", "streaming"],
+            "categories": [
+                "planes",
+                "soporte",
+                "cobranza",
+                "callcenter",
+                "cobertura",
+                "streaming",
+            ],
         },
         "status": "active",
     },
-
     # ── Web Sources (scraping targets) ───────────────────────────────────
     {
         "name": "xtrim.com.ec",
@@ -202,7 +246,11 @@ class Command(BaseCommand):
         if options["clear"]:
             count = Source.objects.filter(tenant_id=tenant_id).count()
             Source.objects.filter(tenant_id=tenant_id).delete()
-            self.stdout.write(self.style.WARNING(f"Cleared {count} existing sources for tenant '{tenant_id}'"))
+            self.stdout.write(
+                self.style.WARNING(
+                    f"Cleared {count} existing sources for tenant '{tenant_id}'"
+                )
+            )
 
         created = 0
         skipped = 0
@@ -224,5 +272,8 @@ class Command(BaseCommand):
             self.stdout.write(f"  ✅ {name} [{source_data['source_type']}]")
 
         self.stdout.write("")
-        self.stdout.write(self.style.SUCCESS(f"Seeded {created} sources ({skipped} already existed)"))
-        self.stdout.write(f"Total sources for tenant '{tenant_id}': {Source.objects.filter(tenant_id=tenant_id).count()}")
+        self.stdout.write(
+            self.style.SUCCESS(f"Seeded {created} sources ({skipped} already existed)")
+        )
+        total = Source.objects.filter(tenant_id=tenant_id).count()
+        self.stdout.write(f"Total sources for tenant '{tenant_id}': {total}")

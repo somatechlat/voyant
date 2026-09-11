@@ -15,7 +15,9 @@ Operational endpoints:
 from django.urls import path
 
 from apps.core.api import api as v1_api
+from apps.core.api import mlflow_api as mlflow_compat_api
 from apps.core.views import health, ready, status_view, version_view
+from apps.graphql.views import GraphQLView
 
 # ==============================================================================
 # URL Patterns
@@ -30,4 +32,6 @@ urlpatterns = [
     path("status", status_view),
     path("version", version_view),
     path("v1/", v1_api.urls),
+    path("api/2.0/mlflow/", mlflow_compat_api.urls),
+    path("graphql", GraphQLView.as_view(), name="graphql"),
 ]

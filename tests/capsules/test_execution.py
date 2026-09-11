@@ -1,13 +1,11 @@
 """Tests for apps.capsules.services.capsule_execution — parameter validation and substitution."""
 
-import pytest
 
 from apps.capsules.services.capsule_execution import (
-    validate_parameters,
     merge_parameters,
     substitute_parameters,
+    validate_parameters,
 )
-
 
 # ---------------------------------------------------------------------------
 # validate_parameters

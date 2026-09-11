@@ -61,7 +61,9 @@ class BrowserSession:
         self._page: Page | None = None
         self._playwright = None
 
-    async def start(self, viewport_width: int = 1280, viewport_height: int = 800) -> None:
+    async def start(
+        self, viewport_width: int = 1280, viewport_height: int = 800
+    ) -> None:
         """Start a new browser session."""
         self._playwright = await async_playwright().start()
         self._browser = await self._playwright.chromium.launch(
@@ -75,11 +77,20 @@ class BrowserSession:
         )
         self._context = await self._browser.new_context(
             viewport={"width": viewport_width, "height": viewport_height},
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            user_agent=(
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+                " AppleWebKit/537.36 (KHTML, like Gecko)"
+                " Chrome/120.0.0.0 Safari/537.36"
+            ),
             locale="en-US",
         )
         self._page = await self._context.new_page()
-        logger.info("Browser session %s started (%dx%d)", self.session_id, viewport_width, viewport_height)
+        logger.info(
+            "Browser session %s started (%dx%d)",
+            self.session_id,
+            viewport_width,
+            viewport_height,
+        )
 
     async def stop(self) -> None:
         """Stop the browser session and clean up."""
@@ -97,9 +108,11 @@ class BrowserSession:
             raise RuntimeError("Browser session not started")
         return self._page
 
-    async def navigate(self, url: str, wait_until: str = "domcontentloaded") -> PageState:
+    async def navigate(
+        self, url: str, wait_until: str = "domcontentloaded"
+    ) -> PageState:
         """Navigate to a URL and capture the page state."""
-        await self.page.goto(url, wait_until=wait_until, timeout=30000)
+        await self.page.goto(url, wait_until=wait_until, timeout=30000)  # type: ignore[reportArgumentType]
         await self.page.wait_for_load_state("networkidle", timeout=10000)
         return await self._capture_state()
 

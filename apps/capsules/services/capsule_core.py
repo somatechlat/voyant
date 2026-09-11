@@ -61,7 +61,9 @@ def verify_capsule(capsule: Capsule) -> bool:
     return True
 
 
-def certify_capsule(capsule: Capsule, constitution: Constitution | None = None) -> Capsule:
+def certify_capsule(
+    capsule: Capsule, constitution: Constitution | None = None
+) -> Capsule:
     """
     Sign capsule and bind to active Constitution.
 
@@ -69,7 +71,9 @@ def certify_capsule(capsule: Capsule, constitution: Constitution | None = None) 
     Postcondition: capsule.status == 'certified' and signature is set
     """
     if capsule.status != Capsule.STATUS_DRAFT:
-        raise ValueError(f"Only drafts can be certified. Current status: {capsule.status}")
+        raise ValueError(
+            f"Only drafts can be certified. Current status: {capsule.status}"
+        )
 
     with transaction.atomic():
         # Bind to constitution
@@ -90,7 +94,9 @@ def certify_capsule(capsule: Capsule, constitution: Constitution | None = None) 
 
         # Compute SHA-256 content hash as the signature
         content = json.dumps(capsule.body, sort_keys=True, default=str)
-        capsule.registry_signature = f"sha256:{hashlib.sha256(content.encode()).hexdigest()}"
+        capsule.registry_signature = (
+            f"sha256:{hashlib.sha256(content.encode()).hexdigest()}"
+        )
         capsule.certified_at = timezone.now()
         capsule.status = Capsule.STATUS_CERTIFIED
         capsule.save()
@@ -102,7 +108,9 @@ def certify_capsule(capsule: Capsule, constitution: Constitution | None = None) 
 def activate_capsule(capsule: Capsule) -> Capsule:
     """Promote a certified capsule to active."""
     if capsule.status != Capsule.STATUS_CERTIFIED:
-        raise ValueError(f"Only certified capsules can be activated. Status: {capsule.status}")
+        raise ValueError(
+            f"Only certified capsules can be activated. Status: {capsule.status}"
+        )
 
     capsule.status = Capsule.STATUS_ACTIVE
     capsule.is_active = True
@@ -118,7 +126,9 @@ def inject_capsule(capsule_id: UUID) -> Capsule:
     Invariant: inject(c) implies verify(c) is True.
     """
     try:
-        capsule = Capsule.objects.get(id=capsule_id, status=Capsule.STATUS_ACTIVE, is_active=True)
+        capsule = Capsule.objects.get(
+            id=capsule_id, status=Capsule.STATUS_ACTIVE, is_active=True
+        )
     except Capsule.DoesNotExist:
         raise ValueError(f"Active capsule {capsule_id} not found")
 
@@ -153,13 +163,17 @@ def edit_capsule(capsule: Capsule, updates: dict) -> Capsule:
                 parent=capsule,
                 status=Capsule.STATUS_DRAFT,
                 system_prompt=updates.get("system_prompt", capsule.system_prompt),
-                personality_traits=updates.get("personality_traits", capsule.personality_traits),
+                personality_traits=updates.get(
+                    "personality_traits", capsule.personality_traits
+                ),
                 neuromodulator_baseline=updates.get(
                     "neuromodulator_baseline", capsule.neuromodulator_baseline
                 ),
                 capsule_type=updates.get("capsule_type", capsule.capsule_type),
                 execution_graph=updates.get("execution_graph", capsule.execution_graph),
-                parameters_schema=updates.get("parameters_schema", capsule.parameters_schema),
+                parameters_schema=updates.get(
+                    "parameters_schema", capsule.parameters_schema
+                ),
                 output_formats=updates.get("output_formats", capsule.output_formats),
                 rbac_rules=updates.get("rbac_rules", capsule.rbac_rules),
                 capabilities_whitelist=updates.get(
@@ -200,7 +214,9 @@ def suspend_capsule(capsule: Capsule, reason: str = "") -> Capsule:
     capsule.status = Capsule.STATUS_SUSPENDED
     capsule.is_active = False
     capsule.save()
-    logger.info("Capsule %s:%s suspended. Reason: %s", capsule.name, capsule.version, reason)
+    logger.info(
+        "Capsule %s:%s suspended. Reason: %s", capsule.name, capsule.version, reason
+    )
     return capsule
 
 

@@ -13,9 +13,11 @@ from pathlib import Path
 from django.core.management.base import BaseCommand
 from django.db import connection
 
-
 CSV_DIR = Path("/tmp/xtrim_data")
-HOST_CSV_DIR = Path("/Users/macbookpro201916i964gb1tb/Documents/Clientes/2026/XTRIM/demo_RFP/demo_assets/sample_data")
+HOST_CSV_DIR = Path(
+    "/Users/macbookpro201916i964gb1tb/Documents"
+    "/Clientes/2026/XTRIM/demo_RFP/demo_assets/sample_data"
+)
 
 TABLE_DEFS = {
     "xtrim_clientes": """
@@ -129,5 +131,11 @@ class Command(BaseCommand):
             self.stdout.write(f"  Loaded {len(rows)} rows into {table}")
 
         self.stdout.write("")
-        self.stdout.write(self.style.SUCCESS(f"Done. {total_rows} total rows loaded into 4 XTRIM tables."))
-        self.stdout.write("Queryable via Trino: SELECT * FROM postgresql.public.xtrim_clientes LIMIT 10")
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Done. {total_rows} total rows loaded into 4 XTRIM tables."
+            )
+        )
+        self.stdout.write(
+            "Queryable via Trino: SELECT * FROM postgresql.public.xtrim_clientes LIMIT 10"
+        )

@@ -11,7 +11,6 @@ export default defineConfig({
                 secure: false,
                 configure: (proxy) => {
                     proxy.on('proxyReq', (proxyReq) => {
-                        // Tell Django the request came over HTTPS (prevents SSL redirect)
                         proxyReq.setHeader('X-Forwarded-Proto', 'https');
                         proxyReq.setHeader('X-Forwarded-Port', '45000');
                     });

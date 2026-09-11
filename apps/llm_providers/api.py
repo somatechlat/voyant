@@ -37,7 +37,7 @@ def list_providers(request):
             "supports_function_calling": p.supports_function_calling,
             "supports_vision": p.supports_vision,
             "is_system": p.is_system,
-            "model_count": p.models.count(),
+            "model_count": p.models.count(),  # type: ignore[attr-defined]
             "models": [
                 {
                     "id": str(m.id),
@@ -55,7 +55,7 @@ def list_providers(request):
                     "is_default": m.is_default,
                     "use_count": m.use_count,
                 }
-                for m in p.models.all()
+                for m in p.models.all()  # type: ignore[attr-defined]
             ],
         }
         for p in providers
@@ -126,10 +126,20 @@ def update_provider(request, provider_id: str, payload: dict[str, Any]):
     if not provider:
         raise HttpError(404, "Provider not found")
 
-    for field in ["name", "description", "api_base_url", "api_key", "status",
-                  "supports_chat", "supports_streaming", "supports_json_mode",
-                  "supports_function_calling", "supports_vision",
-                  "rate_limit_rpm", "timeout_seconds"]:
+    for field in [
+        "name",
+        "description",
+        "api_base_url",
+        "api_key",
+        "status",
+        "supports_chat",
+        "supports_streaming",
+        "supports_json_mode",
+        "supports_function_calling",
+        "supports_vision",
+        "rate_limit_rpm",
+        "timeout_seconds",
+    ]:
         if field in payload:
             setattr(provider, field, payload[field])
 
@@ -137,7 +147,9 @@ def update_provider(request, provider_id: str, payload: dict[str, Any]):
     return {"id": str(provider.id), "name": provider.name, "status": "updated"}
 
 
-@llm_router.delete("/providers/{provider_id}", auth=require_permission("write:settings"))
+@llm_router.delete(
+    "/providers/{provider_id}", auth=require_permission("write:settings")
+)
 def delete_provider(request, provider_id: str):
     """Delete an LLM provider (system providers cannot be deleted)."""
     provider = LLMProvider.objects.filter(id=provider_id).first()
@@ -184,7 +196,9 @@ def list_models(request, provider_id: str | None = None):
     ]
 
 
-@llm_router.post("/providers/{provider_id}/models", auth=require_permission("write:settings"))
+@llm_router.post(
+    "/providers/{provider_id}/models", auth=require_permission("write:settings")
+)
 def add_model(request, provider_id: str, payload: dict[str, Any]):
     """Add a model to a provider."""
     provider = LLMProvider.objects.filter(id=provider_id).first()
@@ -220,9 +234,9 @@ def get_active_config(request):
     result = {}
     for c in configs:
         result[c.purpose] = {
-            "provider_id": str(c.provider_id) if c.provider_id else None,
+            "provider_id": str(c.provider_id) if c.provider_id else None,  # type: ignore[attr-defined]
             "provider_name": c.provider.name if c.provider else None,
-            "model_id": str(c.model_id) if c.model_id else None,
+            "model_id": str(c.model_id) if c.model_id else None,  # type: ignore[attr-defined]
             "model_name": c.model.name if c.model else None,
             "temperature": c.temperature,
             "max_tokens": c.max_tokens,
@@ -237,7 +251,9 @@ def set_active_config(request, purpose: str, payload: dict[str, Any]):
     provider_id = payload.get("provider_id")
     model_id = payload.get("model_id")
 
-    provider = LLMProvider.objects.filter(id=provider_id).first() if provider_id else None
+    provider = (
+        LLMProvider.objects.filter(id=provider_id).first() if provider_id else None
+    )
     model = LLMModel.objects.filter(id=model_id).first() if model_id else None
 
     config, _ = ActiveLLMConfig.objects.update_or_create(
@@ -268,15 +284,17 @@ def _update_intent_engine_config(provider: LLMProvider, model: LLMModel, payload
     from apps.intent.engine import get_intent_engine
 
     engine = get_intent_engine()
-    engine._settings = engine._settings.model_copy(update={
-        "llm_provider": provider.slug,
-        "llm_api_url": provider.api_base_url,
-        "llm_api_key": provider.api_key,
-        "llm_model": model.name,
-        "llm_temperature": payload.get("temperature", 0.1),
-        "llm_max_tokens": payload.get("max_tokens", 4096),
-        "llm_timeout_seconds": payload.get("timeout_seconds", 30),
-    })
+    engine._settings = engine._settings.model_copy(
+        update={
+            "llm_provider": provider.slug,
+            "llm_api_url": provider.api_base_url,
+            "llm_api_key": provider.api_key,
+            "llm_model": model.name,
+            "llm_temperature": payload.get("temperature", 0.1),
+            "llm_max_tokens": payload.get("max_tokens", 4096),
+            "llm_timeout_seconds": payload.get("timeout_seconds", 30),
+        }
+    )
     engine._plan_cache.clear()
 
 
@@ -288,7 +306,9 @@ def test_provider(request, payload: dict[str, Any]):
     provider_id = payload.get("provider_id")
     model_id = payload.get("model_id")
 
-    provider = LLMProvider.objects.filter(id=provider_id).first() if provider_id else None
+    provider = (
+        LLMProvider.objects.filter(id=provider_id).first() if provider_id else None
+    )
     model = LLMModel.objects.filter(id=model_id).first() if model_id else None
 
     if not provider:

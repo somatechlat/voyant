@@ -95,7 +95,9 @@ class LineageGraph:
         self._nodes: dict[str, LineageNode] = {}
         self._edges: list[LineageEdge] = []
         self._upstream: dict[str, set[str]] = defaultdict(set)  # node -> upstream nodes
-        self._downstream: dict[str, set[str]] = defaultdict(set)  # node -> downstream nodes
+        self._downstream: dict[str, set[str]] = defaultdict(
+            set
+        )  # node -> downstream nodes
 
     def add_node(
         self,
@@ -208,7 +210,9 @@ class LineageGraph:
         return list(result)
 
     def get_edges_for_node(self, node_id: str) -> list[LineageEdge]:
-        return [e for e in self._edges if e.source_id == node_id or e.target_id == node_id]
+        return [
+            e for e in self._edges if e.source_id == node_id or e.target_id == node_id
+        ]
 
     def get_impact_analysis(
         self,
@@ -252,7 +256,11 @@ class LineageGraph:
             nodes = [n for n in nodes if n.tenant_id == tenant_id]
 
         node_ids = {n.node_id for n in nodes}
-        edges = [e for e in self._edges if e.source_id in node_ids and e.target_id in node_ids]
+        edges = [
+            e
+            for e in self._edges
+            if e.source_id in node_ids and e.target_id in node_ids
+        ]
 
         return {
             "nodes": [
@@ -317,7 +325,9 @@ class LineageGraph:
             self._downstream.pop(node_id, None)
 
         self._edges = [
-            e for e in self._edges if e.source_id not in node_ids and e.target_id not in node_ids
+            e
+            for e in self._edges
+            if e.source_id not in node_ids and e.target_id not in node_ids
         ]
 
         return len(node_ids)

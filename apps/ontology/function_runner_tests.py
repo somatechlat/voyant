@@ -15,20 +15,20 @@ Uses @pytest.mark.django_db for ORM access.
 from __future__ import annotations
 
 import json
-import pytest
 from unittest.mock import patch
 
+import pytest
+
 from apps.ontology.function_runner import (
-    FunctionRunner,
     FunctionResult,
-    _FunctionCache,
+    FunctionRunner,
     _build_python_wrapper,
-    _parse_output,
-    _ExecutionError,
     _detect_ts_runtime,
-    invalidate_function_cache,
-    clear_function_cache,
+    _ExecutionError,
     _function_cache,
+    _parse_output,
+    clear_function_cache,
+    invalidate_function_cache,
 )
 from apps.ontology.models import Function
 
@@ -155,8 +155,7 @@ def python_output_schema_function(db):
         status=Function.STATUS_PUBLISHED,
         language=Function.LANGUAGE_PYTHON,
         source_code=(
-            "def handler(input):\n"
-            "    return {'name': input['name'], 'score': input['score']}\n"
+            "def handler(input):\n    return {'name': input['name'], 'score': input['score']}\n"
         ),
         entry_point="handler",
         input_schema={
@@ -357,7 +356,9 @@ class TestFunctionCaching:
             # DB was NOT called because cache was hit
             mock_get.assert_not_called()
 
-    def test_cache_invalidation_on_version_change(self, cached_runner, python_add_function):
+    def test_cache_invalidation_on_version_change(
+        self, cached_runner, python_add_function
+    ):
         """Cache is invalidated when function version changes."""
         fid = str(python_add_function.id)
         # Warm the cache

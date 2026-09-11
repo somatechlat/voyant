@@ -34,7 +34,8 @@ class DirectFileIngester:
         """
         Ingests a data file into a specified DuckDB table.
 
-        The file format is automatically detected based on its extension (CSV, JSON, Parquet, Excel).
+        The file format is automatically detected based on its
+        extension (CSV, JSON, Parquet, Excel).
         If the table does not exist, it will be created. Data is loaded using DuckDB's
         native `read_*_auto` functions or Pandas for Excel.
 
@@ -51,7 +52,9 @@ class DirectFileIngester:
                             or an error occurs during the ingestion process.
         """
         if not os.path.exists(file_path):
-            raise IngestionError("VYNT-8001", f"File not found: {file_path}", file_path=file_path)
+            raise IngestionError(
+                "VYNT-8001", f"File not found: {file_path}", file_path=file_path
+            )
 
         _, ext = os.path.splitext(file_path)
         ext = ext.lower()
@@ -59,24 +62,32 @@ class DirectFileIngester:
         try:
             if ext == ".csv":
                 self.conn.execute(
-                    f"CREATE TABLE IF NOT EXISTS {table_name} AS SELECT * FROM read_csv_auto('{file_path}')"
+                    f"CREATE TABLE IF NOT EXISTS {table_name}"
+                    f" AS SELECT * FROM read_csv_auto('{file_path}')"
                 )
             elif ext == ".json":
                 self.conn.execute(
-                    f"CREATE TABLE IF NOT EXISTS {table_name} AS SELECT * FROM read_json_auto('{file_path}')"
+                    f"CREATE TABLE IF NOT EXISTS {table_name}"
+                    f" AS SELECT * FROM read_json_auto('{file_path}')"
                 )
             elif ext == ".parquet":
                 self.conn.execute(
-                    f"CREATE TABLE IF NOT EXISTS {table_name} AS SELECT * FROM read_parquet('{file_path}')"
+                    f"CREATE TABLE IF NOT EXISTS {table_name}"
+                    f" AS SELECT * FROM read_parquet('{file_path}')"
                 )
             elif ext in [".xlsx", ".xls"]:
                 # For Excel files, use pandas for parsing, then load into DuckDB.
-                pd.read_excel(file_path)  # noqa: F841 - DuckDB references this DataFrame directly
-                self.conn.execute(f"CREATE TABLE IF NOT EXISTS {table_name} AS SELECT * FROM df")
+                pd.read_excel(
+                    file_path
+                )  # noqa: F841 - DuckDB references this DataFrame directly
+                self.conn.execute(
+                    f"CREATE TABLE IF NOT EXISTS {table_name} AS SELECT * FROM df"
+                )
             else:
                 raise IngestionError(
                     "VYNT-8002",
-                    f"Unsupported file extension: {ext}. Supported types: CSV, JSON, Parquet, XLSX, XLS.",
+                    f"Unsupported file extension: {ext}."
+                    " Supported types: CSV, JSON, Parquet, XLSX, XLS.",
                     format=ext,
                 )
 
@@ -96,7 +107,9 @@ class DirectFileIngester:
             }
 
         except Exception as e:
-            logger.error(f"Failed to ingest file '{file_path}' into table '{table_name}': {e}")
+            logger.error(
+                f"Failed to ingest file '{file_path}' into table '{table_name}': {e}"
+            )
             raise IngestionError(
                 "VYNT-8003", f"Direct ingestion failed for {file_path}: {e}"
             ) from e

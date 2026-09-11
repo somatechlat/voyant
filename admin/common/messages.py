@@ -3,9 +3,9 @@ Centralized Messages & I18N Registry for Voyant.
 Adheres to Vibe Coding Rule 11.
 """
 
-from typing import Any, Dict
+from typing import Any
 
-MESSAGES: Dict[str, str] = {
+MESSAGES: dict[str, str] = {
     # Core / Auth
     "ERR_AUTH_EXPIRED": "Authentication token has expired.",
     "ERR_AUTH_INVALID": "Invalid authentication token: {error}.",

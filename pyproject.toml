@@ -49,6 +49,8 @@ dependencies = [
     "confluent-kafka>=2.3.0",
     # Workflow Engine
     "temporalio>=1.4.0",
+    # Sandbox (Docker SDK for python_sandbox)
+    "docker>=7.0.0",
     # Secrets / Auth
     "hvac>=2.1.0",
     "python-jose[cryptography]>=3.3.0",
@@ -109,6 +111,10 @@ dependencies = [
     "xlsxwriter>=3.1.0",
     # Authorization
     "authzed>=1.0.0",
+    # GraphQL
+    "graphene-django>=3.2.0",
+    # CLI
+    "click>=8.1.0",
 ]
 
 [project.optional-dependencies]
@@ -127,9 +133,10 @@ dev = [
 
 [project.scripts]
 voyant-mcp = "apps.mcp.server:main"
+voyant = "cli.main:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["apps", "voyant_project"]
+packages = ["apps", "voyant_project", "cli"]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "voyant_project.settings"

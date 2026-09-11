@@ -44,11 +44,17 @@ class TemplateExecutionRequest(BaseModel):
     )
     params: dict[str, Any] = Field(
         default_factory=dict,
-        description="The arbitrary, template-specific parameters defining the execution boundaries.",
+        description=(
+            "The arbitrary, template-specific parameters defining the execution boundaries."
+        ),
     )
     tenant_id: str = Field(
         ..., description="CRITICAL: The isolated tenant context executing the template."
     )
-    job_name: str | None = Field(None, description="Optional human-readable alias for tracking.")
+    job_name: str | None = Field(
+        None, description="Optional human-readable alias for tracking."
+    )
 
-    model_config = ConfigDict(extra="forbid")  # Security: No undeclared fields permitted.
+    model_config = ConfigDict(
+        extra="forbid"
+    )  # Security: No undeclared fields permitted.

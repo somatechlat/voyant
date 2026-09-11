@@ -51,7 +51,7 @@ Voyant v4.0 is an agent-native data intelligence platform. AI agents are the pri
                          │
 ┌────────────────────────▼────────────────────────────────┐
 │ LAYER 4: INTENT ENGINE (LLM-Powered)                     │
-│ Query Intent · Pipeline Intent · Scraper Intent          │
+│ Query Intent · Pipeline Intent · Scrape Intent           │
 │ LLM Router (model-agnostic) · Ontology Cache             │
 │ Output: Structured JSON execution plans                  │
 └────────────────────────┬────────────────────────────────┘
@@ -59,12 +59,12 @@ Voyant v4.0 is an agent-native data intelligence platform. AI agents are the pri
 ┌────────────────────────▼────────────────────────────────┐
 │ LAYER 5: DOMAIN SERVICES                                 │
 │ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐       │
-│ │Ontology │ │ Data    │ │Scraper  │ │   ML    │       │
-│ │ Engine  │ │ Intel   │ │Octopus  │ │Platform │       │
+│ │Catalog  │ │Analyze  │ │ Scrape  │ │   ML    │       │
+│ │  (M3)   │ │  (M5)   │ │  (M8)   │ │  (M6)   │       │
 │ └─────────┘ └─────────┘ └─────────┘ └─────────┘       │
 │ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐       │
-│ │ Agent   │ │Governance│ │Capsule │ │ Search  │       │
-│ │Platform │ │ Engine  │ │Runtime │ │ Engine  │       │
+│ │ Agent   │ │ Shield  │ │Lakehouse│ │Connect  │       │
+│ │  (M7)   │ │  (M9)   │ │  (M4)   │ │  (M1)   │       │
 │ └─────────┘ └─────────┘ └─────────┘ └─────────┘       │
 └────────────────────────┬────────────────────────────────┘
                          │
@@ -142,16 +142,17 @@ Agent Request: "Get sales from June, create pie chart"
 
 | Module | App | Models | Endpoints | MCP Tools | Priority |
 |--------|-----|--------|-----------|-----------|----------|
-| Ontology Engine | `ontology/` | 20 | 35 | 15 | P0 |
-| Data Intelligence | `analysis/`, `sql/`, `ingestion/` | 6 | 20 | 10 | P0 |
-| Scraper Octopus | `scraper/` | 9 | 21 | 13 | P0 |
-| Intent Engine | `intent/` | 3 | 5 | 4 | P0 |
-| ML Platform | `ml_platform/` | 6 | 12 | 8 | P1 |
-| Agent Platform | `agent_platform/` | 4 | 8 | 5 | P1 |
-| Governance | `governance/` | 4 | 12 | 8 | P1 |
-| Capsule Runtime | `capsules/` | 0 | 5 | 5 | P1 |
-| Search Engine | `search/` | 0 | 4 | 3 | P1 |
-| Admin Dashboard | `admin_panel/` | 0 | 28 | 0 | P0 |
+| M1 Voyant Connect | `ingestion/`, `discovery/` | 3 | 12 | 5 | P0 |
+| M2 Voyant Pipeline | `worker/`, `workflows/` | 4 | 10 | 3 | P0 |
+| M3 Voyant Catalog | `ontology/` | 20 | 35 | 15 | P0 |
+| M4 Voyant Lakehouse | `storage/` | 3 | 8 | 2 | P0 |
+| M5 Voyant Analyze | `analysis/`, `sql/`, `search/` | 6 | 24 | 13 | P0 |
+| M6 Voyant ML | `ml_platform/` | 6 | 12 | 8 | P1 |
+| M7 Voyant Agent | `intent/`, `mcp/`, `capsules/` | 7 | 18 | 12 | P0 |
+| M8 Voyant Scrape | `scraper/` | 9 | 21 | 13 | P0 |
+| M9 Voyant Shield | `governance/` | 4 | 12 | 8 | P1 |
+| M11 Voyant Admin | `admin_panel/` | 0 | 28 | 0 | P0 |
+| M12 Voyant API | `core/` | 0 | 28 | 8 | P0 |
 | **TOTAL** | | **52+** | **150+** | **71+** | |
 
 ---
@@ -269,3 +270,4 @@ Request → APISIX (TLS, rate limit)
 | Version | Date | Changes |
 |---------|------|---------|
 | 4.0.0-draft | 2026-09-05 | Initial architecture with intent engine, Apache stack, Lit frontend |
+| 5.0.0 | 2026-09-16 | Module naming standardization: all modules renamed to Voyant [Name] (M1–M16) scheme. Domain services updated in architecture diagram. |

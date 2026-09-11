@@ -101,7 +101,8 @@ async def execute(request: OctopusRequest) -> OctopusResult:
                     if not href:
                         continue
                     matched = any(
-                        pattern.lower() in href.lower() for pattern in request.download_patterns
+                        pattern.lower() in href.lower()
+                        for pattern in request.download_patterns
                     )
                     if matched:
                         full_url = urljoin(page.url, href)

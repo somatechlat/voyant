@@ -60,7 +60,9 @@ class OperationalActivities:
         data = params.get("data", [])
         strategies = params.get("strategies", {})
 
-        activity.logger.info(f"Cleaning {len(data)} records with strategies: {strategies}.")
+        activity.logger.info(
+            f"Cleaning {len(data)} records with strategies: {strategies}."
+        )
         # Delegates to the DataCleaningPrimitives for the actual cleaning logic.
         return self.cleaner.clean_dataset(data, strategies)
 
@@ -177,8 +179,12 @@ class OperationalActivities:
                 # Auto-detect from first row
                 total_cols = len(data[0].keys()) if data else 0
 
-            total_cells_before = original_rows * total_cols if total_cols > 0 else original_rows
-            total_cells_after = cleaned_rows * total_cols if total_cols > 0 else cleaned_rows
+            total_cells_before = (
+                original_rows * total_cols if total_cols > 0 else original_rows
+            )
+            total_cells_after = (
+                cleaned_rows * total_cols if total_cols > 0 else cleaned_rows
+            )
 
             quality_score_before = (
                 (total_cells_before - missing_before) / total_cells_before
@@ -244,11 +250,15 @@ class OperationalActivities:
                 if not PROPHET_AVAILABLE:
                     # Production Rule: Real implementations. If Prophet is explicitly requested
                     # and not available, it's a hard failure to avoid unexpected behavior.
-                    raise RuntimeError("Prophet library is not available in this environment.")
+                    raise RuntimeError(
+                        "Prophet library is not available in this environment."
+                    )
                 if not dates:
                     raise RuntimeError("Dates are required for Prophet forecasting.")
 
-                return self.prophet.forecast_prophet(dates=dates, values=values, periods=periods)
+                return self.prophet.forecast_prophet(
+                    dates=dates, values=values, periods=periods
+                )
 
             # Use native forecasting methods (EMA, Linear, etc.).
             result = forecast(
@@ -262,5 +272,9 @@ class OperationalActivities:
             return result.to_dict()
 
         except Exception as e:
-            activity.logger.error(f"Forecasting activity failed with method '{method}': {e}")
-            raise ApplicationError(f"Forecasting failed: {e}", non_retryable=True) from e
+            activity.logger.error(
+                f"Forecasting activity failed with method '{method}': {e}"
+            )
+            raise ApplicationError(
+                f"Forecasting failed: {e}", non_retryable=True
+            ) from e

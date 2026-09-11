@@ -24,7 +24,8 @@ from temporalio.common import RetryPolicy
 # - Max 60s interval prevents indefinite wait
 # - Non-retryable errors fail fast (validation, auth)
 #
-# The total maximum time for retries is approximately 127 seconds in the worst case (1s + 2s + 4s + ...).
+# The total maximum time for retries is approximately 127 seconds
+# in the worst case (1s + 2s + 4s + ...).
 EXTERNAL_SERVICE_RETRY = RetryPolicy(
     initial_interval=timedelta(seconds=1),
     backoff_coefficient=2.0,
@@ -74,7 +75,9 @@ NO_RETRY = RetryPolicy(maximum_attempts=1)
 TIMEOUTS = {
     # Statistical Activities (R-Engine calls)
     "stats_short": timedelta(minutes=5),  # Simple stats: mean, median, correlation
-    "stats_long": timedelta(minutes=10),  # Complex stats: market share, hypothesis tests
+    "stats_long": timedelta(
+        minutes=10
+    ),  # Complex stats: market share, hypothesis tests
     # Machine Learning Activities
     "ml_clustering": timedelta(minutes=10),  # K-means clustering
     "ml_training": timedelta(minutes=15),  # Model training (regression, classification)
@@ -102,7 +105,8 @@ TIMEOUTS = {
 # Heartbeat intervals for long-running activities.
 #
 # This prevents Temporal from prematurely marking long-running activities as dead.
-# The intervals are balanced to avoid excessive overhead while ensuring timely detection of activity failures.
+# The intervals are balanced to avoid excessive overhead while
+# ensuring timely detection of activity failures.
 HEARTBEAT_INTERVALS = {
     "default": timedelta(seconds=30),
     "long_running": timedelta(minutes=1),

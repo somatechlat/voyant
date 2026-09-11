@@ -176,14 +176,14 @@ export class ViewSources extends LitElement {
     render() {
         return html`
         <saas-sidebar currentPath="/admin/sources"></saas-sidebar>
-        <main class="ml-60 min-h-screen" style="background:var(--saas-bg-page)">
+        <main class="ml-60 min-h-screen" style="background:var(--saas-bg-page)" role="main" aria-label="Data sources management">
             <!-- Header -->
             <div style="padding:32px 32px 0;display:flex;align-items:center;justify-content:space-between">
                 <div>
                     <h1 style="font-size:28px;font-weight:900;font-family:Inter,system-ui,sans-serif;letter-spacing:-0.02em">Sources</h1>
                     <p style="font-size:13px;color:var(--saas-text-secondary);margin-top:4px">${this.sources.length} data sources · Click a source to query, search, or index</p>
                 </div>
-                <button class="voyant-btn voyant-btn-primary" @click=${() => { this.showCreate = !this.showCreate; }}>+ New Source</button>
+                <button class="voyant-btn voyant-btn-primary" aria-expanded=${this.showCreate} aria-label="Create new source" @click=${() => { this.showCreate = !this.showCreate; }}>+ New Source</button>
             </div>
 
             <!-- Create Form -->
@@ -207,10 +207,10 @@ export class ViewSources extends LitElement {
             </div>` : ''}
 
             <!-- Source Cards -->
-            ${this.loading ? html`<div style="text-align:center;padding:60px;color:var(--saas-text-muted)">Loading...</div>` : html`
-            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;padding:0 32px 32px">
+            ${this.loading ? html`<div role="status" aria-live="polite" style="text-align:center;padding:60px;color:var(--saas-text-muted)">Loading...</div>` : html`
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;padding:0 32px 32px" aria-live="polite">
                 ${this.sources.map(s => html`
-                <div class="voyant-card" style="padding:20px;cursor:pointer" @click=${() => this.openSource(s)}>
+                <div class="voyant-card" role="button" tabindex="0" aria-label="Source: ${s.name}, type ${s.source_type}, status ${s.status}" style="padding:20px;cursor:pointer" @click=${() => this.openSource(s)} @keydown=${(e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.openSource(s); } }}>
                     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
                         <div style="width:40px;height:40px;border-radius:10px;background:var(--saas-brand-light);display:flex;align-items:center;justify-content:center;font-size:18px">${this.typeIcon(s.source_type)}</div>
                         <div style="flex:1;min-width:0">
@@ -244,11 +244,11 @@ export class ViewSources extends LitElement {
                 ${this.selectedSource ? html`
                 <div>
                     <!-- Action tabs -->
-                    <div class="voyant-tabs" style="margin-bottom:16px">
-                        <button class="voyant-tab ${this.actionTab === 'info' ? 'active' : ''}" @click=${() => { this.actionTab = 'info'; }}>Info</button>
-                        <button class="voyant-tab ${this.actionTab === 'query' ? 'active' : ''}" @click=${() => { this.actionTab = 'query'; }}>SQL Query</button>
-                        <button class="voyant-tab ${this.actionTab === 'search' ? 'active' : ''}" @click=${() => { this.actionTab = 'search'; }}>Search</button>
-                        <button class="voyant-tab ${this.actionTab === 'index' ? 'active' : ''}" @click=${() => { this.actionTab = 'index'; }}>Index</button>
+                    <div class="voyant-tabs" role="tablist" aria-label="Source action tabs" style="margin-bottom:16px">
+                        <button class="voyant-tab ${this.actionTab === 'info' ? 'active' : ''}" role="tab" aria-selected=${this.actionTab === 'info'} @click=${() => { this.actionTab = 'info'; }}>Info</button>
+                        <button class="voyant-tab ${this.actionTab === 'query' ? 'active' : ''}" role="tab" aria-selected=${this.actionTab === 'query'} @click=${() => { this.actionTab = 'query'; }}>SQL Query</button>
+                        <button class="voyant-tab ${this.actionTab === 'search' ? 'active' : ''}" role="tab" aria-selected=${this.actionTab === 'search'} @click=${() => { this.actionTab = 'search'; }}>Search</button>
+                        <button class="voyant-tab ${this.actionTab === 'index' ? 'active' : ''}" role="tab" aria-selected=${this.actionTab === 'index'} @click=${() => { this.actionTab = 'index'; }}>Index</button>
                     </div>
 
                     <!-- INFO TAB -->
@@ -282,7 +282,7 @@ export class ViewSources extends LitElement {
                             <div style="color:#EF4444;font-size:12px">${String(this.sqlResult.error)}</div>
                             ` : html`
                             <div style="font-size:11px;color:var(--saas-text-muted);margin-bottom:8px">${(this.sqlResult as Record<string, unknown>).row_count || 0} rows · ${(this.sqlResult as Record<string, unknown>).execution_time_ms || 0}ms</div>
-                            <table style="width:100%;font-size:11px;font-family:JetBrains Mono,monospace;border-collapse:collapse">
+                            <table role="table" aria-label="SQL query results" style="width:100%;font-size:11px;font-family:JetBrains Mono,monospace;border-collapse:collapse">
                                 <thead><tr>${((this.sqlResult as Record<string, unknown>).columns as string[] || []).map((c: string) => html`<th style="padding:4px 8px;text-align:left;border-bottom:1px solid var(--saas-border);font-weight:600">${c}</th>`)}</tr></thead>
                                 <tbody>${((this.sqlResult as Record<string, unknown>).rows as unknown[][] || []).slice(0, 20).map((r: unknown[]) => html`
                                     <tr>${(r as unknown[]).map((v: unknown) => html`<td style="padding:4px 8px;border-bottom:1px solid var(--saas-border-subtle)">${v ?? '—'}</td>`)}</tr>`)}</tbody>
@@ -294,11 +294,11 @@ export class ViewSources extends LitElement {
                     <!-- SEARCH TAB -->
                     ${this.actionTab === 'search' ? html`
                     <div>
-                        <div style="display:flex;gap:8px;margin-bottom:12px">
-                            <input class="voyant-input" style="flex:1" placeholder="Semantic search query..." .value=${this.searchQuery}
+                        <div style="display:flex;gap:8px;margin-bottom:12px" role="search" aria-label="Semantic search">
+                            <input class="voyant-input" style="flex:1" placeholder="Semantic search query..." aria-label="Search query" .value=${this.searchQuery}
                                 @input=${(e: Event) => { this.searchQuery = (e.target as HTMLInputElement).value; }}
                                 @keydown=${(e: KeyboardEvent) => { if (e.key === 'Enter') this.runSearch(); }}>
-                            <button class="voyant-btn voyant-btn-primary" ?disabled=${this.searchRunning} @click=${() => this.runSearch()}>Search</button>
+                            <button class="voyant-btn voyant-btn-primary" ?disabled=${this.searchRunning} aria-label="Run search" @click=${() => this.runSearch()}>Search</button>
                         </div>
                         ${this.searchResults.length > 0 ? html`
                         <div style="display:flex;flex-direction:column;gap:8px">
@@ -308,6 +308,7 @@ export class ViewSources extends LitElement {
                                     <span style="font-size:11px;font-family:JetBrains Mono,monospace;color:var(--saas-text-muted)">${r.id}</span>
                                     <span style="font-size:11px;font-weight:600;color:var(--saas-brand)">${((r.score as number) * 100).toFixed(1)}%</span>
                                 </div>
+                                <!-- TODO: text_preview not guaranteed in search result schema; stringify fallback is acceptable -->
                                 <p style="font-size:12px;color:var(--saas-text-primary);line-height:1.4">${(r.metadata as Record<string, unknown>)?.text_preview || JSON.stringify(r.metadata).slice(0, 200)}</p>
                             </div>`)}
                         </div>` : this.searchQuery ? html`<div style="text-align:center;padding:20px;color:var(--saas-text-muted);font-size:12px">No results</div>` : ''}

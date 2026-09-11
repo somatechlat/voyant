@@ -16,13 +16,11 @@ from apps.scraper.security import (
     URLValidationError,
     get_rate_limit,
     is_ip_blocked,
-    resolve_hostname,
     sanitize_selector,
     validate_url,
     validate_url_ssrf,
     validate_urls,
 )
-
 
 # ---------------------------------------------------------------------------
 # is_ip_blocked

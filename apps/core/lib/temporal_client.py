@@ -66,7 +66,9 @@ async def get_temporal_client() -> Client:
                 "VYNT-5001",
                 message=f"Could not connect to Temporal Orchestrator at {target_host}",
                 details={"host": target_host, "error": str(e)},
-                resolution="Ensure the Temporal service is running and accessible from the application.",
+                resolution=(
+                    "Ensure the Temporal service is running and accessible from the application."
+                ),
             ) from e
         # For any other unexpected exception, log it and re-raise.
         logger.exception("An unexpected error occurred while connecting to Temporal.")

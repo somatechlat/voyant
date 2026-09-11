@@ -5,12 +5,11 @@ Tests run_ingestion, validate_contract_activity, and record_lineage_activity.
 Uses ActivityEnvironment for activities that call activity.heartbeat().
 """
 
-import asyncio
 
 import duckdb
 import pytest
-from temporalio.testing import ActivityEnvironment
 from temporalio.exceptions import ApplicationError
+from temporalio.testing import ActivityEnvironment
 
 from apps.worker.activities.ingest_activities import IngestActivities
 

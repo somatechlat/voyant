@@ -1,0 +1,1501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voyant — Observability Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        /* ═══════════════════════════════════════════════════════════════
+           §0 RESET & TOKENS
+           ═══════════════════════════════════════════════════════════════ */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            /* Background */
+            --bg-void: #06060B;
+            --bg-base: #0A0A12;
+            --bg-elevated: #12121E;
+            --bg-surface: #1A1A28;
+            /* Border */
+            --border-subtle: #1E1E2E;
+            --border-default: #2A2A3C;
+            --border-strong: #3A3A4F;
+            /* Accent */
+            --accent: #6C5CE7;
+            --accent-light: #A29BFE;
+            --accent-glow: rgba(108, 92, 231, 0.15);
+            --accent-secondary: #00D2FF;
+            --accent-tertiary: #FF6B9D;
+            /* Status */
+            --status-success: #00E676;
+            --status-warning: #FFB74D;
+            --status-error: #FF5252;
+            --status-info: #40C4FF;
+            --status-neutral: #78909C;
+            /* Text */
+            --text-primary: #E8E8F0;
+            --text-secondary: #9E9EB8;
+            --text-tertiary: #6B6B80;
+            --text-disabled: #4A4A5A;
+            /* Typography */
+            --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+            /* Spacing */
+            --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+            --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-10: 40px;
+            --space-12: 48px; --space-16: 64px;
+            /* Radius */
+            --radius-sm: 6px; --radius-md: 8px; --radius-lg: 12px;
+            --radius-xl: 16px; --radius-full: 9999px;
+            /* Shadows */
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+            --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
+            --shadow-xl: 0 16px 64px rgba(0,0,0,0.6);
+            --shadow-glow: 0 0 40px rgba(108,92,231,0.3);
+            --shadow-glow-intense: 0 0 80px rgba(108,92,231,0.5);
+            /* Glass */
+            --glass-bg: rgba(10, 10, 18, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.06);
+            --glass-blur: blur(20px);
+            /* Easing */
+            --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+            --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+            --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+            /* Duration */
+            --duration-fast: 150ms; --duration-normal: 250ms;
+            --duration-slow: 400ms; --duration-slower: 600ms;
+        }
+
+        html { font-size: 14px; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        body { font-family: var(--font-primary); background: var(--bg-void); color: var(--text-primary); overflow: hidden; height: 100vh; }
+
+        /* ═══════════════════════════════════════════════════════════════
+           §1 LAYOUT SHELL
+           ═══════════════════════════════════════════════════════════════ */
+        .app { display: flex; height: 100vh; position: relative; }
+
+        /* ── Floating Orbs (ambient depth) ── */
+        .orb { position: fixed; border-radius: 50%; filter: blur(100px); pointer-events: none; z-index: 0; }
+        .orb-1 { width: 600px; height: 600px; background: rgba(108,92,231,0.08); top: -200px; left: -100px; animation: orb-drift-1 25s ease-in-out infinite; }
+        .orb-2 { width: 400px; height: 400px; background: rgba(0,210,255,0.06); bottom: -100px; right: -50px; animation: orb-drift-2 30s ease-in-out infinite; }
+        .orb-3 { width: 300px; height: 300px; background: rgba(255,107,157,0.05); top: 50%; left: 50%; animation: orb-drift-3 20s ease-in-out infinite; }
+
+        @keyframes orb-drift-1 { 0%,100% { transform: translate(0,0) scale(1); } 33% { transform: translate(80px,60px) scale(1.1); } 66% { transform: translate(-40px,100px) scale(0.95); } }
+        @keyframes orb-drift-2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-60px,-80px) scale(1.15); } }
+        @keyframes orb-drift-3 { 0%,100% { transform: translate(-50%,-50%) scale(1); } 50% { transform: translate(-30%,-60%) scale(1.2); } }
+
+        /* ═══════════════════════════════════════════════════════════════
+           §2 SIDEBAR
+           ═══════════════════════════════════════════════════════════════ */
+        .sidebar {
+            width: 240px; min-width: 240px; height: 100vh;
+            background: var(--glass-bg); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+            border-right: 1px solid var(--border-subtle);
+            display: flex; flex-direction: column; z-index: 20;
+            transition: width var(--duration-normal) var(--ease-out), min-width var(--duration-normal) var(--ease-out);
+        }
+        .sidebar.collapsed { width: 64px; min-width: 64px; }
+        .sidebar.collapsed .nav-label, .sidebar.collapsed .sidebar-header span, .sidebar.collapsed .sidebar-footer-text { display: none; }
+        .sidebar.collapsed .nav-item { justify-content: center; padding: 0 var(--space-3); }
+        .sidebar.collapsed .nav-item .icon { margin-right: 0; }
+
+        .sidebar-header {
+            height: 56px; display: flex; align-items: center; padding: 0 var(--space-5);
+            border-bottom: 1px solid var(--border-subtle); gap: var(--space-3);
+        }
+        .sidebar-logo {
+            width: 32px; height: 32px; border-radius: var(--radius-md);
+            background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 16px; color: white; flex-shrink: 0;
+        }
+        .sidebar-header span { font-weight: 700; font-size: 18px; letter-spacing: -0.02em; white-space: nowrap; }
+        .sidebar-header .version {
+            font-size: 10px; background: var(--accent-glow); color: var(--accent-light);
+            padding: 2px 6px; border-radius: var(--radius-full); font-weight: 600;
+        }
+
+        .sidebar-nav { flex: 1; padding: var(--space-3) var(--space-2); overflow-y: auto; }
+        .nav-section { margin-bottom: var(--space-4); }
+        .nav-section-title {
+            font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
+            color: var(--text-tertiary); padding: var(--space-2) var(--space-3); margin-bottom: var(--space-1);
+        }
+        .nav-item {
+            display: flex; align-items: center; padding: var(--space-2) var(--space-3);
+            border-radius: var(--radius-md); cursor: pointer; position: relative;
+            transition: all var(--duration-fast) var(--ease-out); gap: var(--space-3);
+            color: var(--text-secondary); text-decoration: none; margin-bottom: 2px;
+        }
+        .nav-item:hover { background: var(--bg-elevated); color: var(--text-primary); }
+        .nav-item.active {
+            background: var(--bg-surface); color: var(--text-primary);
+            border-left: 3px solid var(--accent); padding-left: calc(var(--space-3) - 3px);
+        }
+        .nav-item .icon { width: 20px; height: 20px; flex-shrink: 0; opacity: 0.7; }
+        .nav-item.active .icon { opacity: 1; }
+        .nav-item .nav-label { font-size: 13px; font-weight: 500; white-space: nowrap; }
+        .nav-item .badge {
+            margin-left: auto; font-size: 10px; font-weight: 600;
+            background: var(--status-error); color: white; padding: 1px 6px;
+            border-radius: var(--radius-full); line-height: 1.4;
+        }
+
+        .sidebar-footer {
+            padding: var(--space-4) var(--space-5); border-top: 1px solid var(--border-subtle);
+            display: flex; align-items: center; gap: var(--space-3);
+        }
+        .sidebar-footer .avatar {
+            width: 32px; height: 32px; border-radius: var(--radius-full);
+            background: linear-gradient(135deg, #FF6B9D, #6C5CE7);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 600; font-size: 12px; color: white; flex-shrink: 0;
+        }
+        .sidebar-footer-text { font-size: 12px; }
+        .sidebar-footer-text .name { font-weight: 600; color: var(--text-primary); }
+        .sidebar-footer-text .role { color: var(--text-tertiary); font-size: 11px; }
+
+        .collapse-btn {
+            position: absolute; top: 14px; right: -12px; width: 24px; height: 24px;
+            background: var(--bg-elevated); border: 1px solid var(--border-default);
+            border-radius: var(--radius-full); display: flex; align-items: center;
+            justify-content: center; cursor: pointer; z-index: 30;
+            transition: all var(--duration-fast) var(--ease-out);
+            color: var(--text-tertiary); font-size: 12px;
+        }
+        .collapse-btn:hover { background: var(--accent); color: white; border-color: var(--accent); }
+
+        /* ═══════════════════════════════════════════════════════════════
+           §3 MAIN CONTENT AREA
+           ═══════════════════════════════════════════════════════════════ */
+        .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; z-index: 1; }
+
+        /* ── Top Bar ── */
+        .topbar {
+            height: 56px; min-height: 56px; display: flex; align-items: center;
+            padding: 0 var(--space-8); gap: var(--space-4);
+            background: rgba(10, 10, 18, 0.8); backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-subtle); z-index: 10;
+        }
+        .search-box {
+            flex: 1; max-width: 400px; position: relative;
+        }
+        .search-box input {
+            width: 100%; height: 36px; background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle); border-radius: var(--radius-md);
+            padding: 0 var(--space-4) 0 36px; color: var(--text-primary);
+            font-family: var(--font-primary); font-size: 13px;
+            transition: all var(--duration-fast) var(--ease-out); outline: none;
+        }
+        .search-box input::placeholder { color: var(--text-tertiary); }
+        .search-box input:focus { border-color: var(--accent); box-shadow: var(--shadow-glow); }
+        .search-box .search-icon {
+            position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+            color: var(--text-tertiary); pointer-events: none;
+        }
+        .search-box .shortcut {
+            position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+            font-size: 10px; font-family: var(--font-mono); color: var(--text-disabled);
+            background: var(--bg-surface); padding: 2px 6px; border-radius: 4px;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .topbar-actions { display: flex; align-items: center; gap: var(--space-2); margin-left: auto; }
+        .topbar-btn {
+            width: 36px; height: 36px; border-radius: var(--radius-md); border: none;
+            background: transparent; color: var(--text-secondary); cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all var(--duration-fast) var(--ease-out); position: relative;
+        }
+        .topbar-btn:hover { background: var(--bg-elevated); color: var(--text-primary); }
+        .topbar-btn .dot {
+            position: absolute; top: 6px; right: 6px; width: 8px; height: 8px;
+            background: var(--status-error); border-radius: var(--radius-full);
+            border: 2px solid var(--bg-base);
+        }
+
+        /* ── Content ── */
+        .content { flex: 1; overflow-y: auto; padding: var(--space-8); scroll-behavior: smooth; }
+        .content::-webkit-scrollbar { width: 6px; }
+        .content::-webkit-scrollbar-track { background: transparent; }
+        .content::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 3px; }
+        .content::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
+
+        /* ═══════════════════════════════════════════════════════════════
+           §4 SHARED COMPONENTS
+           ═══════════════════════════════════════════════════════════════ */
+
+        /* ── Page Header ── */
+        .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: var(--space-8); }
+        .page-header h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; }
+        .page-header .subtitle { font-size: 14px; color: var(--text-secondary); margin-top: var(--space-1); }
+
+        /* ── Buttons ── */
+        .btn {
+            display: inline-flex; align-items: center; gap: var(--space-2);
+            padding: 0 var(--space-4); height: 36px; border-radius: var(--radius-md);
+            font-family: var(--font-primary); font-size: 13px; font-weight: 500;
+            cursor: pointer; transition: all var(--duration-fast) var(--ease-out);
+            border: none; outline: none; text-decoration: none; white-space: nowrap;
+        }
+        .btn-primary {
+            background: var(--accent); color: white;
+            box-shadow: 0 1px 2px rgba(108,92,231,0.3);
+        }
+        .btn-primary:hover { background: #7c6ef0; transform: translateY(-1px); box-shadow: var(--shadow-glow); }
+        .btn-primary:active { transform: translateY(0) scale(0.98); }
+        .btn-secondary {
+            background: transparent; color: var(--text-primary);
+            border: 1px solid var(--border-default);
+        }
+        .btn-secondary:hover { background: var(--bg-elevated); border-color: var(--border-strong); }
+        .btn-ghost { background: transparent; color: var(--text-secondary); }
+        .btn-ghost:hover { background: var(--bg-elevated); color: var(--text-primary); }
+        .btn-danger { background: var(--status-error); color: white; }
+        .btn-danger:hover { filter: brightness(1.1); }
+        .btn-sm { height: 30px; padding: 0 var(--space-3); font-size: 12px; }
+        .btn-icon { width: 36px; padding: 0; justify-content: center; }
+
+        /* ── Badges ── */
+        .badge {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 2px 8px; border-radius: var(--radius-full);
+            font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+        }
+        .badge-success { background: rgba(0,230,118,0.12); color: var(--status-success); }
+        .badge-warning { background: rgba(255,183,77,0.12); color: var(--status-warning); }
+        .badge-error { background: rgba(255,82,82,0.12); color: var(--status-error); }
+        .badge-info { background: rgba(64,196,255,0.12); color: var(--status-info); }
+        .badge-neutral { background: rgba(120,144,156,0.12); color: var(--status-neutral); }
+        .badge-accent { background: var(--accent-glow); color: var(--accent-light); }
+
+        /* ── Status Dot ── */
+        .status-dot { width: 8px; height: 8px; border-radius: var(--radius-full); flex-shrink: 0; }
+        .status-dot.success { background: var(--status-success); box-shadow: 0 0 8px rgba(0,230,118,0.5); }
+        .status-dot.warning { background: var(--status-warning); box-shadow: 0 0 8px rgba(255,183,77,0.5); }
+        .status-dot.error { background: var(--status-error); box-shadow: 0 0 8px rgba(255,82,82,0.5); }
+        .status-dot.info { background: var(--status-info); box-shadow: 0 0 8px rgba(64,196,255,0.5); }
+        .status-dot.neutral { background: var(--status-neutral); }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .status-dot.pulse { animation: pulse 2s ease-in-out infinite; }
+
+        /* ── Cards ── */
+        .card {
+            background: var(--bg-base); border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg); padding: var(--space-6);
+            transition: all var(--duration-normal) var(--ease-out); position: relative; overflow: hidden;
+        }
+        .card:hover { border-color: var(--border-default); box-shadow: var(--shadow-md); }
+        .card-glass {
+            background: var(--glass-bg); backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-border);
+        }
+        /* Gradient border animation */
+        .card-gradient { position: relative; }
+        .card-gradient::before {
+            content: ''; position: absolute; inset: -1px; border-radius: var(--radius-lg);
+            background: linear-gradient(135deg, var(--accent), var(--accent-secondary), var(--accent-tertiary), var(--accent));
+            background-size: 300% 300%; z-index: -1; opacity: 0;
+            transition: opacity var(--duration-normal) var(--ease-out);
+            animation: gradient-rotate 4s linear infinite;
+        }
+        .card-gradient:hover::before { opacity: 1; }
+        @keyframes gradient-rotate { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+
+        /* ── Tables ── */
+        .table-wrap { overflow-x: auto; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); }
+        table { width: 100%; border-collapse: collapse; }
+        thead { position: sticky; top: 0; z-index: 5; }
+        th {
+            background: var(--bg-elevated); padding: var(--space-3) var(--space-4);
+            text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 0.06em; color: var(--text-tertiary);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        td {
+            padding: var(--space-3) var(--space-4); font-size: 13px;
+            border-bottom: 1px solid var(--border-subtle); vertical-align: middle;
+        }
+        tr { transition: background var(--duration-fast) var(--ease-out); }
+        tbody tr:hover { background: var(--bg-elevated); }
+        tr:last-child td { border-bottom: none; }
+        .mono { font-family: var(--font-mono); font-size: 12px; color: var(--accent-light); }
+
+        /* ── Tabs ── */
+        .tabs { display: flex; gap: var(--space-1); margin-bottom: var(--space-6); border-bottom: 1px solid var(--border-subtle); }
+        .tab {
+            padding: var(--space-3) var(--space-4); font-size: 13px; font-weight: 500;
+            color: var(--text-tertiary); cursor: pointer; position: relative;
+            transition: color var(--duration-fast) var(--ease-out); border: none; background: none;
+            font-family: var(--font-primary);
+        }
+        .tab:hover { color: var(--text-secondary); }
+        .tab.active { color: var(--text-primary); }
+        .tab.active::after {
+            content: ''; position: absolute; bottom: -1px; left: 0; right: 0;
+            height: 2px; background: var(--accent); border-radius: 1px;
+        }
+        .tab .count {
+            font-size: 10px; background: var(--bg-surface); padding: 1px 6px;
+            border-radius: var(--radius-full); margin-left: var(--space-2);
+            color: var(--text-tertiary); font-weight: 600;
+        }
+
+        /* ── Progress Bar ── */
+        .progress { height: 4px; background: var(--bg-elevated); border-radius: 2px; overflow: hidden; }
+        .progress-fill {
+            height: 100%; border-radius: 2px;
+            background: linear-gradient(90deg, var(--accent), var(--accent-secondary));
+            transition: width var(--duration-slow) var(--ease-out);
+        }
+        .progress-indeterminate .progress-fill {
+            width: 30% !important; animation: progress-slide 1.5s ease-in-out infinite;
+        }
+        @keyframes progress-slide { 0% { transform: translateX(-100%); } 100% { transform: translateX(400%); } }
+
+        /* ── Grid ── */
+        .grid { display: grid; gap: var(--space-6); }
+        .grid-4 { grid-template-columns: repeat(4, 1fr); }
+        .grid-3 { grid-template-columns: repeat(3, 1fr); }
+        .grid-2 { grid-template-columns: repeat(2, 1fr); }
+        @media (max-width: 1200px) { .grid-4 { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 900px) { .grid-4, .grid-3 { grid-template-columns: 1fr; } }
+
+        /* ── Filter Bar ── */
+        .filter-bar {
+            display: flex; align-items: center; gap: var(--space-3);
+            margin-bottom: var(--space-6); flex-wrap: wrap;
+        }
+        .filter-input {
+            height: 36px; background: var(--bg-elevated); border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md); padding: 0 var(--space-3); color: var(--text-primary);
+            font-family: var(--font-primary); font-size: 13px; outline: none;
+            transition: all var(--duration-fast) var(--ease-out);
+        }
+        .filter-input:focus { border-color: var(--accent); }
+        .filter-input::placeholder { color: var(--text-tertiary); }
+        select.filter-input { cursor: pointer; appearance: none; padding-right: 30px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B6B80' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 10px center;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           §5 PAGE: DASHBOARD
+           ═══════════════════════════════════════════════════════════════ */
+        .kpi-card { padding: var(--space-5); }
+        .kpi-card .kpi-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-3); }
+        .kpi-card .kpi-icon {
+            width: 40px; height: 40px; border-radius: var(--radius-md);
+            display: flex; align-items: center; justify-content: center; font-size: 18px;
+        }
+        .kpi-card .kpi-trend { font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+        .kpi-card .kpi-trend.up { color: var(--status-success); }
+        .kpi-card .kpi-trend.down { color: var(--status-error); }
+        .kpi-card .kpi-value { font-size: 32px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; margin-bottom: var(--space-1); }
+        .kpi-card .kpi-label { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
+        .kpi-card .kpi-sparkline { margin-top: var(--space-3); height: 40px; }
+
+        .chart-card { min-height: 300px; }
+        .chart-card .chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-5); }
+        .chart-card .chart-header h3 { font-size: 16px; font-weight: 600; }
+        .chart-container { position: relative; height: 220px; }
+
+        .health-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-3); }
+        .health-item {
+            display: flex; align-items: center; gap: var(--space-3);
+            padding: var(--space-3) var(--space-4); background: var(--bg-elevated);
+            border-radius: var(--radius-md); border: 1px solid var(--border-subtle);
+            transition: all var(--duration-fast) var(--ease-out);
+        }
+        .health-item:hover { border-color: var(--border-default); }
+        .health-item .service-name { font-size: 13px; font-weight: 500; }
+        .health-item .service-status { font-size: 11px; color: var(--text-tertiary); }
+
+        .activity-list { display: flex; flex-direction: column; gap: var(--space-1); }
+        .activity-item {
+            display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3);
+            border-radius: var(--radius-md); transition: background var(--duration-fast);
+        }
+        .activity-item:hover { background: var(--bg-elevated); }
+        .activity-item .activity-icon {
+            width: 32px; height: 32px; border-radius: var(--radius-full);
+            display: flex; align-items: center; justify-content: center; font-size: 14px;
+            flex-shrink: 0;
+        }
+        .activity-item .activity-text { font-size: 13px; flex: 1; }
+        .activity-item .activity-text strong { font-weight: 600; }
+        .activity-item .activity-time { font-size: 11px; color: var(--text-tertiary); white-space: nowrap; }
+
+        /* ═══════════════════════════════════════════════════════════════
+           §6 PAGE: JOBS
+           ═══════════════════════════════════════════════════════════════ */
+        .job-type-badge {
+            font-family: var(--font-mono); font-size: 11px; padding: 2px 8px;
+            border-radius: var(--radius-sm); background: var(--bg-surface);
+            color: var(--accent-light); border: 1px solid var(--border-default);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           §7 PAGE: DATA SOURCES
+           ═══════════════════════════════════════════════════════════════ */
+        .source-card {
+            display: flex; flex-direction: column; gap: var(--space-4);
+        }
+        .source-card .source-header { display: flex; align-items: center; gap: var(--space-3); }
+        .source-card .source-icon {
+            width: 48px; height: 48px; border-radius: var(--radius-lg);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; flex-shrink: 0;
+        }
+        .source-card .source-meta { display: flex; align-items: center; gap: var(--space-4); font-size: 12px; color: var(--text-tertiary); }
+        .source-card .source-stats { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+        .source-card .stat { padding: var(--space-3); background: var(--bg-elevated); border-radius: var(--radius-md); }
+        .source-card .stat-label { font-size: 11px; color: var(--text-tertiary); margin-bottom: 2px; }
+        .source-card .stat-value { font-size: 16px; font-weight: 700; }
+
+        /* ═══════════════════════════════════════════════════════════════
+           §8 PAGE: GOVERNANCE
+           ═══════════════════════════════════════════════════════════════ */
+        .policy-card { display: flex; flex-direction: column; gap: var(--space-3); }
+        .policy-card .policy-header { display: flex; align-items: flex-start; justify-content: space-between; }
+        .policy-card .enforcement { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: var(--radius-sm); }
+        .policy-card .enforcement.strict { background: rgba(255,82,82,0.12); color: var(--status-error); }
+        .policy-card .enforcement.warning { background: rgba(255,183,77,0.12); color: var(--status-warning); }
+        .policy-card .enforcement.audit { background: rgba(64,196,255,0.12); color: var(--status-info); }
+        .policy-card .policy-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+        .policy-card .policy-footer { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--text-tertiary); }
+
+        .toggle {
+            width: 44px; height: 24px; background: var(--border-default);
+            border-radius: var(--radius-full); position: relative; cursor: pointer;
+            transition: background var(--duration-fast) var(--ease-out); border: none;
+        }
+        .toggle::after {
+            content: ''; position: absolute; top: 3px; left: 3px;
+            width: 18px; height: 18px; background: white; border-radius: var(--radius-full);
+            transition: transform var(--duration-fast) var(--ease-spring);
+        }
+        .toggle.active { background: var(--accent); }
+        .toggle.active::after { transform: translateX(20px); }
+
+        /* ═══════════════════════════════════════════════════════════════
+           §9 PAGE: CAPSULES
+           ═══════════════════════════════════════════════════════════════ */
+        .capsule-card { display: flex; flex-direction: column; gap: var(--space-3); }
+        .capsule-card .capsule-icon {
+            width: 56px; height: 56px; border-radius: var(--radius-lg);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 28px; position: relative; overflow: hidden;
+        }
+        .capsule-card .capsule-icon::before {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
+        }
+        .capsule-card .capsule-name { font-size: 16px; font-weight: 600; }
+        .capsule-card .capsule-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .capsule-card .capsule-meta { display: flex; align-items: center; gap: var(--space-3); font-size: 12px; color: var(--text-tertiary); }
+        .capsule-card .capsule-stars { color: var(--status-warning); }
+        .capsule-card .capsule-tags { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+        .capsule-card .capsule-tag {
+            font-size: 10px; padding: 2px 8px; background: var(--bg-surface);
+            border-radius: var(--radius-full); color: var(--text-tertiary); font-weight: 500;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           §10 PAGE: SYSTEM
+           ═══════════════════════════════════════════════════════════════ */
+        .setting-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: var(--space-4) 0; border-bottom: 1px solid var(--border-subtle);
+        }
+        .setting-row:last-child { border-bottom: none; }
+        .setting-info { flex: 1; margin-right: var(--space-6); }
+        .setting-name { font-size: 14px; font-weight: 500; margin-bottom: 2px; }
+        .setting-desc { font-size: 12px; color: var(--text-tertiary); }
+        .setting-control { flex-shrink: 0; }
+        .setting-input {
+            height: 36px; width: 280px; background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle); border-radius: var(--radius-md);
+            padding: 0 var(--space-3); color: var(--text-primary);
+            font-family: var(--font-mono); font-size: 12px; outline: none;
+            transition: all var(--duration-fast) var(--ease-out);
+        }
+        .setting-input:focus { border-color: var(--accent); box-shadow: var(--shadow-glow); }
+
+        .uptime-grid { display: grid; grid-template-columns: repeat(30, 1fr); gap: 2px; }
+        .uptime-cell {
+            height: 24px; border-radius: 2px;
+            transition: all var(--duration-fast) var(--ease-out);
+        }
+        .uptime-cell:hover { transform: scaleY(1.3); }
+        .uptime-cell.good { background: var(--status-success); opacity: 0.7; }
+        .uptime-cell.warn { background: var(--status-warning); opacity: 0.8; }
+        .uptime-cell.bad { background: var(--status-error); opacity: 0.8; }
+
+        .resource-meter { display: flex; flex-direction: column; gap: var(--space-2); }
+        .resource-meter .meter-header { display: flex; justify-content: space-between; font-size: 12px; }
+        .resource-meter .meter-label { color: var(--text-secondary); font-weight: 500; }
+        .resource-meter .meter-value { color: var(--text-primary); font-weight: 600; font-family: var(--font-mono); }
+        .resource-meter .meter-bar { height: 8px; background: var(--bg-elevated); border-radius: 4px; overflow: hidden; }
+        .resource-meter .meter-fill { height: 100%; border-radius: 4px; transition: width 1s var(--ease-out); }
+
+        /* ═══════════════════════════════════════════════════════════════
+           §11 PAGE VISIBILITY
+           ═══════════════════════════════════════════════════════════════ */
+        .page { display: none; animation: page-enter var(--duration-slow) var(--ease-out); }
+        .page.active { display: block; }
+        @keyframes page-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ═══════════════════════════════════════════════════════════════
+           §12 MODAL
+           ═══════════════════════════════════════════════════════════════ */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px); z-index: 100;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none;
+            transition: opacity var(--duration-normal) var(--ease-out);
+        }
+        .modal-overlay.open { opacity: 1; pointer-events: all; }
+        .modal {
+            background: var(--bg-base); border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-xl); padding: var(--space-8);
+            max-width: 560px; width: 90%; max-height: 80vh; overflow-y: auto;
+            box-shadow: var(--shadow-xl);
+            transform: scale(0.95) translateY(10px);
+            transition: transform var(--duration-normal) var(--ease-spring);
+        }
+        .modal-overlay.open .modal { transform: scale(1) translateY(0); }
+        .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-6); }
+        .modal-header h2 { font-size: 20px; font-weight: 700; }
+        .modal-close {
+            width: 32px; height: 32px; border-radius: var(--radius-md); border: none;
+            background: var(--bg-elevated); color: var(--text-secondary); cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all var(--duration-fast);
+        }
+        .modal-close:hover { background: var(--status-error); color: white; }
+
+        /* ═══════════════════════════════════════════════════════════════
+           §13 TOAST
+           ═══════════════════════════════════════════════════════════════ */
+        .toast-container { position: fixed; bottom: var(--space-6); right: var(--space-6); z-index: 200; display: flex; flex-direction: column; gap: var(--space-3); }
+        .toast {
+            background: var(--bg-elevated); border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5);
+            min-width: 360px; box-shadow: var(--shadow-lg);
+            display: flex; align-items: center; gap: var(--space-3);
+            animation: toast-in var(--duration-slow) var(--ease-spring);
+            position: relative; overflow: hidden;
+        }
+        .toast.removing { animation: toast-out var(--duration-normal) var(--ease-out) forwards; }
+        .toast::after {
+            content: ''; position: absolute; bottom: 0; left: 0; height: 2px;
+            background: var(--accent); animation: toast-progress 5s linear forwards;
+        }
+        .toast-success { border-left: 3px solid var(--status-success); }
+        .toast-success::after { background: var(--status-success); }
+        .toast-error { border-left: 3px solid var(--status-error); }
+        .toast-error::after { background: var(--status-error); }
+        .toast .toast-msg { font-size: 13px; flex: 1; }
+        @keyframes toast-in { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes toast-out { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(100%); } }
+        @keyframes toast-progress { from { width: 100%; } to { width: 0%; } }
+
+        /* ═══════════════════════════════════════════════════════════════
+           §14 UTILITY
+           ═══════════════════════════════════════════════════════════════ */
+        .flex { display: flex; } .flex-col { flex-direction: column; } .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; } .gap-2 { gap: var(--space-2); }
+        .gap-3 { gap: var(--space-3); } .gap-4 { gap: var(--space-4); } .gap-6 { gap: var(--space-6); }
+        .mt-2 { margin-top: var(--space-2); } .mt-4 { margin-top: var(--space-4); } .mt-6 { margin-top: var(--space-6); }
+        .mb-4 { margin-bottom: var(--space-4); } .mb-6 { margin-bottom: var(--space-6); }
+        .text-sm { font-size: 12px; } .text-muted { color: var(--text-tertiary); }
+        .text-right { text-align: right; } .font-mono { font-family: var(--font-mono); }
+        .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .w-full { width: 100%; } .relative { position: relative; }
+
+        /* Skeleton shimmer for demo */
+        .skeleton {
+            background: linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-surface) 50%, var(--bg-elevated) 75%);
+            background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: var(--radius-md);
+        }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- Ambient orbs -->
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+
+        <!-- ═══════════ SIDEBAR ═══════════ -->
+        <nav class="sidebar" id="sidebar">
+            <button class="collapse-btn" onclick="toggleSidebar()" title="Toggle sidebar">«</button>
+            <div class="sidebar-header">
+                <div class="sidebar-logo">V</div>
+                <span>Voyant</span>
+                <span class="version">v3.0</span>
+            </div>
+            <div class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Overview</div>
+                    <a class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                        <span class="nav-label">Dashboard</span>
+                    </a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Operations</div>
+                    <a class="nav-item" data-page="jobs" onclick="navigate('jobs')">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>
+                        <span class="nav-label">Job Center</span>
+                        <span class="badge">3</span>
+                    </a>
+                    <a class="nav-item" data-page="sources" onclick="navigate('sources')">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                        <span class="nav-label">Data Sources</span>
+                    </a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Platform</div>
+                    <a class="nav-item" data-page="governance" onclick="navigate('governance')">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        <span class="nav-label">Governance</span>
+                    </a>
+                    <a class="nav-item" data-page="capsules" onclick="navigate('capsules')">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg>
+                        <span class="nav-label">Capsules</span>
+                    </a>
+                    <a class="nav-item" data-page="system" onclick="navigate('system')">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.32 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                        <span class="nav-label">System</span>
+                    </a>
+                </div>
+            </div>
+            <div class="sidebar-footer">
+                <div class="avatar">AK</div>
+                <div class="sidebar-footer-text">
+                    <div class="name">Alex K.</div>
+                    <div class="role">Admin</div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- ═══════════ MAIN ═══════════ -->
+        <div class="main">
+            <!-- Top Bar -->
+            <header class="topbar">
+                <div class="search-box">
+                    <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                    <input type="text" placeholder="Search jobs, sources, policies...">
+                    <span class="shortcut">⌘K</span>
+                </div>
+                <div class="topbar-actions">
+                    <button class="topbar-btn" title="Notifications" onclick="showToast('No new notifications', 'success')">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+                        <span class="dot"></span>
+                    </button>
+                    <button class="topbar-btn" title="Help">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r="0.5" fill="currentColor"/></svg>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Content -->
+            <div class="content">
+
+                <!-- ═══════════ DASHBOARD PAGE ═══════════ -->
+                <div class="page active" id="page-dashboard">
+                    <div class="page-header">
+                        <div>
+                            <h1>Dashboard</h1>
+                            <p class="subtitle">System overview and real-time metrics</p>
+                        </div>
+                        <div class="flex gap-3">
+                            <button class="btn btn-secondary btn-sm">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                Export
+                            </button>
+                            <button class="btn btn-primary btn-sm" onclick="showToast('Dashboard refreshed', 'success')">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+                                Refresh
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- KPI Cards -->
+                    <div class="grid grid-4 mb-6">
+                        <div class="card card-gradient kpi-card">
+                            <div class="kpi-header">
+                                <div class="kpi-icon" style="background:rgba(108,92,231,0.15);color:var(--accent-light);">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                </div>
+                                <span class="kpi-trend up">↑ 12%</span>
+                            </div>
+                            <div class="kpi-value">1,284</div>
+                            <div class="kpi-label">Total Jobs</div>
+                            <canvas class="kpi-sparkline" id="sparkline-jobs"></canvas>
+                        </div>
+                        <div class="card card-gradient kpi-card">
+                            <div class="kpi-header">
+                                <div class="kpi-icon" style="background:rgba(0,230,118,0.15);color:var(--status-success);">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                                </div>
+                                <span class="kpi-trend up">↑ 3</span>
+                            </div>
+                            <div class="kpi-value">18</div>
+                            <div class="kpi-label">Active Sources</div>
+                            <canvas class="kpi-sparkline" id="sparkline-sources"></canvas>
+                        </div>
+                        <div class="card card-gradient kpi-card">
+                            <div class="kpi-header">
+                                <div class="kpi-icon" style="background:rgba(0,210,255,0.15);color:var(--accent-secondary);">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+                                </div>
+                                <span class="kpi-trend up">↑ 8%</span>
+                            </div>
+                            <div class="kpi-value">342</div>
+                            <div class="kpi-label">Artifacts</div>
+                            <canvas class="kpi-sparkline" id="sparkline-artifacts"></canvas>
+                        </div>
+                        <div class="card card-gradient kpi-card">
+                            <div class="kpi-header">
+                                <div class="kpi-icon" style="background:rgba(255,107,157,0.15);color:var(--accent-tertiary);">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                                </div>
+                                <span class="kpi-trend down">↓ 2</span>
+                            </div>
+                            <div class="kpi-value">7</div>
+                            <div class="kpi-label">Active Tenants</div>
+                            <canvas class="kpi-sparkline" id="sparkline-tenants"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Charts Row -->
+                    <div class="grid grid-2 mb-6">
+                        <div class="card chart-card">
+                            <div class="chart-header">
+                                <h3>Job Throughput</h3>
+                                <div class="flex gap-2">
+                                    <button class="btn btn-ghost btn-sm tab-btn active" data-range="24h">24h</button>
+                                    <button class="btn btn-ghost btn-sm tab-btn" data-range="7d">7d</button>
+                                    <button class="btn btn-ghost btn-sm tab-btn" data-range="30d">30d</button>
+                                </div>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="chart-jobs"></canvas>
+                            </div>
+                        </div>
+                        <div class="card chart-card">
+                            <div class="chart-header">
+                                <h3>System Health</h3>
+                                <span class="badge badge-success">All Systems Operational</span>
+                            </div>
+                            <div class="health-grid" id="health-grid">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity -->
+                    <div class="card">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 style="font-size:16px;font-weight:600;">Recent Activity</h3>
+                            <button class="btn btn-ghost btn-sm">View All</button>
+                        </div>
+                        <div class="activity-list" id="activity-list">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ═══════════ JOBS PAGE ═══════════ -->
+                <div class="page" id="page-jobs">
+                    <div class="page-header">
+                        <div>
+                            <h1>Job Center</h1>
+                            <p class="subtitle">Monitor and manage async data processing jobs</p>
+                        </div>
+                        <button class="btn btn-primary" onclick="openModal()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            New Job
+                        </button>
+                    </div>
+
+                    <div class="tabs">
+                        <button class="tab active">All <span class="count">24</span></button>
+                        <button class="tab">Running <span class="count">3</span></button>
+                        <button class="tab">Queued <span class="count">5</span></button>
+                        <button class="tab">Failed <span class="count">2</span></button>
+                        <button class="tab">Completed <span class="count">14</span></button>
+                    </div>
+
+                    <div class="filter-bar">
+                        <input class="filter-input" type="text" placeholder="Search jobs..." style="width:240px;">
+                        <select class="filter-input">
+                            <option>All Types</option>
+                            <option>ingest</option>
+                            <option>profile</option>
+                            <option>quality</option>
+                            <option>analyze</option>
+                        </select>
+                        <select class="filter-input">
+                            <option>All Sources</option>
+                            <option>postgres-prod</option>
+                            <option>s3-warehouse</option>
+                            <option>api-partners</option>
+                        </select>
+                    </div>
+
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Job ID</th>
+                                    <th>Type</th>
+                                    <th>Source</th>
+                                    <th>Status</th>
+                                    <th>Progress</th>
+                                    <th>Created</th>
+                                    <th style="text-align:right;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="jobs-table-body">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ═══════════ SOURCES PAGE ═══════════ -->
+                <div class="page" id="page-sources">
+                    <div class="page-header">
+                        <div>
+                            <h1>Data Sources</h1>
+                            <p class="subtitle">Manage external data source connections</p>
+                        </div>
+                        <button class="btn btn-primary" onclick="showToast('Source wizard coming soon', 'success')">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Add Source
+                        </button>
+                    </div>
+
+                    <div class="tabs">
+                        <button class="tab active">All Sources</button>
+                        <button class="tab">Connected</button>
+                        <button class="tab">Error</button>
+                        <button class="tab">Syncing</button>
+                    </div>
+
+                    <div class="grid grid-3" id="sources-grid">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- ═══════════ GOVERNANCE PAGE ═══════════ -->
+                <div class="page" id="page-governance">
+                    <div class="page-header">
+                        <div>
+                            <h1>Governance</h1>
+                            <p class="subtitle">Security policies, data contracts, and compliance</p>
+                        </div>
+                        <button class="btn btn-primary">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            New Policy
+                        </button>
+                    </div>
+
+                    <div class="tabs">
+                        <button class="tab active">Policies <span class="count">6</span></button>
+                        <button class="tab">Contracts <span class="count">4</span></button>
+                        <button class="tab">Quotas <span class="count">7</span></button>
+                    </div>
+
+                    <div class="grid grid-2" id="policies-grid">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- ═══════════ CAPSULES PAGE ═══════════ -->
+                <div class="page" id="page-capsules">
+                    <div class="page-header">
+                        <div>
+                            <h1>Capsules</h1>
+                            <p class="subtitle">Modular processing units and integrations</p>
+                        </div>
+                        <button class="btn btn-primary" onclick="openModal()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Create Capsule
+                        </button>
+                    </div>
+
+                    <div class="filter-bar">
+                        <input class="filter-input" type="text" placeholder="Search capsules..." style="width:240px;">
+                        <select class="filter-input">
+                            <option>All Categories</option>
+                            <option>Data Processing</option>
+                            <option>ML / AI</option>
+                            <option>Integration</option>
+                            <option>Analytics</option>
+                        </select>
+                        <select class="filter-input">
+                            <option>All Statuses</option>
+                            <option>Active</option>
+                            <option>Draft</option>
+                            <option>Deprecated</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-3" id="capsules-grid">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- ═══════════ SYSTEM PAGE ═══════════ -->
+                <div class="page" id="page-system">
+                    <div class="page-header">
+                        <div>
+                            <h1>System</h1>
+                            <p class="subtitle">Platform configuration and infrastructure health</p>
+                        </div>
+                    </div>
+
+                    <div class="tabs">
+                        <button class="tab active">General</button>
+                        <button class="tab">Security</button>
+                        <button class="tab">Integrations</button>
+                        <button class="tab">Audit Log</button>
+                    </div>
+
+                    <!-- Settings Card -->
+                    <div class="card mb-6">
+                        <h3 style="font-size:16px;font-weight:600;margin-bottom:var(--space-5);">Platform Settings</h3>
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <div class="setting-name">Platform Name</div>
+                                <div class="setting-desc">Display name shown in the UI and API responses</div>
+                            </div>
+                            <div class="setting-control">
+                                <input class="setting-input" type="text" value="Voyant Production">
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <div class="setting-name">Environment</div>
+                                <div class="setting-desc">Current deployment environment</div>
+                            </div>
+                            <div class="setting-control">
+                                <span class="badge badge-accent">production</span>
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <div class="setting-name">Debug Mode</div>
+                                <div class="setting-desc">Enable verbose logging and error details</div>
+                            </div>
+                            <div class="setting-control">
+                                <button class="toggle" onclick="this.classList.toggle('active')"></button>
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <div class="setting-name">Max Concurrent Jobs</div>
+                                <div class="setting-desc">Maximum number of jobs that can run simultaneously</div>
+                            </div>
+                            <div class="setting-control">
+                                <input class="setting-input" type="number" value="10" style="width:100px;">
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <div class="setting-name">Data Retention (days)</div>
+                                <div class="setting-desc">How long to keep completed job data and artifacts</div>
+                            </div>
+                            <div class="setting-control">
+                                <input class="setting-input" type="number" value="90" style="width:100px;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Infrastructure Health -->
+                    <div class="card mb-6">
+                        <h3 style="font-size:16px;font-weight:600;margin-bottom:var(--space-5);">Infrastructure Health</h3>
+                        <div class="health-grid mb-6" id="system-health-grid">
+                            <!-- Populated by JS -->
+                        </div>
+                        <h4 style="font-size:14px;font-weight:600;margin-bottom:var(--space-4);">Uptime (30 days)</h4>
+                        <div class="uptime-grid" id="uptime-grid">
+                            <!-- Populated by JS -->
+                        </div>
+                        <div class="flex justify-between mt-2 text-sm text-muted">
+                            <span>30 days ago</span>
+                            <span>Today</span>
+                        </div>
+                    </div>
+
+                    <!-- Resource Usage -->
+                    <div class="card">
+                        <h3 style="font-size:16px;font-weight:600;margin-bottom:var(--space-5);">Resource Usage</h3>
+                        <div class="grid grid-3 gap-6">
+                            <div class="resource-meter">
+                                <div class="meter-header">
+                                    <span class="meter-label">CPU</span>
+                                    <span class="meter-value">34%</span>
+                                </div>
+                                <div class="meter-bar">
+                                    <div class="meter-fill" style="width:34%;background:linear-gradient(90deg,var(--accent),var(--accent-secondary));"></div>
+                                </div>
+                            </div>
+                            <div class="resource-meter">
+                                <div class="meter-header">
+                                    <span class="meter-label">Memory</span>
+                                    <span class="meter-value">67%</span>
+                                </div>
+                                <div class="meter-bar">
+                                    <div class="meter-fill" style="width:67%;background:linear-gradient(90deg,var(--status-warning),var(--accent-tertiary));"></div>
+                                </div>
+                            </div>
+                            <div class="resource-meter">
+                                <div class="meter-header">
+                                    <span class="meter-label">Disk</span>
+                                    <span class="meter-value">52%</span>
+                                </div>
+                                <div class="meter-bar">
+                                    <div class="meter-fill" style="width:52%;background:linear-gradient(90deg,var(--status-success),var(--accent-secondary));"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════ MODAL ═══════════ -->
+    <div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Create New Job</h2>
+                <button class="modal-close" onclick="closeModal()">✕</button>
+            </div>
+            <div class="flex flex-col gap-4">
+                <div>
+                    <label style="font-size:12px;font-weight:500;color:var(--text-secondary);display:block;margin-bottom:6px;">Job Type</label>
+                    <select class="filter-input w-full" style="height:40px;">
+                        <option>ingest</option>
+                        <option>profile</option>
+                        <option>quality</option>
+                        <option>analyze</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:12px;font-weight:500;color:var(--text-secondary);display:block;margin-bottom:6px;">Data Source</label>
+                    <select class="filter-input w-full" style="height:40px;">
+                        <option>postgres-prod</option>
+                        <option>s3-warehouse</option>
+                        <option>api-partners</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:12px;font-weight:500;color:var(--text-secondary);display:block;margin-bottom:6px;">Parameters (JSON)</label>
+                    <textarea class="filter-input w-full" style="height:100px;padding:10px;font-family:var(--font-mono);font-size:12px;resize:vertical;" placeholder='{"table": "users", "limit": 1000}'></textarea>
+                </div>
+                <div class="flex gap-3" style="justify-content:flex-end;margin-top:var(--space-2);">
+                    <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="closeModal();showToast('Job created successfully','success')">Create Job</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script>
+        /* ═══════════════════════════════════════════════════════════════
+           NAVIGATION
+           ═══════════════════════════════════════════════════════════════ */
+        function navigate(page) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('page-' + page).classList.add('active');
+            document.querySelector(`.nav-item[data-page="${page}"]`).classList.add('active');
+            document.querySelector('.content').scrollTop = 0;
+        }
+
+        function toggleSidebar() {
+            const sb = document.getElementById('sidebar');
+            sb.classList.toggle('collapsed');
+            sb.querySelector('.collapse-btn').textContent = sb.classList.contains('collapsed') ? '»' : '«';
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           MODAL
+           ═══════════════════════════════════════════════════════════════ */
+        function openModal() { document.getElementById('modal-overlay').classList.add('open'); }
+        function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+        /* ═══════════════════════════════════════════════════════════════
+           TOASTS
+           ═══════════════════════════════════════════════════════════════ */
+        function showToast(msg, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${type==='success'?'var(--status-success)':'var(--status-error)'}" stroke-width="2">
+                    ${type === 'success'
+                        ? '<path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>'
+                        : '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>'}
+                </svg>
+                <span class="toast-msg">${msg}</span>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => { toast.classList.add('removing'); setTimeout(() => toast.remove(), 300); }, 5000);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           SPARKLINES (tiny line charts)
+           ═══════════════════════════════════════════════════════════════ */
+        function createSparkline(canvasId, data, color) {
+            const ctx = document.getElementById(canvasId);
+            if (!ctx) return;
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map((_, i) => i),
+                    datasets: [{
+                        data, borderColor: color, borderWidth: 1.5,
+                        backgroundColor: color.replace(')', ',0.1)').replace('rgb', 'rgba'),
+                        fill: true, tension: 0.4, pointRadius: 0,
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                    scales: { x: { display: false }, y: { display: false } },
+                    elements: { line: { capBezierPoints: true } }
+                }
+            });
+        }
+
+        createSparkline('sparkline-jobs', [40,55,48,62,58,72,68,80,75,88,92,85], 'rgb(108,92,231)');
+        createSparkline('sparkline-sources', [10,11,11,12,13,13,14,15,15,16,17,18], 'rgb(0,230,118)');
+        createSparkline('sparkline-artifacts', [120,140,135,160,180,200,210,240,260,290,310,342], 'rgb(0,210,255)');
+        createSparkline('sparkline-tenants', [5,5,6,6,7,8,8,9,8,8,7,7], 'rgb(255,107,157)');
+
+        /* ═══════════════════════════════════════════════════════════════
+           JOB THROUGHPUT CHART
+           ═══════════════════════════════════════════════════════════════ */
+        const jobsCtx = document.getElementById('chart-jobs');
+        if (jobsCtx) {
+            new Chart(jobsCtx, {
+                type: 'line',
+                data: {
+                    labels: ['00:00','02:00','04:00','06:00','08:00','10:00','12:00','14:00','16:00','18:00','20:00','22:00'],
+                    datasets: [
+                        {
+                            label: 'Completed',
+                            data: [12,19,15,25,32,48,55,62,58,45,38,28],
+                            borderColor: '#00E676', backgroundColor: 'rgba(0,230,118,0.08)',
+                            fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0,
+                            pointHoverRadius: 4, pointHoverBackgroundColor: '#00E676',
+                        },
+                        {
+                            label: 'Failed',
+                            data: [1,2,1,3,2,4,3,5,2,3,2,1],
+                            borderColor: '#FF5252', backgroundColor: 'rgba(255,82,82,0.08)',
+                            fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0,
+                            pointHoverRadius: 4, pointHoverBackgroundColor: '#FF5252',
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    interaction: { intersect: false, mode: 'index' },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: '#9E9EB8', font: { family: 'Inter', size: 11 }, usePointStyle: true, pointStyle: 'circle', padding: 20 }
+                        },
+                        tooltip: {
+                            backgroundColor: '#1A1A28', titleColor: '#E8E8F0', bodyColor: '#9E9EB8',
+                            borderColor: '#2A2A3C', borderWidth: 1, cornerRadius: 8,
+                            padding: 12, titleFont: { family: 'Inter', weight: '600' },
+                            bodyFont: { family: 'Inter' }, displayColors: true,
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(30,30,46,0.5)', drawBorder: false },
+                            ticks: { color: '#6B6B80', font: { family: 'Inter', size: 11 } }
+                        },
+                        y: {
+                            grid: { color: 'rgba(30,30,46,0.5)', drawBorder: false },
+                            ticks: { color: '#6B6B80', font: { family: 'Inter', size: 11 } },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           HEALTH GRID (Dashboard + System)
+           ═══════════════════════════════════════════════════════════════ */
+        const healthServices = [
+            { name: 'PostgreSQL', status: 'success', detail: 'Connected' },
+            { name: 'Redis', status: 'success', detail: 'Connected' },
+            { name: 'Temporal', status: 'success', detail: 'Connected' },
+            { name: 'MinIO', status: 'success', detail: 'Connected' },
+            { name: 'Kafka', status: 'warning', detail: 'Degraded' },
+            { name: 'Milvus', status: 'success', detail: 'Connected' },
+            { name: 'Trino', status: 'success', detail: 'Connected' },
+            { name: 'Vault', status: 'success', detail: 'Sealed' },
+        ];
+
+        function renderHealthGrid(containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            container.innerHTML = healthServices.map(s => `
+                <div class="health-item">
+                    <div class="status-dot ${s.status} ${s.status==='success'?'pulse':''}"></div>
+                    <div>
+                        <div class="service-name">${s.name}</div>
+                        <div class="service-status">${s.detail}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        renderHealthGrid('health-grid');
+        renderHealthGrid('system-health-grid');
+
+        /* ═══════════════════════════════════════════════════════════════
+           ACTIVITY LIST
+           ═══════════════════════════════════════════════════════════════ */
+        const activities = [
+            { icon: '⚡', bg: 'rgba(0,230,118,0.15)', text: '<strong>ingest</strong> job completed on <strong>postgres-prod</strong>', time: '2 min ago' },
+            { icon: '🔄', bg: 'rgba(64,196,255,0.15)', text: '<strong>s3-warehouse</strong> sync started', time: '8 min ago' },
+            { icon: '🛡️', bg: 'rgba(255,183,77,0.15)', text: 'Policy <strong>PII Detection</strong> triggered on artifact #a3f2', time: '15 min ago' },
+            { icon: '❌', bg: 'rgba(255,82,82,0.15)', text: '<strong>quality</strong> job failed on <strong>api-partners</strong>: timeout', time: '23 min ago' },
+            { icon: '📦', bg: 'rgba(108,92,231,0.15)', text: 'Capsule <strong>data-cleaner v2.1</strong> installed', time: '1 hour ago' },
+            { icon: '👤', bg: 'rgba(255,107,157,0.15)', text: 'New tenant <strong>acme-corp</strong> provisioned', time: '2 hours ago' },
+        ];
+        document.getElementById('activity-list').innerHTML = activities.map(a => `
+            <div class="activity-item">
+                <div class="activity-icon" style="background:${a.bg}">${a.icon}</div>
+                <div class="activity-text">${a.text}</div>
+                <div class="activity-time">${a.time}</div>
+            </div>
+        `).join('');
+
+        /* ═══════════════════════════════════════════════════════════════
+           JOBS TABLE
+           ═══════════════════════════════════════════════════════════════ */
+        const jobs = [
+            { id: 'j-8f3a2c', type: 'ingest', source: 'postgres-prod', status: 'running', progress: 67, created: '2 min ago' },
+            { id: 'j-7e2b1d', type: 'profile', source: 's3-warehouse', status: 'running', progress: 34, created: '5 min ago' },
+            { id: 'j-6d1c0e', type: 'quality', source: 'api-partners', status: 'queued', progress: 0, created: '8 min ago' },
+            { id: 'j-5c0b9f', type: 'ingest', source: 'postgres-prod', status: 'completed', progress: 100, created: '15 min ago' },
+            { id: 'j-4b9a8g', type: 'analyze', source: 's3-warehouse', status: 'completed', progress: 100, created: '22 min ago' },
+            { id: 'j-3a897h', type: 'quality', source: 'api-partners', status: 'failed', progress: 45, created: '30 min ago' },
+            { id: 'j-29786i', type: 'ingest', source: 'postgres-prod', status: 'completed', progress: 100, created: '45 min ago' },
+            { id: 'j-18675j', type: 'profile', source: 'kafka-events', status: 'completed', progress: 100, created: '1 hour ago' },
+        ];
+
+        const statusConfig = {
+            running: { class: 'badge-info', label: 'Running' },
+            queued: { class: 'badge-warning', label: 'Queued' },
+            completed: { class: 'badge-success', label: 'Completed' },
+            failed: { class: 'badge-error', label: 'Failed' },
+        };
+
+        document.getElementById('jobs-table-body').innerHTML = jobs.map(j => `
+            <tr>
+                <td><span class="mono">${j.id}</span></td>
+                <td><span class="job-type-badge">${j.type}</span></td>
+                <td>${j.source}</td>
+                <td><span class="badge ${statusConfig[j.status].class}">${statusConfig[j.status].label}</span></td>
+                <td style="min-width:120px;">
+                    ${j.status === 'running'
+                        ? `<div class="progress progress-indeterminate"><div class="progress-fill" style="width:${j.progress}%"></div></div>`
+                        : j.status === 'failed'
+                            ? `<div class="progress"><div class="progress-fill" style="width:${j.progress}%;background:var(--status-error)"></div></div>`
+                            : `<div class="progress"><div class="progress-fill" style="width:${j.progress}%"></div></div>`
+                    }
+                </td>
+                <td class="text-muted">${j.created}</td>
+                <td class="text-right">
+                    <button class="btn btn-ghost btn-sm btn-icon" title="View Details" onclick="showToast('Job detail view coming soon','success')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
+                    ${j.status === 'running' ? `<button class="btn btn-ghost btn-sm btn-icon" title="Cancel" onclick="showToast('Job cancelled','error')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg></button>` : ''}
+                    ${j.status === 'failed' ? `<button class="btn btn-ghost btn-sm btn-icon" title="Retry" onclick="showToast('Job queued for retry','success')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg></button>` : ''}
+                </td>
+            </tr>
+        `).join('');
+
+        /* ═══════════════════════════════════════════════════════════════
+           DATA SOURCES
+           ═══════════════════════════════════════════════════════════════ */
+        const sources = [
+            { name: 'PostgreSQL Production', type: 'PostgreSQL', icon: '🐘', bg: 'rgba(64,196,255,0.15)', status: 'success', statusLabel: 'Connected', records: '2.4M', lastSync: '3 min ago', tables: 48 },
+            { name: 'S3 Data Warehouse', type: 'S3', icon: '☁️', bg: 'rgba(255,183,77,0.15)', status: 'success', statusLabel: 'Connected', records: '8.1M', lastSync: '12 min ago', tables: 24 },
+            { name: 'Partner APIs', type: 'REST API', icon: '🔌', bg: 'rgba(255,82,82,0.15)', status: 'error', statusLabel: 'Error', records: '156K', lastSync: '2 hours ago', tables: 8 },
+            { name: 'Kafka Events', type: 'Kafka', icon: '📊', bg: 'rgba(108,92,231,0.15)', status: 'info', statusLabel: 'Syncing', records: '5.2M', lastSync: 'Now', tables: 12 },
+            { name: 'MongoDB Users', type: 'MongoDB', icon: '🍃', bg: 'rgba(0,230,118,0.15)', status: 'success', statusLabel: 'Connected', records: '890K', lastSync: '8 min ago', tables: 16 },
+            { name: 'Elasticsearch Logs', type: 'Elasticsearch', icon: '🔍', bg: 'rgba(255,107,157,0.15)', status: 'warning', statusLabel: 'Degraded', records: '12M', lastSync: '25 min ago', tables: 6 },
+        ];
+
+        document.getElementById('sources-grid').innerHTML = sources.map(s => `
+            <div class="card card-gradient source-card">
+                <div class="source-header">
+                    <div class="source-icon" style="background:${s.bg}">${s.icon}</div>
+                    <div style="flex:1;">
+                        <div style="font-weight:600;font-size:15px;">${s.name}</div>
+                        <div class="flex items-center gap-2 mt-2">
+                            <span class="badge badge-${s.status === 'success' ? 'success' : s.status === 'error' ? 'error' : s.status === 'warning' ? 'warning' : 'info'}">${s.statusLabel}</span>
+                            <span class="text-sm text-muted">${s.type}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="source-stats">
+                    <div class="stat">
+                        <div class="stat-label">Records</div>
+                        <div class="stat-value">${s.records}</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Tables</div>
+                        <div class="stat-value">${s.tables}</div>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between text-sm text-muted">
+                    <span>Last sync: ${s.lastSync}</span>
+                    <div class="flex gap-2">
+                        <button class="btn btn-ghost btn-sm" onclick="showToast('Syncing ${s.name}...','success')">Sync</button>
+                        <button class="btn btn-ghost btn-sm">Edit</button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        /* ═══════════════════════════════════════════════════════════════
+           GOVERNANCE POLICIES
+           ═══════════════════════════════════════════════════════════════ */
+        const policies = [
+            { name: 'PII Detection', type: 'Data', enforcement: 'strict', enabled: true, desc: 'Automatically detect and mask personally identifiable information in all data artifacts.', triggered: '12 times today' },
+            { name: 'Access Control', type: 'Access', enforcement: 'strict', enabled: true, desc: 'Enforce role-based access control for all API endpoints and data operations.', triggered: 'Active' },
+            { name: 'Data Retention', type: 'Compliance', enforcement: 'warning', enabled: true, desc: 'Alert when data exceeds configured retention periods. Auto-archive after threshold.', triggered: '3 alerts' },
+            { name: 'Schema Validation', type: 'Data', enforcement: 'audit', enabled: true, desc: 'Validate incoming data against registered schemas. Log violations without blocking.', triggered: '8 violations' },
+            { name: 'Rate Limiting', type: 'Access', enforcement: 'strict', enabled: false, desc: 'Enforce per-tenant API rate limits based on subscription tier.', triggered: 'Disabled' },
+            { name: 'Encryption at Rest', type: 'Compliance', enforcement: 'strict', enabled: true, desc: 'Ensure all artifacts and sensitive data are encrypted using AES-256.', triggered: 'Enforced' },
+        ];
+
+        document.getElementById('policies-grid').innerHTML = policies.map(p => `
+            <div class="card policy-card">
+                <div class="policy-header">
+                    <div>
+                        <div style="font-weight:600;font-size:15px;">${p.name}</div>
+                        <div class="flex items-center gap-2 mt-2">
+                            <span class="badge badge-accent">${p.type}</span>
+                            <span class="enforcement ${p.enforcement}">${p.enforcement}</span>
+                        </div>
+                    </div>
+                    <button class="toggle ${p.enabled ? 'active' : ''}" onclick="this.classList.toggle('active')"></button>
+                </div>
+                <p class="policy-desc">${p.desc}</p>
+                <div class="policy-footer">
+                    <span>${p.triggered}</span>
+                    <button class="btn btn-ghost btn-sm">Configure</button>
+                </div>
+            </div>
+        `).join('');
+
+        /* ═══════════════════════════════════════════════════════════════
+           CAPSULES
+           ═══════════════════════════════════════════════════════════════ */
+        const capsules = [
+            { name: 'Data Cleaner', desc: 'Automated data cleansing, deduplication, and normalization pipeline for structured datasets.', version: 'v2.1.0', status: 'Active', installs: 128, rating: 4.8, tags: ['Data Quality', 'ETL'], icon: '🧹', bg: 'linear-gradient(135deg,#6C5CE7,#00D2FF)' },
+            { name: 'ML Profiler', desc: 'Statistical profiling and anomaly detection using ensemble machine learning models.', version: 'v1.4.2', status: 'Active', installs: 89, rating: 4.6, tags: ['ML', 'Analytics'], icon: '🤖', bg: 'linear-gradient(135deg,#FF6B9D,#FFB74D)' },
+            { name: 'Schema Enforcer', desc: 'Validate and enforce data schemas across all sources with auto-migration support.', version: 'v3.0.1', status: 'Active', installs: 204, rating: 4.9, tags: ['Governance', 'Schema'], icon: '🛡️', bg: 'linear-gradient(135deg,#00E676,#00D2FF)' },
+            { name: 'Report Generator', desc: 'Automated report generation with customizable templates and scheduling.', version: 'v1.8.0', status: 'Active', installs: 67, rating: 4.3, tags: ['Reporting', 'PDF'], icon: '📄', bg: 'linear-gradient(135deg,#40C4FF,#6C5CE7)' },
+            { name: 'API Connector', desc: 'Universal REST/GraphQL API connector with OAuth2 support and rate limiting.', version: 'v2.3.0', status: 'Beta', installs: 45, rating: 4.1, tags: ['Integration', 'API'], icon: '🔌', bg: 'linear-gradient(135deg,#FFB74D,#FF5252)' },
+            { name: 'Lineage Tracker', desc: 'End-to-end data lineage tracking with visual dependency graphs.', version: 'v1.2.0', status: 'Draft', installs: 12, rating: 3.9, tags: ['Governance', 'Lineage'], icon: '🔗', bg: 'linear-gradient(135deg,#A29BFE,#FF6B9D)' },
+        ];
+
+        document.getElementById('capsules-grid').innerHTML = capsules.map(c => `
+            <div class="card card-gradient capsule-card">
+                <div class="capsule-icon" style="background:${c.bg}">${c.icon}</div>
+                <div class="capsule-name">${c.name}</div>
+                <div class="capsule-desc">${c.desc}</div>
+                <div class="capsule-tags">
+                    ${c.tags.map(t => `<span class="capsule-tag">${t}</span>`).join('')}
+                </div>
+                <div class="capsule-meta">
+                    <span class="badge ${c.status === 'Active' ? 'badge-success' : c.status === 'Beta' ? 'badge-warning' : 'badge-neutral'}">${c.status}</span>
+                    <span>${c.version}</span>
+                    <span class="capsule-stars">★ ${c.rating}</span>
+                    <span>↓ ${c.installs}</span>
+                </div>
+                <button class="btn ${c.status === 'Active' ? 'btn-secondary' : 'btn-primary'} btn-sm w-full" style="margin-top:var(--space-2);" onclick="showToast('${c.name} ${c.status === 'Active' ? 'manage' : 'install'} coming soon','success')">
+                    ${c.status === 'Active' ? 'Manage' : 'Install'}
+                </button>
+            </div>
+        `).join('');
+
+        /* ═══════════════════════════════════════════════════════════════
+           UPTIME GRID
+           ═══════════════════════════════════════════════════════════════ */
+        const uptimeGrid = document.getElementById('uptime-grid');
+        if (uptimeGrid) {
+            const cells = [];
+            for (let i = 0; i < 30; i++) {
+                const rand = Math.random();
+                const cls = rand > 0.92 ? 'bad' : rand > 0.85 ? 'warn' : 'good';
+                cells.push(`<div class="uptime-cell ${cls}" title="Day ${30 - i}: ${cls === 'good' ? '99.9%' : cls === 'warn' ? '98.5%' : '95.2%'} uptime"></div>`);
+            }
+            uptimeGrid.innerHTML = cells.join('');
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           TAB INTERACTION (Jobs page)
+           ═══════════════════════════════════════════════════════════════ */
+        document.querySelectorAll('.tabs').forEach(tabBar => {
+            tabBar.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabBar.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                });
+            });
+        });
+
+        /* ═══════════════════════════════════════════════════════════════
+           KEYBOARD SHORTCUTS
+           ═══════════════════════════════════════════════════════════════ */
+        document.addEventListener('keydown', e => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                document.querySelector('.search-box input').focus();
+            }
+        });
+
+        /* ═══════════════════════════════════════════════════════════════
+           LIVE CLOCK (simulated real-time)
+           ═══════════════════════════════════════════════════════════════ */
+        // Subtle running job progress animation
+        setInterval(() => {
+            document.querySelectorAll('.progress-indeterminate .progress-fill').forEach(bar => {
+                // CSS animation handles this
+            });
+        }, 3000);
+    </script>
+</body>
+</html>

@@ -80,7 +80,9 @@ class SearchClient:
             payload = {"q": params, "num": limit}
             headers = {"X-API-KEY": self.api_key, "Content-Type": "application/json"}
 
-            response = requests.post(self.base_url, headers=headers, json=payload, timeout=10)
+            response = requests.post(
+                self.base_url, headers=headers, json=payload, timeout=10
+            )
             response.raise_for_status()  # Raise an exception for HTTP errors (4xx or 5xx).
 
             data = response.json()
@@ -97,7 +99,9 @@ class SearchClient:
             # On circuit open, return empty results as a graceful degradation strategy.
             return []
         except Exception as e:
-            logger.error(f"External API search (Serper) failed for query '{query}': {e}")
+            logger.error(
+                f"External API search (Serper) failed for query '{query}': {e}"
+            )
             raise
 
     def _parse_serper_results(self, data: dict[str, Any]) -> list[dict[str, str]]:

@@ -1,4 +1,4 @@
-import { LitElement, html } from 'lit';
+import { LitElement, html, nothing } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 
 export interface TableColumn {
@@ -107,7 +107,7 @@ export class VoyantDataTable extends LitElement {
                             <tr style="border-bottom:1px solid #262626">
                                 ${this.columns.map(col => html`
                                 <th style="padding:10px 16px;text-align:left;font-size:11px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:0.05em;cursor:${col.sortable !== false ? 'pointer' : 'default'};width:${col.width || 'auto'};white-space:nowrap"
-                                    @click=${col.sortable !== false ? () => this._toggleSort(col.key) : null}">
+                                    @click=${col.sortable !== false ? () => this._toggleSort(col.key) : nothing}>
                                     ${col.label}${this.sortKey === col.key ? (this.sortDir === 'asc' ? ' ↑' : ' ↓') : ''}
                                 </th>`)}
                             </tr>

@@ -16,6 +16,7 @@ from apps.scraper.models import ScrapeTemplate
 class RunTemplatePayload(Schema):
     parameters: dict[str, Any] = {}
 
+
 logger = logging.getLogger(__name__)
 
 template_router = Router(tags=["scraper-templates"], auth=require_permission("read:*"))
@@ -64,10 +65,72 @@ def list_categories(request):
         .annotate(count=Count("id"))
         .order_by("-count")
     )
+    return [{"category": c["category"], "count": c["count"]} for c in categories]
+
+
+@template_router.get("/templates/search")
+def search_templates(
+    request, q: str = "", category: str | None = None, limit: int = 50
+):
+    """Search templates by name, description, or site pattern."""
+    qs = ScrapeTemplate.objects.filter(status="active")
+    if q:
+        from django.db.models import Q
+
+        qs = qs.filter(
+            Q(name__icontains=q)
+            | Q(description__icontains=q)
+            | Q(site_pattern__icontains=q)
+            | Q(category__icontains=q)
+        )
+    if category:
+        qs = qs.filter(category=category)
+
     return [
-        {"category": c["category"], "count": c["count"]}
-        for c in categories
+        {
+            "id": str(t.id),
+            "name": t.name,
+            "site_pattern": t.site_pattern,
+            "category": t.category,
+            "description": t.description,
+            "engine": t.engine,
+            "use_count": t.use_count,
+            "success_rate": t.success_rate,
+            "output_fields": t.output_fields,
+        }
+        for t in qs[:limit]
     ]
+
+
+@template_router.get("/templates/validate")
+def validate_templates(request):
+    """Validate that all templates load correctly. Returns count and any errors."""
+    from apps.scraper.templates.definitions import TEMPLATES
+
+    errors = []
+    for i, tpl in enumerate(TEMPLATES):
+        if not tpl.get("name"):
+            errors.append(f"Template #{i}: missing name")
+        if not tpl.get("category"):
+            errors.append(f"Template #{i} ({tpl.get('name')}): missing category")
+        if not tpl.get("site_pattern"):
+            errors.append(f"Template #{i} ({tpl.get('name')}): missing site_pattern")
+        if not tpl.get("workflow"):
+            errors.append(f"Template #{i} ({tpl.get('name')}): missing workflow")
+
+    # Count categories
+    categories: dict[str, int] = {}
+    for tpl in TEMPLATES:
+        cat = tpl.get("category", "unknown")
+        categories[cat] = categories.get(cat, 0) + 1
+
+    return {
+        "total_definitions": len(TEMPLATES),
+        "total_in_db": ScrapeTemplate.objects.filter(status="active").count(),
+        "categories": categories,
+        "errors": errors,
+        "valid": len(errors) == 0,
+    }
 
 
 @template_router.get("/templates/{template_id}")
@@ -96,7 +159,9 @@ def get_template(request, template_id: str):
     }
 
 
-@template_router.post("/templates/{template_id}/run", auth=require_permission("write:jobs"))
+@template_router.post(
+    "/templates/{template_id}/run", auth=require_permission("write:jobs")
+)
 def run_template(request, template_id: str, payload: RunTemplatePayload):
     """Execute a template with parameter substitution. Starts a real Temporal workflow."""
     from apps.scraper.models import ScrapeJob
@@ -149,7 +214,9 @@ def run_template(request, template_id: str, payload: RunTemplatePayload):
     # Start Temporal workflow for real execution
     try:
         from apps.core.config import get_settings
-        from apps.worker.workflows.scrape_workflow import ScrapeWorkflow
+        from apps.worker.workflows.scrape_workflow import (
+            ScrapeWorkflow,  # type: ignore[reportMissingImports]
+        )
 
         settings = get_settings()
         _start_workflow_sync(
@@ -246,6 +313,7 @@ def _start_workflow_sync(workflow_run, args, workflow_id, task_queue):
 
     async def _start():
         from apps.core.lib.temporal_client import get_temporal_client
+
         client = await get_temporal_client()
         await client.start_workflow(
             workflow_run,
@@ -256,6 +324,7 @@ def _start_workflow_sync(workflow_run, args, workflow_id, task_queue):
 
     def _run():
         import asyncio
+
         asyncio.run(_start())
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
@@ -270,7 +339,13 @@ def _run_inline(job, urls, selectors, options):
     audit = create_audit_log(str(job.job_id))
 
     def _execute():
-        scrape_result = {"status": "failed", "results": {}, "html": "", "bytes": 0, "error": ""}
+        scrape_result = {
+            "status": "failed",
+            "results": {},
+            "html": "",
+            "bytes": 0,
+            "error": "",
+        }
 
         try:
             from playwright.sync_api import sync_playwright
@@ -286,11 +361,19 @@ def _run_inline(job, urls, selectors, options):
             with sync_playwright() as pw:
                 browser = pw.chromium.launch(
                     headless=True,
-                    args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+                    args=[
+                        "--no-sandbox",
+                        "--disable-setuid-sandbox",
+                        "--disable-dev-shm-usage",
+                    ],
                 )
                 context = browser.new_context(
                     viewport={"width": 1280, "height": 800},
-                    user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    user_agent=(
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+                        " AppleWebKit/537.36 (KHTML, like Gecko)"
+                        " Chrome/120.0.0.0 Safari/537.36"
+                    ),
                 )
                 page = context.new_page()
 
@@ -299,12 +382,21 @@ def _run_inline(job, urls, selectors, options):
                     if workflow_steps:
                         for step_def in workflow_steps:
                             action = step_def.get("action", "")
-                            with audit.step(action, **{k: v for k, v in step_def.items() if k != "action"}) as s:
+                            with audit.step(
+                                action,
+                                **{k: v for k, v in step_def.items() if k != "action"},
+                            ) as s:
                                 if action in ("navigate", "fetch"):
                                     step_url = step_def.get("url", url)
-                                    page.goto(step_url, wait_until="domcontentloaded", timeout=timeout_ms)
+                                    page.goto(
+                                        step_url,
+                                        wait_until="domcontentloaded",
+                                        timeout=timeout_ms,
+                                    )
                                     try:
-                                        page.wait_for_load_state("networkidle", timeout=10000)
+                                        page.wait_for_load_state(
+                                            "networkidle", timeout=10000
+                                        )
                                     except Exception:
                                         pass
                                     s.detail("page_title", page.title())
@@ -312,10 +404,17 @@ def _run_inline(job, urls, selectors, options):
                                 elif action == "scroll":
                                     times = step_def.get("times", 3)
                                     for i in range(times):
-                                        page.evaluate("window.scrollBy(0, window.innerHeight)")
-                                        page.wait_for_timeout(step_def.get("wait_ms", 1500))
+                                        page.evaluate(
+                                            "window.scrollBy(0, window.innerHeight)"
+                                        )
+                                        page.wait_for_timeout(
+                                            step_def.get("wait_ms", 1500)
+                                        )
                                     s.detail("scroll_times", times)
-                                    s.detail("scroll_position", page.evaluate("window.scrollY"))
+                                    s.detail(
+                                        "scroll_position",
+                                        page.evaluate("window.scrollY"),
+                                    )
                                 elif action == "click":
                                     sel = step_def.get("selector", "")
                                     if sel:
@@ -325,7 +424,8 @@ def _run_inline(job, urls, selectors, options):
                                 elif action == "wait":
                                     page.wait_for_timeout(step_def.get("wait_ms", 2000))
                                 elif action == "enter_text":
-                                    sel, text = step_def.get("selector", ""), step_def.get("text", "")
+                                    sel = step_def.get("selector", "")
+                                    text = step_def.get("text", "")
                                     if sel and text:
                                         try:
                                             page.fill(sel, text, timeout=5000)
@@ -336,7 +436,9 @@ def _run_inline(job, urls, selectors, options):
                                     pass  # Handled below
                     else:
                         with audit.step("navigate", url=url):
-                            page.goto(url, wait_until="domcontentloaded", timeout=timeout_ms)
+                            page.goto(
+                                url, wait_until="domcontentloaded", timeout=timeout_ms
+                            )
                             try:
                                 page.wait_for_load_state("networkidle", timeout=10000)
                             except Exception:
@@ -362,10 +464,17 @@ def _run_inline(job, urls, selectors, options):
                                     if len(elements) == 1:
                                         text = elements[0].inner_text().strip()[:500]
                                         if not text:
-                                            text = elements[0].get_attribute("href") or elements[0].get_attribute("src") or ""
+                                            text = (
+                                                elements[0].get_attribute("href")
+                                                or elements[0].get_attribute("src")
+                                                or ""
+                                            )
                                         results[field_name] = text
                                     elif len(elements) > 1:
-                                        results[field_name] = [el.inner_text().strip()[:200] for el in elements[:50]]
+                                        results[field_name] = [
+                                            el.inner_text().strip()[:200]
+                                            for el in elements[:50]
+                                        ]
                                     else:
                                         results[field_name] = None
                                 except Exception:
@@ -373,7 +482,8 @@ def _run_inline(job, urls, selectors, options):
                             scrape_result["results"] = results
                             s.detail("fields", list(results.keys()))
                             s.detail("field_count", len(results))
-                            s.detail("non_null_count", sum(1 for v in results.values() if v is not None))
+                            non_null = sum(1 for v in results.values() if v is not None)
+                            s.detail("non_null_count", non_null)
                         else:
                             scrape_result["results"] = {"raw_html": html[:5000]}
                             s.detail("fields", ["raw_html"])
@@ -466,4 +576,83 @@ def get_job_audit_live(request, job_id: str):
         "job_id": job_id,
         "feed": log.to_live_feed(),
         "summary": log.summary(),
+    }
+
+
+# ── Jobs List API ────────────────────────────────────────────────────────────
+
+
+@template_router.get("/jobs")
+def list_scraper_jobs(
+    request,
+    status: str | None = None,
+    limit: int = 50,
+):
+    """List scraper jobs with optional status filter."""
+    from apps.scraper.models import ScrapeJob
+
+    qs = ScrapeJob.objects.all()
+    if status:
+        qs = qs.filter(status=status)
+
+    return [
+        {
+            "job_id": str(j.job_id),
+            "status": j.status,
+            "urls": j.urls,
+            "pages_fetched": j.pages_fetched,
+            "bytes_processed": j.bytes_processed,
+            "artifact_count": j.artifact_count,
+            "error_message": j.error_message or "",
+            "created_at": j.created_at.isoformat() if j.created_at else "",
+            "started_at": j.started_at.isoformat() if j.started_at else "",
+            "finished_at": j.finished_at.isoformat() if j.finished_at else "",
+        }
+        for j in qs[:limit]
+    ]
+
+
+@template_router.get("/jobs/{job_id}/results")
+def get_job_results(request, job_id: str):
+    """Get extracted results for a job — the actual data payload."""
+    from apps.scraper.models import ScrapeArtifact, ScrapeJob
+
+    job = ScrapeJob.objects.filter(job_id=job_id).first()
+    if not job:
+        raise HttpError(404, "Job not found")
+
+    artifacts = ScrapeArtifact.objects.filter(job=job)
+    result_data: dict[str, Any] = {}
+    for art in artifacts:
+        if art.metadata and art.metadata.get("fields"):
+            result_data[art.artifact_type] = art.metadata
+
+    # Also check options for inline results
+    options = job.options or {}
+    audit = options.get("audit", {})
+    steps = audit.get("steps", [])
+
+    # Find extract step results
+    for step in steps:
+        if step.get("action") == "extract" and step.get("details", {}).get("fields"):
+            result_data["extracted_fields"] = step["details"]["fields"]
+
+    return {
+        "job_id": str(job.job_id),
+        "status": job.status,
+        "urls": job.urls,
+        "pages_fetched": job.pages_fetched,
+        "bytes_processed": job.bytes_processed,
+        "results": result_data,
+        "artifacts": [
+            {
+                "artifact_id": str(a.artifact_id),
+                "type": a.artifact_type,
+                "format": a.format,
+                "size_bytes": a.size_bytes,
+                "source_url": a.source_url,
+            }
+            for a in artifacts
+        ],
+        "finished_at": job.finished_at.isoformat() if job.finished_at else "",
     }

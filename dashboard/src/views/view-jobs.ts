@@ -67,10 +67,10 @@ export class ViewJobs extends LitElement {
         this.createResult = '';
         try {
             const endpoints: Record<string, string> = {
-                ingest: '/v1/jobs/ingest',
-                profile: '/v1/jobs/profile',
-                quality: '/v1/jobs/quality',
-                analyze: '/v1/analyze',
+                ingest: '/admin/jobs/ingest',
+                profile: '/admin/jobs/profile',
+                quality: '/admin/jobs/quality',
+                analyze: '/admin/analyze',
             };
             const body: Record<string, unknown> = { source_id: this.createSourceId };
             if (this.createType === 'ingest') {
@@ -108,7 +108,7 @@ export class ViewJobs extends LitElement {
     render() {
         return html`
         <saas-sidebar currentPath="/admin/jobs"></saas-sidebar>
-        <main class="ml-60 min-h-screen bg-gray-50 p-8">
+        <main class="ml-60 min-h-screen bg-gray-50 p-8" role="main" aria-label="Jobs management">
             <div class="flex items-center justify-between mb-6">
                 <div>
                     <h1 class="text-2xl font-black font-display tracking-tight">Jobs</h1>
@@ -116,6 +116,7 @@ export class ViewJobs extends LitElement {
                 </div>
                 <div class="flex gap-2">
                     <select class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white"
+                        aria-label="Filter by status"
                         @change=${(e: Event) => { this.filterStatus = (e.target as HTMLSelectElement).value; this.load(); }}>
                         <option value="">All Status</option>
                         <option value="queued">Queued</option>
@@ -125,6 +126,7 @@ export class ViewJobs extends LitElement {
                         <option value="cancelled">Cancelled</option>
                     </select>
                     <select class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white"
+                        aria-label="Filter by job type"
                         @change=${(e: Event) => { this.filterType = (e.target as HTMLSelectElement).value; this.load(); }}>
                         <option value="">All Types</option>
                         <option value="ingest">Ingest</option>
@@ -133,14 +135,14 @@ export class ViewJobs extends LitElement {
                         <option value="analyze">Analyze</option>
                         <option value="scrape">Scrape</option>
                     </select>
-                    <button class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white hover:bg-gray-50" @click=${() => this.load()}>Refresh</button>
-                    <button class="px-4 py-1.5 text-sm font-semibold bg-brand text-white rounded-lg hover:bg-black transition-colors" @click=${() => { this.showCreate = !this.showCreate; }}>+ New Job</button>
+                    <button class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white hover:bg-gray-50" aria-label="Refresh jobs list" @click=${() => this.load()}>Refresh</button>
+                    <button class="px-4 py-1.5 text-sm font-semibold bg-brand text-white rounded-lg hover:bg-black transition-colors" aria-expanded=${this.showCreate} aria-label="Create new job" @click=${() => { this.showCreate = !this.showCreate; }}>+ New Job</button>
                 </div>
             </div>
 
             <!-- Create Job Form -->
             ${this.showCreate ? html`
-            <div class="bg-white rounded-xl border border-gray-100 p-6 mb-6">
+            <div class="bg-white rounded-xl border border-gray-100 p-6 mb-6" role="form" aria-label="Create new job">
                 <h3 class="text-sm font-semibold text-gray-500 mb-4">Create New Job</h3>
                 <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
                     <div>
@@ -174,9 +176,9 @@ export class ViewJobs extends LitElement {
             </div>` : ''}
 
             <!-- Jobs Table -->
-            ${this.loading ? html`<div class="text-center text-gray-400 py-16">Loading...</div>` : html`
-            <div class="bg-white rounded-xl border border-gray-100 overflow-hidden">
-                <table class="w-full text-sm">
+            ${this.loading ? html`<div class="text-center text-gray-400 py-16" role="status" aria-live="polite">Loading...</div>` : html`
+            <div class="bg-white rounded-xl border border-gray-100 overflow-hidden" aria-live="polite" aria-label="Jobs table">
+                <table class="w-full text-sm" role="table" aria-label="Jobs list">
                     <thead><tr class="border-b border-gray-100 text-left text-xs text-gray-500 uppercase">
                         <th class="px-4 py-3">Job ID</th>
                         <th class="px-4 py-3">Type</th>
@@ -196,8 +198,8 @@ export class ViewJobs extends LitElement {
                             <td class="px-4 py-3"><div class="w-16 bg-gray-100 rounded-full h-1.5"><div class="bg-blue-500 h-1.5 rounded-full" style="width:${j.progress}%"></div></div></td>
                             <td class="px-4 py-3 text-gray-500 text-xs">${new Date(j.created_at).toLocaleString()}</td>
                             <td class="px-4 py-3" @click=${(e: Event) => e.stopPropagation()}>
-                                ${j.status === 'running' || j.status === 'queued' ? html`<button class="text-xs text-red-600 hover:underline" @click=${() => this.cancel(j.job_id)}>Cancel</button>` : ''}
-                                ${j.status === 'failed' ? html`<button class="text-xs text-blue-600 hover:underline" @click=${() => this.reset(j.job_id)}>Reset</button>` : ''}
+                                ${j.status === 'running' || j.status === 'queued' ? html`<button class="text-xs text-red-600 hover:underline" aria-label="Cancel job ${j.job_id.slice(0, 8)}" @click=${() => this.cancel(j.job_id)}>Cancel</button>` : ''}
+                                ${j.status === 'failed' ? html`<button class="text-xs text-blue-600 hover:underline" aria-label="Reset job ${j.job_id.slice(0, 8)}" @click=${() => this.reset(j.job_id)}>Reset</button>` : ''}
                             </td>
                         </tr>`)}
                     </tbody>
@@ -207,12 +209,13 @@ export class ViewJobs extends LitElement {
 
             <!-- Job Detail Drawer -->
             ${this.selectedJob ? html`
-            <div class="fixed inset-0 z-50 flex justify-end">
+            <div class="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label="Job detail drawer"
+                @keydown=${(e: KeyboardEvent) => { if (e.key === 'Escape') this.selectedJob = null; }}>
                 <div class="absolute inset-0 bg-black/20" @click=${() => { this.selectedJob = null; }}></div>
-                <div class="relative w-[480px] bg-white h-full overflow-y-auto shadow-2xl border-l border-gray-200">
+                <div class="relative w-[480px] bg-white h-full overflow-y-auto shadow-2xl border-l border-gray-200" tabindex="-1">
                     <div class="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
                         <h2 class="font-bold text-sm font-mono">${this.selectedJob.job_id.slice(0, 12)}</h2>
-                        <button class="text-gray-400 hover:text-ink" @click=${() => { this.selectedJob = null; }}>✕</button>
+                        <button class="text-gray-400 hover:text-ink" aria-label="Close job detail" @click=${() => { this.selectedJob = null; }}>✕</button>
                     </div>
                     <div class="p-6 space-y-4">
                         <div class="grid grid-cols-2 gap-4">
@@ -271,7 +274,7 @@ export class ViewJobs extends LitElement {
             </div>` : ''}
 
             ${this.detailLoading ? html`
-            <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/10">
+            <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/10" role="status" aria-live="polite">
                 <div class="bg-white rounded-xl p-8 shadow-xl">Loading job details...</div>
             </div>` : ''}
         </main>`;

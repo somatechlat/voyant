@@ -197,4 +197,7 @@ def tool_search(query: str, limit: int = 5, tenant_id=None):
     results = store.search(
         query_vector=vec, k=limit, filter_metadata={"tenant_id": _tenant(tenant_id)}
     )
-    return [{"id": item.id, "score": score, "metadata": item.metadata} for item, score in results]
+    return [
+        {"id": item.id, "score": score, "metadata": item.metadata}
+        for item, score in results
+    ]

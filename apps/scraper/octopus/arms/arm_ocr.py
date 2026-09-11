@@ -24,7 +24,9 @@ settings = get_settings()
 async def _fetch_image(url: str) -> bytes:
     """Fetch image bytes from a remote URL."""
     validate_url(url)
-    async with httpx.AsyncClient(timeout=settings.scraper_default_timeout_seconds) as client:
+    async with httpx.AsyncClient(
+        timeout=settings.scraper_default_timeout_seconds
+    ) as client:
         resp = await client.get(url)
         resp.raise_for_status()
         return resp.content

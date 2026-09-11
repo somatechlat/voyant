@@ -125,14 +125,20 @@ class QualityRuleValidator:
             if rule_type == "not_null":
                 violations = sum(1 for row in data if row.get(column) is None)
                 if violations > 0:
-                    errors.append(f"not_null violation: {column} has {violations} null values")
+                    errors.append(
+                        f"not_null violation: {column} has {violations} null values"
+                    )
                     failed_rows += violations
 
             elif rule_type == "unique":
-                values = [row.get(column) for row in data if row.get(column) is not None]
+                values = [
+                    row.get(column) for row in data if row.get(column) is not None
+                ]
                 duplicates = len(values) - len(set(str(v) for v in values))
                 if duplicates > 0:
-                    errors.append(f"unique violation: {column} has {duplicates} duplicate values")
+                    errors.append(
+                        f"unique violation: {column} has {duplicates} duplicate values"
+                    )
                     failed_rows += duplicates
 
             elif rule_type == "pattern":
@@ -163,18 +169,26 @@ class QualityRuleValidator:
                     except (ValueError, TypeError):
                         continue
                     if min_val is not None and num < min_val:
-                        errors.append(f"range violation: {column}={num} < min({min_val})")
+                        errors.append(
+                            f"range violation: {column}={num} < min({min_val})"
+                        )
                         failed_rows += 1
                     if max_val is not None and num > max_val:
-                        errors.append(f"range violation: {column}={num} > max({max_val})")
+                        errors.append(
+                            f"range violation: {column}={num} > max({max_val})"
+                        )
                         failed_rows += 1
 
             elif rule_type == "not_empty":
                 violations = sum(
-                    1 for row in data if not row.get(column) or str(row.get(column)).strip() == ""
+                    1
+                    for row in data
+                    if not row.get(column) or str(row.get(column)).strip() == ""
                 )
                 if violations > 0:
-                    errors.append(f"not_empty violation: {column} has {violations} empty values")
+                    errors.append(
+                        f"not_empty violation: {column} has {violations} empty values"
+                    )
                     failed_rows += violations
 
         return ValidationResult(
@@ -197,9 +211,7 @@ class DataContractValidator:
         self.schema_validator = schema_validator or SchemaValidator()
         self.quality_validator = quality_validator or QualityRuleValidator()
 
-    def validate(
-        self, data: list[dict[str, Any]], contract: Any
-    ) -> ValidationResult:
+    def validate(self, data: list[dict[str, Any]], contract: Any) -> ValidationResult:
         """Validate data against all contract rules.
 
         Args:

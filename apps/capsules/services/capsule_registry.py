@@ -36,7 +36,9 @@ def discover_capsules(
 
     tenant_filter = {"tenant_id": tenant_id, "realm": realm}
     if include_public:
-        q = q.filter(models.Q(**tenant_filter) | models.Q(tenant_id="public", realm=realm))
+        q = q.filter(
+            models.Q(**tenant_filter) | models.Q(tenant_id="public", realm=realm)
+        )
     else:
         q = q.filter(**tenant_filter)
 
@@ -56,7 +58,9 @@ def discover_capsules(
                 "rbac": capsule.rbac_rules,
                 "install_count": capsule.install_count,
                 "execution_count": capsule.execution_count,
-                "created_at": capsule.created_at.isoformat() if capsule.created_at else "",
+                "created_at": (
+                    capsule.created_at.isoformat() if capsule.created_at else ""
+                ),
             }
         )
     return results
@@ -169,7 +173,9 @@ def install_capsule(
     return installation
 
 
-def load_capsule_by_id(capsule_id: str, tenant_id: str, realm: str = "default") -> Capsule:
+def load_capsule_by_id(
+    capsule_id: str, tenant_id: str, realm: str = "default"
+) -> Capsule:
     """Load a capsule by ID, checking tenant + realm access."""
     try:
         capsule = Capsule.objects.get(id=capsule_id)
@@ -198,5 +204,7 @@ def uninstall_capsule(installation_id: str, tenant_id: str) -> bool:
         return False
 
     inst.delete()
-    logger.info("Uninstalled capsule installation %s for tenant %s", installation_id, tenant_id)
+    logger.info(
+        "Uninstalled capsule installation %s for tenant %s", installation_id, tenant_id
+    )
     return True

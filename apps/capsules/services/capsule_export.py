@@ -87,7 +87,9 @@ def export_capsule(
     include_instances: bool = True,
 ) -> dict:
     """Export a complete Capsule bundle."""
-    capsule = Capsule.objects.select_related("constitution", "parent").get(id=capsule_id)
+    capsule = Capsule.objects.select_related("constitution", "parent").get(
+        id=capsule_id
+    )
 
     logger.info(
         "Exporting Capsule %s:%s (tenant=%s)",
@@ -174,7 +176,9 @@ def _export_capsule_core(capsule: Capsule) -> CapsuleExport:
         governance=CapsuleGovernanceExport(
             constitution_ref=capsule.constitution_ref,
             registry_signature=capsule.registry_signature,
-            certified_at=capsule.certified_at.isoformat() if capsule.certified_at else None,
+            certified_at=(
+                capsule.certified_at.isoformat() if capsule.certified_at else None
+            ),
         ),
         created_at=capsule.created_at.isoformat() if capsule.created_at else "",
         updated_at=capsule.updated_at.isoformat() if capsule.updated_at else "",
@@ -190,7 +194,9 @@ def _export_instances(capsule: Capsule) -> list:
             "state": inst.state,
             "status": inst.status,
             "started_at": inst.started_at.isoformat() if inst.started_at else "",
-            "completed_at": inst.completed_at.isoformat() if inst.completed_at else None,
+            "completed_at": (
+                inst.completed_at.isoformat() if inst.completed_at else None
+            ),
         }
         for inst in instances
     ]

@@ -105,7 +105,11 @@ def get_capsule_definition(request, capsule_id: str):
 def install_capsule_endpoint(request, payload: CapsuleInstallRequest):
     """Install a capsule for the tenant."""
     user = getattr(request, "auth", None)
-    tenant_id = getattr(user, "tenant_id", "default") if user else (payload.tenant_id or "default")
+    tenant_id = (
+        getattr(user, "tenant_id", "default")
+        if user
+        else (payload.tenant_id or "default")
+    )
     realm = getattr(user, "realm", "default") if user else "default"
 
     try:
@@ -133,7 +137,9 @@ def list_installed(request):
     return list_installed_capsules(tenant_id)
 
 
-@router.delete("/installed/{installation_id}", auth=require_permission("install:capsule"))
+@router.delete(
+    "/installed/{installation_id}", auth=require_permission("install:capsule")
+)
 def uninstall_capsule_endpoint(request, installation_id: str):
     """Uninstall a capsule."""
     user = getattr(request, "auth", None)
@@ -152,12 +158,19 @@ def uninstall_capsule_endpoint(request, installation_id: str):
 def run_capsule(request, payload: CapsuleRunRequest):
     """Execute an installed capsule. Returns job_urn for polling."""
     user = getattr(request, "auth", None)
-    tenant_id = getattr(user, "tenant_id", "default") if user else (payload.tenant_id or "default")
+    tenant_id = (
+        getattr(user, "tenant_id", "default")
+        if user
+        else (payload.tenant_id or "default")
+    )
     realm = getattr(user, "realm", "default") if user else "default"
 
     try:
         installation = CapsuleInstallation.objects.select_related("capsule").get(
-            id=payload.installation_id, tenant_id=tenant_id, realm=realm, is_enabled=True
+            id=payload.installation_id,
+            tenant_id=tenant_id,
+            realm=realm,
+            is_enabled=True,
         )
     except CapsuleInstallation.DoesNotExist:
         raise HttpError(404, "Installation not found")
@@ -187,7 +200,9 @@ def run_capsule(request, payload: CapsuleRunRequest):
     if len(graph) == 1:
         result = execute_capsule_sync(capsule, merged, tenant_id, session_id=session_id)
     else:
-        result = dispatch_capsule_workflow(capsule, merged, tenant_id, session_id=session_id)
+        result = dispatch_capsule_workflow(
+            capsule, merged, tenant_id, session_id=session_id
+        )
 
     return result
 
@@ -231,7 +246,9 @@ def create_capsule(request, payload: CapsuleCreateRequest):
         neuromodulator_baseline=payload.soul.neuromodulator_baseline,
         capsule_type=payload.body.capsule_type,
         execution_graph=[step.model_dump() for step in payload.body.execution_graph],
-        parameters_schema={k: v.model_dump() for k, v in payload.body.parameters.items()},
+        parameters_schema={
+            k: v.model_dump() for k, v in payload.body.parameters.items()
+        },
         output_formats=payload.body.output_formats,
         rbac_rules=payload.body.rbac.model_dump(),
         capabilities_whitelist=payload.body.capabilities_whitelist,
@@ -260,8 +277,14 @@ def certify_capsule_endpoint(request, capsule_id: str):
         raise HttpError(400, "Capsule failed integrity verification")
 
     certified = certify_capsule(capsule)
-    certified_at = certified.certified_at.isoformat() if certified.certified_at else None
-    return {"id": str(certified.id), "status": certified.status, "certified_at": certified_at}
+    certified_at = (
+        certified.certified_at.isoformat() if certified.certified_at else None
+    )
+    return {
+        "id": str(certified.id),
+        "status": certified.status,
+        "certified_at": certified_at,
+    }
 
 
 @router.post("/{capsule_id}/activate", auth=require_role("voyant-admin"))

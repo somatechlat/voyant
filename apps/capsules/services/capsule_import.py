@@ -79,7 +79,9 @@ def import_capsule(
                 version=new_version,
                 tenant_id=tenant_id,
             ).exists():
-                new_version = f"{new_version}.{datetime.now(UTC).strftime('%Y%m%d%H%M%S')}"
+                new_version = (
+                    f"{new_version}.{datetime.now(UTC).strftime('%Y%m%d%H%M%S')}"
+                )
                 warnings.append(f"Version conflict resolved: using {new_version}")
 
             soul = capsule_data.get("soul", {})
@@ -89,7 +91,8 @@ def import_capsule(
             import_realm = capsule_data.get("realm", target_realm)
             if import_realm != target_realm:
                 warnings.append(
-                    f"Imported capsule realm '{import_realm}' migrated to target realm '{target_realm}'"
+                    f"Imported capsule realm '{import_realm}'"
+                    f" migrated to target realm '{target_realm}'"
                 )
 
             new_capsule = Capsule.objects.create(
@@ -143,7 +146,9 @@ def import_tenant_capsules(
     }
 
     if not verify_export_checksum(export_data):
-        result["failed_imports"].append({"error": "Tenant export checksum verification failed"})
+        result["failed_imports"].append(
+            {"error": "Tenant export checksum verification failed"}
+        )
         result["failure_count"] = 1
         return result
 

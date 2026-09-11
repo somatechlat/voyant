@@ -25,15 +25,12 @@ pytestmark = [
     pytest.mark.django_db,
 ]
 
-from apps.core.models import AuditLog
-from apps.ontology.action_executor import (
-    ActionExecution,
+from apps.core.models import AuditLog  # noqa: E402
+from apps.ontology.action_executor import (  # noqa: E402
     ActionExecutor,
-    ActionResult,
-    UndoResult,
 )
-from apps.ontology.models import ActionType, Object, ObjectType
-from apps.ontology.services import ObjectTypeService
+from apps.ontology.models import ActionType, Object  # noqa: E402
+from apps.ontology.services import ObjectTypeService  # noqa: E402
 
 TENANT = "test-tenant-action"
 

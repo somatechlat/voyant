@@ -1,6 +1,13 @@
 import { LitElement, html } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import * as monaco from 'monaco-editor';
+
+let monacoPromise: Promise<typeof import('monaco-editor')> | null = null;
+function loadMonaco() {
+    if (!monacoPromise) {
+        monacoPromise = import('monaco-editor');
+    }
+    return monacoPromise;
+}
 
 @customElement('voyant-monaco-editor')
 export class VoyantMonacoEditor extends LitElement {
@@ -10,14 +17,17 @@ export class VoyantMonacoEditor extends LitElement {
     @property({ type: Boolean }) readOnly = false;
     @property({ type: String }) placeholder = '';
 
-    @state() private _editor: monaco.editor.IStandaloneCodeEditor | null = null;
+    @state() private _loading = true;
+    private _editor: import('monaco-editor').editor.IStandaloneCodeEditor | null = null;
     private _container: HTMLElement | null = null;
 
     createRenderRoot() { return this; }
 
-    firstUpdated() {
+    async firstUpdated() {
         this._container = this.renderRoot.querySelector('.editor-container') as HTMLElement;
         if (!this._container) return;
+
+        const monaco = await loadMonaco();
 
         monaco.editor.defineTheme('voyant-dark', {
             base: 'vs-dark',
@@ -72,7 +82,6 @@ export class VoyantMonacoEditor extends LitElement {
             wordWrap: 'on',
             suggestOnTriggerCharacters: true,
             quickSuggestions: true,
-            placeholder: this.placeholder,
         });
 
         this._editor.onDidChangeModelContent(() => {
@@ -80,13 +89,13 @@ export class VoyantMonacoEditor extends LitElement {
             this.dispatchEvent(new CustomEvent('change', { detail: { value: this.value } }));
         });
 
-        // Add Ctrl+Enter to run
         this._editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
             this.dispatchEvent(new CustomEvent('run', { detail: { value: this.value } }));
         });
 
         const ro = new ResizeObserver(() => this._editor?.layout());
         ro.observe(this._container);
+        this._loading = false;
     }
 
     disconnectedCallback() {
@@ -95,6 +104,9 @@ export class VoyantMonacoEditor extends LitElement {
     }
 
     render() {
+        if (this._loading) {
+            return html`<div style="width:100%;height:${this.height};display:flex;align-items:center;justify-content:center;background:#0A0A0A;border-radius:8px;border:1px solid #262626;color:#6B7280;font-size:13px">Loading editor...</div>`;
+        }
         return html`
             <div class="editor-container" style="width:100%;height:${this.height};border-radius:8px;overflow:hidden;border:1px solid #262626"></div>
         `;

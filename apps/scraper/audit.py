@@ -7,7 +7,6 @@ Queryable via API for live progress monitoring.
 
 from __future__ import annotations
 
-import json
 import logging
 import time
 from dataclasses import dataclass, field
@@ -52,7 +51,7 @@ class ScrapeAuditLog:
         self.finished_at = 0.0
         self._counter = 0
 
-    def step(self, action: str, **initial_details: Any) -> "_StepContext":
+    def step(self, action: str, **initial_details: Any) -> _StepContext:
         """Start tracking a new step. Use as context manager."""
         self._counter += 1
         s = ScrapeStep(
@@ -71,7 +70,8 @@ class ScrapeAuditLog:
             "job_id": self.job_id,
             "started_at": self.started_at,
             "finished_at": self.finished_at,
-            "total_duration_ms": (self.finished_at or time.time() - self.started_at) * 1000,
+            "total_duration_ms": (self.finished_at or time.time() - self.started_at)
+            * 1000,
             "step_count": len(self.steps),
             "steps": [
                 {
@@ -90,14 +90,21 @@ class ScrapeAuditLog:
         """Export as human-readable live feed lines."""
         lines = []
         for s in self.steps:
-            status_icon = {"running": "⏳", "succeeded": "✅", "failed": "❌", "skipped": "⏭️"}.get(s.status, "?")
+            status_icon = {
+                "running": "⏳",
+                "succeeded": "✅",
+                "failed": "❌",
+                "skipped": "⏭️",
+            }.get(s.status, "?")
             detail_str = ""
             if s.details:
                 parts = [f"{k}={v}" for k, v in list(s.details.items())[:3]]
                 detail_str = f" ({', '.join(parts)})"
             error_str = f" ERROR: {s.error}" if s.error else ""
             duration = f" [{s.duration_ms:.0f}ms]" if s.duration_ms else ""
-            lines.append(f"{status_icon} Step {s.step_number}: {s.action}{detail_str}{duration}{error_str}")
+            lines.append(
+                f"{status_icon} Step {s.step_number}: {s.action}{detail_str}{duration}{error_str}"
+            )
         return lines
 
     def summary(self) -> dict[str, Any]:
@@ -114,8 +121,13 @@ class ScrapeAuditLog:
             "succeeded": succeeded,
             "failed": failed,
             "fields_extracted": extracted,
-            "total_duration_ms": (self.finished_at or time.time() - self.started_at) * 1000,
-            "pages_scraped": sum(1 for s in self.steps if s.action == "navigate" and s.status == "succeeded"),
+            "total_duration_ms": (self.finished_at or time.time() - self.started_at)
+            * 1000,
+            "pages_scraped": sum(
+                1
+                for s in self.steps
+                if s.action == "navigate" and s.status == "succeeded"
+            ),
         }
 
 

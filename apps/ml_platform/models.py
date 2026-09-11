@@ -87,7 +87,7 @@ class RunArtifact(UUIDModel):
     size_bytes = models.BigIntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    class Meta:
+    class Meta:  # type: ignore[reportIncompatibleVariableOverride]
         db_table = "ml_run_artifact"
 
     def __str__(self) -> str:
@@ -141,7 +141,9 @@ class ModelVersion(TenantModel, UUIDModel):
         unique_together = [("registered_model_id", "version")]
 
     def __str__(self) -> str:
-        return f"ModelVersion({self.registered_model.name} v{self.version} [{self.stage}])"
+        return (
+            f"ModelVersion({self.registered_model.name} v{self.version} [{self.stage}])"
+        )
 
 
 class ModelEndpoint(TenantModel, UUIDModel):
@@ -162,7 +164,8 @@ class ModelEndpoint(TenantModel, UUIDModel):
         max_length=20, choices=STATUS_CHOICES, default=STATUS_INACTIVE, db_index=True
     )
     config = models.JSONField(
-        default=dict, blank=True,
+        default=dict,
+        blank=True,
         help_text='Endpoint config: {"timeout_ms": 5000, "max_batch_size": 32}',
     )
     endpoint_path = models.CharField(max_length=255, blank=True)
@@ -189,17 +192,23 @@ class AgentDefinition(TenantModel, UUIDModel):
     )
 
     system_prompt = models.TextField(help_text="System prompt for the agent")
-    model_provider = models.CharField(max_length=100, default="groq", help_text="LLM provider")
-    model_name = models.CharField(max_length=255, default="openai/gpt-oss-120b", help_text="Model identifier")
+    model_provider = models.CharField(
+        max_length=100, default="groq", help_text="LLM provider"
+    )
+    model_name = models.CharField(
+        max_length=255, default="openai/gpt-oss-120b", help_text="Model identifier"
+    )
     temperature = models.FloatField(default=0.1)
     max_tokens = models.IntegerField(default=4096)
 
     tools = models.JSONField(
-        default=list, blank=True,
+        default=list,
+        blank=True,
         help_text='List of allowed MCP tools: ["voyant.sql", "voyant.search", ...]',
     )
     guardrails = models.JSONField(
-        default=dict, blank=True,
+        default=dict,
+        blank=True,
         help_text='Safety rules: {"max_queries_per_session": 50, "blocked_tables": [], "require_approval": false}',
     )
     metadata = models.JSONField(default=dict, blank=True)
@@ -221,21 +230,31 @@ class AgentEvaluation(TenantModel, UUIDModel):
     name = models.CharField(max_length=255)
     status = models.CharField(
         max_length=20,
-        choices=[("pending", "Pending"), ("running", "Running"), ("completed", "Completed")],
+        choices=[
+            ("pending", "Pending"),
+            ("running", "Running"),
+            ("completed", "Completed"),
+        ],
         default="pending",
         db_index=True,
     )
 
     test_cases = models.JSONField(
-        default=list, blank=True,
+        default=list,
+        blank=True,
         help_text='[{"input": "query", "expected": "answer", "tools_used": ["voyant.sql"]}]',
     )
     results = models.JSONField(
-        default=list, blank=True,
+        default=list,
+        blank=True,
         help_text='[{"input": "...", "output": "...", "score": 0.95, "judge_notes": "..."}]',
     )
-    overall_score = models.FloatField(null=True, blank=True, help_text="0.0-1.0 aggregate score")
-    judge_model = models.CharField(max_length=255, default="openai/gpt-oss-120b", help_text="AI judge model")
+    overall_score = models.FloatField(
+        null=True, blank=True, help_text="0.0-1.0 aggregate score"
+    )
+    judge_model = models.CharField(
+        max_length=255, default="openai/gpt-oss-120b", help_text="AI judge model"
+    )
     run_count = models.PositiveIntegerField(default=0)
     passed_count = models.PositiveIntegerField(default=0)
 
@@ -247,3 +266,129 @@ class AgentEvaluation(TenantModel, UUIDModel):
 
     def __str__(self) -> str:
         return f"Eval({self.name} [{self.status}] score={self.overall_score})"
+
+
+# ── Serving & Drift Monitoring Models ────────────────────────────────────────
+
+
+class DriftReport(UUIDModel):
+    """
+    Per-feature drift measurement for a deployed model.
+
+    Stores the result of a statistical drift test (KS test, chi-square, or PSI)
+    for a single feature at a point in time.
+    """
+
+    deployment = models.ForeignKey(
+        ModelEndpoint,
+        on_delete=models.CASCADE,
+        related_name="drift_reports",
+    )
+    tenant_id = models.CharField(
+        max_length=128,
+        db_index=True,
+        help_text="Tenant identifier for multi-tenancy isolation",
+    )
+    feature_name = models.CharField(
+        max_length=255,
+        db_index=True,
+        help_text="Name of the feature being tested for drift",
+    )
+    drift_metric = models.CharField(
+        max_length=50,
+        help_text="Statistical test used: ks_statistic, chi_square, or psi",
+    )
+    drift_value = models.FloatField(
+        help_text="Computed drift metric value",
+    )
+    threshold = models.FloatField(
+        help_text="Threshold above which drift is flagged",
+    )
+    is_drifted = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="True if drift_value exceeds threshold",
+    )
+    details = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Additional details: p-values, bin counts, sample sizes, etc.",
+    )
+    timestamp = models.DateTimeField(
+        auto_now_add=True,
+        db_index=True,
+    )
+
+    class Meta:  # type: ignore[reportIncompatibleVariableOverride]
+        db_table = "ml_drift_report"
+        ordering = ["-timestamp"]
+        indexes = [
+            models.Index(
+                fields=["deployment", "-timestamp"],
+                name="idx_drift_deploy_time",
+            ),
+            models.Index(
+                fields=["tenant_id", "is_drifted"],
+                name="idx_drift_tenant_flag",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        status = "DRIFTED" if self.is_drifted else "ok"
+        return f"Drift({self.feature_name} [{self.drift_metric}={self.drift_value:.4f}] {status})"
+
+
+class ServingMetric(UUIDModel):
+    """
+    Aggregated serving performance metrics for a deployed model.
+
+    Stored in per-minute time buckets. Tracks latency percentiles,
+    throughput, error rate, and request count.
+    """
+
+    deployment = models.ForeignKey(
+        ModelEndpoint,
+        on_delete=models.CASCADE,
+        related_name="serving_metrics",
+    )
+    timestamp = models.DateTimeField(
+        db_index=True,
+        help_text="Start of the aggregation bucket (minute granularity)",
+    )
+    latency_p50 = models.FloatField(
+        default=0.0,
+        help_text="Median latency in milliseconds",
+    )
+    latency_p95 = models.FloatField(
+        default=0.0,
+        help_text="95th percentile latency in milliseconds",
+    )
+    latency_p99 = models.FloatField(
+        default=0.0,
+        help_text="99th percentile latency in milliseconds",
+    )
+    throughput_rps = models.FloatField(
+        default=0.0,
+        help_text="Requests per second in this bucket",
+    )
+    error_rate = models.FloatField(
+        default=0.0,
+        help_text="Fraction of requests that errored (0.0–1.0)",
+    )
+    request_count = models.PositiveIntegerField(
+        default=0,
+        help_text="Total requests in this bucket",
+    )
+
+    class Meta:  # type: ignore[reportIncompatibleVariableOverride]
+        db_table = "ml_serving_metric"
+        ordering = ["-timestamp"]
+        indexes = [
+            models.Index(
+                fields=["deployment", "-timestamp"],
+                name="idx_serving_deploy_time",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"ServingMetric({self.deployment_id} @ {self.timestamp} rps={self.throughput_rps:.1f})"

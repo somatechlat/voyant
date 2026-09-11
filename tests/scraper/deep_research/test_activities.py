@@ -8,8 +8,6 @@ pre-existing IndentationError in report_generator.py.
 import hashlib
 import re
 
-import pytest
-
 _NUM_HASHES = 64
 _SHINGLE_SIZE = 5
 

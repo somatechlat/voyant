@@ -1,10 +1,7 @@
 """Tests for apps.analysis.lib.adaptive_sampling."""
 
-import pytest
 
 from apps.analysis.lib.adaptive_sampling import (
-    SampleResult,
-    SampleStats,
     SamplingStrategy,
     calculate_margin_of_error,
     deterministic_sample,
@@ -18,7 +15,6 @@ from apps.analysis.lib.adaptive_sampling import (
     stratified_sample,
     systematic_sample,
 )
-
 
 # ---------------------------------------------------------------------------
 # get_optimal_sample_size

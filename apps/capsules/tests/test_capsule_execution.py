@@ -103,7 +103,11 @@ class TestValidateParameters:
     def test_options_constraint(self):
         capsule = _make_unsaved_capsule(
             parameters_schema={
-                "format": {"type": "string", "required": True, "options": ["pdf", "csv"]}
+                "format": {
+                    "type": "string",
+                    "required": True,
+                    "options": ["pdf", "csv"],
+                }
             }
         )
         valid, error = validate_parameters(capsule, {"format": "json"})
@@ -175,7 +179,9 @@ class TestSubstituteParameters:
 
     def test_step_results_access(self):
         template = {"output": "Result: {{steps.step1.value}}"}
-        result = substitute_parameters(template, {}, step_results={"step1": {"value": 42}})
+        result = substitute_parameters(
+            template, {}, step_results={"step1": {"value": 42}}
+        )
         assert result["output"] == "Result: 42"
 
     def test_invalid_template_returns_original(self):

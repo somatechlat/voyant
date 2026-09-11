@@ -120,7 +120,9 @@ class InMemorySecretsBackend(SecretsBackend):
         now = datetime.now(UTC).isoformat() + "Z"
         expires_at = None
         if expires_in:
-            expires_at = (datetime.now(UTC) + timedelta(seconds=expires_in)).isoformat() + "Z"
+            expires_at = (
+                datetime.now(UTC) + timedelta(seconds=expires_in)
+            ).isoformat() + "Z"
 
         existing = self._metadata.get(key)
         version = (existing.version + 1) if existing else 1
@@ -227,7 +229,9 @@ class K8sSecretsBackend(SecretsBackend):
         if not self._root.exists():
             return []
         return sorted(
-            str(path.relative_to(self._root)) for path in self._root.rglob("*") if path.is_file()
+            str(path.relative_to(self._root))
+            for path in self._root.rglob("*")
+            if path.is_file()
         )
 
     async def get_metadata(self, key: str) -> SecretMetadata | None:
@@ -235,7 +239,9 @@ class K8sSecretsBackend(SecretsBackend):
         if not path.exists():
             return None
         updated = datetime.utcfromtimestamp(path.stat().st_mtime).isoformat() + "Z"
-        return SecretMetadata(key=key, created_at=updated, updated_at=updated, version=1)
+        return SecretMetadata(
+            key=key, created_at=updated, updated_at=updated, version=1
+        )
 
 
 # =============================================================================
@@ -260,10 +266,14 @@ class FileSecretsBackend(SecretsBackend):
                 from cryptography.fernet import Fernet
 
                 # Derive 32-byte key from password
-                key = base64.urlsafe_b64encode(hashlib.sha256(self._encrypt_key.encode()).digest())
+                key = base64.urlsafe_b64encode(
+                    hashlib.sha256(self._encrypt_key.encode()).digest()
+                )
                 self._fernet = Fernet(key)
             except ImportError:
-                logger.warning("cryptography package not installed, secrets will not be encrypted")
+                logger.warning(
+                    "cryptography package not installed, secrets will not be encrypted"
+                )
 
     @property
     def provider_name(self) -> str:
@@ -312,7 +322,9 @@ class FileSecretsBackend(SecretsBackend):
         now = datetime.now(UTC).isoformat() + "Z"
         expires_at = None
         if expires_in:
-            expires_at = (datetime.now(UTC) + timedelta(seconds=expires_in)).isoformat() + "Z"
+            expires_at = (
+                datetime.now(UTC) + timedelta(seconds=expires_in)
+            ).isoformat() + "Z"
 
         existing = metadata.get(key)
         version = (existing["version"] + 1) if existing else 1

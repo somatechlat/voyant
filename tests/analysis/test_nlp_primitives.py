@@ -2,7 +2,7 @@
 
 import pytest
 
-from apps.analysis.lib.nlp_primitives import NLPPrimitives, NLTK_AVAILABLE
+from apps.analysis.lib.nlp_primitives import NLTK_AVAILABLE, NLPPrimitives
 
 # Check if VADER data is actually available (not just NLTK installed)
 _VADER_AVAILABLE = False

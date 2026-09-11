@@ -21,7 +21,9 @@ from apps.ontology.models import (
     Link,
     Object,
     ObjectType,
+    PIIDetection,
     Property,
+    QualityScore,
     SharedProperty,
     StructType,
     ValueType,
@@ -210,28 +212,34 @@ def list_object_types(request, include_deleted: bool = False):
     result = []
     for ot in types:
         prop_count = Property.objects.filter(object_type=ot).count()
-        instance_count = Object.objects.filter(object_type=ot, deleted_at__isnull=True).count()
-        result.append(ObjectTypeOut(
-            id=str(ot.id),
-            name=ot.name,
-            description=ot.description,
-            version=ot.version,
-            property_count=prop_count,
-            instance_count=instance_count,
-            tenant_id=ot.tenant_id,
-            created_at=ot.created_at.isoformat(),
-        ))
+        instance_count = Object.objects.filter(
+            object_type=ot, deleted_at__isnull=True
+        ).count()
+        result.append(
+            ObjectTypeOut(
+                id=str(ot.id),
+                name=ot.name,
+                description=ot.description,
+                version=ot.version,
+                property_count=prop_count,
+                instance_count=instance_count,
+                tenant_id=ot.tenant_id,
+                created_at=ot.created_at.isoformat(),
+            )
+        )
     return result
 
 
-@ontology_router.post("/types", response=ObjectTypeOut, auth=require_permission("write:ontology"))
+@ontology_router.post(
+    "/types", response=ObjectTypeOut, auth=require_permission("write:ontology")
+)
 def create_object_type(request, payload: CreateObjectTypeIn):
     """Create a new object type."""
     from apps.ontology.services import ObjectTypeService
 
     tenant_id = get_tenant_id(request)
     try:
-        ot = ObjectTypeService.create(tenant_id, payload.name, payload.description)
+        ot = ObjectTypeService.create(tenant_id, payload.name, payload.description)  # type: ignore[reportCallIssue]
         return ObjectTypeOut(
             id=str(ot.id),
             name=ot.name,
@@ -301,7 +309,9 @@ def list_interfaces(request):
     ]
 
 
-@ontology_router.post("/interfaces", response=InterfaceOut, auth=require_permission("write:ontology"))
+@ontology_router.post(
+    "/interfaces", response=InterfaceOut, auth=require_permission("write:ontology")
+)
 def create_interface(request, payload: CreateInterfaceIn):
     """Create a new interface."""
     tenant_id = get_tenant_id(request)
@@ -344,7 +354,9 @@ def list_struct_types(request):
     ]
 
 
-@ontology_router.post("/structs", response=StructTypeOut, auth=require_permission("write:ontology"))
+@ontology_router.post(
+    "/structs", response=StructTypeOut, auth=require_permission("write:ontology")
+)
 def create_struct_type(request, payload: CreateStructTypeIn):
     """Create a new struct type."""
     tenant_id = get_tenant_id(request)
@@ -385,7 +397,11 @@ def list_shared_properties(request):
     ]
 
 
-@ontology_router.post("/shared-properties", response=SharedPropertyOut, auth=require_permission("write:ontology"))
+@ontology_router.post(
+    "/shared-properties",
+    response=SharedPropertyOut,
+    auth=require_permission("write:ontology"),
+)
 def create_shared_property(request, payload: CreateSharedPropertyIn):
     """Create a new shared property."""
     tenant_id = get_tenant_id(request)
@@ -428,7 +444,9 @@ def list_value_types(request):
     ]
 
 
-@ontology_router.post("/value-types", response=ValueTypeOut, auth=require_permission("write:ontology"))
+@ontology_router.post(
+    "/value-types", response=ValueTypeOut, auth=require_permission("write:ontology")
+)
 def create_value_type(request, payload: CreateValueTypeIn):
     """Create a new value type."""
     tenant_id = get_tenant_id(request)
@@ -466,7 +484,9 @@ def list_action_types(request, status: str | None = None):
             description=a.description,
             status=a.status,
             version=a.version,
-            target_object_type=str(a.target_object_type_id) if a.target_object_type_id else None,
+            target_object_type=(
+                str(a.target_object_type_id) if a.target_object_type_id else None  # type: ignore[attr-defined]
+            ),
             parameters=a.parameters,
             rules=a.rules,
             side_effects=a.side_effects,
@@ -477,7 +497,9 @@ def list_action_types(request, status: str | None = None):
     ]
 
 
-@ontology_router.post("/actions", response=ActionTypeOut, auth=require_permission("write:ontology"))
+@ontology_router.post(
+    "/actions", response=ActionTypeOut, auth=require_permission("write:ontology")
+)
 def create_action_type(request, payload: CreateActionTypeIn):
     """Create a new action type."""
     tenant_id = get_tenant_id(request)
@@ -504,7 +526,9 @@ def create_action_type(request, payload: CreateActionTypeIn):
         description=action.description,
         status=action.status,
         version=action.version,
-        target_object_type=str(action.target_object_type_id) if action.target_object_type_id else None,
+        target_object_type=(
+            str(action.target_object_type_id) if action.target_object_type_id else None  # type: ignore[attr-defined]
+        ),
         parameters=action.parameters,
         rules=action.rules,
         side_effects=action.side_effects,
@@ -532,15 +556,21 @@ def list_functions(request, status: str | None = None):
             version=f.version,
             language=f.language,
             entry_point=f.entry_point,
-            attached_to_type=str(f.attached_to_type_id) if f.attached_to_type_id else None,
-            attached_to_action=str(f.attached_to_action_id) if f.attached_to_action_id else None,
+            attached_to_type=(
+                str(f.attached_to_type_id) if f.attached_to_type_id else None  # type: ignore[attr-defined]
+            ),
+            attached_to_action=(
+                str(f.attached_to_action_id) if f.attached_to_action_id else None  # type: ignore[attr-defined]
+            ),
             tenant_id=f.tenant_id,
         )
         for f in qs
     ]
 
 
-@ontology_router.post("/functions", response=FunctionOut, auth=require_permission("write:ontology"))
+@ontology_router.post(
+    "/functions", response=FunctionOut, auth=require_permission("write:ontology")
+)
 def create_function(request, payload: CreateFunctionIn):
     """Create a new function."""
     tenant_id = get_tenant_id(request)
@@ -566,8 +596,12 @@ def create_function(request, payload: CreateFunctionIn):
         version=func.version,
         language=func.language,
         entry_point=func.entry_point,
-        attached_to_type=str(func.attached_to_type_id) if func.attached_to_type_id else None,
-        attached_to_action=str(func.attached_to_action_id) if func.attached_to_action_id else None,
+        attached_to_type=(
+            str(func.attached_to_type_id) if func.attached_to_type_id else None  # type: ignore[attr-defined]
+        ),
+        attached_to_action=(
+            str(func.attached_to_action_id) if func.attached_to_action_id else None  # type: ignore[attr-defined]
+        ),
         tenant_id=func.tenant_id,
     )
 
@@ -645,15 +679,15 @@ def get_interface(request, iface_id: str):
         "version": iface.version,
         "required_properties": iface.required_properties,
         "optional_properties": iface.optional_properties,
-        "implementing_types": [
-            str(t.id) for t in iface.implementing_types.all()
-        ],
+        "implementing_types": [str(t.id) for t in iface.implementing_types.all()],
         "tenant_id": iface.tenant_id,
         "created_at": iface.created_at.isoformat(),
     }
 
 
-@ontology_router.put("/interfaces/{iface_id}", auth=require_permission("write:ontology"))
+@ontology_router.put(
+    "/interfaces/{iface_id}", auth=require_permission("write:ontology")
+)
 def update_interface(request, iface_id: str, payload: UpdateInterfaceIn):
     """Update an existing interface."""
     tenant_id = get_tenant_id(request)
@@ -681,7 +715,9 @@ def update_interface(request, iface_id: str, payload: UpdateInterfaceIn):
     }
 
 
-@ontology_router.delete("/interfaces/{iface_id}", auth=require_permission("write:ontology"))
+@ontology_router.delete(
+    "/interfaces/{iface_id}", auth=require_permission("write:ontology")
+)
 def delete_interface(request, iface_id: str):
     """Soft-delete an interface."""
     tenant_id = get_tenant_id(request)
@@ -691,6 +727,7 @@ def delete_interface(request, iface_id: str):
     if not iface:
         raise HttpError(404, "Interface not found")
     from django.utils import timezone
+
     iface.deleted_at = timezone.now()
     iface.save(update_fields=["deleted_at", "updated_at"])
     return {"status": "deleted", "id": iface_id}
@@ -752,7 +789,9 @@ def update_struct_type(request, struct_id: str, payload: UpdateStructTypeIn):
     }
 
 
-@ontology_router.delete("/structs/{struct_id}", auth=require_permission("write:ontology"))
+@ontology_router.delete(
+    "/structs/{struct_id}", auth=require_permission("write:ontology")
+)
 def delete_struct_type(request, struct_id: str):
     """Soft-delete a struct type."""
     tenant_id = get_tenant_id(request)
@@ -762,6 +801,7 @@ def delete_struct_type(request, struct_id: str):
     if not st:
         raise HttpError(404, "Struct type not found")
     from django.utils import timezone
+
     st.deleted_at = timezone.now()
     st.save(update_fields=["deleted_at", "updated_at"])
     return {"status": "deleted", "id": struct_id}
@@ -800,7 +840,9 @@ def get_shared_property(request, prop_id: str):
     }
 
 
-@ontology_router.put("/shared-properties/{prop_id}", auth=require_permission("write:ontology"))
+@ontology_router.put(
+    "/shared-properties/{prop_id}", auth=require_permission("write:ontology")
+)
 def update_shared_property(request, prop_id: str, payload: UpdateSharedPropertyIn):
     """Update an existing shared property."""
     tenant_id = get_tenant_id(request)
@@ -829,7 +871,9 @@ def update_shared_property(request, prop_id: str, payload: UpdateSharedPropertyI
     }
 
 
-@ontology_router.delete("/shared-properties/{prop_id}", auth=require_permission("write:ontology"))
+@ontology_router.delete(
+    "/shared-properties/{prop_id}", auth=require_permission("write:ontology")
+)
 def delete_shared_property(request, prop_id: str):
     """Soft-delete a shared property."""
     tenant_id = get_tenant_id(request)
@@ -839,6 +883,7 @@ def delete_shared_property(request, prop_id: str):
     if not sp:
         raise HttpError(404, "Shared property not found")
     from django.utils import timezone
+
     sp.deleted_at = timezone.now()
     sp.save(update_fields=["deleted_at", "updated_at"])
     return {"status": "deleted", "id": prop_id}
@@ -906,7 +951,9 @@ def update_value_type(request, vt_id: str, payload: UpdateValueTypeIn):
     }
 
 
-@ontology_router.delete("/value-types/{vt_id}", auth=require_permission("write:ontology"))
+@ontology_router.delete(
+    "/value-types/{vt_id}", auth=require_permission("write:ontology")
+)
 def delete_value_type(request, vt_id: str):
     """Soft-delete a value type."""
     tenant_id = get_tenant_id(request)
@@ -918,6 +965,7 @@ def delete_value_type(request, vt_id: str):
     if vt.is_system:
         raise HttpError(400, "Cannot delete system value types")
     from django.utils import timezone
+
     vt.deleted_at = timezone.now()
     vt.save(update_fields=["deleted_at", "updated_at"])
     return {"status": "deleted", "id": vt_id}
@@ -953,7 +1001,9 @@ def get_action_type(request, action_id: str):
         "description": at.description,
         "status": at.status,
         "version": at.version,
-        "target_object_type": str(at.target_object_type_id) if at.target_object_type_id else None,
+        "target_object_type": (
+            str(at.target_object_type_id) if at.target_object_type_id else None  # type: ignore[attr-defined]
+        ),
         "parameters": at.parameters,
         "rules": at.rules,
         "side_effects": at.side_effects,
@@ -1007,7 +1057,9 @@ def update_action_type(request, action_id: str, payload: UpdateActionTypeIn):
     }
 
 
-@ontology_router.delete("/actions/{action_id}", auth=require_permission("write:ontology"))
+@ontology_router.delete(
+    "/actions/{action_id}", auth=require_permission("write:ontology")
+)
 def delete_action_type(request, action_id: str):
     """Soft-delete an action type."""
     tenant_id = get_tenant_id(request)
@@ -1017,6 +1069,7 @@ def delete_action_type(request, action_id: str):
     if not at:
         raise HttpError(404, "Action type not found")
     from django.utils import timezone
+
     at.deleted_at = timezone.now()
     at.save(update_fields=["deleted_at", "updated_at"])
     return {"status": "deleted", "id": action_id}
@@ -1060,8 +1113,12 @@ def get_function(request, func_id: str):
         "entry_point": fn.entry_point,
         "input_schema": fn.input_schema,
         "output_schema": fn.output_schema,
-        "attached_to_type": str(fn.attached_to_type_id) if fn.attached_to_type_id else None,
-        "attached_to_action": str(fn.attached_to_action_id) if fn.attached_to_action_id else None,
+        "attached_to_type": (
+            str(fn.attached_to_type_id) if fn.attached_to_type_id else None  # type: ignore[attr-defined]
+        ),
+        "attached_to_action": (
+            str(fn.attached_to_action_id) if fn.attached_to_action_id else None  # type: ignore[attr-defined]
+        ),
         "timeout_seconds": fn.timeout_seconds,
         "memory_limit_mb": fn.memory_limit_mb,
         "tenant_id": fn.tenant_id,
@@ -1095,9 +1152,9 @@ def update_function(request, func_id: str, payload: UpdateFunctionIn):
     if payload.output_schema is not None:
         fn.output_schema = payload.output_schema
     if payload.attached_to_type_id is not None:
-        fn.attached_to_type_id = payload.attached_to_type_id or None
+        fn.attached_to_type_id = payload.attached_to_type_id or None  # type: ignore[attr-defined]
     if payload.attached_to_action_id is not None:
-        fn.attached_to_action_id = payload.attached_to_action_id or None
+        fn.attached_to_action_id = payload.attached_to_action_id or None  # type: ignore[attr-defined]
     if payload.timeout_seconds is not None:
         fn.timeout_seconds = payload.timeout_seconds
     if payload.memory_limit_mb is not None:
@@ -1115,7 +1172,9 @@ def update_function(request, func_id: str, payload: UpdateFunctionIn):
     }
 
 
-@ontology_router.delete("/functions/{func_id}", auth=require_permission("write:ontology"))
+@ontology_router.delete(
+    "/functions/{func_id}", auth=require_permission("write:ontology")
+)
 def delete_function(request, func_id: str):
     """Soft-delete a function."""
     tenant_id = get_tenant_id(request)
@@ -1125,6 +1184,7 @@ def delete_function(request, func_id: str):
     if not fn:
         raise HttpError(404, "Function not found")
     from django.utils import timezone
+
     fn.deleted_at = timezone.now()
     fn.save(update_fields=["deleted_at", "updated_at"])
     return {"status": "deleted", "id": func_id}
@@ -1164,7 +1224,7 @@ def list_objects(request, object_type_id: str | None = None, limit: int = 100):
     return [
         {
             "id": str(o.id),
-            "object_type": str(o.object_type_id),
+            "object_type": str(o.object_type_id),  # type: ignore[attr-defined]
             "object_type_name": o.object_type.name,
             "properties": o.properties,
             "version": o.version,
@@ -1187,7 +1247,7 @@ def get_object(request, object_id: str):
         raise HttpError(404, "Object not found")
     return {
         "id": str(obj.id),
-        "object_type": str(obj.object_type_id),
+        "object_type": str(obj.object_type_id),  # type: ignore[attr-defined]
         "object_type_name": obj.object_type.name,
         "properties": obj.properties,
         "version": obj.version,
@@ -1203,10 +1263,12 @@ def create_object(request, payload: CreateObjectIn):
 
     tenant_id = get_tenant_id(request)
     try:
-        obj = ObjectService.create(tenant_id, payload.object_type_id, payload.properties)
+        obj = ObjectService.create(
+            tenant_id, payload.object_type_id, payload.properties
+        )
         return {
             "id": str(obj.id),
-            "object_type": str(obj.object_type_id),
+            "object_type": str(obj.object_type_id),  # type: ignore[attr-defined]
             "properties": obj.properties,
             "version": obj.version,
             "tenant_id": obj.tenant_id,
@@ -1227,7 +1289,7 @@ def update_object(request, object_id: str, payload: UpdateObjectIn):
         )
         return {
             "id": str(obj.id),
-            "object_type": str(obj.object_type_id),
+            "object_type": str(obj.object_type_id),  # type: ignore[attr-defined]
             "properties": obj.properties,
             "version": obj.version,
             "tenant_id": obj.tenant_id,
@@ -1236,7 +1298,9 @@ def update_object(request, object_id: str, payload: UpdateObjectIn):
         raise HttpError(400, str(exc))
 
 
-@ontology_router.delete("/objects/{object_id}", auth=require_permission("write:ontology"))
+@ontology_router.delete(
+    "/objects/{object_id}", auth=require_permission("write:ontology")
+)
 def delete_object(request, object_id: str):
     """Soft-delete an object."""
     from apps.ontology.services import ObjectService
@@ -1256,7 +1320,9 @@ def batch_create_objects(request, payload: BatchCreateIn):
 
     tenant_id = get_tenant_id(request)
     try:
-        objects = ObjectService.batch_create(tenant_id, payload.object_type_id, payload.items)
+        objects = ObjectService.batch_create(
+            tenant_id, payload.object_type_id, payload.items
+        )
         return {
             "created": len(objects),
             "ids": [str(o.id) for o in objects],
@@ -1315,14 +1381,14 @@ def list_link_types(request):
             "id": str(lt.id),
             "name": lt.name,
             "description": lt.description,
-            "source_object_type": str(lt.source_object_type_id),
+            "source_object_type": str(lt.source_object_type_id),  # type: ignore[attr-defined]
             "source_object_type_name": lt.source_object_type.name,
-            "target_object_type": str(lt.target_object_type_id),
+            "target_object_type": str(lt.target_object_type_id),  # type: ignore[attr-defined]
             "target_object_type_name": lt.target_object_type.name,
             "cardinality": lt.cardinality,
             "properties_schema": lt.properties_schema,
             "inverse_name": lt.inverse_name,
-            "instance_count": lt.instances.filter(deleted_at__isnull=True).count(),
+            "instance_count": lt.instances.filter(deleted_at__isnull=True).count(),  # type: ignore[attr-defined]
             "tenant_id": lt.tenant_id,
         }
         for lt in lts
@@ -1343,8 +1409,8 @@ def get_link_type(request, lt_id: str):
         "id": str(lt.id),
         "name": lt.name,
         "description": lt.description,
-        "source_object_type": str(lt.source_object_type_id),
-        "target_object_type": str(lt.target_object_type_id),
+        "source_object_type": str(lt.source_object_type_id),  # type: ignore[attr-defined]
+        "target_object_type": str(lt.target_object_type_id),  # type: ignore[attr-defined]
         "cardinality": lt.cardinality,
         "properties_schema": lt.properties_schema,
         "inverse_name": lt.inverse_name,
@@ -1409,7 +1475,9 @@ def update_link_type(request, lt_id: str, payload: UpdateLinkTypeIn):
     }
 
 
-@ontology_router.delete("/link-types/{lt_id}", auth=require_permission("write:ontology"))
+@ontology_router.delete(
+    "/link-types/{lt_id}", auth=require_permission("write:ontology")
+)
 def delete_link_type(request, lt_id: str):
     """Soft-delete a link type."""
     from apps.ontology.services import LinkTypeService
@@ -1449,10 +1517,10 @@ def list_links(request, link_type_id: str | None = None, limit: int = 100):
     return [
         {
             "id": str(lk.id),
-            "link_type": str(lk.link_type_id),
+            "link_type": str(lk.link_type_id),  # type: ignore[attr-defined]
             "link_type_name": lk.link_type.name,
-            "source_object": str(lk.source_object_id),
-            "target_object": str(lk.target_object_id),
+            "source_object": str(lk.source_object_id),  # type: ignore[attr-defined]
+            "target_object": str(lk.target_object_id),  # type: ignore[attr-defined]
             "properties": lk.properties,
             "tenant_id": lk.tenant_id,
         }
@@ -1476,9 +1544,9 @@ def create_link(request, payload: CreateLinkIn):
         )
         return {
             "id": str(link.id),
-            "link_type": str(link.link_type_id),
-            "source_object": str(link.source_object_id),
-            "target_object": str(link.target_object_id),
+            "link_type": str(link.link_type_id),  # type: ignore[attr-defined]
+            "source_object": str(link.source_object_id),  # type: ignore[attr-defined]
+            "target_object": str(link.target_object_id),  # type: ignore[attr-defined]
             "properties": link.properties,
             "tenant_id": link.tenant_id,
         }
@@ -1519,3 +1587,417 @@ def traverse_object(request, object_id: str, payload: TraverseIn):
         return {"object_id": object_id, "results": results, "count": len(results)}
     except Exception as exc:
         raise HttpError(400, str(exc))
+
+
+# ── PII Detection (§4.4 Data Catalog) ──────────────────────────────────────
+
+
+class PIIDetectionOut(Schema):
+    column: str
+    pii_type: str
+    confidence: float
+    method: str
+
+
+class PIIDetectIn(Schema):
+    dataset_columns: list[str]
+    sample_data: dict[str, list[Any]]
+    dataset_urn: str = ""
+
+
+@ontology_router.post(
+    "/pii/detect",
+    response=list[PIIDetectionOut],
+    auth=require_permission("write:ontology"),
+)
+def detect_pii(request, payload: PIIDetectIn):
+    """Detect PII in a dataset's columns.
+
+    §4.4 CATALOG: Runs pattern-based and name-based PII detection.
+    Results with confidence > 0.85 are auto-classified and persisted.
+    """
+    from apps.ontology.pii_detector import PIIDetector
+
+    tenant_id = get_tenant_id(request)
+    detector = PIIDetector()
+    detections = detector.detect_pii_in_dataset(
+        dataset_columns=payload.dataset_columns,
+        sample_data=payload.sample_data,
+    )
+
+    # Persist high-confidence detections
+    persisted: list[PIIDetectionOut] = []
+    for d in detections:
+        auto = detector.is_auto_classified(d.confidence)
+        if auto:
+            try:
+                PIIDetection.objects.create(
+                    tenant_id=tenant_id,
+                    column_name=d.column,
+                    dataset_urn=payload.dataset_urn,
+                    pii_type=d.pii_type,
+                    confidence=d.confidence,
+                    method=d.method,
+                    auto_classified=True,
+                )
+            except Exception:
+                logger.warning("Failed to persist PII detection for %s", d.column, exc_info=True)
+
+        persisted.append(
+            PIIDetectionOut(
+                column=d.column,
+                pii_type=d.pii_type,
+                confidence=d.confidence,
+                method=d.method,
+            )
+        )
+
+    return persisted
+
+
+# ── Data Quality Scoring (§4.4 Data Catalog) ───────────────────────────────
+
+
+class QualityScoreOut(Schema):
+    id: str
+    dataset_id: str
+    overall: float
+    completeness: float
+    uniqueness: float
+    timeliness: float
+    consistency: float
+    accuracy: float
+    computed_at: str
+    tenant_id: str
+
+
+class QualityReportOut(Schema):
+    dataset_id: str
+    score: dict[str, float]
+    row_count: int
+    column_count: int
+    columns: list[dict[str, Any]]
+
+
+class ComputeQualityIn(Schema):
+    columns: list[str]
+    rows: list[list[Any]]
+    key_columns: list[str] = []
+    column_types: dict[str, str] = {}
+    value_ranges: dict[str, list[float]] = {}  # [min, max]
+    expected_update_hours: float = 24.0
+
+
+@ontology_router.get("/quality/{dataset_id}", response=QualityScoreOut)
+def get_quality_score(request, dataset_id: str):
+    """Get the latest quality score for a dataset.
+
+    §4.4 CATALOG: Returns the most recent quality score computation
+    for the given dataset ID.
+    """
+    tenant_id = get_tenant_id(request)
+    qs = QualityScore.objects.filter(
+        tenant_id=tenant_id,
+        dataset_id=dataset_id,
+    ).order_by("-computed_at").first()
+
+    if not qs:
+        raise HttpError(404, "No quality score found for this dataset")
+
+    return QualityScoreOut(
+        id=str(qs.id),
+        dataset_id=qs.dataset_id,
+        overall=qs.overall,
+        completeness=qs.completeness,
+        uniqueness=qs.uniqueness,
+        timeliness=qs.timeliness,
+        consistency=qs.consistency,
+        accuracy=qs.accuracy,
+        computed_at=qs.computed_at.isoformat(),
+        tenant_id=qs.tenant_id,
+    )
+
+
+@ontology_router.post(
+    "/quality/{dataset_id}/compute",
+    response=QualityReportOut,
+    auth=require_permission("write:ontology"),
+)
+def compute_quality(request, dataset_id: str, payload: ComputeQualityIn):
+    """Trigger quality score computation for a dataset.
+
+    §4.4 CATALOG: Computes all five quality dimensions (completeness,
+    uniqueness, timeliness, consistency, accuracy) and returns a full
+    per-column report.  Results are persisted for future retrieval.
+    """
+    from apps.ontology.quality_scorer import DataQualityScorer
+
+    tenant_id = get_tenant_id(request)
+    scorer = DataQualityScorer()
+
+    # Convert value_ranges from list to tuple
+    vr: dict[str, tuple[float, float]] = {}
+    for col_name, bounds in payload.value_ranges.items():
+        if len(bounds) == 2:
+            vr[col_name] = (bounds[0], bounds[1])
+
+    report = scorer.generate_quality_report(
+        dataset_id=dataset_id,
+        columns=payload.columns,
+        rows=payload.rows,
+        key_columns=payload.key_columns or None,
+        column_types=payload.column_types or None,
+        value_ranges=vr or None,
+        expected_update_hours=payload.expected_update_hours,
+        tenant_id=tenant_id,
+    )
+
+    return QualityReportOut(
+        dataset_id=report.dataset_id,
+        score=report.score.to_dict(),
+        row_count=report.row_count,
+        column_count=report.column_count,
+        columns=[c.to_dict() for c in report.columns],
+    )
+
+
+# ── Ontology Query Engine (§4.3) ────────────────────────────────────────────
+
+
+class AggregationIn(Schema):
+    """Request body for an aggregation query against an object type."""
+
+    group_by: list[str] = []
+    aggregations: list[dict[str, Any]] = []
+    filter: dict[str, Any] | None = None
+    having: dict[str, Any] | None = None
+    sort: list[dict[str, str]] | None = None
+    limit: int = 1000
+
+
+class InterfaceQueryIn(Schema):
+    """Request body for a cross-type interface query."""
+
+    filter: dict[str, Any] | None = None
+    sort: list[dict[str, str]] | None = None
+    limit: int = 100
+    cursor: dict[str, Any] | None = None
+    select: list[str] | None = None
+
+
+def _build_query_filter(filt: dict[str, Any] | None) -> Any:
+    """Recursively convert a filter dict into a QueryFilter dataclass."""
+    if filt is None:
+        return None
+    from apps.ontology.query_engine import GeoNearFilter, QueryFilter
+
+    # Branch: AND / OR
+    if "AND" in filt:
+        children = [_build_query_filter(c) for c in filt["AND"]]
+        return QueryFilter(AND=[c for c in children if c is not None])
+    if "OR" in filt:
+        children = [_build_query_filter(c) for c in filt["OR"]]
+        return QueryFilter(OR=[c for c in children if c is not None])
+
+    # Geospatial near()
+    if "near" in filt:
+        n = filt["near"]
+        return QueryFilter(
+            near=GeoNearFilter(
+                lat=n["lat"],
+                lng=n["lng"],
+                radius_km=n["radius_km"],
+                lat_column=n.get("lat_column", "latitude"),
+                lng_column=n.get("lng_column", "longitude"),
+            )
+        )
+
+    # Leaf filter
+    return QueryFilter(
+        property=filt.get("property"),
+        operator=filt.get("operator"),
+        value=filt.get("value"),
+    )
+
+
+@ontology_router.post("/objects/{type_id}/aggregate")
+def aggregate_objects(request, type_id: str, payload: AggregationIn):
+    """Run an aggregation query against an object type's backing dataset.
+
+    §4.3 ONTOLOGY QUERY ENGINE:
+    Translates to ``SELECT group_by, AGG(col) FROM backing_dataset WHERE filter GROUP BY group_by``.
+    Supported aggregations: SUM, AVG, COUNT, MIN, MAX, P95, P99.
+    """
+    from apps.ontology.query_engine import (
+        AggregateQueryParams,
+        AggregationSpec,
+        OntologyQueryEngine,
+    )
+
+    tenant_id = get_tenant_id(request)
+    try:
+        engine = OntologyQueryEngine(tenant_id=tenant_id)
+        agg_specs = [
+            AggregationSpec(
+                property=a["property"],
+                function=a["function"],
+                alias=a.get("alias", ""),
+            )
+            for a in payload.aggregations
+        ]
+        params = AggregateQueryParams(
+            group_by=payload.group_by,
+            aggregations=agg_specs,
+            filter=_build_query_filter(payload.filter),
+            having=_build_query_filter(payload.having),
+            sort=payload.sort,
+            limit=payload.limit,
+        )
+        result = engine.aggregate_query(type_id, params)
+        return {
+            "columns": result.columns,
+            "rows": result.rows,
+            "row_count": result.row_count,
+            "truncated": result.truncated,
+            "execution_time_ms": result.execution_time_ms,
+        }
+    except ValueError as exc:
+        raise HttpError(400, str(exc))
+    except Exception as exc:
+        logger.exception("aggregate_objects failed")
+        raise HttpError(500, str(exc))
+
+
+@ontology_router.post("/interfaces/{iface_id}/query")
+def query_interface(request, iface_id: str, payload: InterfaceQueryIn):
+    """Query objects from all implementing types of an interface.
+
+    §4.3 ONTOLOGY QUERY ENGINE (INTERFACE-BASED QUERY):
+    Executes one query per implementing type's backing dataset and merges results.
+    Supports geospatial ``near()`` filter and cursor-based pagination.
+    """
+    from apps.ontology.query_engine import (
+        InterfaceQueryParams,
+        OntologyQueryEngine,
+        PaginationCursor,
+    )
+
+    tenant_id = get_tenant_id(request)
+    try:
+        engine = OntologyQueryEngine(tenant_id=tenant_id)
+        cursor = None
+        if payload.cursor:
+            cursor = PaginationCursor(
+                last_pk_value=payload.cursor.get("last_pk_value"),
+                last_pk_column=payload.cursor.get("last_pk_column", "id"),
+            )
+        params = InterfaceQueryParams(
+            filter=_build_query_filter(payload.filter),
+            sort=payload.sort,
+            limit=payload.limit,
+            cursor=cursor,
+            select=payload.select,
+        )
+        result = engine.interface_query(iface_id, params)
+        return result
+    except ValueError as exc:
+        raise HttpError(400, str(exc))
+    except Exception as exc:
+        logger.exception("query_interface failed")
+        raise HttpError(500, str(exc))
+
+
+# ── Time Travel API (§5.2) ──────────────────────────────────────────────────
+
+
+@ontology_router.get("/datasets/{dataset_id}/versions")
+def list_dataset_versions(request, dataset_id: str):
+    """List all Iceberg snapshot versions for a dataset.
+
+    §5.2 ICEBERG TABLE MANAGEMENT (TIME TRAVEL):
+    Returns the version history from the Iceberg REST catalog, falling
+    back to Trino ``$snapshots`` metadata if the catalog is unavailable.
+    """
+    from apps.ontology.time_travel import TimeTravelService
+
+    tenant_id = get_tenant_id(request)
+    try:
+        svc = TimeTravelService(tenant_id=tenant_id)
+        versions = svc.list_versions(dataset_id)
+        return [
+            {
+                "snapshot_id": v.snapshot_id,
+                "timestamp_ms": v.timestamp_ms,
+                "timestamp": v.timestamp_iso,
+                "operation": v.operation,
+                "summary": v.summary,
+            }
+            for v in versions
+        ]
+    except Exception as exc:
+        logger.exception("list_dataset_versions failed")
+        raise HttpError(500, str(exc))
+
+
+@ontology_router.get("/datasets/{dataset_id}/versions/{version}")
+def query_dataset_version(request, dataset_id: str, version: int):
+    """Query data as of a specific Iceberg snapshot version.
+
+    §5.2 ICEBERG TABLE MANAGEMENT (TIME TRAVEL):
+    Uses ``FOR SYSTEM_VERSION AS OF <snapshot_id>`` syntax to return
+    the state of the dataset at the given snapshot.
+    """
+    from apps.ontology.time_travel import TimeTravelService
+
+    tenant_id = get_tenant_id(request)
+    try:
+        svc = TimeTravelService(tenant_id=tenant_id)
+        result = svc.query_by_version(dataset_id, version)
+        return {
+            "dataset": result.dataset,
+            "version": result.version,
+            "columns": result.columns,
+            "rows": result.rows,
+            "row_count": result.row_count,
+            "truncated": result.truncated,
+            "execution_time_ms": result.execution_time_ms,
+        }
+    except Exception as exc:
+        logger.exception("query_dataset_version failed")
+        raise HttpError(500, str(exc))
+
+
+@ontology_router.get("/datasets/{dataset_id}/diff")
+def diff_dataset_versions(
+    request,
+    dataset_id: str,
+    v1: int,
+    v2: int,
+):
+    """Diff two Iceberg snapshot versions.
+
+    §5.2 ICEBERG TABLE MANAGEMENT (TIME TRAVEL):
+    Uses ``CHANGES BETWEEN VERSION v1 AND v2`` syntax to return
+    added, removed, and modified rows between the two versions.
+    """
+    from apps.ontology.time_travel import TimeTravelService
+
+    tenant_id = get_tenant_id(request)
+    try:
+        svc = TimeTravelService(tenant_id=tenant_id)
+        diff = svc.diff_versions(dataset_id, v1, v2)
+        return {
+            "dataset": diff.dataset,
+            "version_from": diff.version_from,
+            "version_to": diff.version_to,
+            "columns": diff.columns,
+            "added": diff.added,
+            "removed": diff.removed,
+            "modified": diff.modified,
+            "added_count": diff.added_count,
+            "removed_count": diff.removed_count,
+            "modified_count": diff.modified_count,
+        }
+    except Exception as exc:
+        logger.exception("diff_dataset_versions failed")
+        raise HttpError(500, str(exc))

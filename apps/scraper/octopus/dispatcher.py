@@ -32,9 +32,9 @@ from apps.scraper.security import SSRFError, URLValidationError, validate_url
 logger = logging.getLogger(__name__)
 
 
-def _get_arm_executors() -> dict[
-    OctopusARM, Callable[[OctopusRequest], Coroutine[Any, Any, OctopusResult]]
-]:
+def _get_arm_executors() -> (
+    dict[OctopusARM, Callable[[OctopusRequest], Coroutine[Any, Any, OctopusResult]]]
+):
     """
     Lazily load ARM executor modules.
 
@@ -140,7 +140,9 @@ class OctopusDispatcher:
             require_quota(request.tenant_id, ResourceType.JOBS_CONCURRENT, amount=1.0)
         except QuotaExceededException as exc:
             logger.warning("Quota exceeded for tenant %s: %s", request.tenant_id, exc)
-            return self._error_result(request, start, "QUOTA_EXCEEDED", exc.result.message)
+            return self._error_result(
+                request, start, "QUOTA_EXCEEDED", exc.result.message
+            )
 
         # Record usage before execution
         record_usage(
@@ -223,7 +225,9 @@ class OctopusDispatcher:
         if cb.get_state() == CircuitState.OPEN:
             raise CircuitBreakerOpenError(f"Circuit breaker '{cb.name}' is OPEN")
         try:
-            result = await asyncio.wait_for(executor(request), timeout=request.timeout_seconds)
+            result = await asyncio.wait_for(
+                executor(request), timeout=request.timeout_seconds
+            )
             cb._on_success()
             return result
         except Exception:

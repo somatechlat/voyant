@@ -480,7 +480,9 @@ def embed_texts(
         EmbeddingResult with embedding vectors
     """
     if model not in _EMBEDDERS:
-        raise ValueError(f"Unknown model: {model}. Available: {list(_EMBEDDERS.keys())}")
+        raise ValueError(
+            f"Unknown model: {model}. Available: {list(_EMBEDDERS.keys())}"
+        )
 
     embedder = _EMBEDDERS[model](dimensions=dimensions)
     return embedder.embed(texts)
@@ -491,7 +493,9 @@ def get_available_models() -> list[str]:
     return list(_EMBEDDERS.keys())
 
 
-def get_embedding_extractor(model: str = "tfidf", dimensions: int = 64) -> EmbeddingExtractor:
+def get_embedding_extractor(
+    model: str = "tfidf", dimensions: int = 64
+) -> EmbeddingExtractor:
     """
     Get an embedding extractor instance.
 
@@ -503,7 +507,9 @@ def get_embedding_extractor(model: str = "tfidf", dimensions: int = 64) -> Embed
         EmbeddingExtractor instance
     """
     if model not in _EMBEDDERS:
-        raise ValueError(f"Unknown model: {model}. Available: {list(_EMBEDDERS.keys())}")
+        raise ValueError(
+            f"Unknown model: {model}. Available: {list(_EMBEDDERS.keys())}"
+        )
 
     if model == "dense":
         return _EMBEDDERS[model](dimensions=1536)

@@ -97,7 +97,9 @@ class AnalyzeSentimentWorkflow:
         negative = sum(1 for r in results if r["sentiment"] == "negative")
         neutral = sum(1 for r in results if r["sentiment"] == "neutral")
 
-        workflow.logger.info(f"AnalyzeSentimentWorkflow completed with {len(results)} texts.")
+        workflow.logger.info(
+            f"AnalyzeSentimentWorkflow completed with {len(results)} texts."
+        )
         return {
             "total": len(results),
             "breakdown": {

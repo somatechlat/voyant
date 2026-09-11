@@ -65,10 +65,7 @@ class UserInfo(Schema):
 
 def _keycloak_token(body: dict[str, str]) -> dict[str, Any]:
     """Exchange credentials for a Keycloak token."""
-    token_url = (
-        f"{settings.keycloak_url}/realms/{settings.keycloak_realm}"
-        f"/protocol/openid-connect/token"
-    )
+    token_url = f"{settings.keycloak_url}/realms/{settings.keycloak_realm}/protocol/openid-connect/token"
     try:
         with httpx.Client(timeout=10.0) as client:
             resp = client.post(token_url, data=body)
@@ -111,7 +108,13 @@ def _extract_realm(issuer: str) -> str:
 def _derive_permissions(roles: list[str]) -> list[str]:
     role_map = {
         "voyant-admin": ["*"],
-        "voyant-engineer": ["read:*", "write:sources", "write:jobs", "execute:sql", "execute:presets"],
+        "voyant-engineer": [
+            "read:*",
+            "write:sources",
+            "write:jobs",
+            "execute:sql",
+            "execute:presets",
+        ],
         "voyant-analyst": ["read:*", "execute:sql", "execute:presets"],
         "voyant-viewer": ["read:dashboards", "read:reports", "read:artifacts"],
     }
@@ -133,14 +136,16 @@ def login(request, payload: LoginRequest):
     Exchanges username + password for an access token.
     Returns user info decoded from the JWT.
     """
-    data = _keycloak_token({
-        "grant_type": "password",
-        "client_id": settings.keycloak_client_id,
-        "client_secret": settings.keycloak_client_secret,
-        "username": payload.username,
-        "password": payload.password,
-        "scope": "openid profile email",
-    })
+    data = _keycloak_token(
+        {
+            "grant_type": "password",
+            "client_id": settings.keycloak_client_id,
+            "client_secret": settings.keycloak_client_secret,
+            "username": payload.username,
+            "password": payload.password,
+            "scope": "openid profile email",
+        }
+    )
 
     access_token = data.get("access_token", "")
     refresh_token = data.get("refresh_token", "")
@@ -162,12 +167,14 @@ def agent_token(request, payload: TokenRequest):
 
     For MCP tools, automated agents, and service-to-service auth.
     """
-    data = _keycloak_token({
-        "grant_type": "client_credentials",
-        "client_id": payload.client_id,
-        "client_secret": payload.client_secret,
-        "scope": "openid",
-    })
+    data = _keycloak_token(
+        {
+            "grant_type": "client_credentials",
+            "client_id": payload.client_id,
+            "client_secret": payload.client_secret,
+            "scope": "openid",
+        }
+    )
 
     access_token = data.get("access_token", "")
     expires_in = data.get("expires_in", 300)
@@ -183,12 +190,14 @@ def agent_token(request, payload: TokenRequest):
 @auth_router.post("/refresh", response=AuthResponse)
 def refresh(request, payload: RefreshRequest):
     """Refresh an expired access token."""
-    data = _keycloak_token({
-        "grant_type": "refresh_token",
-        "client_id": settings.keycloak_client_id,
-        "client_secret": settings.keycloak_client_secret,
-        "refresh_token": payload.refresh_token,
-    })
+    data = _keycloak_token(
+        {
+            "grant_type": "refresh_token",
+            "client_id": settings.keycloak_client_id,
+            "client_secret": settings.keycloak_client_secret,
+            "refresh_token": payload.refresh_token,
+        }
+    )
 
     access_token = data.get("access_token", "")
     refresh_token = data.get("refresh_token", "")
@@ -223,4 +232,7 @@ def me(request):
 @auth_router.post("/logout")
 def logout(request):
     """Logout — client should discard tokens."""
-    return {"status": "ok", "message": "Discard your tokens. Keycloak session revoked client-side."}
+    return {
+        "status": "ok",
+        "message": "Discard your tokens. Keycloak session revoked client-side.",
+    }

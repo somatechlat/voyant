@@ -56,8 +56,10 @@ class AirbyteClientConfig:
         timeout_seconds (float): Default timeout for HTTP requests in seconds.
         max_retries (int): Maximum number of retries for transient HTTP errors.
         cb_failure_threshold (int): Number of consecutive failures before the circuit opens.
-        cb_recovery_timeout (float): Time (in seconds) the circuit stays open before trying to close.
-        cb_success_threshold (int): Number of successful requests in half-open state required to close.
+        cb_recovery_timeout (float): Time (in seconds) the circuit
+            stays open before trying to close.
+        cb_success_threshold (int): Number of successful requests
+            in half-open state required to close.
         api_key (Optional[str]): API key for bearer token authentication.
         basic_auth_user (Optional[str]): Username for basic authentication.
         basic_auth_password (Optional[str]): Password for basic authentication.
@@ -136,7 +138,9 @@ class AirbyteClient:
             auth = None
             # Configure basic authentication if credentials are provided.
             if self.config.basic_auth_user and self.config.basic_auth_password:
-                auth = httpx.BasicAuth(self.config.basic_auth_user, self.config.basic_auth_password)
+                auth = httpx.BasicAuth(
+                    self.config.basic_auth_user, self.config.basic_auth_password
+                )
 
             self._client = httpx.AsyncClient(
                 base_url=self.config.base_url,
@@ -162,7 +166,8 @@ class AirbyteClient:
             Dict[str, Any]: The JSON response from the Airbyte API.
 
         Raises:
-            CircuitBreakerOpenError: If the circuit breaker is open, indicating Airbyte is unavailable.
+            CircuitBreakerOpenError: If the circuit breaker is
+                open, indicating Airbyte is unavailable.
             ExternalServiceError: For HTTP status errors or network connection errors.
             ValueError: If an unsupported HTTP method is used.
         """
@@ -202,10 +207,14 @@ class AirbyteClient:
             raise ExternalServiceError(
                 code="VYNT-6001",
                 message=f"Airbyte HTTP error: {e.response.status_code}",
-                details={"status_code": e.response.status_code, "response": e.response.text[:200]},
+                details={
+                    "status_code": e.response.status_code,
+                    "response": e.response.text[:200],
+                },
             ) from e
         except httpx.RequestError as e:
-            # Record a failure with the circuit breaker and raise a specific error for network issues.
+            # Record a failure with the circuit breaker and
+            # raise a specific error for network issues.
             self._circuit_breaker.record_failure()
             logger.error(f"Airbyte connection error for {endpoint}: {e}.")
             raise ExternalServiceError(
@@ -412,11 +421,13 @@ class AirbyteClient:
 
         response = await self._request("POST", "/connections", json_data=payload)
 
-        connection_id = response.get("connectionId") or response.get("connection", {}).get(
-            "connectionId", ""
-        )
+        connection_id = response.get("connectionId") or response.get(
+            "connection", {}
+        ).get("connectionId", "")
 
-        logger.info(f"Dynamic Airbyte connection created: connection_id={connection_id}")
+        logger.info(
+            f"Dynamic Airbyte connection created: connection_id={connection_id}"
+        )
 
         return connection_id
 
@@ -441,7 +452,9 @@ class AirbyteClient:
 
         job_id = response.get("job", {}).get("id", response.get("jobId"))
 
-        logger.info(f"Airbyte sync triggered: job_id={job_id} for connection {connection_id}.")
+        logger.info(
+            f"Airbyte sync triggered: job_id={job_id} for connection {connection_id}."
+        )
 
         return {
             "job_id": job_id,
@@ -496,7 +509,8 @@ class AirbyteClient:
 
         Args:
             job_id (str): The unique identifier of the Airbyte job.
-            poll_interval (float, optional): The interval (in seconds) between status checks. Defaults to 5.0.
+            poll_interval (float, optional): The interval
+                (in seconds) between status checks. Defaults to 5.0.
             timeout (float, optional): The maximum time (in seconds) to wait for job completion.
                                        Defaults to 3600.0 (1 hour).
 
@@ -520,10 +534,14 @@ class AirbyteClient:
             job_status = status.get("status", "unknown").lower()
 
             if job_status in ("succeeded", "failed", "cancelled"):
-                logger.info(f"Airbyte job {job_id} completed with status: {job_status}.")
+                logger.info(
+                    f"Airbyte job {job_id} completed with status: {job_status}."
+                )
                 return status
 
-            logger.debug(f"Airbyte job {job_id} status: {job_status}, waiting for completion...")
+            logger.debug(
+                f"Airbyte job {job_id} status: {job_status}, waiting for completion..."
+            )
             await asyncio.sleep(poll_interval)
 
     # =========================================================================
@@ -535,7 +553,8 @@ class AirbyteClient:
         Performs a health check against the Airbyte API.
 
         Returns:
-            bool: True if the Airbyte API is reachable and returns a healthy status, False otherwise.
+            bool: True if the Airbyte API is reachable and
+                returns a healthy status, False otherwise.
         """
         try:
             await self._request("GET", "/health")
@@ -573,8 +592,9 @@ def get_airbyte_client(config: AirbyteClientConfig | None = None) -> AirbyteClie
     and consistent configuration.
 
     Args:
-        config (Optional[AirbyteClientConfig]): Optional configuration to use
-                                                if the client is being initialized for the first time.
+        config (Optional[AirbyteClientConfig]): Optional
+            configuration to use if the client is being
+            initialized for the first time.
 
     Returns:
         AirbyteClient: The singleton AirbyteClient instance.
@@ -632,7 +652,9 @@ async def connect_airbyte_source(
         Dict[str, Any]: Details of the provisioned source.
     """
     client = get_airbyte_client()
-    return await client.connect_source(workspace_id, source_definition_id, name, connection_config)
+    return await client.connect_source(
+        workspace_id, source_definition_id, name, connection_config
+    )
 
 
 async def provision_airbyte_destination(

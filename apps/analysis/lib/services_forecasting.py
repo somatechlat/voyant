@@ -62,7 +62,9 @@ class TimeForecaster(AnalyzerPlugin):
             Dict containing forecast data and visualization spec.
         """
         if not SKLEARN_AVAILABLE:
-            raise AnalysisError("VYNT-ML-001", "scikit-learn is required for forecasting")
+            raise AnalysisError(
+                "VYNT-ML-001", "scikit-learn is required for forecasting"
+            )
 
         # 1. Data Prep
         df = self._to_dataframe(data)
@@ -161,11 +163,15 @@ class TimeForecaster(AnalyzerPlugin):
         # One-hot encoding for seasonality? linear regression handles ordinal poorly for cyclic
         # but for simple 'analyst' view, ordinal or dummies. Let's use basic sin/cos for seasonality
         # if we want to be PhD level,
-        # or just simple dummies. Let's stick to simple numeric for 'month' to capture broad seasonality
+        # or just simple dummies. Let's stick to simple numeric
+        # for 'month' to capture broad seasonality
         # or dummies for correctness.
-        # Developer Persona: Correct approach for linear regression is dummies or fourier terms.
-        # Let's use month/dayofweek as integers for simplicity in this MVP plugin,
-        # acknowledging it assumes linear relationship which is imperfect but robust enough for basic trends.
+        # Developer Persona: Correct approach for linear regression
+        # is dummies or fourier terms.
+        # Let's use month/dayofweek as integers for simplicity
+        # in this MVP plugin, acknowledging it assumes linear
+        # relationship which is imperfect but robust enough
+        # for basic trends.
         df_feat["month"] = dates.month  # type: ignore[reportAttributeAccessIssue]
         df_feat["dow"] = dates.dayofweek  # type: ignore[reportAttributeAccessIssue]
 

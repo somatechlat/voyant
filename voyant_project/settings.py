@@ -74,6 +74,9 @@ SECRET_KEY = app_settings.secret_key
 if not SECRET_KEY and app_settings.env in {"test", "local"}:
     # In test/local mode, read from env var — never hardcode secrets
     SECRET_KEY = os.environ.get("VOYANT_LOCAL_FALLBACK_SECRET_KEY", "")
+if not SECRET_KEY and app_settings.env in {"local", "test"}:
+    # Development-only insecure fallback — never use in production
+    SECRET_KEY = "django-insecure-dev-only-key-change-in-production"
 if not SECRET_KEY:
     raise RuntimeError("SECRET_KEY must be configured")
 
@@ -127,6 +130,14 @@ INSTALLED_APPS = [
     "apps.ml_platform",  # ML Platform (experiments, models, serving)
     "apps.intent",  # Intent Engine (LLM-powered intent translation)
     "apps.llm_providers",  # LLM Provider management (Groq, OpenAI, MiMo, etc.)
+    "apps.pipelines",  # Pipeline Builder (multi-step data pipelines)
+    "apps.dashboard_builder",  # Dashboard Builder (custom dashboards & widgets)
+    "apps.features",  # Feature Store (feature groups, online/batch serving, statistics)
+    "apps.notifications",  # Notification Center (in-app notifications, preferences)
+    "apps.workspaces",  # Workspaces (collaboration, asset sharing, comments)
+    "apps.approvals",  # Approval Workflows (action & deployment gating)
+    "apps.webhooks",  # Webhook subscriptions and delivery tracking
+    "apps.graphql",  # GraphQL API endpoint
 ]
 
 # Add channels if installed (optional WebSocket support)
@@ -192,9 +203,18 @@ if not DATABASE_URL:
         "VOYANT_ENV", ""
     ):
         DATABASE_URL = os.environ.get("VOYANT_TEST_DATABASE_URL", "")
-    if not DATABASE_URL:
-        raise RuntimeError("DATABASE_URL must be configured")
-DATABASES = {"default": _parse_database_url(DATABASE_URL)}
+if DATABASE_URL:
+    DATABASES = {"default": _parse_database_url(DATABASE_URL)}
+elif app_settings.env in {"local", "test"}:
+    # Development-only SQLite fallback — never use in production
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
+else:
+    raise RuntimeError("DATABASE_URL must be configured")
 
 # --- Milus Vector Database Configuration ---
 _milvus_uri = app_settings.milvus_uri
@@ -369,10 +389,6 @@ CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
         "LOCATION": app_settings.redis_url,
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "IGNORE_EXCEPTIONS": True,
-        },
     }
 }
 
@@ -381,11 +397,29 @@ RATELIMIT_USE_CACHE = "default"
 RATELIMIT_CACHE_PREFIX = "rl"
 
 # --- Channels Configuration (WebSocket) ---
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer",
-    },
-}
+# Use Redis channel layer in production for cross-process message fan-out;
+# fall back to InMemoryChannelLayer in local/test when Redis is unavailable.
+import importlib.util  # noqa: E402
+
+_redis_channel_layer_available = importlib.util.find_spec("channels_redis") is not None
+
+if _redis_channel_layer_available and app_settings.redis_url:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [app_settings.redis_url],
+                "capacity": 1500,  # Max messages per channel
+                "expiry": 10,  # Seconds before a message expires
+            },
+        },
+    }
+else:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+        },
+    }
 
 # --- MCP Configuration (django-mcp 0.3.1) ---
 # Reference: https://pypi.org/project/django-mcp/

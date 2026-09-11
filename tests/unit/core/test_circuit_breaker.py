@@ -4,8 +4,8 @@ Unit tests for apps.core.lib.circuit_breaker — State machine logic.
 Real in-memory state machine. No DB, no services.
 """
 
-import time
 import threading
+import time
 
 import pytest
 
@@ -13,7 +13,6 @@ from apps.core.lib.circuit_breaker import (
     CircuitBreaker,
     CircuitBreakerConfig,
     CircuitBreakerOpenError,
-    CircuitBreakerState,
     CircuitState,
     get_circuit_breaker,
     reset_all,

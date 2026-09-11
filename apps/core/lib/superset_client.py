@@ -87,7 +87,7 @@ class SupersetClient:
         )
         resp.raise_for_status()
         self._token = resp.json().get("access_token", "")
-        return self._token
+        return self._token  # type: ignore[reportReturnType]
 
     def _headers(self) -> dict[str, str]:
         return {"Authorization": f"Bearer {self._get_token()}"}

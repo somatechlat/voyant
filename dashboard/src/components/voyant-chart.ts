@@ -1,8 +1,24 @@
 import { LitElement, html } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
-import * as echarts from 'echarts';
+import { customElement, property, state } from 'lit/decorators.js';
 
 export type ChartType = 'line' | 'bar' | 'pie' | 'scatter' | 'gauge' | 'area' | 'radar';
+
+export interface ChartClickDetail {
+    chartType: ChartType;
+    seriesName: string;
+    dataIndex: number;
+    name: string;
+    value: unknown;
+    field: string;
+}
+
+let echartsPromise: Promise<typeof import('echarts')> | null = null;
+function loadEcharts() {
+    if (!echartsPromise) {
+        echartsPromise = import('echarts');
+    }
+    return echartsPromise;
+}
 
 @customElement('voyant-chart')
 export class VoyantChart extends LitElement {
@@ -11,26 +27,48 @@ export class VoyantChart extends LitElement {
     @property({ type: Object }) options: Record<string, unknown> = {};
     @property({ type: String }) height = '300px';
 
-    private chart: echarts.ECharts | null = null;
+    @state() private _ready = false;
+    private chart: import('echarts').ECharts | null = null;
     private container: HTMLElement | null = null;
 
     createRenderRoot() { return this; }
 
-    firstUpdated() {
+    async firstUpdated() {
         this.container = this.renderRoot.querySelector('.chart-container') as HTMLElement;
-        if (this.container) {
-            this.chart = echarts.init(this.container, 'dark');
-            this._updateChart();
-            const ro = new ResizeObserver(() => this.chart?.resize());
-            ro.observe(this.container);
-        }
+        if (!this.container) return;
+        const echarts = await loadEcharts();
+        this.chart = echarts.init(this.container, 'dark');
+        this._bindClickHandler();
+        this._ready = true;
+        this._updateChart();
+        const ro = new ResizeObserver(() => this.chart?.resize());
+        ro.observe(this.container);
     }
 
-    updated() { this._updateChart(); }
+    updated() { if (this._ready) this._updateChart(); }
 
     disconnectedCallback() {
         this.chart?.dispose();
         super.disconnectedCallback();
+    }
+
+    private _bindClickHandler() {
+        if (!this.chart) return;
+        this.chart.on('click', (params: Record<string, unknown>) => {
+            const detail: ChartClickDetail = {
+                chartType: this.type,
+                seriesName: String(params.seriesName || ''),
+                dataIndex: Number(params.dataIndex ?? 0),
+                name: String(params.name ?? ''),
+                value: params.value,
+                field: this.type === 'pie' ? 'name' : String(params.name ?? ''),
+            };
+            this.dispatchEvent(new CustomEvent<ChartClickDetail>('chart:click', {
+                detail,
+                bubbles: true,
+                composed: true,
+            }));
+        });
     }
 
     private _getThemeColors() {

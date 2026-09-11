@@ -5,15 +5,10 @@ Docker secrets resolution, and configuration constraints.
 Real Settings construction with environment variables. No mocks.
 """
 
-import json
 import os
 import tempfile
-from pathlib import Path
-
-import pytest
 
 from apps.core.config import Settings, _resolve_docker_secrets, get_settings
-
 
 # ── Settings Defaults ─────────────────────────────────────────────────────────
 

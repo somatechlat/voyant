@@ -8,8 +8,6 @@ requirements.
 
 from __future__ import annotations
 
-from typing import List, Optional
-
 from pydantic import Field, ValidationInfo, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -102,15 +100,15 @@ class SecuritySettings(BaseSettings):
     # CORS Configuration
     # --------------------------------------------------------------------------
     cors_enabled: bool = Field(default=True, description="Enable CORS headers.")
-    cors_allow_origins: List[str] = Field(
+    cors_allow_origins: list[str] = Field(
         default=["http://localhost:3000", "http://localhost:8000", "http://127.0.0.1:8000"],
         description="List of allowed CORS origins. Set explicitly for production.",
     )
-    cors_allow_methods: List[str] = Field(
+    cors_allow_methods: list[str] = Field(
         default=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         description="List of allowed HTTP methods.",
     )
-    cors_allow_headers: List[str] = Field(
+    cors_allow_headers: list[str] = Field(
         default=["*"], description="List of allowed HTTP headers."
     )
     cors_allow_credentials: bool = Field(
@@ -124,13 +122,13 @@ class SecuritySettings(BaseSettings):
     database_ssl_require: bool = Field(
         default=True, description="Require SSL for database connections."
     )
-    database_ssl_cert: Optional[str] = Field(
+    database_ssl_cert: str | None = Field(
         default=None, description="Path to SSL certificate for database connections."
     )
-    database_ssl_key: Optional[str] = Field(
+    database_ssl_key: str | None = Field(
         default=None, description="Path to SSL key for database connections."
     )
-    database_ssl_root_cert: Optional[str] = Field(
+    database_ssl_root_cert: str | None = Field(
         default=None,
         description="Path to SSL root certificate for database connections.",
     )
@@ -141,16 +139,16 @@ class SecuritySettings(BaseSettings):
     secrets_backend: str = Field(
         default="env", description="Secrets backend: 'env', 'k8s', 'vault', 'file'."
     )
-    secrets_vault_url: Optional[str] = Field(
+    secrets_vault_url: str | None = Field(
         default=None, description="HashiCorp Vault URL."
     )
-    secrets_vault_token: Optional[str] = Field(
+    secrets_vault_token: str | None = Field(
         default=None, description="HashiCorp Vault token."
     )
     secrets_vault_mount_point: str = Field(
         default="voyant", description="Vault secrets mount point."
     )
-    secrets_encryption_key: Optional[str] = Field(
+    secrets_encryption_key: str | None = Field(
         default=None, description="Fernet encryption key for file-based secrets."
     )
 
@@ -163,7 +161,7 @@ class SecuritySettings(BaseSettings):
     audit_log_level: str = Field(
         default="INFO", description="Audit log level (DEBUG, INFO, WARNING, ERROR)."
     )
-    audit_log_file: Optional[str] = Field(
+    audit_log_file: str | None = Field(
         default="/var/log/udb/audit.log", description="Path to audit log file."
     )
     audit_log_retention_days: int = Field(

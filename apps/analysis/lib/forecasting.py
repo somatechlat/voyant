@@ -59,7 +59,8 @@ class ForecastResult:
             "periods": self.periods,
             "confidence_level": self.confidence_level,
             "stats": {
-                k: round(v, 4) if isinstance(v, (int, float)) else v for k, v in self.stats.items()
+                k: round(v, 4) if isinstance(v, (int, float)) else v
+                for k, v in self.stats.items()
             },
             "predictions": [p.to_dict() for p in self.predictions],
         }
@@ -402,7 +403,9 @@ def forecast(
         ForecastResult with predictions and statistics
     """
     if method not in _FORECASTERS:
-        raise ValueError(f"Unknown method: {method}. Available: {list(_FORECASTERS.keys())}")
+        raise ValueError(
+            f"Unknown method: {method}. Available: {list(_FORECASTERS.keys())}"
+        )
 
     forecaster_cls = _FORECASTERS[method]
     forecaster = forecaster_cls(confidence_level=confidence_level, **kwargs)

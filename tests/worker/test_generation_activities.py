@@ -13,7 +13,6 @@ from temporalio.exceptions import ApplicationError
 from apps.core.lib.plugin_registry import (
     GeneratorPlugin,
     PluginCategory,
-    PluginRegistry,
     register_plugin,
     reset_registry,
 )

@@ -8,10 +8,7 @@ so we focus on the pure-logic helpers and schema validation.
 
 import inspect
 
-import pytest
-
 from apps.core.config import get_settings
-
 
 # =========================================================================
 # _tenant helper

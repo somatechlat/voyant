@@ -49,10 +49,18 @@ class DataCleaningPrimitives:
         report = {}
 
         strategies = strategies or {}
-        missing_strat = strategies.get("missing_values", "drop")  # drop, mean, median, mode, ffill
-        drop_dupes = strategies.get("duplicates", "keep") == "drop"  # Default: keep duplicates
-        norm_strings = strategies.get("normalize_strings", False)  # Default: don't normalize
-        outlier_strat = strategies.get("outliers", "none")  # none, remove, cap, winsorize
+        missing_strat = strategies.get(
+            "missing_values", "drop"
+        )  # drop, mean, median, mode, ffill
+        drop_dupes = (
+            strategies.get("duplicates", "keep") == "drop"
+        )  # Default: keep duplicates
+        norm_strings = strategies.get(
+            "normalize_strings", False
+        )  # Default: don't normalize
+        outlier_strat = strategies.get(
+            "outliers", "none"
+        )  # none, remove, cap, winsorize
         outlier_thresh = strategies.get("outlier_threshold", 3.0)
         numeric_cols = strategies.get("numeric_columns", [])
         categorical_cols = strategies.get("categorical_columns", [])
@@ -61,7 +69,9 @@ class DataCleaningPrimitives:
         if not numeric_cols:
             numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
         if not categorical_cols:
-            categorical_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
+            categorical_cols = df.select_dtypes(
+                include=["object", "category"]
+            ).columns.tolist()
 
         # 1. Duplicates
         if drop_dupes:

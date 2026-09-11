@@ -12,7 +12,7 @@ export class StatusDot extends LitElement {
     render() {
         const statusConfig = {
             connected: {
-                color: "bg-saas-success",
+                color: "bg-success",
                 shadow: "shadow-[0_0_8px_#22c55e]",
                 animate: "animate-pulse"
             },

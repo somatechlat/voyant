@@ -61,14 +61,20 @@ class MLActivities:
                     "No data provided for clustering activity.", non_retryable=True
                 )
 
-            activity.logger.info(f"Clustering {len(data)} records into {n_clusters} clusters.")
+            activity.logger.info(
+                f"Clustering {len(data)} records into {n_clusters} clusters."
+            )
             return self.ml.cluster_kmeans(data, n_clusters)
 
         except AnalysisError as e:
             activity.logger.error(f"Clustering failed: {e}")
-            raise ApplicationError(f"Data clustering failed: {e}", non_retryable=True) from e
+            raise ApplicationError(
+                f"Data clustering failed: {e}", non_retryable=True
+            ) from e
         except Exception as e:
-            activity.logger.error(f"An unexpected error occurred during clustering: {e}")
+            activity.logger.error(
+                f"An unexpected error occurred during clustering: {e}"
+            )
             raise ApplicationError(
                 f"Data clustering failed due to unexpected error: {e}",
                 non_retryable=False,

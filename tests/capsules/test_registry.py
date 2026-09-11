@@ -7,13 +7,10 @@ import json
 import os
 import tempfile
 
-import pytest
-
 from apps.capsules.services.capsule_registry import (
     load_system_capsules,
     validate_capsule_definition,
 )
-
 
 # ---------------------------------------------------------------------------
 # validate_capsule_definition

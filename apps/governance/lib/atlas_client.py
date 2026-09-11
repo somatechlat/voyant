@@ -77,7 +77,9 @@ class AtlasClient:
             qualified_name=attrs.get("qualifiedName", ""),
             name=attrs.get("name", ""),
             attributes=attrs,
-            classifications=[c.get("typeName", "") for c in entity_data.get("classifications", [])],
+            classifications=[
+                c.get("typeName", "") for c in entity_data.get("classifications", [])
+            ],
             status=entity_data.get("status", "ACTIVE"),
         )
 

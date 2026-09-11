@@ -6,7 +6,6 @@ and real quality rules engine. No mocking.
 """
 
 import duckdb
-import pandas as pd
 import pytest
 from temporalio.exceptions import ApplicationError
 

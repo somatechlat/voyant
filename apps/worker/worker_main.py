@@ -37,6 +37,7 @@ from apps.streaming.activities import StreamingActivities
 from apps.streaming.workflow import StreamingJobWorkflow
 from apps.worker.activities.analysis_activities import AnalysisActivities
 from apps.worker.activities.discovery_activities import DiscoveryActivities
+from apps.worker.activities.gdpr_activities import GDPRDeletionActivities
 from apps.worker.activities.generation_activities import GenerationActivities
 from apps.worker.activities.ingest_activities import IngestActivities
 from apps.worker.activities.kpi_activities import KPIActivities
@@ -48,6 +49,7 @@ from apps.worker.activities.sandbox_activities import SandboxActivities
 from apps.worker.activities.stats_activities import StatsActivities
 from apps.worker.workflows.analyze_workflow import AnalyzeWorkflow
 from apps.worker.workflows.benchmark_workflow import BenchmarkBrandWorkflow
+from apps.worker.workflows.gdpr_deletion import GDPRDeletionWorkflow
 from apps.worker.workflows.ingest_workflow import IngestDataWorkflow
 from apps.worker.workflows.operational_workflows import (
     AnalyzeSentimentWorkflow,
@@ -83,7 +85,9 @@ def _setup_django() -> None:
 
         django.setup()
     except Exception:
-        logger.exception("Failed to initialize Django. ORM-backed activities will fail.")
+        logger.exception(
+            "Failed to initialize Django. ORM-backed activities will fail."
+        )
 
 
 async def run_worker():
@@ -161,6 +165,7 @@ async def run_worker():
             SandboxWorkflow,
             CapsuleWorkflow,
             DeepResearchWorkflowV2,
+            GDPRDeletionWorkflow,
         ]
         activities = [
             IngestActivities().run_ingestion,
@@ -223,6 +228,14 @@ async def run_worker():
             DeepResearchActivities().cross_validate,
             DeepResearchActivities().generate_report,
             DeepResearchActivities().store_artifact,
+            # GDPR deletion activities
+            GDPRDeletionActivities().delete_ontology_objects,
+            GDPRDeletionActivities().delete_scraper_jobs,
+            GDPRDeletionActivities().delete_ml_runs,
+            GDPRDeletionActivities().anonymize_audit_logs,
+            GDPRDeletionActivities().verify_deletion,
+            GDPRDeletionActivities().generate_deletion_cert,
+            GDPRDeletionActivities().store_certificate,
         ]
 
     task_queue = settings.temporal_task_queue
@@ -233,7 +246,8 @@ async def run_worker():
     cpu_count = os.cpu_count() or 2
     max_workers = (
         settings.temporal_activity_max_workers
-        if settings.temporal_activity_max_workers and settings.temporal_activity_max_workers > 0
+        if settings.temporal_activity_max_workers
+        and settings.temporal_activity_max_workers > 0
         else min(32, cpu_count * 5)
     )
     activity_executor = ThreadPoolExecutor(max_workers=max_workers)

@@ -7,10 +7,7 @@ Tests the data structures and event construction without requiring Kafka.
 import json
 import uuid
 
-import pytest
-
 from apps.core.lib.events import VoyantEvent
-
 
 # =============================================================================
 # VoyantEvent Tests

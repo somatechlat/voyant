@@ -244,7 +244,9 @@ class ArtifactStore:
             # Cache reference
             self._refs[content_hash] = ref
 
-            logger.info(f"Stored artifact: {content_hash[:24]}... ({len(content)} bytes)")
+            logger.info(
+                f"Stored artifact: {content_hash[:24]}... ({len(content)} bytes)"
+            )
 
             return ref
 
@@ -418,7 +420,10 @@ class ArtifactStore:
 
         with self._lock:
             for hash_val in self._refs:
-                if hash_val not in keep_hashes and hash_val.split(":")[1] not in keep_hashes:
+                if (
+                    hash_val not in keep_hashes
+                    and hash_val.split(":")[1] not in keep_hashes
+                ):
                     to_delete.append(hash_val)
 
         for hash_val in to_delete:

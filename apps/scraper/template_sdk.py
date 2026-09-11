@@ -41,20 +41,41 @@ TEMPLATE_SCHEMA = {
     "type": "object",
     "required": ["id", "name", "category", "workflow"],
     "properties": {
-        "id": {"type": "string", "description": "Unique template identifier (kebab-case)"},
+        "id": {
+            "type": "string",
+            "description": "Unique template identifier (kebab-case)",
+        },
         "name": {"type": "string", "description": "Human-readable template name"},
         "version": {"type": "string", "default": "1.0.0"},
         "category": {
             "type": "string",
             "enum": [
-                "ecommerce", "social", "maps", "news", "finance", "jobs",
-                "realestate", "travel", "education", "developer", "leadgen",
-                "directory", "search", "universal",
+                "ecommerce",
+                "social",
+                "maps",
+                "news",
+                "finance",
+                "jobs",
+                "realestate",
+                "travel",
+                "education",
+                "developer",
+                "leadgen",
+                "directory",
+                "search",
+                "universal",
             ],
         },
-        "site_pattern": {"type": "string", "description": "Domain pattern (e.g. amazon.com)"},
+        "site_pattern": {
+            "type": "string",
+            "description": "Domain pattern (e.g. amazon.com)",
+        },
         "description": {"type": "string"},
-        "engine": {"type": "string", "enum": ["playwright", "httpx", "scrapy"], "default": "playwright"},
+        "engine": {
+            "type": "string",
+            "enum": ["playwright", "httpx", "scrapy"],
+            "default": "playwright",
+        },
         "language": {"type": "string", "default": "en"},
         "parameters": {
             "type": "array",
@@ -63,7 +84,10 @@ TEMPLATE_SCHEMA = {
                 "required": ["name", "type"],
                 "properties": {
                     "name": {"type": "string"},
-                    "type": {"type": "string", "enum": ["string", "number", "boolean", "url"]},
+                    "type": {
+                        "type": "string",
+                        "enum": ["string", "number", "boolean", "url"],
+                    },
                     "required": {"type": "boolean", "default": False},
                     "description": {"type": "string"},
                     "default": {},
@@ -79,9 +103,20 @@ TEMPLATE_SCHEMA = {
                     "action": {
                         "type": "string",
                         "enum": [
-                            "navigate", "click", "scroll", "wait", "extract",
-                            "enter_text", "hover", "loop", "condition", "back",
-                            "new_tab", "close_popup", "screenshot", "download",
+                            "navigate",
+                            "click",
+                            "scroll",
+                            "wait",
+                            "extract",
+                            "enter_text",
+                            "hover",
+                            "loop",
+                            "condition",
+                            "back",
+                            "new_tab",
+                            "close_popup",
+                            "screenshot",
+                            "download",
                         ],
                     },
                     "url": {"type": "string"},
@@ -103,7 +138,17 @@ TEMPLATE_SCHEMA = {
             "additionalProperties": {
                 "type": "object",
                 "properties": {
-                    "type": {"type": "string", "enum": ["string", "number", "url", "image", "html", "date"]},
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "string",
+                            "number",
+                            "url",
+                            "image",
+                            "html",
+                            "date",
+                        ],
+                    },
                     "description": {"type": "string"},
                     "selector": {"type": "string"},
                 },
@@ -112,7 +157,16 @@ TEMPLATE_SCHEMA = {
         "pagination": {
             "type": "object",
             "properties": {
-                "type": {"type": "string", "enum": ["next_button", "page_numbers", "load_more", "infinite_scroll", "url_pattern"]},
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "next_button",
+                        "page_numbers",
+                        "load_more",
+                        "infinite_scroll",
+                        "url_pattern",
+                    ],
+                },
                 "selector": {"type": "string"},
                 "url_pattern": {"type": "string"},
                 "max_pages": {"type": "integer", "default": 10},
@@ -132,14 +186,32 @@ TEMPLATE_SCHEMA = {
         "schedule": {
             "type": "object",
             "properties": {
-                "frequency": {"type": "string", "enum": ["once", "hourly", "daily", "weekly", "monthly"]},
+                "frequency": {
+                    "type": "string",
+                    "enum": [
+                        "once",
+                        "hourly",
+                        "daily",
+                        "weekly",
+                        "monthly",
+                    ],
+                },
                 "cron": {"type": "string"},
             },
         },
         "export": {
             "type": "object",
             "properties": {
-                "format": {"type": "string", "enum": ["json", "csv", "xlsx", "parquet", "database"]},
+                "format": {
+                    "type": "string",
+                    "enum": [
+                        "json",
+                        "csv",
+                        "xlsx",
+                        "parquet",
+                        "database",
+                    ],
+                },
                 "destination": {"type": "string"},
             },
         },
@@ -244,7 +316,9 @@ class TemplateBuilder:
 
     # ── Workflow Steps ──────────────────────────────────────────────────
 
-    def navigate(self, url: str, wait_until: str = "domcontentloaded") -> TemplateBuilder:
+    def navigate(
+        self, url: str, wait_until: str = "domcontentloaded"
+    ) -> TemplateBuilder:
         step: dict[str, Any] = {"action": "navigate", "url": url}
         if wait_until != "domcontentloaded":
             step["wait_until"] = wait_until
@@ -255,13 +329,20 @@ class TemplateBuilder:
         self._data["workflow"].append({"action": "click", "selector": selector})
         return self
 
-    def scroll(self, direction: str = "down", times: int = 3, wait_ms: int = 1000) -> TemplateBuilder:
-        self._data["workflow"].append({
-            "action": "scroll",
-            "direction": direction,
-            "times": times,
-            "wait_ms": wait_ms,
-        })
+    def scroll(
+        self,
+        direction: str = "down",
+        times: int = 3,
+        wait_ms: int = 1000,
+    ) -> TemplateBuilder:
+        self._data["workflow"].append(
+            {
+                "action": "scroll",
+                "direction": direction,
+                "times": times,
+                "wait_ms": wait_ms,
+            }
+        )
         return self
 
     def wait(self, ms: int) -> TemplateBuilder:
@@ -273,7 +354,9 @@ class TemplateBuilder:
         return self
 
     def enter_text(self, selector: str, text: str) -> TemplateBuilder:
-        self._data["workflow"].append({"action": "enter_text", "selector": selector, "text": text})
+        self._data["workflow"].append(
+            {"action": "enter_text", "selector": selector, "text": text}
+        )
         return self
 
     def hover(self, selector: str) -> TemplateBuilder:
@@ -300,14 +383,22 @@ class TemplateBuilder:
         return self
 
     def loop(self, selector: str, variable: str = "item") -> TemplateBuilder:
-        self._data["workflow"].append({"action": "loop", "selector": selector, "variable": variable})
+        self._data["workflow"].append(
+            {
+                "action": "loop",
+                "selector": selector,
+                "variable": variable,
+            }
+        )
         return self
 
     def condition(self, field: str, operator: str, value: str) -> TemplateBuilder:
-        self._data["workflow"].append({
-            "action": "condition",
-            "condition": {"field": field, "operator": operator, "value": value},
-        })
+        self._data["workflow"].append(
+            {
+                "action": "condition",
+                "condition": {"field": field, "operator": operator, "value": value},
+            }
+        )
         return self
 
     def step(self, action: str, **kwargs: Any) -> TemplateBuilder:
@@ -319,7 +410,13 @@ class TemplateBuilder:
 
     # ── Output ──────────────────────────────────────────────────────────
 
-    def output_field(self, name: str, type: str = "string", description: str = "", selector: str = "") -> TemplateBuilder:
+    def output_field(
+        self,
+        name: str,
+        type: str = "string",
+        description: str = "",
+        selector: str = "",
+    ) -> TemplateBuilder:
         field_def: dict[str, Any] = {"type": type}
         if description:
             field_def["description"] = description
@@ -365,7 +462,7 @@ class TemplateBuilder:
             "stealth": stealth,
         }
         if proxy:
-            self._data["anti_bot"]["proxy"] = proxy
+            self._data["anti_bot"]["proxy"] = proxy  # type: ignore[reportArgumentType]
         return self
 
     # ── Schedule / Export ───────────────────────────────────────────────
@@ -429,6 +526,7 @@ def load_template(path: str) -> dict[str, Any]:
 def load_templates_from_dir(directory: str) -> list[dict[str, Any]]:
     """Load all templates from a directory of JSON files."""
     import os
+
     templates = []
     for filename in sorted(os.listdir(directory)):
         if filename.endswith(".json"):
@@ -467,17 +565,41 @@ def validate_template(template: dict[str, Any]) -> list[str]:
         errors.append("Template must have at least one workflow step")
 
     valid_categories = [
-        "ecommerce", "social", "maps", "news", "finance", "jobs",
-        "realestate", "travel", "education", "developer", "leadgen",
-        "directory", "search", "universal",
+        "ecommerce",
+        "social",
+        "maps",
+        "news",
+        "finance",
+        "jobs",
+        "realestate",
+        "travel",
+        "education",
+        "developer",
+        "leadgen",
+        "directory",
+        "search",
+        "universal",
     ]
     if template.get("category") and template["category"] not in valid_categories:
-        errors.append(f"Invalid category: {template['category']}. Must be one of {valid_categories}")
+        errors.append(
+            f"Invalid category: {template['category']}. Must be one of {valid_categories}"
+        )
 
     valid_actions = [
-        "navigate", "click", "scroll", "wait", "extract", "enter_text",
-        "hover", "loop", "condition", "back", "new_tab", "close_popup",
-        "screenshot", "download",
+        "navigate",
+        "click",
+        "scroll",
+        "wait",
+        "extract",
+        "enter_text",
+        "hover",
+        "loop",
+        "condition",
+        "back",
+        "new_tab",
+        "close_popup",
+        "screenshot",
+        "download",
     ]
     for i, step in enumerate(template.get("workflow", [])):
         if not step.get("action"):

@@ -66,12 +66,19 @@ class NiFiClient:
         """Get the root process group."""
         resp = self._get_client().get("/nifi-api/flow/process-groups/root")
         resp.raise_for_status()
-        pg = resp.json().get("processGroupFlow", {}).get("breadcrumb", {}).get("breadcrumb", {})
+        pg = (
+            resp.json()
+            .get("processGroupFlow", {})
+            .get("breadcrumb", {})
+            .get("breadcrumb", {})
+        )
         status = resp.json().get("processGroupFlow", {}).get("status", {})
         return NiFiProcessGroup(
             id=pg.get("id", "root"),
             name=pg.get("name", "root"),
-            running_count=status.get("aggregateSnapshot", {}).get("activeThreadCount", 0),
+            running_count=status.get("aggregateSnapshot", {}).get(
+                "activeThreadCount", 0
+            ),
         )
 
     def list_processors(self, process_group_id: str = "root") -> list[NiFiProcessor]:

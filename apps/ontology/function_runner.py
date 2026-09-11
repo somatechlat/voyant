@@ -77,7 +77,9 @@ class _FunctionCache:
         # Invalidate if version changed in DB
         try:
             current = Function.objects.get(
-                tenant_id=tenant_id, id=function_id, deleted_at__isnull=True,
+                tenant_id=tenant_id,
+                id=function_id,
+                deleted_at__isnull=True,
             )
         except Function.DoesNotExist:
             self._entries.pop(key, None)
@@ -153,7 +155,9 @@ class FunctionRunner:
     # Public API
     # ------------------------------------------------------------------
 
-    def run(self, tenant_id: str, function_id: str, input_data: dict[str, Any]) -> FunctionResult:
+    def run(
+        self, tenant_id: str, function_id: str, input_data: dict[str, Any]
+    ) -> FunctionResult:
         """Execute a function and return a FunctionResult.
 
         ONT-F-029: Full lifecycle — load → validate input → execute → validate output.
@@ -254,7 +258,9 @@ class FunctionRunner:
     # Validation
     # ------------------------------------------------------------------
 
-    def validate_input(self, function: Function, input_data: dict[str, Any]) -> list[str]:
+    def validate_input(
+        self, function: Function, input_data: dict[str, Any]
+    ) -> list[str]:
         """Validate input_data against function.input_schema.
 
         ONT-F-032: Checks required fields and type constraints.
@@ -314,8 +320,7 @@ class FunctionRunner:
         expected_type = schema.get("type", "")
         if expected_type and not _check_type(output_data, expected_type):
             errors.append(
-                f"Output expects type '{expected_type}', "
-                f"got '{type(output_data).__name__}'"
+                f"Output expects type '{expected_type}', got '{type(output_data).__name__}'"
             )
             return errors  # No point checking properties if type is wrong
 
@@ -372,7 +377,10 @@ class FunctionRunner:
         wrapper = _build_python_wrapper(source_code, entry_point, input_data)
 
         tmp = tempfile.NamedTemporaryFile(
-            mode="w", suffix=".py", delete=False, encoding="utf-8",
+            mode="w",
+            suffix=".py",
+            delete=False,
+            encoding="utf-8",
         )
         try:
             tmp.write(wrapper)
@@ -439,7 +447,10 @@ class FunctionRunner:
         wrapper = _build_typescript_wrapper(source_code, entry_point, input_data)
 
         tmp = tempfile.NamedTemporaryFile(
-            mode="w", suffix=".ts", delete=False, encoding="utf-8",
+            mode="w",
+            suffix=".ts",
+            delete=False,
+            encoding="utf-8",
         )
         try:
             tmp.write(wrapper)
@@ -509,7 +520,9 @@ class FunctionRunner:
 # ---------------------------------------------------------------------------
 
 
-def _build_python_wrapper(source_code: str, entry_point: str, input_data: dict[str, Any]) -> str:
+def _build_python_wrapper(
+    source_code: str, entry_point: str, input_data: dict[str, Any]
+) -> str:
     """Build a Python wrapper script that calls the user function and
     prints the JSON result to stdout.
 
@@ -536,7 +549,9 @@ def _build_python_wrapper(source_code: str, entry_point: str, input_data: dict[s
 
 
 def _build_typescript_wrapper(
-    source_code: str, entry_point: str, input_data: dict[str, Any],
+    source_code: str,
+    entry_point: str,
+    input_data: dict[str, Any],
 ) -> str:
     """Build a TypeScript wrapper that calls the user function and prints
     JSON output to stdout.
@@ -548,9 +563,7 @@ def _build_typescript_wrapper(
         "// Auto-generated wrapper\n"
         "const input = " + input_json + ";\n"
         "\n"
-        "// --- User code ---\n"
-        + source_code
-        + "\n"
+        "// --- User code ---\n" + source_code + "\n"
         "// --- Entry point dispatch ---\n"
         "try {\n"
         f"  const fn = (globalThis as any)['{entry_point}'] ?? eval('{entry_point}');\n"

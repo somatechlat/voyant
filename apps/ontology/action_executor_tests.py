@@ -21,6 +21,13 @@ import uuid
 import pytest
 from django.db import connection
 
+from apps.core.models import AuditLog
+from apps.ontology.action_executor import (
+    ActionExecutor,
+)
+from apps.ontology.models import ActionType, Object
+from apps.ontology.services import ObjectTypeService
+
 # Skip entire module if DB is unreachable
 _db_available = True
 try:
@@ -33,16 +40,6 @@ pytestmark = [
     pytest.mark.integration,
     pytest.mark.skipif(not _db_available, reason="PostgreSQL not available"),
 ]
-
-from apps.core.models import AuditLog
-from apps.ontology.action_executor import (
-    ActionExecution,
-    ActionExecutor,
-    ActionResult,
-    UndoResult,
-)
-from apps.ontology.models import ActionType, Object, ObjectType
-from apps.ontology.services import ObjectTypeService
 
 TENANT = "test-tenant-action"
 
@@ -67,7 +64,12 @@ def object_type(db):
         description="A support ticket",
         properties=[
             {"name": "title", "property_type": "string", "required": True},
-            {"name": "status", "property_type": "string", "required": True, "default_value": "open"},
+            {
+                "name": "status",
+                "property_type": "string",
+                "required": True,
+                "default_value": "open",
+            },
             {"name": "priority", "property_type": "string", "default_value": "low"},
             {"name": "assignee", "property_type": "string"},
         ],
@@ -142,7 +144,8 @@ class TestValidateParams:
     def test_valid_params_with_optional(self, executor, active_action):
         """Required + optional params → no errors."""
         errors = executor.validate_params(
-            active_action, {"assignee": "alice", "priority": "high"},
+            active_action,
+            {"assignee": "alice", "priority": "high"},
         )
         assert errors == []
 
@@ -238,8 +241,11 @@ class TestExecute:
     def test_execute_success(self, executor, active_action, ticket):
         """Happy path: valid params, rules pass → success with changes."""
         result = executor.execute(
-            TENANT, str(active_action.id), str(ticket.id),
-            {"assignee": "alice"}, actor="admin",
+            TENANT,
+            str(active_action.id),
+            str(ticket.id),
+            {"assignee": "alice"},
+            actor="admin",
         )
         assert result.success is True
         assert result.action_id is not None
@@ -257,7 +263,9 @@ class TestExecute:
             version=1,
         )
         result = executor.execute(
-            TENANT, str(active_action.id), str(obj.id),
+            TENANT,
+            str(active_action.id),
+            str(obj.id),
             {"assignee": "bob"},
         )
         assert result.success is False
@@ -281,8 +289,11 @@ class TestExecute:
 
         executor.permission_checker = deny_all
         result = executor.execute(
-            TENANT, str(action.id), str(ticket.id),
-            {"reason": "test"}, actor="eve",
+            TENANT,
+            str(action.id),
+            str(ticket.id),
+            {"reason": "test"},
+            actor="eve",
         )
         assert result.success is False
         assert any(e["code"] == "permission_denied" for e in result.errors)
@@ -290,7 +301,10 @@ class TestExecute:
     def test_execute_action_not_found(self, executor):
         """Non-existent ActionType → not_found error."""
         result = executor.execute(
-            TENANT, str(uuid.uuid4()), str(uuid.uuid4()), {},
+            TENANT,
+            str(uuid.uuid4()),
+            str(uuid.uuid4()),
+            {},
         )
         assert result.success is False
         assert result.errors[0]["code"] == "not_found"
@@ -298,7 +312,10 @@ class TestExecute:
     def test_execute_inactive_action(self, executor, draft_action, ticket):
         """Draft action → inactive error."""
         result = executor.execute(
-            TENANT, str(draft_action.id), str(ticket.id), {},
+            TENANT,
+            str(draft_action.id),
+            str(ticket.id),
+            {},
         )
         assert result.success is False
         assert result.errors[0]["code"] == "inactive"
@@ -316,13 +333,20 @@ class TestSideEffects:
     def test_audit_log_side_effect(self, executor, active_action, ticket):
         """audit_log side effect creates an AuditLog entry."""
         executor.execute(
-            TENANT, str(active_action.id), str(ticket.id),
-            {"assignee": "alice"}, actor="admin",
+            TENANT,
+            str(active_action.id),
+            str(ticket.id),
+            {"assignee": "alice"},
+            actor="admin",
         )
-        log = AuditLog.objects.filter(
-            tenant_id=TENANT,
-            action__startswith="action.",
-        ).order_by("-created_at").first()
+        log = (
+            AuditLog.objects.filter(
+                tenant_id=TENANT,
+                action__startswith="action.",
+            )
+            .order_by("-created_at")
+            .first()
+        )
         assert log is not None
         assert log.actor == "admin"
         assert log.resource_type == "ontology_object"
@@ -340,14 +364,20 @@ class TestSideEffects:
             parameters=[{"name": "assignee", "type": "string", "required": True}],
             rules=[{"type": "status_check", "field": "status", "value": "open"}],
             side_effects=[
-                {"type": "field_update", "updates": {"reviewed": True, "reviewer": "system"}},
+                {
+                    "type": "field_update",
+                    "updates": {"reviewed": True, "reviewer": "system"},
+                },
             ],
             undoable=True,
             undo_rules=[{"type": "status_revert"}],
         )
         result = executor.execute(
-            TENANT, str(action.id), str(ticket.id),
-            {"assignee": "bob"}, actor="admin",
+            TENANT,
+            str(action.id),
+            str(ticket.id),
+            {"assignee": "bob"},
+            actor="admin",
         )
         assert result.success is True
         # Refresh from DB
@@ -366,7 +396,10 @@ class TestSideEffects:
             side_effects=[{"type": "notification", "channel": "email"}],
         )
         result = executor.execute(
-            TENANT, str(action.id), str(ticket.id), {},
+            TENANT,
+            str(action.id),
+            str(ticket.id),
+            {},
         )
         assert result.success is True
         assert "notification" in result.side_effects_executed
@@ -383,8 +416,11 @@ class TestUndo:
     def test_undo_success(self, executor, active_action, ticket):
         """Undo a successful action → reverts assigned fields."""
         result = executor.execute(
-            TENANT, str(active_action.id), str(ticket.id),
-            {"assignee": "alice"}, actor="admin",
+            TENANT,
+            str(active_action.id),
+            str(ticket.id),
+            {"assignee": "alice"},
+            actor="admin",
         )
         assert result.success is True
 
@@ -406,7 +442,10 @@ class TestUndo:
             undoable=False,
         )
         result = executor.execute(
-            TENANT, str(action.id), str(ticket.id), {},
+            TENANT,
+            str(action.id),
+            str(ticket.id),
+            {},
         )
         assert result.success is True
 
@@ -417,8 +456,11 @@ class TestUndo:
     def test_undo_already_undone(self, executor, active_action, ticket):
         """Undoing the same action twice → already_undone error."""
         result = executor.execute(
-            TENANT, str(active_action.id), str(ticket.id),
-            {"assignee": "alice"}, actor="admin",
+            TENANT,
+            str(active_action.id),
+            str(ticket.id),
+            {"assignee": "alice"},
+            actor="admin",
         )
         first_undo = executor.undo(TENANT, result.action_id)
         assert first_undo.success is True
@@ -447,8 +489,11 @@ class TestUndo:
             undo_rules=[{"type": "status_revert", "field": "status"}],
         )
         result = executor.execute(
-            TENANT, str(action.id), str(ticket.id),
-            {"status": "closed"}, actor="admin",
+            TENANT,
+            str(action.id),
+            str(ticket.id),
+            {"status": "closed"},
+            actor="admin",
         )
         assert result.success is True
         ticket.refresh_from_db()

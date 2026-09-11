@@ -91,7 +91,9 @@ class CrossValidator:
                     matches += 1
 
             # Combine with original supporting sources.
-            all_domains = supporting_domains | {self._domain(u) for u in finding.supporting_sources}
+            all_domains = supporting_domains | {
+                self._domain(u) for u in finding.supporting_sources
+            }
 
             cross_validated = len(all_domains) >= 2
             confidence = min(

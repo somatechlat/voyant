@@ -89,33 +89,40 @@ def get_dashboard(request):
     total_capsules = Capsule.objects.count()
 
     # Tenant stats
-    tenant_ids = set(
-        Job.objects.values_list("tenant_id", flat=True).distinct()
-    )
+    tenant_ids = set(Job.objects.values_list("tenant_id", flat=True).distinct())
     total_tenants = len(tenant_ids)
     day_ago = datetime.now(UTC)
-    active_tenants = Job.objects.filter(
-        created_at__gte=day_ago
-    ).values("tenant_id").distinct().count()
+    active_tenants = (
+        Job.objects.filter(created_at__gte=day_ago)
+        .values("tenant_id")
+        .distinct()
+        .count()
+    )
 
     # Audit stats
-    audit_24h = AuditLog.objects.filter(
-        created_at__gte=day_ago
-    ).count()
+    audit_24h = AuditLog.objects.filter(created_at__gte=day_ago).count()
     violations = AuditLog.objects.filter(
         created_at__gte=day_ago,
         action__contains="policy",
         outcome="denied",
     ).count()
 
-    # Service health
+    # Service health (map circuit breaker states to frontend-expected health status)
+    _cb_state_to_status = {
+        "closed": "healthy",
+        "half_open": "degraded",
+        "open": "down",
+    }
     services = []
     for name, cb in _circuit_breakers.items():
-        services.append(ServiceHealth(
-            name=name,
-            status=cb.get_state().value,
-            circuit_breaker_state=cb.get_state().value,
-        ))
+        cb_state = cb.get_state().value
+        services.append(
+            ServiceHealth(
+                name=name,
+                status=_cb_state_to_status.get(cb_state, "unknown"),
+                circuit_breaker_state=cb_state,
+            )
+        )
 
     # Infrastructure health
     infra_checks = {
@@ -131,17 +138,21 @@ def get_dashboard(request):
     for name, check_fn in infra_checks.items():
         try:
             ok, detail = check_fn()
-            services.append(ServiceHealth(
-                name=name,
-                status="healthy" if ok else "down",
-                details=detail,
-            ))
+            services.append(
+                ServiceHealth(
+                    name=name,
+                    status="healthy" if ok else "down",
+                    details=detail,
+                )
+            )
         except Exception as exc:
-            services.append(ServiceHealth(
-                name=name,
-                status="down",
-                details=str(exc),
-            ))
+            services.append(
+                ServiceHealth(
+                    name=name,
+                    status="down",
+                    details=str(exc),
+                )
+            )
 
     return SystemOverview(
         version="3.0.0",
@@ -256,15 +267,27 @@ def cancel_job(request, job_id: str):
 
     if job.status not in ("running", "queued"):
         return JobActionResponse(
-            job_id=job_id, action="cancel", status="skipped",
+            job_id=job_id,
+            action="cancel",
+            status="skipped",
             message=f"Job is {job.status}, not cancellable",
         )
 
     # Cancel Temporal workflow
     try:
         client = run_async(get_temporal_client)
-        for prefix in ("ingest", "profile", "quality", "analyze", "capsule",
-                        "scrape", "streaming", "benchmark", "segment", "regression"):
+        for prefix in (
+            "ingest",
+            "profile",
+            "quality",
+            "analyze",
+            "capsule",
+            "scrape",
+            "streaming",
+            "benchmark",
+            "segment",
+            "regression",
+        ):
             try:
                 handle = client.get_workflow_handle(f"{prefix}-{job_id}")
                 run_async(handle.cancel)
@@ -278,7 +301,9 @@ def cancel_job(request, job_id: str):
     job.save(update_fields=["status"])
 
     return JobActionResponse(
-        job_id=job_id, action="cancel", status="cancelled",
+        job_id=job_id,
+        action="cancel",
+        status="cancelled",
     )
 
 
@@ -293,7 +318,9 @@ def reset_job(request, job_id: str):
 
     if job.status != "failed":
         return JobActionResponse(
-            job_id=job_id, action="reset", status="skipped",
+            job_id=job_id,
+            action="reset",
+            status="skipped",
             message=f"Job is {job.status}, only failed jobs can be reset",
         )
 
@@ -305,7 +332,9 @@ def reset_job(request, job_id: str):
     job.save()
 
     return JobActionResponse(
-        job_id=job_id, action="reset", status="queued",
+        job_id=job_id,
+        action="reset",
+        status="queued",
         message="Job reset to queued. It will be picked up by the worker.",
     )
 
@@ -331,6 +360,7 @@ def list_sources(request, tenant_id: str | None = None):
             status=s.status,
             created_at=s.created_at.isoformat(),
             datahub_urn=s.datahub_urn,
+            connection_config=s.connection_config,
         )
         for s in qs.order_by("-created_at")
     ]
@@ -358,6 +388,7 @@ def create_source(request, payload: SourceCreateRequest):
         source_type=source.source_type,
         status=source.status,
         created_at=source.created_at.isoformat(),
+        connection_config=source.connection_config,
     )
 
 
@@ -434,9 +465,7 @@ def list_quotas(request):
     manager = get_quota_manager()
     from apps.workflows.models import Job
 
-    tenant_ids = list(
-        Job.objects.values_list("tenant_id", flat=True).distinct()[:50]
-    )
+    tenant_ids = list(Job.objects.values_list("tenant_id", flat=True).distinct()[:50])
 
     result = []
     for tid in tenant_ids:
@@ -448,16 +477,43 @@ def list_quotas(request):
         artifacts_limit = policy.get_limit(ResourceType.TOTAL_STORAGE_MB)
         sources_limit = policy.get_limit(ResourceType.WORKFLOWS_PER_DAY)
 
-        result.append(QuotaInfo(
-            tenant_id=tid,
-            tier=tier.value,
-            jobs_today=int(usage_map.get(ResourceType.JOBS_PER_DAY.value, type("", (), {"current_usage": 0})()).current_usage),
-            jobs_limit=int(jobs_limit.limit) if jobs_limit else 0,
-            artifacts_gb=round(float(usage_map.get(ResourceType.TOTAL_STORAGE_MB.value, type("", (), {"current_usage": 0})()).current_usage) / 1024, 3),
-            artifacts_limit_gb=round(float(artifacts_limit.limit) / 1024, 3) if artifacts_limit else 0,
-            sources_count=int(usage_map.get(ResourceType.WORKFLOWS_PER_DAY.value, type("", (), {"current_usage": 0})()).current_usage),
-            sources_limit=int(sources_limit.limit) if sources_limit else 0,
-        ))
+        _default = type("", (), {"current_usage": 0})()
+
+        result.append(
+            QuotaInfo(
+                tenant_id=tid,
+                tier=tier.value,
+                jobs_today=int(
+                    usage_map.get(
+                        ResourceType.JOBS_PER_DAY.value,
+                        _default,
+                    ).current_usage  # type: ignore[attr-defined]
+                ),
+                jobs_limit=int(jobs_limit.limit) if jobs_limit else 0,
+                artifacts_gb=round(
+                    float(
+                        usage_map.get(
+                            ResourceType.TOTAL_STORAGE_MB.value,
+                            _default,
+                        ).current_usage  # type: ignore[attr-defined]
+                    )
+                    / 1024,
+                    3,
+                ),
+                artifacts_limit_gb=(
+                    round(float(artifacts_limit.limit) / 1024, 3)
+                    if artifacts_limit
+                    else 0
+                ),
+                sources_count=int(
+                    usage_map.get(
+                        ResourceType.WORKFLOWS_PER_DAY.value,
+                        _default,
+                    ).current_usage  # type: ignore[attr-defined]
+                ),
+                sources_limit=int(sources_limit.limit) if sources_limit else 0,
+            )
+        )
 
     return result
 
@@ -547,20 +603,24 @@ def list_object_types(request, tenant_id: str | None = None):
         instance_count = Object.objects.filter(
             object_type=ot, deleted_at__isnull=True
         ).count()
-        result.append(ObjectTypeListItem(
-            id=str(ot.id),
-            name=ot.name,
-            description=ot.description,
-            version=ot.version,
-            property_count=prop_count,
-            instance_count=instance_count,
-            tenant_id=ot.tenant_id,
-            created_at=ot.created_at.isoformat(),
-        ))
+        result.append(
+            ObjectTypeListItem(
+                id=str(ot.id),
+                name=ot.name,
+                description=ot.description,
+                version=ot.version,
+                property_count=prop_count,
+                instance_count=instance_count,
+                tenant_id=ot.tenant_id,
+                created_at=ot.created_at.isoformat(),
+            )
+        )
     return result
 
 
-@admin_router.get("/ontology/types/{type_id}/properties", response=list[PropertyListItem])
+@admin_router.get(
+    "/ontology/types/{type_id}/properties", response=list[PropertyListItem]
+)
 def list_properties(request, type_id: str):
     """List properties for an object type."""
     from apps.ontology.models import ObjectType, Property
@@ -709,7 +769,7 @@ def list_tables(request, schema: str | None = None):
         client = get_trino_client()
         tables = client.get_tables(schema)
         return [
-            TableInfo(name=t if isinstance(t, str) else t.get("name", str(t)))
+            TableInfo(name=t if isinstance(t, str) else t.get("name", str(t)))  # type: ignore[reportCallIssue]
             for t in tables
         ]
     except Exception as exc:
@@ -744,7 +804,12 @@ def index_document(request, payload: SearchIndexRequest):
     metadata["tenant_id"] = tenant_id
     metadata["text_preview"] = payload.text[:200]
 
-    store.add(id=item_id, vector=dense_vec.embeddings[0], metadata=metadata, sparse_vector=sparse_vec)
+    store.add(
+        id=item_id,
+        vector=dense_vec.embeddings[0],
+        metadata=metadata,
+        sparse_vector=sparse_vec,
+    )
     return {"id": item_id, "status": "indexed"}
 
 
@@ -828,9 +893,7 @@ def list_tenants(request):
     from apps.discovery.models import Source
     from apps.workflows.models import Artifact, Job
 
-    tenant_ids = list(
-        Job.objects.values_list("tenant_id", flat=True).distinct()[:100]
-    )
+    tenant_ids = list(Job.objects.values_list("tenant_id", flat=True).distinct()[:100])
 
     result = []
     for tid in tenant_ids:
@@ -839,14 +902,16 @@ def list_tenants(request):
         artifact_count = Artifact.objects.filter(tenant_id=tid).count()
         last_job = Job.objects.filter(tenant_id=tid).order_by("-created_at").first()
 
-        result.append(TenantInfo(
-            tenant_id=tid,
-            realm="default",
-            job_count=job_count,
-            source_count=source_count,
-            artifact_count=artifact_count,
-            last_activity=last_job.created_at.isoformat() if last_job else None,
-        ))
+        result.append(
+            TenantInfo(
+                tenant_id=tid,
+                realm="default",
+                job_count=job_count,
+                source_count=source_count,
+                artifact_count=artifact_count,
+                last_activity=last_job.created_at.isoformat() if last_job else None,
+            )
+        )
 
     return result
 
@@ -856,6 +921,7 @@ def list_tenants(request):
 
 def _check_postgres() -> tuple[bool, str]:
     from django.db import connection
+
     with connection.cursor() as cursor:
         cursor.execute("SELECT 1")
     return True, "Connected"
@@ -863,6 +929,7 @@ def _check_postgres() -> tuple[bool, str]:
 
 def _check_redis() -> tuple[bool, str]:
     from django.core.cache import cache
+
     cache.set("_health_check", "ok", 10)
     val = cache.get("_health_check")
     return val == "ok", "Connected"
@@ -870,6 +937,7 @@ def _check_redis() -> tuple[bool, str]:
 
 def _check_vault() -> tuple[bool, str]:
     import httpx
+
     resp = httpx.get(f"{settings.secrets_vault_url}/v1/sys/health", timeout=5.0)
     return resp.status_code == 200, f"Status {resp.status_code}"
 
@@ -878,6 +946,7 @@ def _check_temporal() -> tuple[bool, str]:
     if not settings.temporal_host:
         return False, "Not configured"
     import socket
+
     host, port = settings.temporal_host.rsplit(":", 1)
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.settimeout(3)
@@ -892,6 +961,7 @@ def _check_temporal() -> tuple[bool, str]:
 
 def _check_minio() -> tuple[bool, str]:
     import httpx
+
     resp = httpx.get(f"http://{settings.minio_endpoint}/minio/health/live", timeout=5.0)
     return resp.status_code == 200, f"Status {resp.status_code}"
 
@@ -900,6 +970,7 @@ def _check_kafka() -> tuple[bool, str]:
     if not settings.kafka_bootstrap_servers:
         return False, "Not configured"
     import socket
+
     host, port = settings.kafka_bootstrap_servers.split(",")[0].rsplit(":", 1)
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.settimeout(3)
@@ -914,6 +985,7 @@ def _check_kafka() -> tuple[bool, str]:
 
 def _check_milvus() -> tuple[bool, str]:
     import httpx
+
     uri = settings.milvus_uri or f"http://{settings.milvus_host}:{settings.milvus_port}"
     try:
         resp = httpx.get(f"{uri}/healthz", timeout=3.0)
@@ -926,6 +998,7 @@ def _check_trino() -> tuple[bool, str]:
     if not settings.trino_host:
         return False, "Not configured"
     import socket
+
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.settimeout(3)
     try:

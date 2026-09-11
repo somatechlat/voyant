@@ -55,7 +55,9 @@ class SegmentCustomersWorkflow:
         result = await workflow.execute_activity(
             "cluster_data",
             {"data": data, "clusters": n_segments},
-            start_to_close_timeout=timedelta(minutes=10),  # Allow up to 10 minutes for clustering.
+            start_to_close_timeout=timedelta(
+                minutes=10
+            ),  # Allow up to 10 minutes for clustering.
         )
 
         # Post-processing: Enrich results with segment profiles for better interpretation.
@@ -65,11 +67,15 @@ class SegmentCustomersWorkflow:
         # Calculate average profile for each segment.
         for cluster_id in range(n_segments):
             # Identify all data points belonging to the current cluster.
-            cluster_members = [data[i] for i, c in enumerate(clusters) if c == cluster_id]
+            cluster_members = [
+                data[i] for i, c in enumerate(clusters) if c == cluster_id
+            ]
             if cluster_members:
                 avg_profile = {}
                 # For each feature, calculate the average value within the cluster.
-                if cluster_members:  # Ensure cluster_members is not empty before accessing keys
+                if (
+                    cluster_members
+                ):  # Ensure cluster_members is not empty before accessing keys
                     keys = cluster_members[0].keys()
                     for key in keys:
                         values = [m[key] for m in cluster_members if key in m]
@@ -77,16 +83,22 @@ class SegmentCustomersWorkflow:
 
                 segment_profiles[f"segment_{cluster_id}"] = {
                     "size": len(cluster_members),
-                    "percentage": (len(cluster_members) / len(data) * 100 if len(data) > 0 else 0),
+                    "percentage": (
+                        len(cluster_members) / len(data) * 100 if len(data) > 0 else 0
+                    ),
                     "average_profile": avg_profile,
                 }
 
-        workflow.logger.info(f"SEGMENT_CUSTOMERS workflow completed. Found {n_segments} segments.")
+        workflow.logger.info(
+            f"SEGMENT_CUSTOMERS workflow completed. Found {n_segments} segments."
+        )
         return {
             "status": "completed",
             "n_segments": n_segments,
             "total_customers": len(data),
-            "silhouette_score": result.get("silhouette_score"),  # A metric for cluster quality.
+            "silhouette_score": result.get(
+                "silhouette_score"
+            ),  # A metric for cluster quality.
             "segment_profiles": segment_profiles,
             "cluster_assignments": clusters,  # Raw cluster assignment for each data point.
         }

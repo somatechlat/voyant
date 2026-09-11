@@ -136,13 +136,13 @@ class TestRuleEvaluation:
         rules = {"allowed_roles": ["admin"]}
         allowed, reason = _evaluate_rules(rules, {"roles": ["viewer"]})
         assert allowed is False
-        assert "required role" in reason.lower()
+        assert "required role" in reason.lower()  # type: ignore[reportOptionalMemberAccess]
 
     def test_denied_roles_block(self):
         rules = {"denied_roles": ["banned"]}
         allowed, reason = _evaluate_rules(rules, {"roles": ["banned", "viewer"]})
         assert allowed is False
-        assert "denied role" in reason.lower()
+        assert "denied role" in reason.lower()  # type: ignore[reportOptionalMemberAccess]
 
     def test_denied_methods(self):
         rules = {"denied_methods": ["DELETE"]}
@@ -456,7 +456,9 @@ class TestGovernancePolicyMiddleware:
         resp = mw(req)
         assert resp.status_code == 403
         body = json.loads(resp.content)
-        assert "blocked" in body["message"].lower() or "denied" in body["message"].lower()
+        assert (
+            "blocked" in body["message"].lower() or "denied" in body["message"].lower()
+        )
 
     @patch.object(
         GovernancePolicyMiddleware,
@@ -494,9 +496,7 @@ class TestGovernancePolicyMiddleware:
     @patch.object(
         GovernancePolicyMiddleware,
         "_get_active_policies",
-        return_value=[
-            _make_policy(rules={})  # empty rules → allows everything
-        ],
+        return_value=[_make_policy(rules={})],  # empty rules → allows everything
     )
     def test_allowed_request_passes(self, mock_policies):
         mw = self._make_middleware()

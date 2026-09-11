@@ -3,7 +3,7 @@ etcd:
   endpoints:
     - voyant_etcd:2379
 minio:
-  address: voyant_minio
+  address: minio
   port: 9000
   useSSL: false
   bucketName: a-bucket

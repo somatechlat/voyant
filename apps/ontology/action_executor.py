@@ -67,7 +67,9 @@ class ActionExecution(TenantModel, UUIDModel):
         blank=True,
         help_text="Diff of changes applied during execution",
     )
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_SUCCESS)
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default=STATUS_SUCCESS
+    )
     actor = models.CharField(max_length=256, blank=True, default="")
     errors = models.JSONField(default=list, blank=True)
 
@@ -85,7 +87,7 @@ class ActionExecution(TenantModel, UUIDModel):
         ]
 
     def __str__(self) -> str:
-        return f"Execution({self.action_type_id} on {self.target_object_id} [{self.status}])"
+        return f"Execution({self.action_type_id} on {self.target_object_id} [{self.status}])"  # type: ignore[attr-defined]
 
 
 # ---------------------------------------------------------------------------
@@ -170,9 +172,10 @@ class ActionExecutor:
 
         Steps:
           1. Load ActionType (must be active) and Object (must exist).
-          2. Validate parameters against the action's parameter schema.
-          3. Check pre-condition rules against the object.
-          4. Record previous state, apply changes, run side effects.
+          2. If ActionType.requires_approval, create an approval request instead.
+          3. Validate parameters against the action's parameter schema.
+          4. Check pre-condition rules against the object.
+          5. Record previous state, apply changes, run side effects.
 
         Args:
             tenant_id: Tenant identifier for isolation.
@@ -189,23 +192,43 @@ class ActionExecutor:
         if error:
             return ActionResult(success=False, errors=[error])
 
+        # 2. Approval gate — if the action type requires approval, create a
+        #    request instead of executing immediately.
+        if action_type.requires_approval:  # type: ignore[union-attr]
+            return self._request_approval(
+                tenant_id,
+                action_type,  # type: ignore[reportArgumentType]
+                object_id,
+                params,
+                actor=actor,
+            )
+
         obj, error = self._load_object(tenant_id, object_id)
         if error:
             return ActionResult(success=False, errors=[error])
 
         # 2. Validate params
-        param_errors = self.validate_params(action_type, params)
+        param_errors = self.validate_params(action_type, params)  # type: ignore[reportArgumentType]
         if param_errors:
             return ActionResult(success=False, errors=param_errors)
 
         # 3. Check pre-condition rules
-        violations = self.check_rules(action_type, obj, tenant_id=tenant_id, actor=actor)
+        violations = self.check_rules(
+            action_type,
+            obj,
+            tenant_id=tenant_id,
+            actor=actor,  # type: ignore[reportArgumentType]
+        )
         if violations:
             return ActionResult(success=False, errors=violations)
 
         # 4. Snapshot, apply, execute side effects, record
         return self._commit_execution(
-            tenant_id, action_type, obj, params, actor=actor,
+            tenant_id,
+            action_type,  # type: ignore[reportArgumentType]
+            obj,  # type: ignore[reportArgumentType]
+            params,
+            actor=actor,
         )
 
     def validate_params(
@@ -234,21 +257,25 @@ class ActionExecutor:
             # Required check
             if value is None:
                 if required:
-                    errors.append({
-                        "field": name,
-                        "code": "required",
-                        "message": f"Parameter '{name}' is required",
-                    })
+                    errors.append(
+                        {
+                            "field": name,
+                            "code": "required",
+                            "message": f"Parameter '{name}' is required",
+                        }
+                    )
                 continue
 
             # Type check
             type_ok = _check_param_type(value, param_type)
             if not type_ok:
-                errors.append({
-                    "field": name,
-                    "code": "invalid_type",
-                    "message": f"Parameter '{name}' expects {param_type}, got {type(value).__name__}",
-                })
+                errors.append(
+                    {
+                        "field": name,
+                        "code": "invalid_type",
+                        "message": f"Parameter '{name}' expects {param_type}, got {type(value).__name__}",
+                    }
+                )
 
         return errors
 
@@ -279,10 +306,12 @@ class ActionExecutor:
             rule_type = rule.get("type", "")
             handler = _RULE_HANDLERS.get(rule_type)
             if handler is None:
-                violations.append({
-                    "code": "unknown_rule",
-                    "message": f"Unknown rule type '{rule_type}'",
-                })
+                violations.append(
+                    {
+                        "code": "unknown_rule",
+                        "message": f"Unknown rule type '{rule_type}'",
+                    }
+                )
                 continue
 
             result = handler(
@@ -340,7 +369,9 @@ class ActionExecutor:
                 )
                 executed.append(effect_type)
             except Exception:
-                logger.exception("Side effect '%s' failed for action %s", effect_type, action_type.id)
+                logger.exception(
+                    "Side effect '%s' failed for action %s", effect_type, action_type.id
+                )
 
         return executed
 
@@ -377,14 +408,24 @@ class ActionExecutor:
             return UndoResult(
                 success=False,
                 action_id=action_id,
-                errors=[{"code": "already_undone", "message": "Action has already been undone"}],
+                errors=[
+                    {
+                        "code": "already_undone",
+                        "message": "Action has already been undone",
+                    }
+                ],
             )
 
         if execution.status != ActionExecution.STATUS_SUCCESS:
             return UndoResult(
                 success=False,
                 action_id=action_id,
-                errors=[{"code": "invalid_status", "message": f"Cannot undo execution with status '{execution.status}'"}],
+                errors=[
+                    {
+                        "code": "invalid_status",
+                        "message": f"Cannot undo execution with status '{execution.status}'",
+                    }
+                ],
             )
 
         action_type = execution.action_type
@@ -392,7 +433,12 @@ class ActionExecutor:
             return UndoResult(
                 success=False,
                 action_id=action_id,
-                errors=[{"code": "not_undoable", "message": "This action type does not support undo"}],
+                errors=[
+                    {
+                        "code": "not_undoable",
+                        "message": "This action type does not support undo",
+                    }
+                ],
             )
 
         # Apply undo rules
@@ -427,13 +473,16 @@ class ActionExecutor:
 
         logger.info(
             "Undone action execution %s on %s/%s (reverted: %s)",
-            action_id, tenant_id, execution.target_object_id, reverted_fields,
+            action_id,
+            tenant_id,
+            execution.target_object_id,  # type: ignore[attr-defined]
+            reverted_fields,
         )
 
         return UndoResult(
             success=True,
             action_id=action_id,
-            object_id=str(execution.target_object_id),
+            object_id=str(execution.target_object_id),  # type: ignore[attr-defined]
             reverted_fields=reverted_fields,
         )
 
@@ -495,7 +544,11 @@ class ActionExecutor:
             obj.save(update_fields=["properties", "version", "updated_at"])
 
             side_effects_run = self.execute_side_effects(
-                action_type, obj, changes, tenant_id=tenant_id, actor=actor,
+                action_type,
+                obj,
+                changes,
+                tenant_id=tenant_id,
+                actor=actor,
             )
 
             execution = ActionExecution.objects.create(
@@ -511,7 +564,10 @@ class ActionExecutor:
 
         logger.info(
             "Executed action %s on %s/%s (execution=%s)",
-            action_type.name, tenant_id, str(obj.id), execution.id,
+            action_type.name,
+            tenant_id,
+            str(obj.id),
+            execution.id,
         )
         return ActionResult(
             success=True,
@@ -519,6 +575,56 @@ class ActionExecutor:
             object_id=str(obj.id),
             changes=changes,
             side_effects_executed=side_effects_run,
+        )
+
+    @staticmethod
+    def _request_approval(
+        tenant_id: str,
+        action_type: ActionType,
+        object_id: str,
+        params: dict[str, Any],
+        *,
+        actor: str = "",
+    ) -> ActionResult:
+        """
+        Create an approval request instead of executing the action.
+
+        Returns an ActionResult with ``success=False`` and metadata about
+        the created approval request so the caller knows execution is
+        deferred pending approval.
+        """
+        from apps.approvals.services import ApprovalService
+
+        approval = ApprovalService.request_action_approval(
+            tenant_id=tenant_id,
+            action_type_id=str(action_type.id),
+            action_type_name=action_type.name,
+            object_id=object_id,
+            requester_id=actor or "system",
+            params=params,
+        )
+
+        logger.info(
+            "Action '%s' requires approval — created request %s",
+            action_type.name,
+            approval.id,
+        )
+
+        return ActionResult(
+            success=False,
+            action_id=str(action_type.id),
+            object_id=object_id,
+            errors=[
+                {
+                    "code": "approval_required",
+                    "message": (
+                        f"Action '{action_type.name}' requires approval before execution. "
+                        f"Approval request {approval.id} has been created."
+                    ),
+                    "approval_request_id": str(approval.id),
+                    "approval_status": approval.status,
+                }
+            ],
         )
 
     @staticmethod
@@ -580,7 +686,11 @@ def _check_param_type(value: Any, param_type: str) -> bool:
     expected = _PARAM_TYPE_MAP.get(param_type)
     if expected is None:
         return True  # Unknown type → accept anything
-    return isinstance(value, expected) and not isinstance(value, bool) if param_type == "integer" else isinstance(value, expected)
+    return (
+        isinstance(value, expected) and not isinstance(value, bool)
+        if param_type == "integer"
+        else isinstance(value, expected)
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -589,7 +699,10 @@ def _check_param_type(value: Any, param_type: str) -> bool:
 
 
 def _rule_status_check(
-    *, rule: dict[str, Any], obj: Object, **_: Any,
+    *,
+    rule: dict[str, Any],
+    obj: Object,
+    **_: Any,
 ) -> dict[str, str] | None:
     """
     ONT-F-027: Verify object has expected status field value.
@@ -609,7 +722,10 @@ def _rule_status_check(
 
 
 def _rule_field_exists(
-    *, rule: dict[str, Any], obj: Object, **_: Any,
+    *,
+    rule: dict[str, Any],
+    obj: Object,
+    **_: Any,
 ) -> dict[str, str] | None:
     """
     ONT-F-027: Verify required field is present in object properties.
@@ -626,7 +742,10 @@ def _rule_field_exists(
 
 
 def _rule_field_value(
-    *, rule: dict[str, Any], obj: Object, **_: Any,
+    *,
+    rule: dict[str, Any],
+    obj: Object,
+    **_: Any,
 ) -> dict[str, str] | None:
     """
     ONT-F-027: Verify field matches expected value.
@@ -685,7 +804,11 @@ _RULE_HANDLERS: dict[str, Any] = {
 
 
 def _side_effect_notification(
-    *, effect: dict[str, Any], action_type: ActionType, obj: Object, **_: Any,
+    *,
+    effect: dict[str, Any],
+    action_type: ActionType,
+    obj: Object,
+    **_: Any,
 ) -> None:
     """
     ONT-F-027: Log a notification event (stub — no email/webhook yet).
@@ -695,13 +818,20 @@ def _side_effect_notification(
     channel = effect.get("channel", "default")
     logger.info(
         "[NOTIFICATION] channel=%s action=%s object=%s",
-        channel, action_type.name, obj.id,
+        channel,
+        action_type.name,
+        obj.id,
     )
 
 
 def _side_effect_webhook(
-    *, effect: dict[str, Any], action_type: ActionType, obj: Object,
-    changes: dict[str, Any], tenant_id: str, **_: Any,
+    *,
+    effect: dict[str, Any],
+    action_type: ActionType,
+    obj: Object,
+    changes: dict[str, Any],
+    tenant_id: str,
+    **_: Any,
 ) -> None:
     """
     ONT-F-027: Make an HTTP POST to a webhook URL via httpx.
@@ -729,8 +859,14 @@ def _side_effect_webhook(
 
 
 def _side_effect_audit_log(
-    *, effect: dict[str, Any], action_type: ActionType, obj: Object,
-    changes: dict[str, Any], tenant_id: str, actor: str, **_: Any,
+    *,
+    effect: dict[str, Any],
+    action_type: ActionType,
+    obj: Object,
+    changes: dict[str, Any],
+    tenant_id: str,
+    actor: str,
+    **_: Any,
 ) -> None:
     """
     ONT-F-027: Write an entry to the AuditLog model.
@@ -752,12 +888,18 @@ def _side_effect_audit_log(
     )
     logger.info(
         "[AUDIT_LOG] action=%s object=%s actor=%s",
-        action_type.name, obj.id, actor,
+        action_type.name,
+        obj.id,
+        actor,
     )
 
 
 def _side_effect_field_update(
-    *, effect: dict[str, Any], obj: Object, tenant_id: str, **_: Any,
+    *,
+    effect: dict[str, Any],
+    obj: Object,
+    tenant_id: str,
+    **_: Any,
 ) -> None:
     """
     ONT-F-027: Update additional object properties from the side effect config.
@@ -770,7 +912,8 @@ def _side_effect_field_update(
     obj.save(update_fields=["properties", "updated_at"])
     logger.info(
         "[FIELD_UPDATE] object=%s updated fields: %s",
-        obj.id, list(updates.keys()),
+        obj.id,
+        list(updates.keys()),
     )
 
 
@@ -788,7 +931,10 @@ _SIDE_EFFECT_HANDLERS: dict[str, Any] = {
 
 
 def _undo_status_revert(
-    *, rule: dict[str, Any], obj: Object, execution: ActionExecution,
+    *,
+    rule: dict[str, Any],
+    obj: Object,
+    execution: ActionExecution,
 ) -> list[str]:
     """
     ONT-F-028: Revert object status to previous value.
@@ -804,7 +950,10 @@ def _undo_status_revert(
 
 
 def _undo_field_revert(
-    *, rule: dict[str, Any], obj: Object, execution: ActionExecution,
+    *,
+    rule: dict[str, Any],
+    obj: Object,
+    execution: ActionExecution,
 ) -> list[str]:
     """
     ONT-F-028: Revert specific field changes.

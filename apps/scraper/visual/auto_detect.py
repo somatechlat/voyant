@@ -16,7 +16,6 @@ Detects:
 from __future__ import annotations
 
 import logging
-import re
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -33,7 +32,9 @@ class DetectedList:
     selector: str
     item_selector: str
     item_count: int
-    fields: list[dict[str, str]]  # [{"name": "title", "selector": "h3", "type": "text"}]
+    fields: list[
+        dict[str, str]
+    ]  # [{"name": "title", "selector": "h3", "type": "text"}]
     sample_data: list[dict[str, str]]  # First3 items
 
 
@@ -63,7 +64,9 @@ class DetectedForm:
     """A detected search/input form."""
 
     selector: str
-    inputs: list[dict[str, str]]  # [{"name": "search", "selector": "input[name=q]", "type": "text"}]
+    inputs: list[
+        dict[str, str]
+    ]  # [{"name": "search", "selector": "input[name=q]", "type": "text"}]
     submit_selector: str
 
 
@@ -99,14 +102,14 @@ class AutoDetectEngine:
         return {
             "lists": [
                 {
-                    "name": l.name,
-                    "selector": l.selector,
-                    "item_selector": l.item_selector,
-                    "item_count": l.item_count,
-                    "fields": l.fields,
-                    "sample_data": l.sample_data,
+                    "name": lst.name,
+                    "selector": lst.selector,
+                    "item_selector": lst.item_selector,
+                    "item_count": lst.item_count,
+                    "fields": lst.fields,
+                    "sample_data": lst.sample_data,
                 }
-                for l in lists
+                for lst in lists
             ],
             "tables": [
                 {
@@ -185,26 +188,30 @@ class AutoDetectEngine:
                     row: dict[str, str] = {}
                     for f in fields:
                         el = item.xpath(f["selector"])
-                        row[f["name"]] = el[0].text_content().strip()[:200] if el else ""
+                        row[f["name"]] = (
+                            el[0].text_content().strip()[:200] if el else ""
+                        )
                     sample.append(row)
 
                 # Determine name from context
                 name = self._infer_list_name(parent, items[0])
 
-                lists.append(DetectedList(
-                    name=name,
-                    selector=selector,
-                    item_selector=item_selector,
-                    item_count=len(items),
-                    fields=fields,
-                    sample_data=sample,
-                ))
+                lists.append(
+                    DetectedList(
+                        name=name,
+                        selector=selector,
+                        item_selector=item_selector,
+                        item_count=len(items),
+                        fields=fields,
+                        sample_data=sample,
+                    )
+                )
 
                 if len(lists) >= 5:
                     break
 
         # Sort by item count (more items = more likely to be the main list)
-        lists.sort(key=lambda l: l.item_count, reverse=True)
+        lists.sort(key=lambda lst: lst.item_count, reverse=True)
         return lists[:5]
 
     def _detect_tables(self, tree) -> list[DetectedTable]:
@@ -237,13 +244,15 @@ class AutoDetectEngine:
             selector = self._build_selector(table)
             name = self._infer_table_name(table)
 
-            tables.append(DetectedTable(
-                name=name,
-                selector=selector,
-                headers=headers[:20],
-                row_count=len(rows),
-                sample_rows=sample_rows,
-            ))
+            tables.append(
+                DetectedTable(
+                    name=name,
+                    selector=selector,
+                    headers=headers[:20],
+                    row_count=len(rows),
+                    sample_rows=sample_rows,
+                )
+            )
 
         return tables[:3]
 
@@ -270,20 +279,24 @@ class AutoDetectEngine:
             if elements:
                 el = elements[0]
                 selector = self._build_selector(el)
-                pagination.append(DetectedPagination(
-                    type="next_button",
-                    selector=selector,
-                ))
+                pagination.append(
+                    DetectedPagination(
+                        type="next_button",
+                        selector=selector,
+                    )
+                )
                 break
 
         # Page number patterns
         page_links = tree.xpath("//a[contains(@class, 'page')]")
         if len(page_links) >= 3:
-            pagination.append(DetectedPagination(
-                type="page_numbers",
-                selector=self._build_selector(page_links[0].getparent()),
-                total_pages=str(len(page_links)),
-            ))
+            pagination.append(
+                DetectedPagination(
+                    type="page_numbers",
+                    selector=self._build_selector(page_links[0].getparent()),
+                    total_pages=str(len(page_links)),
+                )
+            )
 
         # Load more button
         load_more_patterns = [
@@ -299,10 +312,12 @@ class AutoDetectEngine:
         for pattern in load_more_patterns:
             elements = tree.xpath(pattern)
             if elements:
-                pagination.append(DetectedPagination(
-                    type="load_more",
-                    selector=self._build_selector(elements[0]),
-                ))
+                pagination.append(
+                    DetectedPagination(
+                        type="load_more",
+                        selector=self._build_selector(elements[0]),
+                    )
+                )
                 break
 
         return pagination
@@ -313,22 +328,34 @@ class AutoDetectEngine:
 
         for form in tree.xpath("//form"):
             inputs = []
-            for inp in form.xpath(".//input[@type='text']|.//input[@type='search']|.//input[@type='email']|.//input[not(@type)]"):
+            for inp in form.xpath(
+                ".//input[@type='text']|.//input[@type='search']|.//input[@type='email']|.//input[not(@type)]"
+            ):
                 name = inp.get("name", inp.get("placeholder", inp.get("id", "input")))
                 selector = self._build_selector(inp)
-                inputs.append({"name": name, "selector": selector, "type": inp.get("type", "text")})
+                inputs.append(
+                    {
+                        "name": name,
+                        "selector": selector,
+                        "type": inp.get("type", "text"),
+                    }
+                )
 
             if not inputs:
                 continue
 
-            submit = form.xpath(".//button[@type='submit']|.//input[@type='submit']|.//button")
+            submit = form.xpath(
+                ".//button[@type='submit']|.//input[@type='submit']|.//button"
+            )
             submit_selector = self._build_selector(submit[0]) if submit else ""
 
-            forms.append(DetectedForm(
-                selector=self._build_selector(form),
-                inputs=inputs,
-                submit_selector=submit_selector,
-            ))
+            forms.append(
+                DetectedForm(
+                    selector=self._build_selector(form),
+                    inputs=inputs,
+                    submit_selector=submit_selector,
+                )
+            )
 
         return forms[:3]
 
@@ -390,7 +417,20 @@ class AutoDetectEngine:
         fields: list[dict[str, str]] = []
 
         # Text elements
-        for tag in ["h1", "h2", "h3", "h4", "h5", "h6", "p", "span", "a", "div", "td", "th"]:
+        for tag in [
+            "h1",
+            "h2",
+            "h3",
+            "h4",
+            "h5",
+            "h6",
+            "p",
+            "span",
+            "a",
+            "div",
+            "td",
+            "th",
+        ]:
             els = element.xpath(f".//{tag}")
             for el in els[:5]:
                 text = el.text_content().strip()
@@ -407,21 +447,37 @@ class AutoDetectEngine:
 
                     # Avoid duplicates
                     if not any(f["name"] == name for f in fields):
-                        fields.append({
-                            "name": name,
-                            "selector": self._build_selector(el),
-                            "type": "text" if tag != "a" else "link",
-                        })
+                        fields.append(
+                            {
+                                "name": name,
+                                "selector": self._build_selector(el),
+                                "type": "text" if tag != "a" else "link",
+                            }
+                        )
 
         # Images
         imgs = element.xpath(".//img")
         if imgs:
-            fields.append({"name": "image", "selector": self._build_selector(imgs[0]), "type": "image"})
+            fields.append(
+                {
+                    "name": "image",
+                    "selector": self._build_selector(imgs[0]),
+                    "type": "image",
+                }
+            )
 
         # Prices (common pattern)
-        price_els = element.xpath(".//*[contains(@class, 'price')]|.//*[contains(@class, 'Price')]")
+        price_els = element.xpath(
+            ".//*[contains(@class, 'price')]|.//*[contains(@class, 'Price')]"
+        )
         if price_els:
-            fields.append({"name": "price", "selector": self._build_selector(price_els[0]), "type": "text"})
+            fields.append(
+                {
+                    "name": "price",
+                    "selector": self._build_selector(price_els[0]),
+                    "type": "text",
+                }
+            )
 
         return fields[:10]
 
@@ -431,7 +487,16 @@ class AutoDetectEngine:
         parent_class = parent.get("class", "")
         parent_id = parent.get("id", "")
 
-        for clue in ["product", "item", "card", "listing", "result", "post", "article", "row"]:
+        for clue in [
+            "product",
+            "item",
+            "card",
+            "listing",
+            "result",
+            "post",
+            "article",
+            "row",
+        ]:
             if clue in parent_class.lower() or clue in parent_id.lower():
                 return f"{clue.title()} List"
 
@@ -451,7 +516,9 @@ class AutoDetectEngine:
             return caption[0].strip()[:50]
 
         # Check preceding heading
-        prev = table.xpath("preceding-sibling::*[self::h1 or self::h2 or self::h3][1]/text()")
+        prev = table.xpath(
+            "preceding-sibling::*[self::h1 or self::h2 or self::h3][1]/text()"
+        )
         if prev:
             return prev[0].strip()[:50]
 

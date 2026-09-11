@@ -213,6 +213,33 @@ services:
       - voyant_cluster
 
   # ===========================================================================
+  # UI: Voyant Dashboard (Lit/Vite SPA served by nginx, proxies /v1 + /ws + /mcp)
+  # ===========================================================================
+  voyant_dashboard:
+    <<: *common
+    build:
+      context: ../../dashboard
+      dockerfile: Dockerfile
+    container_name: voyant_dashboard
+    ports:
+      - "45001:80"
+    depends_on:
+      voyant_api:
+        condition: service_started
+    healthcheck:
+      <<: *healthcheck
+      test: [ "CMD", "curl", "-sf", "http://localhost/" ]
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          memory: 32M
+    networks:
+      - voyant_cluster
+
+  # ===========================================================================
   # DATA INFRASTRUCTURE
   # ===========================================================================
   voyant_postgres:
@@ -333,7 +360,9 @@ services:
         reservations:
           memory: 64M
     networks:
-      - voyant_cluster
+      voyant_cluster:
+        aliases:
+          - minio
 
   voyant_minio_init:
     image: minio/mc
@@ -346,14 +375,14 @@ services:
       sleep 5;
       USER=$(cat /run/secrets/minio_root_user);
       PASS=$(cat /run/secrets/minio_root_password);
-      mc alias set minio http://voyant_minio:9000 $USER $PASS;
+      mc alias set minio http://minio:9000 $USER $PASS;
       mc mb minio/artifacts --ignore-existing;
       mc mb minio/warehouse --ignore-existing;
       mc mb minio/staging --ignore-existing;
       exit 0;
       "
     environment:
-      MINIO_INTERNAL_URL: ${MINIO_INTERNAL_URL:-http://voyant_minio:9000}
+      MINIO_INTERNAL_URL: ${MINIO_INTERNAL_URL:-http://minio:9000}
     secrets:
       - minio_root_user
       - minio_root_password
@@ -666,17 +695,21 @@ services:
     environment:
       - |
         FLINK_PROPERTIES=
-        jobmanager.rpc.address: voyant_flink_jobmanager
+        jobmanager.rpc.address: 0.0.0.0
+        jobmanager.rpc.bind-address: 0.0.0.0
+        rest.address: 0.0.0.0
+        rest.bind-address: 0.0.0.0
+        env.java.opts: -Xms256m -Xmx384m
     volumes:
       - voyant_flink_data:/opt/flink/volume
     networks:
       - voyant_cluster
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:8081/overview || exit 1"]
-      interval: 10s
+      test: ["CMD-SHELL", "wget -q -O- http://localhost:8081/overview 2>/dev/null | grep -q flink-version || exit 1"]
+      interval: 15s
       timeout: 5s
-      retries: 10
-      start_period: 30s
+      retries: 15
+      start_period: 60s
     deploy:
       resources:
         limits:
@@ -695,6 +728,7 @@ services:
         FLINK_PROPERTIES=
         jobmanager.rpc.address: voyant_flink_jobmanager
         taskmanager.numberOfTaskSlots: 2
+        env.java.opts: -Xms256m -Xmx384m
     volumes:
       - voyant_flink_data:/opt/flink/volume
     depends_on:
@@ -755,7 +789,7 @@ services:
       - seccomp:unconfined
     environment:
       ETCD_ENDPOINTS: voyant_etcd:2379
-      MINIO_ADDRESS: voyant_minio
+      MINIO_ADDRESS: minio
     secrets:
       - minio_access_key
       - minio_secret_key

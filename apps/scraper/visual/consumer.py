@@ -20,7 +20,6 @@ Protocol:
 
 from __future__ import annotations
 
-import json
 import logging
 from dataclasses import asdict
 
@@ -47,13 +46,15 @@ class ScraperConsumer(AsyncJsonWebsocketConsumer):
         await self.send_json({"type": "connected", "session_id": self.session_id})
         logger.info("Scraper WebSocket connected: %s", self.session_id)
 
-    async def disconnect(self, close_code: int) -> None:
+    async def disconnect(self, close_code: int) -> None:  # type: ignore[reportIncompatibleMethodOverride]
         """Handle WebSocket disconnection."""
         if self.browser_manager:
             await self.browser_manager.close_session(self.session_id)
-        logger.info("Scraper WebSocket disconnected: %s (code=%d)", self.session_id, close_code)
+        logger.info(
+            "Scraper WebSocket disconnected: %s (code=%d)", self.session_id, close_code
+        )
 
-    async def receive_json(self, content: dict) -> None:
+    async def receive_json(self, content: dict) -> None:  # type: ignore[reportIncompatibleMethodOverride]
         """Handle incoming messages from the client."""
         action = content.get("action", "")
         try:
@@ -70,7 +71,7 @@ class ScraperConsumer(AsyncJsonWebsocketConsumer):
 
     async def _action_start(self, content: dict) -> None:
         """Start a new browser session."""
-        session = await self.browser_manager.create_session(self.session_id)
+        await self.browser_manager.create_session(self.session_id)  # type: ignore[reportOptionalMemberAccess]
         await self.send_json({"type": "session_started", "session_id": self.session_id})
 
     async def _action_navigate(self, content: dict) -> None:
@@ -80,9 +81,9 @@ class ScraperConsumer(AsyncJsonWebsocketConsumer):
             await self._send_error("URL is required")
             return
 
-        session = self.browser_manager.get_session(self.session_id)
+        session = self.browser_manager.get_session(self.session_id)  # type: ignore[reportOptionalMemberAccess]
         if not session:
-            session = await self.browser_manager.create_session(self.session_id)
+            session = await self.browser_manager.create_session(self.session_id)  # type: ignore[reportOptionalMemberAccess]
 
         state = await session.navigate(url)
         await self._send_page_state(state)
@@ -93,7 +94,7 @@ class ScraperConsumer(AsyncJsonWebsocketConsumer):
 
     async def _action_screenshot(self, content: dict) -> None:
         """Capture current page state."""
-        session = self.browser_manager.get_session(self.session_id)
+        session = self.browser_manager.get_session(self.session_id)  # type: ignore[reportOptionalMemberAccess]
         if not session:
             await self._send_error("No active session")
             return
@@ -106,7 +107,7 @@ class ScraperConsumer(AsyncJsonWebsocketConsumer):
         x = content.get("x", 0)
         y = content.get("y", 0)
 
-        session = self.browser_manager.get_session(self.session_id)
+        session = self.browser_manager.get_session(self.session_id)  # type: ignore[reportOptionalMemberAccess]
         if not session:
             await self._send_error("No active session")
             return
@@ -118,7 +119,7 @@ class ScraperConsumer(AsyncJsonWebsocketConsumer):
         """Click an element by selector."""
         selector = content.get("selector", "")
 
-        session = self.browser_manager.get_session(self.session_id)
+        session = self.browser_manager.get_session(self.session_id)  # type: ignore[reportOptionalMemberAccess]
         if not session:
             await self._send_error("No active session")
             return
@@ -131,7 +132,7 @@ class ScraperConsumer(AsyncJsonWebsocketConsumer):
         direction = content.get("direction", "down")
         amount = content.get("amount", 500)
 
-        session = self.browser_manager.get_session(self.session_id)
+        session = self.browser_manager.get_session(self.session_id)  # type: ignore[reportOptionalMemberAccess]
         if not session:
             await self._send_error("No active session")
             return
@@ -144,23 +145,25 @@ class ScraperConsumer(AsyncJsonWebsocketConsumer):
         x = content.get("x", 0)
         y = content.get("y", 0)
 
-        session = self.browser_manager.get_session(self.session_id)
+        session = self.browser_manager.get_session(self.session_id)  # type: ignore[reportOptionalMemberAccess]
         if not session:
             await self._send_error("No active session")
             return
 
         elements = await session.hover(x, y)
-        await self.send_json({
-            "type": "hover",
-            "data": [asdict(e) for e in elements],
-        })
+        await self.send_json(
+            {
+                "type": "hover",
+                "data": [asdict(e) for e in elements],
+            }
+        )
 
     async def _action_enter_text(self, content: dict) -> None:
         """Type text into a field."""
         selector = content.get("selector", "")
         text = content.get("text", "")
 
-        session = self.browser_manager.get_session(self.session_id)
+        session = self.browser_manager.get_session(self.session_id)  # type: ignore[reportOptionalMemberAccess]
         if not session:
             await self._send_error("No active session")
             return
@@ -172,7 +175,7 @@ class ScraperConsumer(AsyncJsonWebsocketConsumer):
         """Extract data using selectors."""
         selectors = content.get("selectors", {})
 
-        session = self.browser_manager.get_session(self.session_id)
+        session = self.browser_manager.get_session(self.session_id)  # type: ignore[reportOptionalMemberAccess]
         if not session:
             await self._send_error("No active session")
             return
@@ -182,7 +185,7 @@ class ScraperConsumer(AsyncJsonWebsocketConsumer):
 
     async def _action_detect(self, content: dict) -> None:
         """Run auto-detect on the current page."""
-        session = self.browser_manager.get_session(self.session_id)
+        session = self.browser_manager.get_session(self.session_id)  # type: ignore[reportOptionalMemberAccess]
         if not session:
             await self._send_error("No active session")
             return
@@ -192,7 +195,7 @@ class ScraperConsumer(AsyncJsonWebsocketConsumer):
 
     async def _action_back(self, content: dict) -> None:
         """Navigate back."""
-        session = self.browser_manager.get_session(self.session_id)
+        session = self.browser_manager.get_session(self.session_id)  # type: ignore[reportOptionalMemberAccess]
         if not session:
             await self._send_error("No active session")
             return
@@ -203,7 +206,7 @@ class ScraperConsumer(AsyncJsonWebsocketConsumer):
 
     async def _action_forward(self, content: dict) -> None:
         """Navigate forward."""
-        session = self.browser_manager.get_session(self.session_id)
+        session = self.browser_manager.get_session(self.session_id)  # type: ignore[reportOptionalMemberAccess]
         if not session:
             await self._send_error("No active session")
             return
@@ -214,26 +217,28 @@ class ScraperConsumer(AsyncJsonWebsocketConsumer):
 
     async def _action_close(self, content: dict) -> None:
         """Close the browser session."""
-        await self.browser_manager.close_session(self.session_id)
+        await self.browser_manager.close_session(self.session_id)  # type: ignore[reportOptionalMemberAccess]
         await self.send_json({"type": "session_closed"})
 
     # ── Helpers ─────────────────────────────────────────────────────────────
 
     async def _send_page_state(self, state) -> None:
         """Send a page state snapshot to the client."""
-        await self.send_json({
-            "type": "page_state",
-            "data": {
-                "url": state.url,
-                "title": state.title,
-                "screenshot": state.screenshot,
-                "viewport_width": state.viewport_width,
-                "viewport_height": state.viewport_height,
-                "scroll_y": state.scroll_y,
-                "page_height": state.page_height,
-                "elements": [asdict(e) for e in state.elements],
-            },
-        })
+        await self.send_json(
+            {
+                "type": "page_state",
+                "data": {
+                    "url": state.url,
+                    "title": state.title,
+                    "screenshot": state.screenshot,
+                    "viewport_width": state.viewport_width,
+                    "viewport_height": state.viewport_height,
+                    "scroll_y": state.scroll_y,
+                    "page_height": state.page_height,
+                    "elements": [asdict(e) for e in state.elements],
+                },
+            }
+        )
 
     async def _send_error(self, message: str) -> None:
         """Send an error message to the client."""

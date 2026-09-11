@@ -1,7 +1,7 @@
 # Voyant v4.0 — Software Requirements Specification
 
 **Document ID:** VOYANT-SRS-4.0.0
-**Version:** 4.0.0-draft
+**Version:** 4.0.1
 **Date:** 2026-09-05
 **Standard:** ISO/IEC/IEEE 29148:2018
 **Compliance:** ISO/IEC 25010 · ISO/IEC 27001 · ISO 9001
@@ -22,8 +22,8 @@ Voyant v4.0 is a unified data intelligence platform combining Palantir's ontolog
 | Test files | 148 |
 | Test functions | 2,203 |
 | Django apps | 16 |
-| REST endpoints | 66 |
-| MCP tools | 46 |
+| REST endpoints | ~240 |
+| MCP tools | 80 |
 | Temporal workflows | 17 |
 | Temporal activities | 19 |
 | Dashboard views | 13 (Lit) |
@@ -31,24 +31,24 @@ Voyant v4.0 is a unified data intelligence platform combining Palantir's ontolog
 
 ### Per-App Breakdown
 
-| App | Files | LOC | Maturity |
-|-----|-------|-----|----------|
-| core | 41 | 9,753 | Solid |
-| scraper | 54 | 8,471 | Rich |
-| governance | 20 | 5,439 | Partial |
-| worker | 29 | 3,746 | Solid |
-| analysis | 18 | 3,621 | Solid |
-| capsules | 18 | 2,550 | Solid |
-| ingestion | 9 | 1,380 | Partial |
-| admin_panel | 4 | 1,228 | New |
-| ontology | 5 | 1,115 | Basic |
-| search | 6 | 1,235 | Partial |
-| discovery | 9 | 957 | Solid |
-| mcp | 6 | 836 | Solid |
-| workflows | 5 | 648 | Solid |
-| uptp_core | 9 | 455 | Basic |
-| streaming | 5 | 362 | Stub |
-| sql | 3 | 142 | Solid |
+| App | Module | Files | LOC | Maturity |
+|-----|--------|-------|-----|----------|
+| core | M12 Voyant API | 41 | 9,753 | Solid |
+| scraper | M8 Voyant Scrape | 54 | 8,471 | Rich |
+| governance | M9 Voyant Shield | 20 | 5,439 | Partial |
+| worker | M2 Voyant Pipeline | 29 | 3,746 | Solid |
+| analysis | M5 Voyant Analyze | 18 | 3,621 | Solid |
+| capsules | M7 Voyant Agent | 18 | 2,550 | Solid |
+| ingestion | M1 Voyant Connect | 9 | 1,380 | Partial |
+| admin_panel | M11 Voyant Admin | 4 | 1,228 | New |
+| ontology | M3 Voyant Catalog | 5 | 1,115 | Solid — 12 models, CRUD, traversal, interfaces, structs, actions, functions |
+| search | M5 Voyant Analyze | 6 | 1,235 | Partial |
+| discovery | M1 Voyant Connect | 9 | 957 | Solid |
+| mcp | M7 Voyant Agent | 6 | 836 | Solid |
+| workflows | M2 Voyant Pipeline | 5 | 648 | Solid |
+| uptp_core | M12 Voyant API | 9 | 455 | Basic |
+| streaming | M4 Voyant Lakehouse | 5 | 362 | Stub |
+| sql | M5 Voyant Analyze | 3 | 142 | Solid |
 
 ---
 
@@ -62,13 +62,13 @@ Voyant v4.0 is a unified data intelligence platform combining Palantir's ontolog
 | Storage Layer | Delta Lake (ACID) | MinIO + PostgreSQL | Critical | P2 |
 | Multi-Cloud | AWS/Azure/GCP | Docker only | Critical | P2 |
 | Serverless Compute | Instant-start | No compute layer | Critical | P2 |
-| ML Platform | MLflow | sklearn primitives only | Critical | P1 |
+| Voyant ML (M6) | MLflow | sklearn primitives only | Critical | P1 |
 | Notebooks | Collaborative (Py/SQL/R) | None | Critical | P3 |
 | Dashboards | Built-in BI | 13 Lit components | Major | P2 |
 | Unified Governance | Unity Catalog | DataHub clients | Major | P1 |
 | Marketplace | Data sharing | None | Major | P3 |
 | Model Serving | Real-time + batch | None | Major | P1 |
-| Agent Platform | Agent Bricks | MCP tools only | Major | P1 |
+| Voyant Agent (M7) | Agent Bricks | MCP tools only | Major | P1 |
 | BI Integration | Native connectors | None | Major | P2 |
 | Natural Language BI | Genie | None | Major | P2 |
 | Feature Store | Centralized | None | Major | P2 |
@@ -103,7 +103,7 @@ Voyant v4.0 is a unified data intelligence platform combining Palantir's ontolog
 
 | Feature | Advantage |
 |---------|-----------|
-| MCP Protocol (46 tools) | Databricks and Palantir have zero MCP support |
+| MCP Protocol (80 tools) | Databricks and Palantir have zero MCP support |
 | Agent-First Design | Purpose-built for AI agent orchestration |
 | Web Scraping Engine | Deep research, browser automation, OCR — competitors have nothing |
 | Capsule System | Portable plugin architecture with signing |
@@ -115,7 +115,7 @@ Voyant v4.0 is a unified data intelligence platform combining Palantir's ontolog
 
 ## 3. Functional Requirements
 
-### 3.1 Ontology Engine (ONT-F-001 to ONT-F-036)
+### 3.1 Voyant Catalog (M3) — Ontology Engine (ONT-F-001 to ONT-F-036)
 
 | ID | Requirement | v3.0 Status | Priority |
 |----|-------------|-------------|----------|
@@ -130,17 +130,17 @@ Voyant v4.0 is a unified data intelligence platform combining Palantir's ontolog
 | ONT-F-013 | Batch creation of 1000+ objects | Done | P0 |
 | ONT-F-014 | Upsert by unique key property | Done | P0 |
 | ONT-F-017 | Optimistic concurrency via version field | Done | P0 |
-| ONT-F-018 | Interfaces (polymorphic type abstractions) | Missing | P1 |
-| ONT-F-020 | Struct Types (nested composite properties) | Missing | P1 |
-| ONT-F-021 | Shared Properties (reusable across types) | Missing | P1 |
-| ONT-F-026 | Action Types with parameters, rules, side effects | Missing | P1 |
-| ONT-F-029 | Functions (Python/TS business logic) | Missing | P1 |
+| ONT-F-018 | Interfaces (polymorphic type abstractions) | Done | P1 |
+| ONT-F-020 | Struct Types (nested composite properties) | Done | P1 |
+| ONT-F-021 | Shared Properties (reusable across types) | Done | P1 |
+| ONT-F-026 | Action Types with parameters, rules, side effects | Done | P1 |
+| ONT-F-029 | Functions (Python/TS business logic) | Done | P1 |
 | ONT-F-031 | Multi-hop link traversal (up to 10 hops) | Done | P0 |
 | ONT-F-036 | Object Type Groups for organization | Missing | P2 |
 
-**Ontology P0 completion: 10/12 done (83%). Remaining: Interfaces, Action Types.**
+**Voyant Catalog (M3) completion: 17/18 done (94%). Remaining: Object Type Groups.**
 
-### 3.2 Data Intelligence (DATA-F-001 to DATA-F-014)
+### 3.2 Voyant Analyze (M5) — Data Intelligence (DATA-F-001 to DATA-F-014)
 
 | ID | Requirement | v3.0 Status | Priority |
 |----|-------------|-------------|----------|
@@ -155,36 +155,36 @@ Voyant v4.0 is a unified data intelligence platform combining Palantir's ontolog
 | DATA-F-012 | Pipeline builder (visual DAG) | Missing | P1 |
 | DATA-F-014 | Streaming analytics via Apache Flink | Stub | P2 |
 
-**Data Intelligence P0 completion: 6/7 done (86%).**
+**Voyant Analyze (M5) P0 completion: 6/7 done (86%).**
 
-### 3.3 ML/AI Platform (ML-F-001 to ML-F-009)
+### 3.3 Voyant ML (M6) — ML/AI Platform (ML-F-001 to ML-F-009)
 
 | ID | Requirement | v3.0 Status | Priority |
 |----|-------------|-------------|----------|
-| ML-F-001 | Experiment creation and tracking | Missing | P1 |
-| ML-F-002 | Run logging (params, metrics, artifacts) | Missing | P1 |
-| ML-F-003 | Model registry with versioning | Missing | P1 |
+| ML-F-001 | Experiment creation and tracking | Done | P1 |
+| ML-F-002 | Run logging (params, metrics, artifacts) | Done | P1 |
+| ML-F-003 | Model registry with versioning | Done | P1 |
 | ML-F-004 | Model serving endpoints (real-time + batch) | Missing | P1 |
-| ML-F-005 | MLflow-compatible API | Missing | P1 |
-| ML-F-006 | Agent definition (prompt, model, tools, guardrails) | Missing | P1 |
-| ML-F-007 | Agent evaluation with AI judge | Missing | P1 |
+| ML-F-005 | MLflow-compatible API | Done | P1 |
+| ML-F-006 | Agent definition (prompt, model, tools, guardrails) | Done | P1 |
+| ML-F-007 | Agent evaluation with AI judge | Done | P1 |
 | ML-F-008 | Agent deployment and monitoring | Missing | P1 |
 
-**ML Platform: 0/8 done. Entire module needs to be built.**
+**Voyant ML (M6): 6/8 done (75%). Remaining: Model serving endpoints, Agent deployment/monitoring.**
 
-### 3.4 Governance (GOV-F-001 to GOV-F-009)
+### 3.4 Voyant Shield (M9) — Governance (GOV-F-001 to GOV-F-009)
 
 | ID | Requirement | v3.0 Status | Priority |
 |----|-------------|-------------|----------|
 | GOV-F-001 | Unified catalog with schemas and securable objects | Partial | P1 |
 | GOV-F-002 | RBAC with roles and permissions | Done | P0 |
-| GOV-F-003 | Row-level security filters | Missing | P1 |
-| GOV-F-004 | Column-level masking | Missing | P1 |
+| GOV-F-003 | Row-level security filters | Done | P1 |
+| GOV-F-004 | Column-level masking | Done | P1 |
 | GOV-F-005 | Audit logging for all operations | Done | P0 |
 | GOV-F-006 | Data lineage tracking | Partial | P1 |
 | GOV-F-008 | Access policy definition with fine-grained privileges | Partial | P1 |
 
-**Governance P0 completion: 2/3 done (67%).**
+**Voyant Shield (M9): 4/7 done (64%). Remaining: Unified catalog, Data lineage, Access policy refinement.**
 
 ### 3.5 UI/UX (UI-F-001 to UI-F-012)
 
@@ -203,20 +203,20 @@ Voyant v4.0 is a unified data intelligence platform combining Palantir's ontolog
 
 **UI P0 completion: 1/4 done (25%).**
 
-### 3.6 Scraper Module (SCR-F-001 to SCR-F-030)
+### 3.6 Voyant Scrape (M8) — Scraper Module (SCR-F-001 to SCR-F-030)
 
 See `docs/specifications/srs/VOYANT_SCRAPER_SRS_V4.md` for full specification.
 
-**Scraper P0 completion: 6/13 features met (46%). Gap: Visual builder, templates, CAPTCHA solving.**
+**Voyant Scrape (M8) P0 completion: 6/13 features met (46%). Gap: Visual builder, templates, CAPTCHA solving.**
 
-### 3.7 API (API-F-001 to API-F-006)
+### 3.7 Voyant API (M12) — API Surface (API-F-001 to API-F-006)
 
 | ID | Requirement | v3.0 Status | Priority |
 |----|-------------|-------------|----------|
-| API-F-001 | REST API (~120 endpoints) | 66 endpoints | P0 |
-| API-F-002 | MCP tools (80+ tools) | 46 tools | P0 |
+| API-F-001 | REST API (~120 endpoints) | ~240 endpoints | P0 |
+| API-F-002 | MCP tools (80+ tools) | 80 tools | P0 |
 | API-F-003 | OSDK (TypeScript + Python) | Missing | P1 |
-| API-F-004 | WebSocket API for real-time subscriptions | Missing | P1 |
+| API-F-004 | WebSocket API for real-time subscriptions | Done | P1 |
 | API-F-005 | CLI tool | Missing | P2 |
 | API-F-006 | Event-driven integration via Kafka | Partial | P1 |
 
@@ -224,30 +224,30 @@ See `docs/specifications/srs/VOYANT_SCRAPER_SRS_V4.md` for full specification.
 
 ## 4. Gap Summary
 
-| Domain | Total Reqs | Done | Partial | Missing | Completion |
-|--------|-----------|------|---------|---------|------------|
-| Ontology Engine | 18 | 10 | 0 | 8 | 56% |
-| Data Intelligence | 10 | 6 | 1 | 3 | 65% |
-| ML/AI Platform | 8 | 0 | 0 | 8 | 0% |
-| Governance | 7 | 2 | 3 | 2 | 43% |
-| UI/UX | 10 | 1 | 1 | 8 | 15% |
-| Scraper | 30 | 6 | 3 | 21 | 25% |
-| API | 6 | 2 | 1 | 3 | 42% |
-| **TOTAL** | **89** | **27** | **9** | **53** | **37%** |
+| Domain | Module | Total Reqs | Done | Partial | Missing | Completion |
+|--------|--------|-----------|------|---------|---------|------------|
+| Ontology Engine | M3 Voyant Catalog | 18 | 17 | 0 | 1 | 94% |
+| Data Intelligence | M5 Voyant Analyze | 10 | 6 | 1 | 3 | 65% |
+| ML/AI Platform | M6 Voyant ML | 8 | 6 | 0 | 2 | 75% |
+| Governance | M9 Voyant Shield | 7 | 4 | 3 | 0 | 64% |
+| UI/UX | Cross-cutting | 10 | 1 | 1 | 8 | 15% |
+| Scraper | M8 Voyant Scrape | 30 | 6 | 3 | 21 | 25% |
+| API | M12 Voyant API | 6 | 3 | 1 | 2 | 57% |
+| **TOTAL** | | **89** | **43** | **9** | **37** | **57%** |
 
 ### Priority Breakdown
 
 | Priority | Requirements | Done | Gap |
 |----------|-------------|------|-----|
 | P0 (Must Have) | 35 | 22 | 13 |
-| P1 (Should Have) | 38 | 4 | 34 |
+| P1 (Should Have) | 38 | 20 | 18 |
 | P2 (Nice to Have) | 16 | 1 | 15 |
 
 ---
 
 ## 5. Implementation Roadmap
 
-### Phase 1: Ontology Foundation (Weeks 1–6)
+### Phase 1: Voyant Catalog (M3) Foundation (Weeks 1–6)
 
 **Goal:** Full Palantir-grade ontology engine + API + Basic Explorer UI
 
@@ -266,7 +266,7 @@ See `docs/specifications/srs/VOYANT_SCRAPER_SRS_V4.md` for full specification.
 **Team:** 3–4 engineers
 **Risk:** Medium — models are well-defined, UI is the hard part
 
-### Phase 2: Scraper Octopus (Weeks 1–8, parallel with Phase 1)
+### Phase 2: Voyant Scrape (M8) Octopus (Weeks 1–8, parallel with Phase 1)
 
 **Goal:** Template engine, task CRUD, CAPTCHA solving, 50 templates
 
@@ -282,7 +282,7 @@ See `docs/specifications/srs/VOYANT_SCRAPER_SRS_V4.md` for full specification.
 **Team:** 2–3 engineers
 **Risk:** High — CAPTCHA solving requires 3rd party integration
 
-### Phase 3: ML Platform (Weeks 7–12)
+### Phase 3: Voyant ML (M6) Platform (Weeks 7–12)
 
 **Goal:** MLflow-compatible experiments, model registry, serving
 
@@ -312,7 +312,7 @@ See `docs/specifications/srs/VOYANT_SCRAPER_SRS_V4.md` for full specification.
 **Team:** 2–3 frontend engineers
 **Risk:** High — visual builders are complex UI work
 
-### Phase 5: Governance & Polish (Weeks 15–20)
+### Phase 5: Voyant Shield (M9) Governance & Polish (Weeks 15–20)
 
 **Goal:** Row-level security, column masking, unified catalog, dashboards
 
@@ -349,9 +349,9 @@ See `docs/specifications/srs/VOYANT_SCRAPER_SRS_V4.md` for full specification.
 
 | Phase | Weeks | Engineers | Deliverables |
 |-------|-------|-----------|-------------|
-| 1. Ontology Foundation | 1–6 | 3–4 | 20+ models, 35 endpoints, Explorer UI |
-| 2. Scraper Octopus | 1–8 | 2–3 | Templates, CAPTCHA, anti-bot, 50 templates |
-| 3. ML Platform | 7–12 | 2–3 | Experiments, registry, serving |
+| 1. Voyant Catalog (M3) | 1–6 | 3–4 | 20+ models, 35 endpoints, Explorer UI |
+| 2. Voyant Scrape (M8) | 1–8 | 2–3 | Templates, CAPTCHA, anti-bot, 50 templates |
+| 3. Voyant ML (M6) | 7–12 | 2–3 | Experiments, registry, serving |
 | 4. Visual Builders | 9–14 | 2–3 | Workflow builder, action builder, function editor |
 | 5. Governance | 15–20 | 3–4 | RLS, masking, catalog, dashboards |
 | 6. Enterprise | 21–24 | 3–4 | OSDK, WebSocket, Kafka, GDPR |
@@ -408,14 +408,14 @@ See `docs/specifications/srs/VOYANT_SCRAPER_SRS_V4.md` for full specification.
 
 ## 8. Test Plan Summary
 
-| Domain | Tests | Coverage Target |
-|--------|-------|----------------|
-| Ontology Engine | 65 | >80% |
-| Data Intelligence | 14 | >80% |
-| ML Platform | 6 | >70% |
-| Agent Platform | 5 | >70% |
-| Governance | 7 | >80% |
-| Scraper | 25 | >80% |
+| Domain | Module | Tests | Coverage Target |
+|--------|--------|-------|----------------|
+| Ontology Engine | M3 Voyant Catalog | 65 | >80% |
+| Data Intelligence | M5 Voyant Analyze | 14 | >80% |
+| ML Platform | M6 Voyant ML | 6 | >70% |
+| Agent Platform | M7 Voyant Agent | 5 | >70% |
+| Governance | M9 Voyant Shield | 7 | >80% |
+| Scraper | M8 Voyant Scrape | 25 | >80% |
 | API Contract | 8 | 100% endpoints |
 | UI/E2E | 12 | Critical paths |
 | Performance | 10 | All SLAs |
@@ -434,6 +434,16 @@ See `docs/specifications/srs/VOYANT_SCRAPER_SRS_V4.md` for full specification.
 | VOYANT-SDP-4.0.0 | Software Development Plan | ISO 9001:2015 |
 | VOYANT-STP-4.0.0 | Software Test Plan | ISO/IEC 29119 |
 | VOYANT-DATABRICKS-GAP-4.0.0 | Databricks Gap Analysis | ISO 9001:2015 |
+
+---
+
+## Revision History
+
+| Version | Date | Author | Changes |
+|---------|------|--------|---------|
+| 4.0.0-draft | 2026-09-05 | Voyant Engineering | Initial SRS draft |
+| 4.0.1 | 2026-09-15 | MiMoCode Agent | Deep audit reconciliation. Updated Gap Summary from 37% → 57% (43/89 done). Ontology Engine: 10→17 done (94%) — Interfaces, Struct Types, Shared Properties, Action Types, Functions all confirmed implemented. ML/AI Platform: 0→6 done (75%) — Experiment tracking, run logging, model registry, MLflow API, agent definition, evaluation implemented. Governance: 2→4 done (64%) — RLS and column masking implemented. API: 66→~240 endpoints, 46→80 MCP tools, WebSocket DONE. P1 done: 4→20. |
+| 5.0.0 | 2026-09-16 | MiMoCode Agent | Module naming standardization: all modules renamed to Voyant [Name] (M1–M16) scheme. Per-app breakdown updated with module assignments. Gap Summary and Test Plan updated with module references. |
 
 ---
 

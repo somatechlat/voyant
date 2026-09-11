@@ -16,20 +16,20 @@ pytestmark = [
     pytest.mark.django_db,
 ]
 
-from apps.ontology.models import (
+from apps.ontology.models import (  # noqa: E402
     Cardinality,
     Link,
     LinkType,
     Object,
     ObjectType,
 )
-from apps.ontology.services import (
+from apps.ontology.services import (  # noqa: E402
     LinkService,
     LinkTypeService,
     ObjectService,
     ObjectTypeService,
 )
-from apps.ontology.validators import ValidationError
+from apps.ontology.validators import ValidationError  # noqa: E402
 
 TENANT = "test-tenant-001"
 

@@ -10,8 +10,6 @@ import importlib.util
 import sys
 from pathlib import Path
 
-import pytest
-
 _AGENTS_DIR = Path(__file__).resolve().parents[3] / "apps" / "scraper" / "deep_research" / "agents"
 
 
@@ -47,13 +45,10 @@ SourceScorer = _ss_mod.SourceScorer
 Synthesizer = _sy_mod.Synthesizer
 CrossValidator = _cv_mod.CrossValidator
 
-from apps.scraper.deep_research.schemas import (
-    Citation,
-    EvidenceChunk,
+from apps.scraper.deep_research.schemas import (  # noqa: E402
     Finding,
     SearchResultItem,
 )
-
 
 # ---------------------------------------------------------------------------
 # QueryGenerator

@@ -78,13 +78,21 @@ DEFAULT_POLICIES: dict[QuotaTier, QuotaPolicy] = {
             ResourceType.JOBS_CONCURRENT: QuotaLimit(
                 ResourceType.JOBS_CONCURRENT, 2, period_seconds=0
             ),
-            ResourceType.ARTIFACT_SIZE_MB: QuotaLimit(ResourceType.ARTIFACT_SIZE_MB, 50),
-            ResourceType.TOTAL_STORAGE_MB: QuotaLimit(ResourceType.TOTAL_STORAGE_MB, 500),
+            ResourceType.ARTIFACT_SIZE_MB: QuotaLimit(
+                ResourceType.ARTIFACT_SIZE_MB, 50
+            ),
+            ResourceType.TOTAL_STORAGE_MB: QuotaLimit(
+                ResourceType.TOTAL_STORAGE_MB, 500
+            ),
             ResourceType.API_CALLS_PER_MINUTE: QuotaLimit(
                 ResourceType.API_CALLS_PER_MINUTE, 60, period_seconds=60
             ),
-            ResourceType.CPU_SECONDS_PER_DAY: QuotaLimit(ResourceType.CPU_SECONDS_PER_DAY, 3600),
-            ResourceType.WORKFLOWS_PER_DAY: QuotaLimit(ResourceType.WORKFLOWS_PER_DAY, 5),
+            ResourceType.CPU_SECONDS_PER_DAY: QuotaLimit(
+                ResourceType.CPU_SECONDS_PER_DAY, 3600
+            ),
+            ResourceType.WORKFLOWS_PER_DAY: QuotaLimit(
+                ResourceType.WORKFLOWS_PER_DAY, 5
+            ),
         },
     ),
     QuotaTier.STARTER: QuotaPolicy(
@@ -95,13 +103,21 @@ DEFAULT_POLICIES: dict[QuotaTier, QuotaPolicy] = {
             ResourceType.JOBS_CONCURRENT: QuotaLimit(
                 ResourceType.JOBS_CONCURRENT, 10, period_seconds=0
             ),
-            ResourceType.ARTIFACT_SIZE_MB: QuotaLimit(ResourceType.ARTIFACT_SIZE_MB, 200),
-            ResourceType.TOTAL_STORAGE_MB: QuotaLimit(ResourceType.TOTAL_STORAGE_MB, 5000),
+            ResourceType.ARTIFACT_SIZE_MB: QuotaLimit(
+                ResourceType.ARTIFACT_SIZE_MB, 200
+            ),
+            ResourceType.TOTAL_STORAGE_MB: QuotaLimit(
+                ResourceType.TOTAL_STORAGE_MB, 5000
+            ),
             ResourceType.API_CALLS_PER_MINUTE: QuotaLimit(
                 ResourceType.API_CALLS_PER_MINUTE, 300, period_seconds=60
             ),
-            ResourceType.CPU_SECONDS_PER_DAY: QuotaLimit(ResourceType.CPU_SECONDS_PER_DAY, 14400),
-            ResourceType.WORKFLOWS_PER_DAY: QuotaLimit(ResourceType.WORKFLOWS_PER_DAY, 50),
+            ResourceType.CPU_SECONDS_PER_DAY: QuotaLimit(
+                ResourceType.CPU_SECONDS_PER_DAY, 14400
+            ),
+            ResourceType.WORKFLOWS_PER_DAY: QuotaLimit(
+                ResourceType.WORKFLOWS_PER_DAY, 50
+            ),
         },
     ),
     QuotaTier.PROFESSIONAL: QuotaPolicy(
@@ -112,13 +128,21 @@ DEFAULT_POLICIES: dict[QuotaTier, QuotaPolicy] = {
             ResourceType.JOBS_CONCURRENT: QuotaLimit(
                 ResourceType.JOBS_CONCURRENT, 50, period_seconds=0
             ),
-            ResourceType.ARTIFACT_SIZE_MB: QuotaLimit(ResourceType.ARTIFACT_SIZE_MB, 1000),
-            ResourceType.TOTAL_STORAGE_MB: QuotaLimit(ResourceType.TOTAL_STORAGE_MB, 50000),
+            ResourceType.ARTIFACT_SIZE_MB: QuotaLimit(
+                ResourceType.ARTIFACT_SIZE_MB, 1000
+            ),
+            ResourceType.TOTAL_STORAGE_MB: QuotaLimit(
+                ResourceType.TOTAL_STORAGE_MB, 50000
+            ),
             ResourceType.API_CALLS_PER_MINUTE: QuotaLimit(
                 ResourceType.API_CALLS_PER_MINUTE, 1000, period_seconds=60
             ),
-            ResourceType.CPU_SECONDS_PER_DAY: QuotaLimit(ResourceType.CPU_SECONDS_PER_DAY, 86400),
-            ResourceType.WORKFLOWS_PER_DAY: QuotaLimit(ResourceType.WORKFLOWS_PER_DAY, 500),
+            ResourceType.CPU_SECONDS_PER_DAY: QuotaLimit(
+                ResourceType.CPU_SECONDS_PER_DAY, 86400
+            ),
+            ResourceType.WORKFLOWS_PER_DAY: QuotaLimit(
+                ResourceType.WORKFLOWS_PER_DAY, 500
+            ),
         },
     ),
     QuotaTier.ENTERPRISE: QuotaPolicy(
@@ -129,13 +153,21 @@ DEFAULT_POLICIES: dict[QuotaTier, QuotaPolicy] = {
             ResourceType.JOBS_CONCURRENT: QuotaLimit(
                 ResourceType.JOBS_CONCURRENT, 200, period_seconds=0
             ),
-            ResourceType.ARTIFACT_SIZE_MB: QuotaLimit(ResourceType.ARTIFACT_SIZE_MB, 5000),
-            ResourceType.TOTAL_STORAGE_MB: QuotaLimit(ResourceType.TOTAL_STORAGE_MB, 500000),
+            ResourceType.ARTIFACT_SIZE_MB: QuotaLimit(
+                ResourceType.ARTIFACT_SIZE_MB, 5000
+            ),
+            ResourceType.TOTAL_STORAGE_MB: QuotaLimit(
+                ResourceType.TOTAL_STORAGE_MB, 500000
+            ),
             ResourceType.API_CALLS_PER_MINUTE: QuotaLimit(
                 ResourceType.API_CALLS_PER_MINUTE, 5000, period_seconds=60
             ),
-            ResourceType.CPU_SECONDS_PER_DAY: QuotaLimit(ResourceType.CPU_SECONDS_PER_DAY, 864000),
-            ResourceType.WORKFLOWS_PER_DAY: QuotaLimit(ResourceType.WORKFLOWS_PER_DAY, 5000),
+            ResourceType.CPU_SECONDS_PER_DAY: QuotaLimit(
+                ResourceType.CPU_SECONDS_PER_DAY, 864000
+            ),
+            ResourceType.WORKFLOWS_PER_DAY: QuotaLimit(
+                ResourceType.WORKFLOWS_PER_DAY, 5000
+            ),
         },
     ),
     QuotaTier.UNLIMITED: QuotaPolicy(
@@ -277,7 +309,9 @@ class QuotaManager:
             )
 
         # Get current usage
-        current_usage = self._get_usage_in_period(tenant_id, resource, limit_config.period_seconds)
+        current_usage = self._get_usage_in_period(
+            tenant_id, resource, limit_config.period_seconds
+        )
 
         # Check if request would exceed limit
         if current_usage + requested_amount > limit_config.limit:
@@ -341,7 +375,9 @@ class QuotaManager:
         with self._lock:
             records = self._usage.get(tenant_id, [])
             total = sum(
-                r.amount for r in records if r.resource == resource and r.timestamp >= cutoff
+                r.amount
+                for r in records
+                if r.resource == resource and r.timestamp >= cutoff
             )
 
         return total
@@ -355,7 +391,9 @@ class QuotaManager:
             # Count records in last 5 minutes as "active"
             cutoff = time.time() - 300
             return sum(
-                r.amount for r in records if r.resource == resource and r.timestamp >= cutoff
+                r.amount
+                for r in records
+                if r.resource == resource and r.timestamp >= cutoff
             )
 
     def get_usage_summary(
@@ -384,11 +422,15 @@ class QuotaManager:
             if limit_config is None:
                 continue
 
-            current = self._get_usage_in_period(tenant_id, res, limit_config.period_seconds)
+            current = self._get_usage_in_period(
+                tenant_id, res, limit_config.period_seconds
+            )
 
             period_start = now - timedelta(seconds=limit_config.period_seconds)
 
-            utilization = (current / limit_config.limit * 100) if limit_config.limit > 0 else 0
+            utilization = (
+                (current / limit_config.limit * 100) if limit_config.limit > 0 else 0
+            )
             remaining = max(0, limit_config.limit - current)
 
             summaries.append(
@@ -514,7 +556,9 @@ def set_tenant_tier(tenant_id: str, tier: QuotaTier):
     get_quota_manager().set_tenant_tier(tenant_id, tier)
 
 
-def check_quota(tenant_id: str, resource: ResourceType, amount: float = 1.0) -> QuotaCheckResult:
+def check_quota(
+    tenant_id: str, resource: ResourceType, amount: float = 1.0
+) -> QuotaCheckResult:
     """
     Check if a resource request is within quota.
 
@@ -531,7 +575,9 @@ def check_quota(tenant_id: str, resource: ResourceType, amount: float = 1.0) -> 
     return get_quota_manager().check_quota(tenant_id, resource, amount)
 
 
-def record_usage(tenant_id: str, resource: ResourceType, amount: float, job_id: str | None = None):
+def record_usage(
+    tenant_id: str, resource: ResourceType, amount: float, job_id: str | None = None
+):
     """Record resource usage."""
     get_quota_manager().record_usage(tenant_id, resource, amount, job_id)
 

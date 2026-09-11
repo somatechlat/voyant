@@ -5,22 +5,21 @@ request/response flow, API version extraction, and version info.
 Real ContextVar state and middleware instantiation. No mocks.
 """
 
-import re
 import uuid
 
-import pytest
-from django.http import HttpRequest, JsonResponse
-
 from apps.core.middleware import (
-    APIVersionMiddleware,
-    DEFAULT_VERSION,
     CURRENT_VERSION,
+    DEFAULT_VERSION,
     SUPPORTED_VERSIONS,
     VERSION_PATTERN,
-    RequestIdMiddleware,
+    APIVersionMiddleware,
     RBACMiddleware,
+    RequestIdMiddleware,
     SomaContextMiddleware,
     TenantMiddleware,
+    api_version_var,
+    authorization_var,
+    current_user_var,
     get_api_version,
     get_authorization,
     get_current_user,
@@ -31,15 +30,11 @@ from apps.core.middleware import (
     get_traceparent,
     get_version_info,
     request_id_var,
-    tenant_id_var,
-    api_version_var,
     soma_session_id_var,
     soma_user_id_var,
+    tenant_id_var,
     traceparent_var,
-    authorization_var,
-    current_user_var,
 )
-
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -52,7 +47,7 @@ class FakeRequest:
         self.headers = headers or {}
 
     @property
-    def META(self):
+    def META(self):  # noqa: N802
         return {}
 
 

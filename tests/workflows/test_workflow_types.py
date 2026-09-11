@@ -17,7 +17,6 @@ import pytest
 
 from apps.worker.workflows.types import IngestParams, IngestResult
 
-
 # ---------------------------------------------------------------------------
 # IngestParams Dataclass
 # ---------------------------------------------------------------------------
@@ -843,7 +842,6 @@ class TestCapsuleWorkflowLogic:
 
     def test_condition_skip_logic(self):
         """Steps with unmet conditions are skipped."""
-        step_metadata = {"s1": {"status": "done"}}
         step = {"step_id": "s2", "condition": "s1.status == 'failed'"}
         # In real workflow, condition would be evaluated; here we test the skip pattern
         condition_met = False  # Simulating condition not met

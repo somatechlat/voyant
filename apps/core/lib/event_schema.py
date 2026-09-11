@@ -121,9 +121,11 @@ class EventSchema:
     def __post_init__(self):
         """Set the creation timestamp if not provided."""
         if not self.created_at:
-            # NOTE: This module is imported in Temporal workflow validation contexts.
-            # Import-time non-determinism (e.g., datetime.now()) is disallowed by Temporal's sandbox.
-            # Schemas here are canonical/static, so a deterministic placeholder timestamp is correct.
+            # NOTE: This module is imported in Temporal workflow
+            # validation contexts. Import-time non-determinism
+            # (e.g., datetime.now()) is disallowed by Temporal's sandbox.
+            # Schemas here are canonical/static, so a deterministic
+            # placeholder timestamp is correct.
             self.created_at = "1970-01-01T00:00:00Z"
 
     def to_json_schema(self) -> dict[str, Any]:
@@ -315,7 +317,8 @@ def validate_event(
     # Check for use of a deprecated schema
     if schema.deprecated:
         warnings.append(
-            f"Event schema {event_name} v{schema.version} is deprecated: {schema.deprecation_message}"
+            f"Event schema {event_name} v{schema.version}"
+            f" is deprecated: {schema.deprecation_message}"
         )
 
     # 1. Check for missing required fields
@@ -346,7 +349,9 @@ def validate_event(
     )
 
 
-def _check_type(value: Any, expected_type: FieldType, enum_values: list[str] | None) -> bool:
+def _check_type(
+    value: Any, expected_type: FieldType, enum_values: list[str] | None
+) -> bool:
     """
     Internal helper to check if a value matches the expected FieldType.
 
@@ -364,9 +369,12 @@ def _check_type(value: Any, expected_type: FieldType, enum_values: list[str] | N
     type_checks = {
         FieldType.STRING: lambda v: isinstance(v, str),
         FieldType.INTEGER: lambda v: isinstance(v, int) and not isinstance(v, bool),
-        FieldType.FLOAT: lambda v: isinstance(v, (int, float)) and not isinstance(v, bool),
+        FieldType.FLOAT: lambda v: isinstance(v, (int, float))
+        and not isinstance(v, bool),
         FieldType.BOOLEAN: lambda v: isinstance(v, bool),
-        FieldType.DATETIME: lambda v: isinstance(v, str),  # Simplified check for ISO string
+        FieldType.DATETIME: lambda v: isinstance(
+            v, str
+        ),  # Simplified check for ISO string
         FieldType.ARRAY: lambda v: isinstance(v, list),
         FieldType.OBJECT: lambda v: isinstance(v, dict),
     }
@@ -399,8 +407,12 @@ def _register_canonical_schemas():
             version="1.0.0",
             description="Emitted when a job begins execution.",
             fields=[
-                FieldSpec("job_id", FieldType.STRING, description="Unique job identifier"),
-                FieldSpec("tenant_id", FieldType.STRING, description="Tenant identifier"),
+                FieldSpec(
+                    "job_id", FieldType.STRING, description="Unique job identifier"
+                ),
+                FieldSpec(
+                    "tenant_id", FieldType.STRING, description="Tenant identifier"
+                ),
                 FieldSpec(
                     "job_type",
                     FieldType.STRING,

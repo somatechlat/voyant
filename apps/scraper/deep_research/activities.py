@@ -251,7 +251,9 @@ class DeepResearchActivities:
         return extractor.extract(html, url)
 
     @activity.defn(name="dr_score_sources")
-    async def score_sources(self, params: dict[str, Any]) -> dict[str, dict[str, float]]:
+    async def score_sources(
+        self, params: dict[str, Any]
+    ) -> dict[str, dict[str, float]]:
         """
         Score sources by credibility and freshness.
 
@@ -339,7 +341,9 @@ class DeepResearchActivities:
         url_texts: dict[str, str] = params.get("url_texts", {})
         raw_results: list[dict[str, Any]] = params.get("search_results", [])
 
-        search_results = {r["url"]: SearchResultItem(**r) for r in raw_results if r.get("url")}
+        search_results = {
+            r["url"]: SearchResultItem(**r) for r in raw_results if r.get("url")
+        }
 
         synthesizer = Synthesizer()
         output = synthesizer.synthesize(url_texts, search_results)

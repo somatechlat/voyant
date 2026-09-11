@@ -56,8 +56,8 @@ export class ViewLogin extends LitElement {
                 this.error = data.detail || data.message || 'Invalid credentials';
             }
         } catch (err) {
-            // Fallback for local dev without Keycloak
-            if (window.location.hostname === 'localhost') {
+            // Fallback for local dev without Keycloak (only when VITE_ALLOW_LOCAL_LOGIN is enabled)
+            if (import.meta.env.VITE_ALLOW_LOCAL_LOGIN && window.location.hostname === 'localhost') {
                 setToken('local-dev-token');
                 this.navigate('/admin');
             } else {
@@ -70,11 +70,11 @@ export class ViewLogin extends LitElement {
 
     render() {
         return html`
-        <div style="min-height:100vh;background:var(--saas-bg-page);display:flex;align-items:center;justify-content:center;padding:16px;font-family:Inter,system-ui,sans-serif">
+        <div role="main" aria-label="Login page" style="min-height:100vh;background:var(--saas-bg-page);display:flex;align-items:center;justify-content:center;padding:16px;font-family:Inter,system-ui,sans-serif">
             <div style="width:100%;max-width:380px">
                 <!-- Logo -->
                 <div style="text-align:center;margin-bottom:32px">
-                    <div style="width:48px;height:48px;border-radius:12px;background:#050505;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
+                    <div aria-hidden="true" style="width:48px;height:48px;border-radius:12px;background:#050505;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
                             <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/>
                             <line x1="12" y1="22" x2="12" y2="15.5"/>
@@ -88,7 +88,7 @@ export class ViewLogin extends LitElement {
                 <!-- Form -->
                 <form @submit=${this.handleLogin} style="background:white;border-radius:12px;border:1px solid #E5E7EB;padding:24px">
                     ${this.error ? html`
-                    <div style="margin-bottom:16px;padding:10px 14px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:8px;font-size:13px;color:#EF4444">
+                    <div role="alert" aria-live="assertive" style="margin-bottom:16px;padding:10px 14px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:8px;font-size:13px;color:#EF4444">
                         ${this.error}
                     </div>` : ''}
 
@@ -118,7 +118,7 @@ export class ViewLogin extends LitElement {
                         />
                     </div>
 
-                    <button type="submit" ?disabled=${this.loading}
+                    <button type="submit" ?disabled=${this.loading} aria-label="${this.loading ? 'Signing in, please wait' : 'Sign in'}"
                         style="width:100%;padding:10px;background:${this.loading ? '#ccc' : '#FF4D00'};color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:${this.loading ? 'wait' : 'pointer'};transition:all 120ms">
                         ${this.loading ? 'Signing in...' : 'Sign In'}
                     </button>

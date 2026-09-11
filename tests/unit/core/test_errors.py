@@ -4,7 +4,6 @@ Unit tests for apps.core.lib.errors — Error catalog, exception hierarchy.
 Real code paths. No mocks.
 """
 
-import pytest
 
 from apps.core.lib.errors import (
     ERROR_CATALOG,

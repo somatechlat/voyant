@@ -24,13 +24,17 @@ class PlotlyRenderer:
     """
 
     @classmethod
-    def render_bar_comparison(cls, df: pd.DataFrame, x_col: str, y_col: str, tenant_id: str) -> str:
+    def render_bar_comparison(
+        cls, df: pd.DataFrame, x_col: str, y_col: str, tenant_id: str
+    ) -> str:
         """
         Generates a generic bar comparison chart purely from a dataframe.
         """
         logger.info(f"Rendering generic bar chart for {tenant_id}")
         if df.empty or x_col not in df.columns or y_col not in df.columns:
-            raise ValueError(f"Invalid parameters for bar_comparison: Missing {x_col} or {y_col}")
+            raise ValueError(
+                f"Invalid parameters for bar_comparison: Missing {x_col} or {y_col}"
+            )
 
         fig = px.bar(df, x=x_col, y=y_col, template="plotly_white")
         fig.update_layout(width=800, height=600, showlegend=True)
@@ -49,7 +53,9 @@ class PlotlyRenderer:
         return cls._save_to_artifact_store(fig, tenant_id, "time_series")
 
     @classmethod
-    def _save_to_artifact_store(cls, fig: go.Figure, tenant_id: str, prefix: str) -> str:
+    def _save_to_artifact_store(
+        cls, fig: go.Figure, tenant_id: str, prefix: str
+    ) -> str:
         """
         Physically writes the static PNG to the ArtifactStore.
         Renders the plotly figure to bytes via kaleido securely.

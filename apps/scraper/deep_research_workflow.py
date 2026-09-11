@@ -101,7 +101,8 @@ class DeepResearchWorkflow:
 
         # Build a combined text corpus for downstream consumption
         combined_text = "\n\n".join(
-            f"[{item['title'] or item['url']}]\n{item['text']}" for item in extracted_contents
+            f"[{item['title'] or item['url']}]\n{item['text']}"
+            for item in extracted_contents
         )
 
         workflow.logger.info(

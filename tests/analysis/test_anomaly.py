@@ -4,8 +4,6 @@ import pytest
 
 from apps.analysis.lib.anomaly import (
     Anomaly,
-    AnomalyDetector,
-    AnomalyMethod,
     AnomalyResult,
     IQRDetector,
     MADDetector,
@@ -14,7 +12,6 @@ from apps.analysis.lib.anomaly import (
     detect_column_anomalies,
     get_available_methods,
 )
-
 
 # ---------------------------------------------------------------------------
 # Anomaly dataclass

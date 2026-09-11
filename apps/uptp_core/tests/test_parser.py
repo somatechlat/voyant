@@ -32,7 +32,8 @@ def test_uriparser_malformed_string():
 
 
 def test_uriparser_s3_credentials():
-    # S3 secrets must either be URL-encoded or not contain slashes to pass standard urlparse natively
+    # S3 secrets must be URL-encoded or not contain slashes
+    # to pass standard urlparse natively
     uri = "s3://AKIAIOSFODNN7EXAMPLE:wJalrXUtnFEMIK7MDENGbPxRfiCYEXAMPLEKEY@s3.amazonaws.com"
     parsed = URIParser.parse_uri(uri)
     assert parsed["connector_id"] == "s3"

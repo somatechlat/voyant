@@ -5,8 +5,9 @@ helper functions, and policy enforcement logic.
 Real dataclass construction and helper function logic. No mocks.
 """
 
-import pytest
 from uuid import UUID
+
+import pytest
 
 from apps.core.lib.policy import (
     PolicyContext,
@@ -20,7 +21,6 @@ from apps.core.lib.policy import (
     _require_context_for_policy,
     get_soma_context,
 )
-
 
 # ── Exception Hierarchy ──────────────────────────────────────────────────────
 

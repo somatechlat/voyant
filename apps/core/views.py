@@ -94,7 +94,9 @@ def ready(_request) -> JsonResponse:
                 "details": f"DuckDB file not initialized yet: {duckdb_path}",
             }
         elif not os.access(duckdb_path, os.R_OK | os.W_OK):
-            raise PermissionError(f"DuckDB file is not readable/writable: {duckdb_path}")
+            raise PermissionError(
+                f"DuckDB file is not readable/writable: {duckdb_path}"
+            )
         if "duckdb" not in checks:
             checks["duckdb"] = {
                 "status": "up",

@@ -109,7 +109,9 @@ class _MilvusConnection:
         cfg = self._settings()
         now = time.time()
         if now - self._last_fail < self._backoff:
-            raise MilvusException(message=f"Milvus connection cooling down ({self._backoff:.1f}s)")
+            raise MilvusException(
+                message=f"Milvus connection cooling down ({self._backoff:.1f}s)"
+            )
 
         try:
             self._client = MilvusClient(
@@ -302,7 +304,10 @@ class VectorStore:
                 data=query_sparse_vector,
                 anns_field="sparse_embedding",
                 metric_type="IP",
-                search_params={"metric_type": "IP", "params": {"drop_ratio_search": 0.2}},
+                search_params={
+                    "metric_type": "IP",
+                    "params": {"drop_ratio_search": 0.2},
+                },
             )
 
         # Weighted RRF merge

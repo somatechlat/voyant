@@ -5,9 +5,7 @@ Real in-memory store with temp directories. No mocks, no external services.
 """
 
 import gzip
-import hashlib
 import json
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -462,7 +460,7 @@ class TestArtifactStoreGC:
 
     def test_gc_keeps_by_hash_only(self, store):
         ref1 = store.store(b"keep", "test")
-        ref2 = store.store(b"remove", "test")
+        store.store(b"remove", "test")
         removed = store.gc(keep_hashes={ref1.hash_value})
         assert removed == 1
         assert store.retrieve(ref1.hash) is not None

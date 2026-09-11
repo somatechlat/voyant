@@ -14,10 +14,8 @@ Covers:
 import uuid
 
 import pytest
-from django.db import IntegrityError
 
 from apps.workflows.models import Artifact, Job, PresetJob
-
 
 # ---------------------------------------------------------------------------
 # Job Model

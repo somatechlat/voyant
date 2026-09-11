@@ -99,11 +99,11 @@ def tool_templates_create(
     category: str,
     site_pattern: str,
     workflow: list,
-    selectors: dict = None,
-    parameters: list = None,
+    selectors: dict = None,  # type: ignore[reportArgumentType]
+    parameters: list = None,  # type: ignore[reportArgumentType]
     description: str = "",
     engine: str = "playwright",
-    output_fields: list = None,
+    output_fields: list = None,  # type: ignore[reportArgumentType]
     tenant_id=None,
 ):
     """Create a new scraper template programmatically. Agents use this to register new templates."""
@@ -146,7 +146,7 @@ def tool_templates_validate(template: dict, tenant_id=None):
 
 
 @mcp_app.tool(name="voyant.scraper.templates.run")
-def tool_templates_run(template_id: str, parameters: dict = None, tenant_id=None):
+def tool_templates_run(template_id: str, parameters: dict = None, tenant_id=None):  # type: ignore[reportArgumentType]
     """Run a scraper template with the given parameters. Returns job ID."""
     from apps.scraper.models import ScrapeTemplate
 
@@ -187,9 +187,14 @@ def tool_templates_generate(url: str, name: str = "", tenant_id=None):
     from apps.scraper.visual.auto_detect import AutoDetectEngine
 
     try:
-        response = httpx.get(url, timeout=15, follow_redirects=True, headers={
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-        })
+        response = httpx.get(
+            url,
+            timeout=15,
+            follow_redirects=True,
+            headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            },
+        )
         html = response.text
     except Exception as exc:
         return {"error": f"Failed to fetch URL: {exc}"}
@@ -206,7 +211,7 @@ def tool_templates_generate(url: str, name: str = "", tenant_id=None):
         selectors = {}
         for f in main_list.get("fields", []):
             selectors[f["name"]] = f["selector"]
-        workflow.append({"action": "extract", "selectors": selectors})
+        workflow.append({"action": "extract", "selectors": selectors})  # type: ignore[reportArgumentType]
 
     # If we found pagination, add it
     if detected.get("pagination"):
@@ -216,6 +221,7 @@ def tool_templates_generate(url: str, name: str = "", tenant_id=None):
             workflow.append({"action": "extract"})
 
     from urllib.parse import urlparse
+
     parsed = urlparse(url)
     domain = parsed.netloc.replace("www.", "")
 
@@ -223,7 +229,13 @@ def tool_templates_generate(url: str, name: str = "", tenant_id=None):
     category = "universal"
 
     # Auto-categorize
-    social_domains = ["facebook.com", "instagram.com", "twitter.com", "tiktok.com", "linkedin.com"]
+    social_domains = [
+        "facebook.com",
+        "instagram.com",
+        "twitter.com",
+        "tiktok.com",
+        "linkedin.com",
+    ]
     ecommerce_domains = ["amazon.com", "ebay.com", "walmart.com", "etsy.com"]
     if any(d in domain for d in social_domains):
         category = "social"
@@ -271,31 +283,37 @@ def tool_templates_export(template_id: str, format: str = "json", tenant_id=None
         return {"format": "json", "content": json.dumps(template, indent=2)}
     elif format == "python":
         # Generate TemplateBuilder code
-        code_lines = ['from apps.scraper.template_sdk import TemplateBuilder', '', 'template = (']
+        code_lines = [
+            "from apps.scraper.template_sdk import TemplateBuilder",
+            "",
+            "template = (",
+        ]
         code_lines.append(f'    TemplateBuilder("{t.name}")')
         code_lines.append(f'    .category("{t.category}")')
         code_lines.append(f'    .site("{t.site_pattern}")')
         code_lines.append(f'    .description("{t.description}")')
         code_lines.append(f'    .engine("{t.engine}")')
 
-        for p in (t.parameters or []):
-            code_lines.append(f'    .param("{p["name"]}", type="{p.get("type", "string")}", required={p.get("required", False)})')
+        for p in t.parameters or []:
+            code_lines.append(
+                f'    .param("{p["name"]}", type="{p.get("type", "string")}", required={p.get("required", False)})'
+            )
 
-        for step in (t.workflow or []):
+        for step in t.workflow or []:
             action = step.get("action", "")
             if action == "navigate":
                 code_lines.append(f'    .navigate("{step.get("url", "")}")')
             elif action == "click":
                 code_lines.append(f'    .click("{step.get("selector", "")}")')
             elif action == "scroll":
-                code_lines.append(f'    .scroll(times={step.get("times", 3)})')
+                code_lines.append(f"    .scroll(times={step.get('times', 3)})")
             elif action == "extract":
                 sels = step.get("selectors", {})
                 args = ", ".join(f'{k}="{v}"' for k, v in sels.items())
-                code_lines.append(f'    .extract({args})')
+                code_lines.append(f"    .extract({args})")
 
-        code_lines.append('    .build()')
-        code_lines.append(')')
+        code_lines.append("    .build()")
+        code_lines.append(")")
         return {"format": "python", "content": "\n".join(code_lines)}
 
     return {"error": f"Unsupported format: {format}"}

@@ -13,7 +13,6 @@ from pydantic import ValidationError as PydanticValidationError
 
 from apps.uptp_core.schemas import TemplateCategory, TemplateExecutionRequest
 
-
 # =========================================================================
 # Tool signature verification
 # =========================================================================

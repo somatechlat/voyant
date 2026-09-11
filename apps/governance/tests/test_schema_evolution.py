@@ -278,7 +278,9 @@ class TestCompareSchemas:
         old = TableSchema(name="test", columns=[])
         new = TableSchema(
             name="test",
-            columns=[ColumnSchema(name="required_col", data_type="VARCHAR", nullable=False)],
+            columns=[
+                ColumnSchema(name="required_col", data_type="VARCHAR", nullable=False)
+            ],
         )
         changes = compare_schemas(old, new)
         assert len(changes) == 1
@@ -340,11 +342,15 @@ class TestCompareSchemas:
     def test_default_changed(self):
         old = TableSchema(
             name="test",
-            columns=[ColumnSchema(name="status", data_type="VARCHAR", default="active")],
+            columns=[
+                ColumnSchema(name="status", data_type="VARCHAR", default="active")
+            ],
         )
         new = TableSchema(
             name="test",
-            columns=[ColumnSchema(name="status", data_type="VARCHAR", default="inactive")],
+            columns=[
+                ColumnSchema(name="status", data_type="VARCHAR", default="inactive")
+            ],
         )
         changes = compare_schemas(old, new)
         assert len(changes) == 1

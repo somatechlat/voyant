@@ -106,7 +106,9 @@ def _log_audit_event(
     details: dict[str, Any] = {
         "policy_id": result.policy_id,
         "decision": result.decision.value,
-        "enforcement_level": result.enforcement_level.value if result.enforcement_level else None,
+        "enforcement_level": (
+            result.enforcement_level.value if result.enforcement_level else None
+        ),
         "reason": result.reason,
         "method": request.method,
         "path": request.path,
@@ -153,7 +155,9 @@ def _get_client_ip(request: Any) -> str | None:
     return request.META.get("REMOTE_ADDR")
 
 
-def _check_data_contracts(request: Any, context: dict[str, Any]) -> PolicyEvaluationResult | None:
+def _check_data_contracts(
+    request: Any, context: dict[str, Any]
+) -> PolicyEvaluationResult | None:
     """Check DataContract compliance for data-mutation requests.
 
     Returns a ``PolicyEvaluationResult`` with DENY if a contract
@@ -201,7 +205,9 @@ def _extract_dataset_urn(request: Any) -> str:
     # QueryDict being populated, e.g. in unit tests).
     from urllib.parse import parse_qs, urlparse
 
-    full_path = request.get_full_path() if hasattr(request, "get_full_path") else request.path
+    full_path = (
+        request.get_full_path() if hasattr(request, "get_full_path") else request.path
+    )
     parsed = urlparse(full_path)
     params = parse_qs(parsed.query)
     urn_list = params.get("dataset_urn") or params.get("urn")
@@ -303,7 +309,8 @@ class GovernancePolicyMiddleware:
                 return JsonResponse(
                     {
                         "error": "Forbidden",
-                        "message": result.reason or "Request blocked by governance policy",
+                        "message": result.reason
+                        or "Request blocked by governance policy",
                         "policy_id": result.policy_id,
                     },
                     status=403,
@@ -346,5 +353,7 @@ class GovernancePolicyMiddleware:
                 )
             )
         except Exception:
-            logger.debug("Could not fetch policies for tenant %s", tenant_id, exc_info=True)
+            logger.debug(
+                "Could not fetch policies for tenant %s", tenant_id, exc_info=True
+            )
             return []

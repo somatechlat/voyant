@@ -25,6 +25,7 @@ from apps.analysis.lib.kpi_templates import (
 )
 from apps.core.api_utils import apply_policy, run_async
 from apps.core.config import get_settings
+from apps.core.events import publish_job_status
 from apps.core.lib.namespace_analyzer import (
     NamespaceViolationError,
     validate_table_access,
@@ -154,6 +155,7 @@ def _create_job(request, job_type: str, source_id: str, params: dict[str, Any]) 
         progress=0,
         parameters=params,
     )
+    publish_job_status(tenant_id, str(job.job_id), "queued", 0)
     return job
 
 
@@ -164,7 +166,9 @@ def _validate_table_scope(tenant_id: str, tables: list[str] | None) -> None:
         validate_table_access(tenant_id, table)
 
 
-@jobs_router.post("/ingest", response=JobResponse, auth=require_permission("write:jobs"))
+@jobs_router.post(
+    "/ingest", response=JobResponse, auth=require_permission("write:jobs")
+)
 def trigger_ingest(request, payload: IngestRequest):
     tenant_id = get_tenant_id(request)
     try:
@@ -201,15 +205,21 @@ def trigger_ingest(request, payload: IngestRequest):
         )
         job.status = "running"
         job.save(update_fields=["status"])
+        publish_job_status(tenant_id, str(job.job_id), "running")
     except Exception as exc:
         job.status = "failed"
         job.error_message = str(exc)
         job.save(update_fields=["status", "error_message"])
+        publish_job_status(
+            tenant_id, str(job.job_id), "failed", data={"error": str(exc)}
+        )
 
     return _to_job_response(job)
 
 
-@jobs_router.post("/profile", response=JobResponse, auth=require_permission("write:jobs"))
+@jobs_router.post(
+    "/profile", response=JobResponse, auth=require_permission("write:jobs")
+)
 def trigger_profile(request, payload: ProfileRequest):
     tenant_id = get_tenant_id(request)
     try:
@@ -248,15 +258,21 @@ def trigger_profile(request, payload: ProfileRequest):
         )
         job.status = "running"
         job.save(update_fields=["status"])
+        publish_job_status(tenant_id, str(job.job_id), "running")
     except Exception as exc:
         job.status = "failed"
         job.error_message = str(exc)
         job.save(update_fields=["status", "error_message"])
+        publish_job_status(
+            tenant_id, str(job.job_id), "failed", data={"error": str(exc)}
+        )
 
     return _to_job_response(job)
 
 
-@jobs_router.post("/quality", response=JobResponse, auth=require_permission("write:jobs"))
+@jobs_router.post(
+    "/quality", response=JobResponse, auth=require_permission("write:jobs")
+)
 def trigger_quality(request, payload: QualityRequest):
     tenant_id = get_tenant_id(request)
     try:
@@ -265,7 +281,9 @@ def trigger_quality(request, payload: QualityRequest):
     except NamespaceViolationError as exc:
         raise HttpError(403, get_message("ERR_VALIDATION", error=str(exc))) from exc
 
-    policy_prompt = f"voyant quality source_id={payload.source_id} table={payload.table}"
+    policy_prompt = (
+        f"voyant quality source_id={payload.source_id} table={payload.table}"
+    )
     apply_policy("quality", policy_prompt, {"source_id": payload.source_id})
 
     job = _create_job(
@@ -292,10 +310,14 @@ def trigger_quality(request, payload: QualityRequest):
         )
         job.status = "running"
         job.save(update_fields=["status"])
+        publish_job_status(tenant_id, str(job.job_id), "running")
     except Exception as exc:
         job.status = "failed"
         job.error_message = str(exc)
         job.save(update_fields=["status", "error_message"])
+        publish_job_status(
+            tenant_id, str(job.job_id), "failed", data={"error": str(exc)}
+        )
 
     return _to_job_response(job)
 
@@ -365,14 +387,19 @@ def cancel_job(request, job_id: str):
 
     job.status = "cancelled"
     job.save(update_fields=["status"])
+    publish_job_status(tenant_id, str(job.job_id), "cancelled")
     return {"status": "cancelled", "job_id": str(job.job_id)}
 
 
 @artifacts_router.get("/{job_id}", response=dict[str, list[ArtifactInfo]])
 def list_artifacts(request, job_id: str):
     tenant_id = get_tenant_id(request)
-    apply_policy("artifact_list", f"voyant artifact list job_id={job_id}", {"job_id": job_id})
-    rows = Artifact.objects.filter(job_id=job_id, tenant_id=tenant_id).order_by("-created_at")
+    apply_policy(
+        "artifact_list", f"voyant artifact list job_id={job_id}", {"job_id": job_id}
+    )
+    rows = Artifact.objects.filter(job_id=job_id, tenant_id=tenant_id).order_by(
+        "-created_at"
+    )
     artifacts = [
         ArtifactInfo(
             artifact_id=row.artifact_id,
@@ -411,10 +438,14 @@ def download_artifact(request, job_id: str, artifact_type: str, format: str = "j
         return StreamingHttpResponse(
             io.BytesIO(data),
             content_type="application/octet-stream",
-            headers={"Content-Disposition": f"attachment; filename={artifact_type}.{format}"},
+            headers={
+                "Content-Disposition": f"attachment; filename={artifact_type}.{format}"
+            },
         )
     except Exception as exc:
-        raise HttpError(404, get_message("ERR_ARTIFACT_DOWNLOAD", error=str(exc))) from exc
+        raise HttpError(
+            404, get_message("ERR_ARTIFACT_DOWNLOAD", error=str(exc))
+        ) from exc
 
 
 PRESETS: dict[str, dict[str, Any]] = {
@@ -472,7 +503,9 @@ def get_preset(request, preset_name: str):
 
 
 @presets_router.post(
-    "/{preset_name}/execute", response=dict[str, str], auth=require_permission("execute:presets")
+    "/{preset_name}/execute",
+    response=dict[str, str],
+    auth=require_permission("execute:presets"),
 )
 def execute_preset(request, preset_name: str, payload: dict[str, Any]):
     preset = PRESETS.get(preset_name)
@@ -499,7 +532,8 @@ def execute_preset(request, preset_name: str, payload: dict[str, Any]):
         job.status = "failed"
         job.save(update_fields=["status"])
         raise HttpError(
-            400, get_message("ERR_VALIDATION", error=f"No workflow for job_type={job_type}")
+            400,
+            get_message("ERR_VALIDATION", error=f"No workflow for job_type={job_type}"),
         )
 
     try:
@@ -565,7 +599,9 @@ def get_kpi_template_endpoint(request, template_name: str):
     response=dict[str, str],
     auth=require_permission("execute:presets"),
 )
-def render_kpi_template_endpoint(request, template_name: str, payload: RenderKPIRequest):
+def render_kpi_template_endpoint(
+    request, template_name: str, payload: RenderKPIRequest
+):
     try:
         return {"sql": render_kpi_template(template_name, payload.params)}
     except ValueError as exc:

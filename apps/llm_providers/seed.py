@@ -311,8 +311,10 @@ PROVIDERS = [
 def seed():
     """Seed LLM providers and models into the database."""
     import os
+
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "voyant_project.settings")
     import django
+
     django.setup()
 
     from apps.llm_providers.models import ActiveLLMConfig, LLMModel, LLMProvider
@@ -341,7 +343,11 @@ def seed():
 
     # Set default active config for intent engine (Groq + GPT-OSS 120B)
     groq = LLMProvider.objects.filter(slug="groq").first()
-    gpt_oss = LLMModel.objects.filter(provider=groq, name="openai/gpt-oss-120b").first() if groq else None
+    gpt_oss = (
+        LLMModel.objects.filter(provider=groq, name="openai/gpt-oss-120b").first()
+        if groq
+        else None
+    )
 
     if groq and gpt_oss:
         ActiveLLMConfig.objects.update_or_create(

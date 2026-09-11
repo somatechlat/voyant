@@ -8,6 +8,7 @@ __pycache__/
 *$py.class
 .Python
 .pytest_cache/
+.mimocode/
 .mypy_cache/
 .ruff_cache/
 .pyre/

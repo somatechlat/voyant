@@ -161,7 +161,7 @@ docker compose exec voyant_api python manage.py migrate
 | `GET /status` | Administrative status report |
 | `GET /version` | API version metadata |
 
-### 5.2 REST API (62 endpoints under `/v1/`)
+### 5.2 REST API (199 endpoints under `/v1/`)
 
 | Router | Path Prefix | Endpoints |
 |--------|-------------|-----------|
@@ -178,7 +178,7 @@ docker compose exec voyant_api python manage.py migrate
 | capsules_router | `/v1/capsules` | create, install, run, registry, export, import |
 | ingestion_router | `/v1/ingestion` | connect, provision-destination |
 
-### 5.3 MCP Server (45 tools at `/mcp`)
+### 5.3 MCP Server (67 tools at `/mcp`)
 
 MCP is mounted via Django ASGI at `/mcp` using `django-mcp`. Transport: SSE (Server-Sent Events).
 

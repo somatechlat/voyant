@@ -1,0 +1,2541 @@
+# Nexus Platform — Deep-Dive Module & Function Specification
+## Benchmarked Against Palantir Foundry / Gotham / AIP Architecture
+
+**Document Extension:** SRS-PLTR-2026-001-DEEP-DIVE
+**Version:** 2.0.0
+**Date:** 2026-09-09
+**Standard:** ISO/IEC/IEEE 29148:2018
+
+---
+
+This document provides the **deepest possible specification** of every module and function, benchmarked against Palantir's actual architecture as documented in their public materials and analyzed through real-world deployment patterns. Every design decision below references *why* Palantir does it that way, and how we replicate or improve upon it.
+
+---
+
+## Table of Contents
+
+1. [Architectural Philosophy — The Governing Thesis](#1-architectural-philosophy)
+2. [Module 1 Deep-Dive — Data Integration & Connectivity](#2-module-1-deep-dive)
+3. [Module 2 Deep-Dive — Pipeline Engine & Spark Orchestration](#3-module-2-deep-dive)
+4. [Module 3 Deep-Dive — Ontology (The Semantic Operating Layer)](#4-module-3-deep-dive)
+5. [Module 4 Deep-Dive — Lakehouse Storage & Version Control](#5-module-4-deep-dive)
+6. [Module 5 Deep-Dive — Analytics & Visualization (Contour-class)](#6-module-5-deep-dive)
+7. [Module 6 Deep-Dive — AIP (Agent + LLM + Governance)](#7-module-6-deep-dive)
+8. [Module 7 Deep-Dive — Collaboration & Operational Workspace](#8-module-7-deep-dive)
+9. [Module 8 Deep-Dive — Security, Governance & PETs](#9-module-8-deep-dive)
+10. [Module 9 Deep-Dive — Administration & Observability](#10-module-9-deep-dive)
+11. [Module 10 Deep-Dive — API, SDK & Interoperability](#11-module-10-deep-dive)
+12. [Benchmark Reference Architecture](#12-benchmark-reference-architecture)
+13. [Performance Targets (Industry Benchmarks)](#13-performance-targets)
+
+---
+
+## 1. Architectural Philosophy — The Governing Thesis
+
+### 1.1 Why Palantir Dominates: The Ontology-First Architecture
+
+Palantir's fundamental architectural insight — and the reason their platform is so difficult to replicate — is that **the Ontology is not a feature; it is the operating system** (citation:19). Every other component (pipelines, analytics, ML, agents) is a *consumer* of the Ontology, not a peer.
+
+The interaction formula that governs the entire platform (citation:15):
+
+```
+LLM + Retrieval Context + Tools + Ontology + Governance
+```
+
+The complete data flow for any operation — whether a human clicking a dashboard or an agent executing an action:
+
+```
+User Intent (human or agent)
+  → Retrieval Context Injection (deterministic business context)
+    → Reasoning Layer (LLM or UI logic)
+      → Tool Invocation (Ontology SDK call)
+        → Ontology Resolution (object lookup, link traversal)
+          → Governance Enforcement (RBAC, ABAC, cell-level security)
+            → Data Layer Access (backing dataset query)
+              → Audit Log Entry
+```
+
+**Critical insight:** Agents do not access underlying database tables directly, nor do they freely scan the complete Ontology schema. They operate within a configured and authorized boundary — interacting through Ontology-exposed objects, relationships, contexts, functions, and actions (citation:15).
+
+This is the principle of **"governed freedom"** — every layer constrains the next.
+
+### 1.2 Nexus Replication Strategy
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    NEXUS ARCHITECTURE LAYERS                     │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  LAYER 6: EXPERIENCE                                     │   │
+│  │  Dashboards │ Slate Apps │ AI Assistant │ Mobile          │   │
+│  └──────────────────────────┬───────────────────────────────┘   │
+│  ┌──────────────────────────┼───────────────────────────────┐   │
+│  │  LAYER 5: INTELLIGENCE   │                               │   │
+│  │  ML Models │ LLM Agents │ Feature Store │ Predictions    │   │
+│  └──────────────────────────┼───────────────────────────────┘   │
+│  ┌──────────────────────────┼───────────────────────────────┐   │
+│  │  LAYER 4: ACTIONS & FUNCTIONS (Kinetic Ontology)         │   │
+│  │  Action Types │ Functions │ Workflows │ Approvals         │   │
+│  └──────────────────────────┼───────────────────────────────┘   │
+│  ┌──────────────────────────┼───────────────────────────────┐   │
+│  │  LAYER 3: ONTOLOGY (Semantic Layer)                      │   │
+│  │  Object Types │ Properties │ Links │ Interfaces           │   │
+│  └──────────────────────────┼───────────────────────────────┘   │
+│  ┌──────────────────────────┼───────────────────────────────┐   │
+│  │  LAYER 2: PIPELINE & TRANSFORMATION                      │   │
+│  │  Spark DAGs │ Transforms │ Scheduling │ Lineage           │   │
+│  └──────────────────────────┼───────────────────────────────┘   │
+│  ┌──────────────────────────┼───────────────────────────────┐   │
+│  │  LAYER 1: DATA FOUNDATION                                │   │
+│  │  Connectors │ Ingestion │ Iceberg Tables │ Streaming      │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  CROSS-CUTTING: SECURITY & GOVERNANCE                    │   │
+│  │  RBAC │ ABAC │ Cell-Level │ Audit │ Encryption │ PETs    │   │
+│  └──────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 2. Module 1 Deep-Dive — Data Integration & Connectivity
+
+### 2.1 Palantir Benchmark: "Data Connection" Application
+
+Palantir's approach to data integration is not a traditional ETL tool. Their Data Connection application provides connectivity between Foundry and external systems (citation:10), with native connectors for all types of data and metadata flows — whether batch, streaming, or event-driven (citation:7). The key differentiator is that Foundry provides a "highly configurable set of data connectivity and integration tools that extend far beyond typical extract-transform-load (ETL)" (citation:8).
+
+### 2.2 Connector Architecture (Deep Specification)
+
+#### 2.2.1 Connector Framework Design
+
+Every connector in Nexus SHALL implement the `IConnector` interface:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    CONNECTOR FRAMEWORK                           │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  IConnector Interface                                    │   │
+│  │                                                          │   │
+│  │  + discover_schema()        → SchemaDescriptor           │   │
+│  │  + discover_datasets()      → List<DatasetDescriptor>    │   │
+│  │  + test_connection()        → ConnectionTestResult       │   │
+│  │  + create_reader(config)    → IDataReader                │   │
+│  │  + create_writer(config)    → IDataWriter                │   │
+│  │  + create_stream(config)    → IStreamReader              │   │
+│  │  + get_capabilities()       → ConnectorCapabilities      │   │
+│  │  + get_health()             → HealthStatus               │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  IDataReader Interface                                   │   │
+│  │                                                          │   │
+│  │  + read_batch(config)       → Iterator<RecordBatch>      │   │
+│  │  + read_incremental(        → Iterator<RecordBatch>      │   │
+│  │      watermark, config)                                  │   │
+│  │  + read_cdc(config)         → Iterator<ChangeEvent>      │   │
+│  │  + get_row_count()          → Long                       │   │
+│  │  + estimate_size()          → Long (bytes)               │   │
+│  │  + close()                  → void                       │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  IStreamReader Interface                                 │   │
+│  │                                                          │   │
+│  │  + subscribe(config)        → Flux<StreamRecord>         │   │
+│  │  + commit_offset(offset)    → void                       │   │
+│  │  + seek_to(offset)          → void                       │   │
+│  │  + get_lag()                → Long                       │   │
+│  │  + pause() / resume()       → void                       │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  ConnectorCapabilities                                   │   │
+│  │                                                          │   │
+│  │  supports_batch_read:       Boolean                      │   │
+│  │  supports_incremental:      Boolean                      │   │
+│  │  supports_cdc:              Boolean                      │   │
+│  │  supports_streaming:        Boolean                      │   │
+│  │  supports_write_back:       Boolean                      │   │
+│  │  supports_schema_discovery: Boolean                      │   │
+│  │  supports_predicate_pushdown: Boolean                    │   │
+│  │  supports_projection_pushdown: Boolean                   │   │
+│  │  max_parallelism:           Integer                      │   │
+│  │  supported_formats:         List<DataFormat>             │   │
+│  └──────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### 2.2.2 Full Connector Registry
+
+| Category | Connector | Protocol | Batch | CDC | Streaming | Write-Back | Benchmark |
+|---|---|---|---|---|---|---|---|
+| **Relational** | PostgreSQL 14+ | JDBC + pg_logical | ✓ | ✓ (logical replication) | — | ✓ | 50K rows/sec read |
+| | MySQL 8+ | JDBC + binlog | ✓ | ✓ (binlog) | — | ✓ | 45K rows/sec read |
+| | Oracle 19c+ | JDBC + LogMiner | ✓ | ✓ | — | ✓ | 35K rows/sec read |
+| | SQL Server 2019+ | JDBC + CDC | ✓ | ✓ (change tracking) | — | ✓ | 40K rows/sec read |
+| | Snowflake | Snowflake JDBC | ✓ | — | — | ✓ | 100K rows/sec read |
+| | BigQuery | REST API | ✓ | — | — | ✓ | 120K rows/sec read |
+| | Redshift | JDBC | ✓ | — | — | ✓ | 80K rows/sec read |
+| | Databricks | JDBC/ODBC | ✓ | — | — | ✓ | 90K rows/sec read |
+| **NoSQL** | MongoDB 6+ | Change Streams | ✓ | ✓ (change streams) | — | ✓ | 40K docs/sec |
+| | DynamoDB | AWS SDK | ✓ | ✓ (DynamoDB Streams) | — | ✓ | 30K items/sec |
+| | Cassandra | CQL | ✓ | — | — | ✓ | 55K rows/sec |
+| **Cloud Storage** | Amazon S3 | S3 API | ✓ | — (event notification) | — | ✓ | 500 MB/sec |
+| | Azure Blob | Azure SDK | ✓ | — | — | ✓ | 450 MB/sec |
+| | Google Cloud Storage | GCS SDK | ✓ | — | — | ✓ | 480 MB/sec |
+| | MinIO | S3-compatible | ✓ | — | — | ✓ | 400 MB/sec |
+| **Streaming** | Apache Kafka | Kafka Protocol | — | — | ✓ | ✓ | 500K events/sec |
+| | Amazon Kinesis | AWS SDK | — | — | ✓ | ✓ | 200K events/sec |
+| | Azure Event Hubs | AMQP | — | — | ✓ | ✓ | 300K events/sec |
+| | Google Pub/Sub | gRPC | — | — | ✓ | ✓ | 250K events/sec |
+| **APIs** | REST APIs | HTTP/HTTPS | ✓ | — | — | ✓ | Configurable |
+| | GraphQL | HTTP/HTTPS | ✓ | — | — | ✓ | Configurable |
+| | gRPC | gRPC | ✓ | — | ✓ | ✓ | Configurable |
+| **Files** | CSV/JSON/XML | File I/O | ✓ | — | — | ✓ | 200 MB/sec |
+| | Parquet/ORC | File I/O | ✓ | — | — | ✓ | 800 MB/sec |
+| | Excel (.xlsx) | Apache POI | ✓ | — | — | ✓ | 50 MB/sec |
+
+#### 2.2.3 CDC (Change Data Capture) Deep Specification
+
+Palantir supports CDC as a first-class ingestion pattern. Our implementation:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    CDC PIPELINE ARCHITECTURE                      │
+│                                                                  │
+│  Source DB                                                        │
+│  ┌──────────────────┐                                           │
+│  │ WAL / Binlog /   │     ┌───────────────────┐                │
+│  │ Change Stream    │────▶│ CDC Connector     │                │
+│  │                  │     │ (Debezium engine)  │                │
+│  └──────────────────┘     └────────┬──────────┘                │
+│                                    │                             │
+│                                    ▼                             │
+│                         ┌───────────────────┐                   │
+│                         │ Change Event Queue│                   │
+│                         │ (Kafka topic)      │                   │
+│                         └────────┬──────────┘                   │
+│                                  │                               │
+│                    ┌─────────────┼─────────────┐                 │
+│                    ▼             ▼             ▼                 │
+│            ┌───────────┐ ┌───────────┐ ┌───────────┐           │
+│            │ Iceberg   │ │ Ontology  │ │ Downstream│           │
+│            │ Table     │ │ Sync      │ │ Pipelines │           │
+│            │ (append)  │ │ (real-time)│ │ (trigger) │           │
+│            └───────────┘ └───────────┘ └───────────┘           │
+│                                                                  │
+│  Change Event Schema:                                            │
+│  {                                                               │
+│    "op": "c" | "u" | "d" | "r",  // create, update, delete, read│
+│    "ts_ms": 1694234567890,                                       │
+│    "source": { "db": "prod", "table": "orders", "lsn": 45231 },│
+│    "before": { ... },         // null for inserts                │
+│    "after": { ... },          // null for deletes                │
+│    "transaction_id": "txn_abc123"                               │
+│  }                                                               │
+│                                                                  │
+│  Guarantees:                                                     │
+│  • At-least-once delivery (exactly-once at Iceberg level)        │
+│  • Ordering guaranteed per source table (LSN/offset ordering)    │
+│  • Latency: < 5 seconds from source commit to platform           │
+│  • Schema change propagation: automatic for additive changes     │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### 2.2.4 Ingestion Validation Engine
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                VALIDATION RULE TYPES                             │
+│                                                                  │
+│  Type: NOT_NULL                                                  │
+│  Config: { "columns": ["id", "email"] }                         │
+│  Action on fail: QUARANTINE row, log warning                     │
+│                                                                  │
+│  Type: DATA_TYPE                                                 │
+│  Config: { "column": "age", "expected_type": "INTEGER",         │
+│            "range": [0, 150] }                                  │
+│  Action on fail: QUARANTINE row, log error                       │
+│                                                                  │
+│  Type: REGEX                                                     │
+│  Config: { "column": "email", "pattern": "^[\\w.+-]+@[\\w.-]+  │
+│            \\.[a-zA-Z]{2,}$" }                                  │
+│  Action on fail: QUARANTINE row, log warning                     │
+│                                                                  │
+│  Type: REFERENTIAL                                               │
+│  Config: { "source_column": "customer_id",                      │
+│            "reference_dataset": "customers",                     │
+│            "reference_column": "id" }                            │
+│  Action on fail: QUARANTINE row, log error                       │
+│                                                                  │
+│  Type: UNIQUENESS                                                │
+│  Config: { "columns": ["order_id"] }                            │
+│  Action on fail: QUARANTINE duplicate, log warning               │
+│                                                                  │
+│  Type: CUSTOM_SQL                                                │
+│  Config: { "expression": "amount > 0 AND currency IN ('USD',    │
+│            'EUR', 'GBP')" }                                     │
+│  Action on fail: QUARANTINE row, log warning                     │
+│                                                                  │
+│  Type: STATISTICAL                                               │
+│  Config: { "column": "price", "method": "zscore",               │
+│            "threshold": 3.0 }                                   │
+│  Action on fail: FLAG row (not quarantine), log info             │
+│                                                                  │
+│  Quarantine Dataset Schema:                                      │
+│  _quarantine_id UUID, _source_row JSONB, _rule_id UUID,         │
+│  _rule_type VARCHAR, _error_message TEXT,                        │
+│  _quarantined_at TIMESTAMPTZ, _resolved BOOLEAN,                 │
+│  _resolved_by UUID, _resolved_at TIMESTAMPTZ                    │
+│                                                                  │
+│  Quarantine Resolution Workflow:                                  │
+│  1. Review quarantined rows (filter by rule, source, date)       │
+│  2. Fix row data or adjust rule                                  │
+│  3. Re-process quarantined rows                                  │
+│  4. Mark as resolved with notes                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 2.3 Real-World Benchmarks — Data Integration
+
+| Metric | Palantir Foundry (Est.) | Nexus Target | How Achieved |
+|---|---|---|---|
+| Batch ingestion (PostgreSQL → Iceberg, 10M rows) | ~3 min | < 3 min | Parallel reads (16 partitions), Arrow columnar in-memory, Iceberg append |
+| CDC latency (source commit → platform availability) | < 10 sec | < 5 sec | Debezium + Kafka consumer with 1-sec poll interval |
+| Streaming throughput (Kafka, 1KB events) | ~500K events/sec | 500K events/sec | Consumer group with 32 partitions, batch commit |
+| File ingestion (S3 Parquet, 1 GB) | ~20 sec | < 15 sec | Direct Iceberg import (no copy), parallel reads |
+| Connection test time | < 2 sec | < 2 sec | Async probe with 2-sec timeout |
+| Schema discovery (1000 tables) | < 30 sec | < 30 sec | Parallel schema reads with connection pooling |
+
+---
+
+## 3. Module 2 Deep-Dive — Pipeline Engine & Spark Orchestration
+
+### 3.1 Palantir Benchmark: Spark-Powered Transformations
+
+Spark is the distributed computing system used within Foundry to run data transformations at scale (citation:17). All scheduled pipeline workflows are fully version-controlled (citation:18). Palantir's pipeline system is not just an orchestrator — it is a **code-aware, lineage-generating, version-controlled transformation engine**.
+
+### 3.2 Transform Engine Deep Specification
+
+#### 3.2.1 Transform Execution Model
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              TRANSFORM EXECUTION LIFECYCLE                       │
+│                                                                  │
+│  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐  │
+│  │ 1. VALIDATE│──▶│ 2. COMPILE│──▶│ 3. PLAN  │──▶│ 4. EXECUTE│ │
+│  └──────────┘    └──────────┘    └──────────┘    └──────────┘  │
+│       │               │               │               │        │
+│       ▼               ▼               ▼               ▼        │
+│  Schema check    Parse code     Spark logical    Submit to     │
+│  Input exists    Type-check     plan + optimize  Spark cluster │
+│  Permissions     Resolve deps   Partitioning     Monitor       │
+│  Parameter       Import UDFs    strategy          Collect      │
+│  validation                       Cost estimate   metrics      │
+│                                                                  │
+│  ┌──────────┐    ┌──────────┐    ┌──────────┐                 │
+│  │ 5. COMMIT │──▶│ 6. LINEAGE│──▶│ 7. NOTIFY │                 │
+│  └──────────┘    └──────────┘    └──────────┘                 │
+│       │               │               │                        │
+│       ▼               ▼               ▼                        │
+│  Write to Iceberg  Record lineage  Trigger downstream          │
+│  Update version    graph (dataset  pipelines                  │
+│  Snapshot          + column level) Alert on SLA                │
+│                                                                  │
+│  Error Handling at each stage:                                   │
+│  Stage 1 fail → Reject, return validation errors to user        │
+│  Stage 2 fail → Return compilation errors (line numbers)        │
+│  Stage 3 fail → Return planning errors (out of memory, etc.)    │
+│  Stage 4 fail → Retry (configurable), checkpoint, or fail       │
+│  Stage 5 fail → Transactional rollback (Iceberg snapshot)       │
+│  Stage 6 fail → Log warning, continue (non-critical)            │
+│  Stage 7 fail → Log warning, retry notification delivery        │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### 3.2.2 Transform Type Catalog (Complete)
+
+Each transform type below includes its visual editor component, code template, and Spark execution plan:
+
+**TRANSFORM: Filter**
+
+```python
+# SDK Signature
+@transform(
+    input=Input("source_dataset"),
+    output=Output("filtered_dataset")
+)
+def filter_rows(ctx, source, output):
+    df = source.dataframe()
+    # Apply filter
+    filtered = df.filter(col("status") == "active")
+    output.write_dataframe(filtered)
+```
+
+```
+Visual Editor Config:
+┌────────────────────────────────────┐
+│ Transform: Filter                  │
+│                                    │
+│ Conditions (AND/OR combinable):   │
+│ ┌──────────────────────────────┐  │
+│ │ [status] [equals] [active  ] │  │
+│ │ AND                           │  │
+│ │ [age]    [>     ] [18       ] │  │
+│ │ AND                           │  │
+│ │ [email]  [is not null       ] │  │
+│ └──────────────────────────────┘  │
+│ [+ Add Condition]                  │
+│                                    │
+│ Condition Logic: (○ AND  ○ OR)    │
+│                                    │
+│ Preview: [Run on Sample]          │
+│ Stats: 1,234,567 → 987,654 rows   │
+│        (20.0% filtered out)       │
+└────────────────────────────────────┘
+
+Spark Plan: df.filter(combined_predicate)
+```
+
+**TRANSFORM: Join**
+
+```python
+@transform(
+    left=Input("customers"),
+    right=Input("orders"),
+    output=Output("customer_orders")
+)
+def join_datasets(ctx, left, right, output):
+    left_df = left.dataframe()
+    right_df = right.dataframe()
+    joined = left_df.join(
+        right_df,
+        on=left_df["customer_id"] == right_df["cust_id"],
+        how="left"
+    )
+    output.write_dataframe(joined)
+```
+
+```
+Visual Editor Config:
+┌────────────────────────────────────┐
+│ Transform: Join                    │
+│                                    │
+│ Left Input:  [customers ▾]        │
+│ Right Input: [orders ▾]           │
+│                                    │
+│ Join Type:   [Left Outer ▾]       │
+│   Options: Inner | Left | Right   │
+│            Full | Cross | Anti    │
+│            Semi                    │
+│                                    │
+│ Join Keys:                         │
+│ ┌──────────────────────────────┐  │
+│ │ Left: [customer_id ▾]       │  │
+│ │  =                           │  │
+│ │ Right: [cust_id ▾]          │  │
+│ └──────────────────────────────┘  │
+│ [+ Add Join Key (composite)]      │
+│                                    │
+│ Column Selection:                  │
+│ ○ All columns from both           │
+│ ○ Select specific columns         │
+│                                    │
+│ Conflict Resolution:               │
+│ On duplicate column names:         │
+│ [Prefix with source name ▾]       │
+│                                    │
+│ Broadcast Hint:                    │
+│ [Auto ▾] | Broadcast Left |       │
+│ Broadcast Right | None             │
+│                                    │
+│ Preview: [Run on Sample]          │
+│ Stats: 1.2M × 5.8M → 5.8M rows   │
+│        (left join, 0 unmatched)   │
+└────────────────────────────────────┘
+
+Spark Plan: df.join(other, keys, join_type)
+  + broadcast() if right < 10MB
+```
+
+**TRANSFORM: Aggregate**
+
+```
+Visual Editor Config:
+┌────────────────────────────────────┐
+│ Transform: Aggregate               │
+│                                    │
+│ Group By:                          │
+│ [region ▾] [segment ▾]            │
+│                                    │
+│ Aggregations:                      │
+│ ┌──────────────────────────────┐  │
+│ │ [revenue]  [SUM]  → total_rev│  │
+│ │ [order_id] [COUNT]→ order_cnt│  │
+│ │ [revenue]  [AVG]  → avg_rev  │  │
+│ │ [revenue]  [MAX]  → max_rev  │  │
+│ │ [discount] [PCT_95]→ p95_disc│  │
+│ └──────────────────────────────┘  │
+│ [+ Add Aggregation]               │
+│                                    │
+│ Having Filter:                     │
+│ [order_cnt] [>] [100]            │
+│                                    │
+│ Sort: [total_rev] [DESC ▾]       │
+│ Limit: [none / 100 ▾]            │
+│                                    │
+│ Preview: [Run on Sample]          │
+│ Stats: 5.8M → 4,521 groups        │
+└────────────────────────────────────┘
+```
+
+**TRANSFORM: Map (Column Transform)**
+
+```
+Visual Editor Config:
+┌────────────────────────────────────┐
+│ Transform: Map / Column Transform  │
+│                                    │
+│ Column Operations:                 │
+│ ┌──────────────────────────────┐  │
+│ │ ADD COLUMN:                   │  │
+│ │ Name: [full_name]             │  │
+│ │ Expression: [first_name] +    │  │
+│ │   ' ' + [last_name]          │  │
+│ │                               │  │
+│ │ ADD COLUMN:                   │  │
+│ │ Name: [domain]                │  │
+│ │ Expression: SPLIT([email],    │  │
+│ │   '@')[1]                     │  │
+│ │                               │  │
+│ │ RENAME COLUMN:                │  │
+│ │ [cust_id] → [customer_id]    │  │
+│ │                               │  │
+│ │ DROP COLUMNS:                 │  │
+│ │ [internal_flag], [temp_col]  │  │
+│ │                               │  │
+│ │ CAST COLUMN:                  │  │
+│ │ [age] from INT to FLOAT      │  │
+│ └──────────────────────────────┘  │
+│ [+ Add Operation]                  │
+│                                    │
+│ Functions Library:                 │
+│ String: CONCAT, SPLIT, SUBSTR,    │
+│   UPPER, LOWER, TRIM, REGEX       │
+│ Numeric: ROUND, ABS, CEIL, FLOOR, │
+│   LOG, POWER, SQRT                │
+│ Date: YEAR, MONTH, DAY, DATEDIFF, │
+│   DATE_FORMAT, NOW                │
+│ Conditional: IF, CASE WHEN,       │
+│   COALESCE, NULLIF                │
+│ Array: ARRAY_CONTAINS, SIZE,      │
+│   EXPLODE, SLICE                  │
+│ JSON: GET_JSON_OBJECT,            │
+│   FROM_JSON, TO_JSON              │
+└────────────────────────────────────┘
+```
+
+**TRANSFORM: Custom Code (Full IDE)**
+
+Palantir's Foundry supports multiple programming languages for transforms. Nexus SHALL support:
+
+| Language | Runtime | Use Case | Auto-Schema Inference |
+|---|---|---|---|
+| Python 3.11+ | CPython + PySpark | Data manipulation, pandas-style | Yes (from return type hints + runtime) |
+| PySpark 3.5+ | Spark | Distributed transforms | Yes (from DataFrame schema) |
+| Spark SQL | Spark SQL Engine | SQL-based transforms | Yes (from SELECT projection) |
+| Scala 2.12 | Spark JVM | Performance-critical transforms | Yes (from Dataset type) |
+| R 4.3+ | SparkR / SparklyR | Statistical transforms | Partial |
+
+```
+Code Editor Features (Monaco-based):
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                  │
+│  ┌─ Language Selector ──────────────────────────────────────┐   │
+│  │ Python 3.11 | PySpark | Spark SQL | Scala | R            │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  ┌─ Code Area (Monaco Editor) ──────────────────────────────┐   │
+│  │ Features:                                                 │   │
+│  │ • Syntax highlighting (language-specific)                 │   │
+│  │ • Autocomplete (SDK methods, column names, UDFs)          │   │
+│  │ • Error squiggles (real-time static analysis)             │   │
+│  │ • Import resolution (nexus.sdk.*, pyspark.sql.*)          │   │
+│  │ • Column name autocomplete from input schemas             │   │
+│  │ • Hover documentation for SDK methods                     │   │
+│  │ • Multi-file support (imports, helper modules)            │   │
+│  │ • Git-style diff view for version comparison              │   │
+│  │ • Split view (code + preview side by side)                │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  ┌─ Inline Test Panel ─────────────────────────────────────┐   │
+│  │ [Run on Sample] [Run Selected Lines] [Debug Mode]        │   │
+│  │                                                          │   │
+│  │ Sample Size: [1000 rows ▾]                              │   │
+│  │ Source Version: [latest ▾]                               │   │
+│  │                                                          │   │
+│  │ Output:                                                  │   │
+│  │ ┌──────────────────────────────────────────────┐        │   │
+│  │ │ DataFrame[8 cols × 987 rows]  (0.23 sec)     │        │   │
+│  │ │ Preview: [Show Table] [Show Schema] [Show Stats]│       │   │
+│  │ └──────────────────────────────────────────────┘        │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  ┌─ Output Schema Inference ────────────────────────────────┐   │
+│  │ Inferred Schema (from code analysis + sample run):        │   │
+│  │ customer_id    INT64                                      │   │
+│  │ full_name      STRING                                     │   │
+│  │ email          STRING                                     │   │
+│  │ domain         STRING    ← NEW COLUMN                     │   │
+│  │ age            FLOAT64   ← TYPE CHANGED from INT          │   │
+│  │ created_at     TIMESTAMP                                  │   │
+│  │                                                          │   │
+│  │ [Accept Inferred Schema] [Override Manually]              │   │
+│  └──────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### 3.2.3 Spark Resource Management
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              SPARK JOB CONFIGURATION                             │
+│                                                                  │
+│  Per-Pipeline Spark Config:                                      │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ executor.instances:     auto | 2-100                      │   │
+│  │ executor.memory:        2g | 4g | 8g | 16g | 32g         │   │
+│  │ executor.cores:         1-8                               │   │
+│  │ driver.memory:          2g | 4g | 8g                      │   │
+│  │ dynamic.allocation:     true | false                      │   │
+│  │ max.executor.count:     10-500                            │   │
+│  │ min.executor.count:     1-10                              │   │
+│  │ shuffle.partitions:     auto | 10-10000                   │   │
+│  │ adaptive.query.execution: true (default)                  │   │
+│  │ broadcast.threshold:    10MB (default)                    │   │
+│  │ speculative.execution:  true | false                      │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  Resource Profiles (pre-configured):                             │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ SMALL:    2 executors × 4 cores × 4GB = 8 cores, 8GB    │   │
+│  │           For: < 1GB datasets, simple transforms          │   │
+│  │           Cost: ~$0.10/hour                               │   │
+│  │                                                           │   │
+│  │ MEDIUM:   8 executors × 4 cores × 8GB = 32 cores, 64GB  │   │
+│  │           For: 1-100GB datasets, joins, aggregations      │   │
+│  │           Cost: ~$0.80/hour                               │   │
+│  │                                                           │   │
+│  │ LARGE:    32 executors × 4 cores × 16GB = 128 cores, 512GB│  │
+│  │           For: 100GB-1TB datasets, complex pipelines      │   │
+│  │           Cost: ~$5.00/hour                               │   │
+│  │                                                           │   │
+│  │ XLARGE:   128 executors × 4 cores × 16GB = 512 cores, 2TB│  │
+│  │           For: 1TB+ datasets, massive joins               │   │
+│  │           Cost: ~$20.00/hour                              │   │
+│  │                                                           │   │
+│  │ GPU:      8 executors × 4 cores × 16GB + 1 GPU (A100)   │   │
+│  │           For: ML feature computation, deep learning      │   │
+│  │           Cost: ~$12.00/hour                              │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  Auto-Recommendation Engine:                                     │
+│  Based on input data size, transform complexity, and historical  │
+│  runs, the system SHALL recommend a resource profile.            │
+│                                                                  │
+│  Algorithm:                                                      │
+│  1. Estimate input size from Iceberg table statistics            │
+│  2. Calculate memory multiplier based on transform type:         │
+│     - Filter/Map: 1.2x input size                               │
+│     - Join: 2.5x larger input size                              │
+│     - Aggregate: 0.5x input size (post-group)                   │
+│     - Sort: 2.0x input size                                     │
+│  3. Select smallest profile that fits estimated memory           │
+│  4. Adjust based on historical run metrics (if available)        │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 3.3 Pipeline Lineage Engine (Deep Specification)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              LINEAGE TRACKING ARCHITECTURE                       │
+│                                                                  │
+│  Level 1: DATASET-LEVEL LINEAGE                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ Tracks: Which input datasets produce which output datasets│   │
+│  │ Storage: lineage_edges table                              │   │
+│  │ Query: "What feeds into customer_360?"                    │   │
+│  │         "What depends on raw_orders?"                     │   │
+│  │         "What is the full upstream path of dashboard_X?"  │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  Level 2: COLUMN-LEVEL LINEAGE                                   │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ Tracks: Which input columns contribute to which output    │   │
+│  │         columns, and how (direct copy, expression, agg)   │   │
+│  │ Storage: column_lineage_edges table                       │   │
+│  │ Query: "Which source columns feed into 'lifetime_value'?" │   │
+│  │         "If I change 'orders.amount', what breaks?"       │   │
+│  │                                                          │   │
+│  │ Analysis Types:                                          │   │
+│  │ • DIRECT: Output column = Input column (1:1 copy)        │   │
+│  │ • DERIVED: Output = expression(input columns)            │   │
+│  │ • AGGREGATED: Output = aggregate(input column)           │   │
+│  │ • JOINED: Output = merged from multiple inputs           │   │
+│  │ • GENERATED: Output = constant or random (no lineage)    │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  Level 3: ROW-LEVEL LINEAGE (opt-in)                             │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ Tracks: For a specific output row, which input rows       │   │
+│  │         contributed to it                                 │   │
+│  │ Storage: row_lineage table (only for flagged transforms)  │   │
+│  │ Use case: Regulatory audit, "why was this customer        │   │
+│  │           flagged as high-risk?"                          │   │
+│  │ Cost: High (adds overhead to transforms)                  │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  IMPACT ANALYSIS ENGINE:                                         │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ Input: "What if I change column X in dataset Y?"          │   │
+│  │                                                          │   │
+│  │ Algorithm:                                               │   │
+│  │ 1. Traverse downstream lineage graph from (Y, X)         │   │
+│  │ 2. Collect all affected (dataset, column) pairs           │   │
+│  │ 3. For each affected pair, classify severity:             │   │
+│  │    - BREAKING: schema change will cause failure           │   │
+│  │    - WARNING: data values may change                      │   │
+│  │    - INFO: downstream is aware but no direct impact       │   │
+│  │ 4. Return impact report with affected dashboards,         │   │
+│  │    pipelines, models, and applications                    │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  LINEAGE DATA MODEL:                                             │
+│                                                                  │
+│  lineage_edges:                                                  │
+│  id UUID PK                                                      │
+│  source_dataset_id UUID FK                                       │
+│  target_dataset_id UUID FK                                       │
+│  transform_id UUID FK                                            │
+│  pipeline_run_id UUID FK                                         │
+│  transform_type VARCHAR                                          │
+│  code_hash VARCHAR           -- hash of transform code           │
+│  created_at TIMESTAMPTZ                                          │
+│                                                                  │
+│  column_lineage_edges:                                           │
+│  id UUID PK                                                      │
+│  lineage_edge_id UUID FK → lineage_edges                        │
+│  source_dataset_id UUID                                          │
+│  source_column VARCHAR                                           │
+│  target_dataset_id UUID                                          │
+│  target_column VARCHAR                                           │
+│  transformation_type VARCHAR  -- DIRECT, DERIVED, AGG, etc.     │
+│  expression TEXT              -- the transformation expression   │
+│  created_at TIMESTAMPTZ                                          │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 3.4 Real-World Benchmarks — Pipeline Engine
+
+| Metric | Palantir Foundry (Est.) | Nexus Target | How Achieved |
+|---|---|---|---|
+| Simple filter (10M rows) | ~30 sec | < 25 sec | Spark SQL pushdown + predicate pushdown to Iceberg |
+| Complex join (10M × 50M) | ~5 min | < 4 min | Adaptive query execution, broadcast small tables |
+| Aggregation (100M rows, 10 groups) | ~45 sec | < 40 sec | Hash aggregate + partial aggregate pushdown |
+| Sort (100M rows) | ~3 min | < 2.5 min | Range partitioning + external sort |
+| Pipeline scheduling overhead | < 5 sec | < 3 sec | Pre-allocated Spark sessions, connection pooling |
+| Lineage recording overhead | < 1% of runtime | < 1% | Async lineage writes, batch inserts |
+| Checkpoint recovery time | < 30 sec | < 20 sec | Iceberg snapshot-based recovery |
+
+---
+
+## 4. Module 3 Deep-Dive — Ontology (The Semantic Operating Layer)
+
+### 4.1 Palantir Benchmark: The Ontology as the Core Innovation
+
+This is the most critical module. The Ontology is what separates Palantir from every other data platform. It is "not a knowledge graph or data catalog" — it is an **operational layer** that maps raw data into real-world business objects (citation:15).
+
+The Ontology uses two categories of elements (citation:15):
+
+**Semantic Elements** — Describing the business world:
+```
+Object Types:  Shipment, Order, Warehouse, Customer, Carrier
+Properties:    Shipment.status, Shipment.ETA, Order.priority
+Links:         Shipment belongsTo Order, Order belongsTo Customer
+```
+
+**Kinetic Elements** — Changing the business world:
+```
+Actions:    updateShipmentETA, approveOrder, assignCarrier
+Functions:  calculateDeliveryTime, predictDemand, optimizeRoute
+```
+
+Palantir's documentation advises: "Design action types around business operations, not database updates" and to "use interfaces to model shared characteristics across object types" (citation:11)(citation:12).
+
+### 4.2 Ontology Object Model (Complete Specification)
+
+#### 4.2.1 Object Type System
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              ONTOLOGY OBJECT TYPE SYSTEM                         │
+│                                                                  │
+│  Object Type Definition:                                         │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                                                          │   │
+│  │  ┌─ METADATA ──────────────────────────────────────┐    │   │
+│  │  │ apiName:        "Customer"                       │    │   │
+│  │  │ displayName:    "Customer"                       │    │   │
+│  │  │ pluralName:     "Customers"                      │    │   │
+│  │  │ description:    "A person who has purchased..."  │    │   │
+│  │  │ icon:           { type: "emoji", value: "👤" }   │    │   │
+│  │  │ color:          "#4A90D9"                        │    │   │
+│  │  │ status:         "ACTIVE" | "DRAFT" | "DEPRECATED"│    │   │
+│  │  │ version:        "2.3.1"                          │    │   │
+│  │  │ tags:           ["core", "customer-domain", "pii"]│   │   │
+│  │  │ createdAt:      "2024-01-15T10:30:00Z"           │    │   │
+│  │  │ updatedAt:      "2026-09-01T14:22:00Z"           │    │   │
+│  │  └──────────────────────────────────────────────────┘    │   │
+│  │                                                          │   │
+│  │  ┌─ IDENTITY ──────────────────────────────────────┐    │   │
+│  │  │ primaryKey:       ["customer_id"]                │    │   │
+│  │  │ backingDataset:   "domains/customer/customers_   │    │   │
+│  │  │                    cleaned"                       │    │   │
+│  │  │ idType:           "CUSTOM" | "RID" | "COMPOSITE" │    │   │
+│  │  │ idGeneration:     "FROM_DATASET" | "AUTO_INCREMENT"│  │   │
+│  │  └──────────────────────────────────────────────────┘    │   │
+│  │                                                          │   │
+│  │  ┌─ PROPERTIES ────────────────────────────────────┐    │   │
+│  │  │                                                  │    │   │
+│  │  │ ┌──────────────────────────────────────────────┐│    │   │
+│  │  │ │ Property: customer_id                        ││    │   │
+│  │  │ │ dataType: Integer                            ││    │   │
+│  │  │ │ isPrimaryKey: true                           ││    │   │
+│  │  │ │ isNullable: false                            ││    │   │
+│  │  │ │ isSearchable: true                           ││    │   │
+│  │  │ │ isSortable: true                             ││    │   │
+│  │  │ │ backingColumn: "customer_id"                 ││    │   │
+│  │  │ │ classification: "INTERNAL"                   ││    │   │
+│  │  │ └──────────────────────────────────────────────┘│    │   │
+│  │  │                                                  │    │   │
+│  │  │ ┌──────────────────────────────────────────────┐│    │   │
+│  │  │ │ Property: email                              ││    │   │
+│  │  │ │ dataType: String                             ││    │   │
+│  │  │ │ isPII: true                                  ││    │   │
+│  │  │ │ classification: "CONFIDENTIAL"               ││    │   │
+│  │  │ │ securityMarking: "PII_EMAIL"                 ││    │   │
+│  │  │ │ validation: { regex: "^[\\w.+-]+@..." }     ││    │   │
+│  │  │ │ maskingStrategy: "HASH" | "REDACT" | "LAST4" ││    │   │
+│  │  │ └──────────────────────────────────────────────┘│    │   │
+│  │  │                                                  │    │   │
+│  │  │ ┌──────────────────────────────────────────────┐│    │   │
+│  │  │ │ Property: lifetime_value                     ││    │   │
+│  │  │ │ dataType: Double                             ││    │   │
+│  │  │ │ unit: "USD"                                  ││    │   │
+│  │  │ │ aggregation: "SUM" (default for rollups)     ││    │   │
+│  │  │ │ format: { type: "currency", decimals: 2 }    ││    │   │
+│  │  │ └──────────────────────────────────────────────┘│    │   │
+│  │  │                                                  │    │   │
+│  │  │ ┌──────────────────────────────────────────────┐│    │   │
+│  │  │ │ Property: coordinates                        ││    │   │
+│  │  │ │ dataType: Geolocation                        ││    │   │
+│  │  │ │ geolocation: {                               ││    │   │
+│  │  │ │   latitude: { backingColumn: "lat" },        ││    │   │
+│  │  │ │   longitude: { backingColumn: "lng" }        ││    │   │
+│  │  │ │ }                                            ││    │   │
+│  │  │ └──────────────────────────────────────────────┘│    │   │
+│  │  └──────────────────────────────────────────────────┘    │   │
+│  │                                                          │   │
+│  │  ┌─ LINKS ─────────────────────────────────────────┐    │   │
+│  │  │                                                  │    │   │
+│  │  │ ┌──────────────────────────────────────────────┐│    │   │
+│  │  │ │ Link: orders                                 ││    │   │
+│  │  │ │ target: "Order"                              ││    │   │
+│  │  │ │ cardinality: ONE_TO_MANY                     ││    │   │
+│  │  │ │ joinKeys: {                                  ││    │   │
+│  │  │ │   sourceProperty: "customer_id",             ││    │   │
+│  │  │ │   targetProperty: "customer_id"              ││    │   │
+│  │  │ │ }                                            ││    │   │
+│  │  │ │ displayName: "Orders"                        ││    │   │
+│  │  │ └──────────────────────────────────────────────┘│    │   │
+│  │  │                                                  │    │   │
+│  │  │ ┌──────────────────────────────────────────────┐│    │   │
+│  │  │ │ Link: location                               ││    │   │
+│  │  │ │ target: "Location"                           ││    │   │
+│  │  │ │ cardinality: MANY_TO_ONE                     ││    │   │
+│  │  │ │ joinKeys: { source: "location_id",           ││    │   │
+│  │  │ │            target: "id" }                    ││    │   │
+│  │  │ └──────────────────────────────────────────────┘│    │   │
+│  │  └──────────────────────────────────────────────────┘    │   │
+│  │                                                          │   │
+│  │  ┌─ INTERFACES ────────────────────────────────────┐    │   │
+│  │  │                                                  │    │   │
+│  │  │ Implements: [ "Auditable", "GeoLocated",         │    │   │
+│  │  │              "HasRevenue" ]                      │    │   │
+│  │  │                                                  │    │   │
+│  │  │ Interface "Auditable" requires:                  │    │   │
+│  │  │   created_at: Timestamp                          │    │   │
+│  │  │   updated_at: Timestamp                          │    │   │
+│  │  │   created_by: String                             │    │   │
+│  │  │                                                  │    │   │
+│  │  │ Interface "HasRevenue" requires:                  │    │   │
+│  │  │   total_revenue: Double                          │    │   │
+│  │  │   revenue_currency: String                       │    │   │
+│  │  └──────────────────────────────────────────────────┘    │   │
+│  │                                                          │   │
+│  │  ┌─ SYNC CONFIGURATION ────────────────────────────┐    │   │
+│  │  │ syncStrategy: "REPLACE" | "MERGE" | "APPEND"    │    │   │
+│  │  │ syncTrigger: "ON_PIPELINE_COMPLETE"              │    │   │
+│  │  │ syncPipelineId: "pipeline_daily_etl"             │    │   │
+│  │  │ lastSyncAt: "2026-09-09T02:12:00Z"              │    │   │
+│  │  │ objectCount: 1230102                             │    │   │
+│  │  │ syncDurationMs: 45000                            │    │   │
+│  │  └──────────────────────────────────────────────────┘    │   │
+│  └──────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### 4.2.2 Interfaces (Palantir's Shared Type System)
+
+Palantir's documentation explicitly recommends: "Use interfaces to model shared characteristics across object types" and "target interfaces in workflows" (citation:11)(citation:13).
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              INTERFACE SYSTEM                                    │
+│                                                                  │
+│  Interface Definition:                                           │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ interface: "GeoLocated"                                   │   │
+│  │ description: "Any object type with geographic coordinates"│   │
+│  │                                                          │   │
+│  │ requiredProperties:                                      │   │
+│  │   - latitude: Double                                     │   │
+│  │   - longitude: Double                                    │   │
+│  │                                                          │   │
+│  │ derivedProperties:                                       │   │
+│  │   - geohash: String → GEOHASH(lat, lng, precision=6)    │   │
+│  │   - country: String → REVERSE_GEOCODE(lat, lng).country  │   │
+│  │                                                          │   │
+│  │ implementingObjectTypes:                                 │   │
+│  │   - Customer (maps: lat=latitude, lng=longitude)         │   │
+│  │   - Warehouse (maps: lat=location_lat, lng=location_lng)│   │
+│  │   - Store (maps: lat=geo_lat, lng=geo_lng)              │   │
+│  │   - Shipment (maps: lat=current_lat, lng=current_lng)   │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ interface: "Auditable"                                    │   │
+│  │                                                          │   │
+│  │ requiredProperties:                                      │   │
+│  │   - created_at: Timestamp                                │   │
+│  │   - updated_at: Timestamp                                │   │
+│  │   - created_by: String                                   │   │
+│  │   - updated_by: String                                   │   │
+│  │   - version_number: Integer                              │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ interface: "HasRevenue"                                   │   │
+│  │                                                          │   │
+│  │ requiredProperties:                                      │   │
+│  │   - total_revenue: Double                                │   │
+│  │                                                          │   │
+│  │ derivedProperties:                                       │   │
+│  │   - revenue_band: String → CASE                         │   │
+│  │       WHEN total_revenue > 10000 THEN 'High'            │   │
+│  │       WHEN total_revenue > 1000 THEN 'Medium'           │   │
+│  │       ELSE 'Low' END                                    │   │
+│  │                                                          │   │
+│  │ sharedActions:                                            │   │
+│  │   - applyDiscount(percentage: Double)                    │   │
+│  │   - recalculateRevenue()                                 │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  WHY INTERFACES MATTER:                                          │
+│  • Build a single dashboard that works across all "HasRevenue"  │
+│    object types (Customers, Orders, Products)                   │
+│  • Build a single map visualization that works across all       │
+│    "GeoLocated" object types                                    │
+│  • Build a single audit action that works across all            │
+│    "Auditable" object types                                     │
+│  • The AI assistant can ask "show me all GeoLocated objects"    │
+│    and get results from all implementing types                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### 4.2.3 Actions (Kinetic Ontology — Business Operations)
+
+Palantir's documentation states: "Design action types around business operations, not database updates" (citation:11). Actions "enable you to capture data" changes through governed operations (citation:12).
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              ACTION TYPE SYSTEM                                  │
+│                                                                  │
+│  Action Definition:                                              │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ apiName: "updateShipmentETA"                              │   │
+│  │ displayName: "Update Shipment ETA"                        │   │
+│  │ description: "Update the estimated time of arrival for    │   │
+│  │   a shipment. Triggers notification to customer."         │   │
+│  │                                                          │   │
+│  │ ┌─ PARAMETERS ────────────────────────────────────┐      │   │
+│  │ │ shipment: ObjectReference<Shipment>  (required)  │      │   │
+│  │ │ new_eta: DateTime                    (required)  │      │   │
+│  │ │ reason: String                       (required)  │      │   │
+│  │ │ notify_customer: Boolean             (default: true)│   │   │
+│  │ └──────────────────────────────────────────────────┘      │   │
+│  │                                                          │   │
+│  │ ┌─ VALIDATION RULES ──────────────────────────────┐      │   │
+│  │ │ new_eta > NOW()                   "ETA must be in │     │   │
+│  │ │                                    the future"    │     │   │
+│  │ │ shipment.status != "DELIVERED"    "Cannot update  │     │   │
+│  │ │                                    delivered       │     │   │
+│  │ │                                    shipments"      │     │   │
+│  │ │ LENGTH(reason) >= 10              "Reason must be  │     │   │
+│  │ │                                    at least 10     │     │   │
+│  │ │                                    characters"     │     │   │
+│  │ └──────────────────────────────────────────────────┘      │   │
+│  │                                                          │   │
+│  │ ┌─ IMPLEMENTATION ────────────────────────────────┐      │   │
+│  │ │ type: "FUNCTION" | "DATA_TRANSFORMATION" |       │      │   │
+│  │ │       "EXTERNAL_API" | "WORKFLOW"                 │      │   │
+│  │ │                                                  │      │   │
+│  │ │ For FUNCTION type:                               │      │   │
+│  │ │ code: |                                          │      │   │
+│  │ │   def execute(shipment, new_eta, reason,         │      │   │
+│  │ │               notify_customer):                   │      │   │
+│  │ │     # Update the shipment object                  │      │   │
+│  │ │     shipment.eta = new_eta                        │      │   │
+│  │ │     shipment.status = "RESCHEDULED"              │      │   │
+│  │ │     shipment.last_eta_change_reason = reason      │      │   │
+│  │ │     shipment.save()                               │      │   │
+│  │ │                                                  │      │   │
+│  │ │     # Log the change                              │      │   │
+│  │ │     audit_log.record(                             │      │   │
+│  │ │       action="updateShipmentETA",                 │      │   │
+│  │ │       object=shipment,                            │      │   │
+│  │ │       changes={"eta": new_eta}                    │      │   │
+│  │ │     )                                             │      │   │
+│  │ │                                                  │      │   │
+│  │ │     # Side effect: notification                   │      │   │
+│  │ │     if notify_customer:                           │      │   │
+│  │ │       notification.send(                          │      │   │
+│  │ │         user=shipment.customer,                   │      │   │
+│  │ │         template="eta_updated",                   │      │   │
+│  │ │         data={"new_eta": new_eta}                 │      │   │
+│  │ │       )                                           │      │   │
+│  │ └──────────────────────────────────────────────────┘      │   │
+│  │                                                          │   │
+│  │ ┌─ SIDE EFFECTS DECLARATION ──────────────────────┐      │   │
+│  │ │ modifies: [Shipment.eta, Shipment.status]        │      │   │
+│  │ │ sendsNotifications: true                          │      │   │
+│  │ │ writesToAuditLog: true                            │      │   │
+│  │ │ externalCalls: []                                 │      │   │
+│  │ └──────────────────────────────────────────────────┘      │   │
+│  │                                                          │   │
+│  │ ┌─ GOVERNANCE ────────────────────────────────────┐      │   │
+│  │ │ requiresApproval: false                           │      │   │
+│  │ │ allowedRoles: ["Logistics Manager", "Admin"]      │      │   │
+│  │ │ rateLimit: { maxPerHour: 100 }                   │      │   │
+│  │ │ reversible: true                                  │      │   │
+│  │ │ rollbackAction: "restorePreviousETA"              │      │   │
+│  │ └──────────────────────────────────────────────────┘      │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  ACTION EXECUTION FLOW:                                          │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ 1. User/Agent invokes action with parameters              │   │
+│  │ 2. System validates permissions (RBAC + action-level)      │   │
+│  │ 3. System validates parameters (types, validation rules)   │   │
+│  │ 4. If requiresApproval → route to approver queue          │   │
+│  │    → WAIT for approval/rejection                          │   │
+│  │ 5. Execute action code in sandboxed environment           │   │
+│  │ 6. Record all side effects in audit log                   │   │
+│  │ 7. If reversible → store rollback data                    │   │
+│  │ 8. Return result to caller                                │   │
+│  │ 9. If any step fails → rollback all changes               │   │
+│  └──────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### 4.2.4 Functions (Computational Ontology)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              FUNCTION TYPE SYSTEM                                │
+│                                                                  │
+│  Function Definition:                                            │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ apiName: "calculateDeliveryTime"                          │   │
+│  │ displayName: "Calculate Delivery Time"                    │   │
+│  │ description: "Predict delivery time based on origin,      │   │
+│  │   destination, carrier, and current conditions"           │   │
+│  │                                                          │   │
+│  │ ┌─ PARAMETERS ────────────────────────────────────┐      │   │
+│  │ │ origin: ObjectReference<Warehouse>  (required)   │      │   │
+│  │ │ destination: ObjectReference<Location> (required)│      │   │
+│  │ │ carrier: ObjectReference<Carrier>   (required)   │      │   │
+│  │ │ priority: String ("STANDARD"|"EXPRESS"|"OVERNIGHT")│    │   │
+│  │ └──────────────────────────────────────────────────┘      │   │
+│  │                                                          │   │
+│  │ ┌─ RETURN TYPE ───────────────────────────────────┐      │   │
+│  │ │ type: Object                                      │      │   │
+│  │ │ schema: {                                         │      │   │
+│  │ │   estimated_hours: Double,                        │      │   │
+│  │ │   estimated_arrival: DateTime,                    │      │   │
+│  │ │   confidence: Double (0.0 to 1.0),                │      │   │
+│  │ │   route_description: String                       │      │   │
+│  │ │ }                                                 │      │   │
+│  │ └──────────────────────────────────────────────────┘      │   │
+│  │                                                          │   │
+│  │ ┌─ IMPLEMENTATION ────────────────────────────────┐      │   │
+│  │ │ type: "ML_MODEL" | "COMPUTED" | "EXTERNAL_API"   │      │   │
+│  │ │                                                  │      │   │
+│  │ │ For ML_MODEL:                                    │      │   │
+│  │ │ modelId: "delivery_time_predictor_v2"            │      │   │
+│  │ │ featureMapping: {                                │      │   │
+│  │ │   "origin_lat": "origin.latitude",               │      │   │
+│  │ │   "origin_lng": "origin.longitude",              │      │   │
+│  │ │   "dest_lat": "destination.latitude",            │      │   │
+│  │ │   "dest_lng": "destination.longitude",           │      │   │
+│  │ │   "carrier_performance": "carrier.performance    │      │   │
+│  │ │                          _score",                │      │   │
+│  │ │   "priority_level": "priority"                   │      │   │
+│  │ │ }                                                │      │   │
+│  │ │ caching: { ttl: 300, keyBy: ["origin", "dest"] }│      │   │
+│  │ └──────────────────────────────────────────────────┘      │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  FUNCTION CATEGORIES:                                            │
+│                                                                  │
+│  1. COMPUTED: Pure data transformations                          │
+│     Example: calculateAge(birth_date) → Integer                  │
+│     Runs: In the Ontology compute engine                         │
+│     Caching: Configurable TTL                                    │
+│                                                                  │
+│  2. ML_MODEL: Wraps an ML model as a function                    │
+│     Example: predictChurn(customer) → { probability, factors }   │
+│     Runs: Via model serving endpoint                             │
+│     Caching: Configurable TTL + model version aware              │
+│                                                                  │
+│  3. EXTERNAL_API: Calls an external service                      │
+│     Example: geocodeAddress(address) → { lat, lng }             │
+│     Runs: Via HTTP client with circuit breaker                   │
+│     Caching: Configurable TTL                                    │
+│     Rate limiting: Configurable                                  │
+│                                                                  │
+│  4. AGGREGATE: Runs across multiple objects                      │
+│     Example: averageOrderValue(customer_id) → Double            │
+│     Runs: Against the backing dataset                            │
+│     Caching: Short TTL (data changes frequently)                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 4.3 Ontology Query Engine (Deep Specification)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              ONTOLOGY QUERY ENGINE                                │
+│                                                                  │
+│  Query Types Supported:                                          │
+│                                                                  │
+│  1. OBJECT LOOKUP                                                │
+│  GET /api/v1/ontology/objects/Customer/1001                      │
+│  → Returns: Single object with all properties + linked objects   │
+│  → SQL: SELECT * FROM customers_cleaned WHERE customer_id=1001  │
+│  → + resolve links: fetch orders, location, reviews              │
+│                                                                  │
+│  2. OBJECT QUERY (filtered list)                                 │
+│  POST /api/v1/ontology/objects/Customer/query                    │
+│  Body: {                                                         │
+│    "filter": {                                                   │
+│      "AND": [                                                    │
+│        { "property": "segment", "operator": "eq", "value": "Premium" },│
+│        { "property": "lifetime_value", "operator": "gt", "value": 10000 }│
+│      ]                                                           │
+│    },                                                            │
+│    "sort": { "property": "lifetime_value", "order": "desc" },   │
+│    "pagination": { "cursor": null, "limit": 50 },               │
+│    "includeLinks": ["orders", "location"],                       │
+│    "select": ["customer_id", "first_name", "last_name",         │
+│               "lifetime_value", "segment"]                       │
+│  }                                                               │
+│  → Translates to: SELECT ... FROM customers_cleaned              │
+│    WHERE segment='Premium' AND lifetime_value > 10000            │
+│    ORDER BY lifetime_value DESC LIMIT 50                         │
+│  → + resolve links (JOIN or N+1 with batching)                   │
+│                                                                  │
+│  3. LINK TRAVERSAL                                               │
+│  GET /api/v1/ontology/objects/Customer/1001/orders               │
+│  → Returns: All Order objects linked to Customer 1001            │
+│  → SQL: SELECT * FROM orders WHERE customer_id = 1001            │
+│                                                                  │
+│  4. INTERFACE-BASED QUERY                                        │
+│  POST /api/v1/ontology/interfaces/GeoLocated/query               │
+│  Body: {                                                         │
+│    "filter": { "near": { "lat": 37.77, "lng": -122.41,         │
+│                          "radius_km": 50 }},                    │
+│    "limit": 100                                                  │
+│  }                                                               │
+│  → Returns: Objects from ALL implementing types (Customer,       │
+│    Warehouse, Store) that are within 50km of the point           │
+│  → SQL: UNION ALL across implementing tables with geospatial     │
+│    filter                                                        │
+│                                                                  │
+│  5. AGGREGATION QUERY                                            │
+│  POST /api/v1/ontology/objects/Customer/aggregate                │
+│  Body: {                                                         │
+│    "groupBy": ["segment"],                                       │
+│    "aggregations": [                                             │
+│      { "property": "lifetime_value", "function": "AVG" },       │
+│      { "property": "customer_id", "function": "COUNT" }         │
+│    ],                                                            │
+│    "filter": { "property": "country", "operator": "eq",         │
+│               "value": "US" }                                   │
+│  }                                                               │
+│  → SQL: SELECT segment, AVG(lifetime_value), COUNT(*)            │
+│    FROM customers_cleaned WHERE country='US' GROUP BY segment    │
+│                                                                  │
+│  QUERY OPTIMIZATION:                                             │
+│  • Predicate pushdown to Iceberg (filter at storage level)       │
+│  • Projection pushdown (only read needed columns)                │
+│  • Link resolution batching (batch N+1 queries)                  │
+│  • Result caching (Redis, configurable TTL per object type)      │
+│  • Query plan caching (prepared statements)                      │
+│  • Parallel link resolution for fan-out queries                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 4.4 Data Catalog (Deep Specification)
+
+Entity resolution is a critical capability — one of the key challenges organizations face is "efficiently resolving entities across vast and disparate datasets" (citation:3). Our catalog SHALL include:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              CATALOG CAPABILITIES                                │
+│                                                                  │
+│  1. AUTOMATED DISCOVERY                                          │
+│  • Schema inference from Iceberg table metadata                  │
+│  • Column type detection (PII, date, numeric, categorical)       │
+│  • Relationship detection (foreign key pattern matching)         │
+│  • Data profiling (statistics, distributions, cardinality)       │
+│                                                                  │
+│  2. PII DETECTION ENGINE                                         │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ Pattern-Based Detection:                                  │   │
+│  │ • Email: regex ^[\w.+-]+@[\w.-]+\.[a-zA-Z]{2,}$         │   │
+│  │ • Phone: regex ^\+?[\d\s\-\(\)]{7,15}$                  │   │
+│  │ • SSN: regex ^\d{3}-\d{2}-\d{4}$                        │   │
+│  │ • Credit Card: regex ^\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}$││
+│  │ • IP Address: regex ^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$│   │
+│  │                                                          │   │
+│  │ Name-Based Detection:                                     │   │
+│  │ Column name contains: email, phone, ssn, name, address,  │   │
+│  │ birth, dob, passport, license, ip_address, etc.          │   │
+│  │                                                          │   │
+│  │ ML-Based Detection:                                       │   │
+│  │ NER model scans sample data for person names, addresses, │   │
+│  │ organizations, dates of birth                             │   │
+│  │                                                          │   │
+│  │ Confidence Score: 0.0 to 1.0 per column                 │   │
+│  │ Auto-classification at confidence > 0.85                  │   │
+│  │ Manual review queue for confidence 0.5 to 0.85           │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  3. DATA QUALITY SCORING                                         │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ Dimensions (each scored 0-100):                           │   │
+│  │                                                          │   │
+│  │ COMPLETENESS: % of non-null values across all columns    │   │
+│  │ Formula: (total_cells - null_cells) / total_cells * 100  │   │
+│  │                                                          │   │
+│  │ UNIQUENESS: % of unique values in key columns            │   │
+│  │ Formula: unique_values / total_values * 100              │   │
+│  │                                                          │   │
+│  │ TIMELINESS: Freshness of data vs. expected update freq   │   │
+│  │ Formula: max(0, 100 - (age_hours / expected_hours * 100))│   │
+│  │                                                          │   │
+│  │ CONSISTENCY: % of values matching expected format/type   │   │
+│  │ Formula: valid_values / total_values * 100               │   │
+│  │                                                          │   │
+│  │ ACCURACY: % of values within expected range              │   │
+│  │ Formula: in_range_values / total_values * 100            │   │
+│  │                                                          │   │
+│  │ OVERALL: weighted average of all dimensions              │   │
+│  │ Weights: Completeness(0.25) + Uniqueness(0.20) +        │   │
+│  │          Timeliness(0.20) + Consistency(0.20) +          │   │
+│  │          Accuracy(0.15)                                  │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  4. FULL-TEXT SEARCH                                             │
+│  Search scope: dataset names, descriptions, column names,       │
+│  column descriptions, tags, owner names, object type names,     │
+│  property names, action names, function names                   │
+│                                                                  │
+│  Search engine: Elasticsearch 8.x                                │
+│  Index update: Near real-time (< 30 sec after change)           │
+│  Features: Fuzzy matching, synonym expansion, stemming,          │
+│  relevance scoring, highlighted snippets                        │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 5. Module 4 Deep-Dive — Lakehouse Storage & Version Control
+
+### 5.1 Palantir Benchmark: Version Control as Core Infrastructure
+
+All scheduled pipeline workflows in Foundry are fully version-controlled (citation:18). Our storage layer SHALL implement a complete lakehouse architecture with Iceberg as the table format.
+
+### 5.2 Iceberg Table Management
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              ICEBERG TABLE OPERATIONS                             │
+│                                                                  │
+│  Supported Operations:                                           │
+│                                                                  │
+│  1. APPEND: Add new rows (most common for pipelines)             │
+│     Iceberg: Data file append + new snapshot                     │
+│     Atomicity: Yes (snapshot-level)                              │
+│                                                                  │
+│  2. OVERWRITE: Replace all rows (full refresh)                   │
+│     Iceberg: New data files + delete old files in new snapshot   │
+│     Atomicity: Yes                                               │
+│                                                                  │
+│  3. DELETE: Remove specific rows                                 │
+│     Iceberg: Position delete files or equality delete files      │
+│     Atomicity: Yes                                               │
+│                                                                  │
+│  4. MERGE (Upsert): Insert or update based on key                │
+│     Iceberg: MERGE INTO SQL support                              │
+│     Atomicity: Yes                                               │
+│                                                                  │
+│  5. SCHEMA UPDATE: Add/rename columns, widen types              │
+│     Iceberg: Schema evolution with schema ID tracking            │
+│     Atomicity: Yes                                               │
+│     Compatibility: Additive only (no breaking changes)           │
+│                                                                  │
+│  6. PARTITION EVOLUTION: Change partition scheme                  │
+│     Iceberg: Hidden partitioning, partition evolution             │
+│     Atomicity: Yes                                               │
+│                                                                  │
+│  TIME TRAVEL:                                                    │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ Query by snapshot ID:                                     │   │
+│  │ SELECT * FROM customers_cleaned                           │   │
+│  │   FOR SYSTEM_VERSION AS OF 47                             │   │
+│  │                                                          │   │
+│  │ Query by timestamp:                                       │   │
+│  │ SELECT * FROM customers_cleaned                           │   │
+│  │   FOR SYSTEM_TIME AS OF '2026-09-08 02:00:00'            │   │
+│  │                                                          │   │
+│  │ Diff between versions:                                    │   │
+│  │ SELECT * FROM customers_cleaned                           │   │
+│  │   CHANGES BETWEEN VERSION 46 AND 47                      │   │
+│  │   (returns added, deleted, modified rows)                 │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  BRANCHING:                                                      │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ Create branch:                                            │   │
+│  │ ALTER TABLE customers_cleaned CREATE BRANCH 'experiment1' │   │
+│  │                                                          │   │
+│  │ Write to branch:                                          │   │
+│  │ INSERT INTO customers_cleaned.branch_experiment1          │   │
+│  │   SELECT * FROM transform_output                          │   │
+│  │                                                          │   │
+│  │ Query branch:                                             │   │
+│  │ SELECT * FROM customers_cleaned.branch_experiment1        │   │
+│  │                                                          │   │
+│  │ Merge branch:                                             │   │
+│  │ ALTER TABLE customers_cleaned                             │   │
+│  │   FAST-FORWARD BRANCH 'main' TO 'experiment1'            │   │
+│  │                                                          │   │
+│  │ Delete branch:                                            │   │
+│  │ ALTER TABLE customers_cleaned DROP BRANCH 'experiment1'   │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  COMPACTION:                                                     │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ Problem: Many small files from frequent pipeline runs     │   │
+│  │ Solution: Automatic compaction                            │   │
+│  │                                                          │   │
+│  │ Policy:                                                   │   │
+│  │ • Trigger when file count > 100 per partition             │   │
+│  │ • Target file size: 256 MB                                │   │
+│  │ • Run during low-traffic hours (configurable)             │   │
+│  │ • Rewrite data files + commit new snapshot                │   │
+│  │ • Old files cleaned up per retention policy               │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  SNAPSHOT RETENTION:                                             │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ Default Policy:                                           │   │
+│  │ • Keep all snapshots from last 24 hours                   │   │
+│  │ • Keep hourly snapshots for last 7 days                   │   │
+│  │ • Keep daily snapshots for last 30 days                   │   │
+│  │ • Keep weekly snapshots for last 1 year                   │   │
+│  │ • Keep monthly snapshots forever                          │   │
+│  │                                                          │   │
+│  │ Configurable per dataset. Minimum retention: 7 days.      │   │
+│  │ Changelog retention: Always matches snapshot retention.    │   │
+│  └──────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 6. Module 5 Deep-Dive — Analytics & Visualization (Contour-class)
+
+### 6.1 Palantir Benchmark: Contour
+
+Contour is Palantir's analytical visualization tool that enables users to "visualize, filter, and transform data without code" and to "organize complex analyses into analytical paths" and "parameterize analyses" (citation:4). Foundry's analytical suite "supports both point-and-click analysis (no-code or low-code) and code-based data analysis" (citation:2).
+
+### 6.2 Visualization Engine Specification
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              VISUALIZATION ENGINE ARCHITECTURE                   │
+│                                                                  │
+│  ┌─ QUERY LAYER ───────────────────────────────────────────┐    │
+│  │                                                          │    │
+│  │  User Interaction → Widget Config → Ontology Query       │    │
+│  │       │                    │              │               │    │
+│  │       ▼                    ▼              ▼               │    │
+│  │  Filter/Drag/       Generate query   Execute against     │    │
+│  │  Configure          spec (JSON)      Ontology objects    │    │
+│  │                                                          │    │
+│  │  Widget Query Spec Example:                              │    │
+│  │  {                                                       │    │
+│  │    "objectType": "Order",                                │    │
+│  │    "select": ["order_date", "revenue"],                  │    │
+│  │    "filter": [                                           │    │
+│  │      { "property": "status", "eq": "completed" },       │    │
+│  │      { "property": "order_date", "gte": "2026-01-01" }  │    │
+│  │    ],                                                    │    │
+│  │    "groupBy": {                                          │    │
+│  │      "property": "order_date",                           │    │
+│  │      "granularity": "month"                              │    │
+│  │    },                                                    │    │
+│  │    "aggregation": { "property": "revenue", "fn": "SUM" }│    │
+│  │  }                                                       │    │
+│  └──────────────────────────────────────────────────────────┘    │
+│                                                                  │
+│  ┌─ RENDERING LAYER ──────────────────────────────────────┐     │
+│  │                                                          │    │
+│  │  Chart Library: Apache ECharts 5.x (primary)             │    │
+│  │  Map Library: Leaflet + Mapbox GL                        │    │
+│  │  Table: Custom virtual-scroll table component            │    │
+│  │                                                          │    │
+│  │  Rendering Pipeline:                                     │    │
+│  │  1. Query result (JSON/Arrow) arrives                    │    │
+│  │  2. Data transformer normalizes to chart-ready format    │    │
+│  │  3. Chart config generator maps user selections to       │    │
+│  │     ECharts option object                                │    │
+│  │  4. ECharts renders with animation                       │    │
+│  │  5. Interaction handlers registered (click, hover,       │    │
+│  │     brush, zoom)                                         │    │
+│  │  6. Cross-filter events emitted to dashboard bus         │    │
+│  └──────────────────────────────────────────────────────────┘    │
+│                                                                  │
+│  ┌─ CHART TYPE CATALOG (Complete) ────────────────────────┐    │
+│  │                                                          │    │
+│  │  BASIC:                                                  │    │
+│  │  • Line Chart (single/multi series, area fill, stacked)  │    │
+│  │  • Bar Chart (vertical, horizontal, stacked, grouped)    │    │
+│  │  • Pie Chart                                             │    │
+│  │  • Donut Chart                                           │    │
+│  │  • Scatter Plot (with optional size/color dimensions)    │    │
+│  │  • Bubble Chart                                          │    │
+│  │  • Area Chart (stacked, percentage)                      │    │
+│  │                                                          │    │
+│  │  STATISTICAL:                                            │    │
+│  │  • Box Plot (with outliers)                              │    │
+│  │  • Histogram (configurable bin count)                    │    │
+│  │  • Heatmap (2D density)                                  │    │
+│  │  • Candlestick / OHLC                                    │    │
+│  │  • Radar / Spider Chart                                  │    │
+│  │  • Error Bar                                             │    │
+│  │                                                          │    │
+│  │  HIERARCHICAL:                                           │    │
+│  │  • Treemap                                               │    │
+│  │  • Sunburst                                              │    │
+│  │  • Sankey Diagram                                        │    │
+│  │  • Funnel Chart                                          │    │
+│  │                                                          │    │
+│  │  RELATIONAL:                                             │    │
+│  │  • Network / Graph (node-link diagram)                   │    │
+│  │  • Chord Diagram                                         │    │
+│  │                                                          │    │
+│  │  GEOGRAPHIC:                                             │    │
+│  │  • Choropleth Map                                        │    │
+│  │  • Bubble Map                                            │    │
+│  │  • Heat Map (geographic)                                 │    │
+│  │  • Point Map (with clustering)                           │    │
+│  │  • Flow Map (origin-destination)                         │    │
+│  │                                                          │    │
+│  │  KPI / GAUGE:                                            │    │
+│  │  • KPI Card (value + trend + comparison)                 │    │
+│  │  • Gauge Chart                                           │    │
+│  │  • Progress Bar                                          │    │
+│  │  • Bullet Chart                                          │    │
+│  │                                                          │    │
+│  │  SPECIAL:                                                │    │
+│  │  • Waterfall Chart                                       │    │
+│  │  • Word Cloud                                            │    │
+│  │  • Timeline / Gantt                                      │    │
+│  │  • Sparkline (inline)                                    │    │
+│  │  • Pareto Chart                                          │    │
+│  └──────────────────────────────────────────────────────────┘    │
+│                                                                  │
+│  ┌─ CROSS-FILTERING ENGINE ───────────────────────────────┐    │
+│  │                                                          │    │
+│  │  When user clicks a data point in Widget A:              │    │
+│  │  1. Widget A emits cross-filter event:                   │    │
+│  │     { source: "widget_a",                                │    │
+│  │       filter: { property: "segment", value: "Premium" }} │    │
+│  │  2. Dashboard event bus broadcasts to all widgets        │    │
+│  │  3. Each widget checks if it has a matching filterable   │    │
+│  │     dimension                                            │    │
+│  │  4. Matching widgets apply the filter and re-query       │    │
+│  │  5. Non-matching widgets remain unchanged                │    │
+│  │  6. Visual indication shows which widgets are filtered   │    │
+│  │                                                          │    │
+│  │  Configuration per widget:                               │    │
+│  │  crossFilterBindings: [                                  │    │
+│  │    { dimension: "segment", accepts: ["segment"] },       │    │
+│  │    { dimension: "region", accepts: ["region", "country"] }│   │
+│  │  ]                                                       │    │
+│  │  crossFilterMode: "BROADCAST" | "RECEIVE_ONLY" | "NONE" │    │
+│  └──────────────────────────────────────────────────────────┘    │
+│                                                                  │
+│  ┌─ DRILL-DOWN ENGINE ────────────────────────────────────┐    │
+│  │                                                          │    │
+│  │  Hierarchies (configurable per dimension):               │    │
+│  │  Time:     Year → Quarter → Month → Week → Day          │    │
+│  │  Geography: Country → State → City → ZIP                │    │
+│  │  Product:  Category → Subcategory → Product → SKU       │    │
+│  │  Org:      Division → Department → Team → Individual    │    │
+│  │                                                          │    │
+│  │  Interaction:                                            │    │
+│  │  • Click on a bar/point → drill down one level           │    │
+│  │  • Breadcrumb trail shows current drill path             │    │
+│  │  • Click breadcrumb to drill back up                     │    │
+│  │  • Right-click → "Drill to detail" (show raw records)    │    │
+│  └──────────────────────────────────────────────────────────┘    │
+│                                                                  │
+│  ┌─ ANALYTICAL PATHS (Contour-style) ─────────────────────┐    │
+│  │                                                          │    │
+│  │  Concept: Users can explore data through a series of     │    │
+│  │  analytical steps, each building on the previous one.    │    │
+│  │  Like a "breadcrumb trail" of analysis.                  │    │
+│  │                                                          │    │
+│  │  Example Path:                                           │    │
+│  │  Step 1: "All Orders" (5.8M rows)                       │    │
+│  │  Step 2: Filter "region = West" (1.4M rows)             │    │
+│  │  Step 3: Group by "product_category" → Bar chart         │    │
+│  │  Step 4: Drill into "Electronics" (234K rows)            │    │
+│  │  Step 5: Add "time" dimension → Trend line               │    │
+│  │  Step 6: Compare with "East" region → Dual line chart    │    │
+│  │                                                          │    │
+│  │  Each step is saved and can be:                          │    │
+│  │  • Named and shared with other users                     │    │
+│  │  • Branched (explore alternative paths from any step)    │    │
+│  │  • Converted to a dashboard widget                       │    │
+│  │  • Exported as a report                                  │    │
+│  └──────────────────────────────────────────────────────────┘    │
+│                                                                  │
+│  ┌─ PARAMETERIZED ANALYSES ───────────────────────────────┐    │
+│  │                                                          │    │
+│  │  Users can define parameters that make analyses reusable:│    │
+│  │                                                          │    │
+│  │  Parameters:                                             │    │
+│  │  • date_range: DateRange  (default: last 30 days)       │    │
+│  │  • region: String[]       (default: ["All"])             │    │
+│  │  • min_revenue: Double    (default: 0)                   │    │
+│  │  • compare_mode: Boolean  (default: false)               │    │
+│  │                                                          │    │
+│  │  These parameters appear as UI controls at the top of    │    │
+│  │  the analysis and propagate to all queries.              │    │
+│  │                                                          │    │
+│  │  Can be shared as templates:                             │    │
+│  │  "Here's my regional sales analysis. Change the          │    │
+│  │   parameters to see your region."                        │    │
+│  └──────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 7. Module 6 Deep-Dive — AIP (Agent + LLM + Governance)
+
+### 7.1 Palantir Benchmark: AIP Architecture
+
+Palantir's AIP integrates LLMs with data analytics and operations (citation:22). The approach is "driven by realism" — Palantir focuses on building "an AI Operating System that allows an organization to actually use AI/ML models as part of an ecosystem of value creation" (citation:23). AIP allows organizations to "run LLMs and other models on your private network with full control" (citation:21).
+
+### 7.2 AIP Agent Architecture (Deep Specification)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              AIP AGENT ARCHITECTURE                               │
+│                                                                  │
+│  ┌─ USER MESSAGE ─────────────────────────────────────────┐     │
+│  │ "Show me all delayed shipments for VIP customers and    │     │
+│  │  update their ETA by 2 days"                            │     │
+│  └──────────────────────────────┬─────────────────────────┘     │
+│                                 │                                │
+│                                 ▼                                │
+│  ┌─ RETRIEVAL CONTEXT INJECTION ──────────────────────────┐     │
+│  │                                                          │     │
+│  │ DETERMINISTIC (not LLM-decided):                         │     │
+│  │                                                          │     │
+│  │ 1. User Context:                                         │     │
+│  │    {                                                     │     │
+│  │      userId: "alice_123",                                │     │
+│  │      roles: ["logistics_manager"],                       │     │
+│  │      permissions: ["read:shipment", "write:shipment",    │     │
+│  │                     "read:customer", "read:order"],       │     │
+│  │      dataScope: { region: ["West", "East"] }             │     │
+│  │    }                                                     │     │
+│  │                                                          │     │
+│  │ 2. Ontology Schema Context (relevant subset):            │     │
+│  │    ObjectTypes: [Shipment, Customer, Order]               │     │
+│  │    Properties: [Shipment.status, Shipment.ETA,            │     │
+│  │                 Customer.segment, Customer.name]          │     │
+│  │    Links: [Shipment → Order → Customer]                   │     │
+│  │    Actions: [updateShipmentETA]                           │     │
+│  │    Functions: [calculateDeliveryTime]                     │     │
+│  │                                                          │     │
+│  │ 3. Recent Context (conversation history, recent queries)  │     │
+│  │                                                          │     │
+│  │ WHY DETERMINISTIC?                                       │     │
+│  │ Prevents the LLM from "choosing" what context to see.    │     │
+│  │ The system ALWAYS injects the same governed context for   │     │
+│  │ a given user and their permissions. No hallucination of   │     │
+│  │ schema. No forgetting of security boundaries.             │     │
+│  └──────────────────────────────┬─────────────────────────┘     │
+│                                 │                                │
+│                                 ▼                                │
+│  ┌─ LLM REASONING ────────────────────────────────────────┐     │
+│  │                                                          │     │
+│  │ The LLM receives: user message + retrieval context       │     │
+│  │                                                          │     │
+│  │ LLM Output (structured):                                 │     │
+│  │ {                                                        │     │
+│  │   "reasoning": "User wants to find delayed shipments     │     │
+│  │     for VIP customers. I need to:                        │     │
+│  │     1. Query Shipment objects where status='DELAYED'     │     │
+│  │     2. Filter by linked Customer.segment='VIP'           │     │
+│  │     3. For each result, invoke updateShipmentETA action  │     │
+│  │     4. Set new_eta = current_eta + 2 days",              │     │
+│  │                                                          │     │
+│  │   "steps": [                                             │     │
+│  │     {                                                    │     │
+│  │       "tool": "ontology_query",                          │     │
+│  │       "parameters": {                                    │     │
+│  │         "objectType": "Shipment",                        │     │
+│  │         "filter": {                                      │     │
+│  │           "AND": [                                       │     │
+│  │             { "property": "status", "eq": "DELAYED" },  │     │
+│  │             { "link": "order.customer",                  │     │
+│  │               "property": "segment", "eq": "VIP" }      │     │
+│  │           ]                                              │     │
+│  │         }                                                │     │
+│  │       }                                                  │     │
+│  │     },                                                   │     │
+│  │     {                                                    │     │
+│  │       "tool": "confirm_action",                          │     │
+│  │       "parameters": {                                    │     │
+│  │         "message": "Found 23 delayed shipments for VIP   │     │
+│  │           customers. Update ETA by 2 days for all?",     │     │
+│  │         "actions_count": 23                              │     │
+│  │       }                                                  │     │
+│  │     },                                                   │     │
+│  │     {                                                    │     │
+│  │       "tool": "execute_action_batch",                    │     │
+│  │       "parameters": {                                    │     │
+│  │         "action": "updateShipmentETA",                   │     │
+│  │         "objects": "$step1.results",                     │     │
+│  │         "params": {                                      │     │
+│  │           "new_eta": "current_eta + 2 days",             │     │
+│  │           "reason": "Delayed due to weather conditions"  │     │
+│  │         }                                                │     │
+│  │       }                                                  │     │
+│  │     }                                                    │     │
+│  │   ]                                                      │     │
+│  │ }                                                        │     │
+│  └──────────────────────────────┬─────────────────────────┘     │
+│                                 │                                │
+│                                 ▼                                │
+│  ┌─ TOOL EXECUTION ENGINE ────────────────────────────────┐     │
+│  │                                                          │     │
+│  │ Tool Registry:                                           │     │
+│  │                                                          │     │
+│  │ ┌──────────────────────────────────────────────────┐    │     │
+│  │ │ Tool: ontology_query                              │    │     │
+│  │ │ Description: "Query objects from the Ontology     │    │     │
+│  │ │   with filtering, sorting, and pagination"        │    │     │
+│  │ │ Input Schema: { objectType, filter, sort, limit } │    │     │
+│  │ │ Execution: Translates to Ontology Query Engine    │    │     │
+│  │ │ Governance: Row-level security applied            │    │     │
+│  │ └──────────────────────────────────────────────────┘    │     │
+│  │                                                          │     │
+│  │ ┌──────────────────────────────────────────────────┐    │     │
+│  │ │ Tool: execute_action                              │    │     │
+│  │ │ Description: "Execute an Ontology action on a     │    │     │
+│  │ │   specific object"                                │    │     │
+│  │ │ Input Schema: { actionName, objectRef, params }   │    │     │
+│  │ │ Execution: Action validation + execution pipeline │    │     │
+│  │ │ Governance: Action-level permissions checked      │    │     │
+│  │ └──────────────────────────────────────────────────┘    │     │
+│  │                                                          │     │
+│  │ ┌──────────────────────────────────────────────────┐    │     │
+│  │ │ Tool: execute_function                            │    │     │
+│  │ │ Description: "Execute an Ontology function"       │    │     │
+│  │ │ Input Schema: { functionName, params }            │    │     │
+│  │ │ Execution: Function execution pipeline            │    │     │
+│  │ │ Governance: Read-only, logged                     │    │     │
+│  │ └──────────────────────────────────────────────────┘    │     │
+│  │                                                          │     │
+│  │ ┌──────────────────────────────────────────────────┐    │     │
+│  │ │ Tool: create_visualization                        │    │     │
+│  │ │ Description: "Create a chart from data"           │    │     │
+│  │ │ Input Schema: { chartType, data, config }         │    │     │
+│  │ │ Execution: Rendering engine produces chart        │    │     │
+│  │ └──────────────────────────────────────────────────┘    │     │
+│  │                                                          │     │
+│  │ ┌──────────────────────────────────────────────────┐    │     │
+│  │ │ Tool: confirm_action                              │    │     │
+│  │ │ Description: "Ask user for confirmation before    │    │     │
+│  │ │   executing a destructive action"                 │    │     │
+│  │ │ Input Schema: { message, action_preview }         │    │     │
+│  │ │ Execution: Renders confirmation dialog to user    │    │     │
+│  │ │ ALWAYS required for write operations              │    │     │
+│  │ └──────────────────────────────────────────────────┘    │     │
+│  │                                                          │     │
+│  │ ┌──────────────────────────────────────────────────┐    │     │
+│  │ │ Tool: execute_pipeline                            │    │     │
+│  │ │ Description: "Trigger a data pipeline"            │    │     │
+│  │ │ Input Schema: { pipelineId, params }              │    │     │
+│  │ │ Execution: Pipeline orchestration service         │    │     │
+│  │ │ Governance: Pipeline execution permission         │    │     │
+│  │ └──────────────────────────────────────────────────┘    │     │
+│  └──────────────────────────────┬─────────────────────────┘     │
+│                                 │                                │
+│                                 ▼                                │
+│  ┌─ GOVERNANCE ENFORCEMENT ───────────────────────────────┐     │
+│  │                                                          │     │
+│  │ At EVERY tool invocation:                                │     │
+│  │                                                          │     │
+│  │ 1. PERMISSION CHECK:                                     │     │
+│  │    Does user have permission for this action/query?      │     │
+│  │    → If NO: Return error "Insufficient permissions"      │     │
+│  │                                                          │     │
+│  │ 2. DATA SCOPE CHECK:                                     │     │
+│  │    Apply row-level security filters                      │     │
+│  │    → User with region="West" cannot see East shipments   │     │
+│  │                                                          │     │
+│  │ 3. COLUMN-LEVEL CHECK:                                   │     │
+│  │    Mask or redact PII columns based on user's clearance  │     │
+│  │    → Non-privileged user sees email as "***@***.com"     │     │
+│  │                                                          │     │
+│  │ 4. RATE LIMIT CHECK:                                     │     │
+│  │    Has the agent exceeded its action rate limit?         │     │
+│  │    → If YES: Return error "Rate limit exceeded"          │     │
+│  │                                                          │     │
+│  │ 5. CONFIRMATION REQUIREMENT:                             │     │
+│  │    Does this action require user confirmation?           │     │
+│  │    → ALL write actions from agents require confirmation  │     │
+│  │    → Destructive actions require double confirmation     │     │
+│  │                                                          │     │
+│  │ 6. AUDIT LOG:                                            │     │
+│  │    Record: who (user + agent), what (tool + params),     │     │
+│  │    when, result, governance decisions applied             │     │
+│  └──────────────────────────────────────────────────────────┘     │
+│                                                                  │
+│  ┌─ LLM PROVIDER ABSTRACTION ─────────────────────────────┐     │
+│  │                                                          │     │
+│  │ Supports multiple LLM backends:                          │     │
+│  │ • OpenAI GPT-4o / GPT-4.1 (API or Azure)                │     │
+│  │ • Anthropic Claude 3.5 / Claude 4 (API or AWS Bedrock)  │     │
+│  │ • Self-hosted: Llama 3.1 70B / Qwen 2.5 72B             │     │
+│  │ • Google Gemini Pro (API or Vertex AI)                   │     │
+│  │                                                          │     │
+│  │ Self-hosted deployment:                                  │     │
+│  │ • Runs on customer's own GPU infrastructure               │     │
+│  │ • Full data privacy (no data leaves the network)          │     │
+│  │ • Supports vLLM, TGI, or Ollama as serving backends      │     │
+│  │ • Model quantization: GPTQ, AWQ, GGUF for cost savings  │     │
+│  │                                                          │     │
+│  │ Palantir benchmark: "Run LLMs and other models on your   │     │
+│  │ private network with full control" (citation:21)         │     │
+│  └──────────────────────────────────────────────────────────┘     │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 7.3 ML Ops Deep Specification (Modeling Objectives)
+
+Palantir's ML Ops focuses on the "Modeling Objective" — "the critical link between a model's creation and operational use" (citation:23). Models must be "treated as an input to a process that has an understanding of the different operational objectives that a model might be used for" (citation:23).
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              MODELING OBJECTIVES SYSTEM                           │
+│                                                                  │
+│  A Modeling Objective defines HOW a model will be used in        │
+│  production. Same model can have multiple objectives.            │
+│                                                                  │
+│  Objective Types:                                                │
+│                                                                  │
+│  1. REAL-TIME SCORING                                            │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ Description: Score individual records on demand           │   │
+│  │ Latency requirement: < 100ms (p99)                       │   │
+│  │ Infrastructure: Model serving (Triton/KServe)             │   │
+│  │ Scaling: Auto-scale based on request rate                 │   │
+│  │ Example: Score a customer for churn risk at login         │   │
+│  │                                                          │   │
+│  │ Input: Customer object properties                         │   │
+│  │ Output: { churn_probability: 0.73, risk_factors: [...] } │   │
+│  │ Integration: Ontology Function wrapping model endpoint    │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  2. BATCH SCORING                                                │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ Description: Score all objects of a type periodically     │   │
+│  │ Latency requirement: < 1 hour for 1M records             │   │
+│  │ Infrastructure: Spark job with model broadcast            │   │
+│  │ Scheduling: Daily / hourly / on pipeline trigger          │   │
+│  │ Example: Score all customers for churn risk nightly       │   │
+│  │                                                          │   │
+│  │ Input: Full Customer dataset                              │   │
+│  │ Output: New dataset with score columns added              │   │
+│  │ Integration: Pipeline transform with model loading        │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  3. STREAMING SCORING                                            │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ Description: Score events as they arrive in a stream      │   │
+│  │ Latency requirement: < 50ms per event                    │   │
+│  │ Infrastructure: Kafka consumer + model serving            │   │
+│  │ Throughput: 10K+ events/sec                              │   │
+│  │ Example: Score transactions for fraud in real-time        │   │
+│  │                                                          │   │
+│  │ Input: Kafka event payload                                │   │
+│  │ Output: Score + action (approve/flag/block)              │   │
+│  │ Integration: Streaming pipeline with embedded model       │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  4. EMBEDDED IN DECISION                                         │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ Description: Model output feeds directly into a business │   │
+│  │   action or workflow                                     │   │
+│  │ Example: Churn model score triggers retention offer       │   │
+│  │ Integration: Action with model-backed decision logic     │   │
+│  │                                                          │   │
+│  │ Workflow:                                                │   │
+│  │ 1. Customer visits site                                  │   │
+│  │ 2. Real-time score calculated                            │   │
+│  │ 3. If churn_probability > 0.7:                           │   │
+│  │    → Trigger "sendRetentionOffer" action                 │   │
+│  │    → Log decision in audit trail                         │   │
+│  │ 4. If churn_probability < 0.3:                           │   │
+│  │    → Trigger "upsell" action                             │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  5. HUMAN-IN-THE-LOOP                                            │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ Description: Model provides recommendations, human makes  │   │
+│  │   final decision                                         │   │
+│  │ Example: Fraud detection → human reviews flagged txns     │   │
+│  │ Integration: Approval workflow with model confidence      │   │
+│  │                                                          │   │
+│  │ UI: Dashboard showing flagged items sorted by confidence  │   │
+│  │ Actions: [Approve] [Reject] [Escalate] [Mark for Review] │   │
+│  │ Feedback loop: Human decisions feed back to model         │   │
+│  │   training                                               │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  MODEL MONITORING PER OBJECTIVE:                                 │
+│  Each objective has its own monitoring configuration:            │
+│  • Real-time: Latency, throughput, error rate, prediction dist  │
+│  • Batch: Processing time, row count, resource usage            │
+│  • Streaming: Event lag, processing rate, backpressure           │
+│  • Embedded: Decision rate, override rate, business impact       │
+│  • Human-in-loop: Review time, agreement rate, escalation rate   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 7.4 Feature Store Deep Specification
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              FEATURE STORE ARCHITECTURE                           │
+│                                                                  │
+│  Two-tier serving:                                               │
+│                                                                  │
+│  ┌─ ONLINE STORE (Low Latency) ───────────────────────────┐    │
+│  │                                                          │    │
+│  │ Storage: Redis Cluster                                   │    │
+│  │ Latency: < 5ms (p99) for single entity lookup            │    │
+│  │ Data format: Protobuf or MessagePack                     │    │
+│  │ Key format: {entity_type}:{entity_id}                    │    │
+│  │ Value format: { feature_name: value, ... }               │    │
+│  │                                                          │    │
+│  │ Example:                                                 │    │
+│  │ Key: "customer:1001"                                     │    │
+│  │ Value: {                                                 │    │
+│  │   "tenure_months": 24,                                   │    │
+│  │   "total_orders_30d": 5,                                 │    │
+│  │   "avg_order_value": 156.78,                             │    │
+│  │   "support_tickets_90d": 2,                              │    │
+│  │   "lifetime_value": 4523.45,                             │    │
+│  │   "churn_risk_score": 0.23,                              │    │
+│  │   "_updated_at": "2026-09-09T02:12:00Z"                 │    │
+│  │ }                                                        │    │
+│  │                                                          │    │
+│  │ Update mechanism: Pipeline writes → Redis sync           │    │
+│  │ TTL: Configurable per feature group (default: 24 hours)  │    │
+│  └──────────────────────────────────────────────────────────┘    │
+│                                                                  │
+│  ┌─ OFFLINE STORE (High Throughput) ──────────────────────┐    │
+│  │                                                          │    │
+│  │ Storage: Iceberg tables (columnar, partitioned)           │    │
+│  │ Latency: Seconds to minutes (for batch queries)          │    │
+│  │ Format: Parquet with Iceberg ACID transactions           │    │
+│  │                                                          │    │
+│  │ Point-in-time correct retrieval:                          │    │
+│  │ ┌──────────────────────────────────────────────────┐    │    │
+│  │ │ Problem: When training a model, you must use only │    │    │
+│  │ │ features that were known at prediction time.      │    │    │
+│  │ │ Using future data = data leakage.                 │    │    │
+│  │ │                                                   │    │    │
+│  │ │ Solution: Point-in-time joins                     │    │    │
+│  │ │                                                   │    │    │
+│  │ │ SELECT * FROM features.customer_features          │    │    │
+│  │ │ FOR SYSTEM_TIME AS OF '2026-06-15 00:00:00'       │    │    │
+│  │ │ WHERE customer_id = 1001                          │    │    │
+│  │ │                                                   │    │    │
+│  │ │ This retrieves features as they were on June 15,  │    │    │
+│  │ │ not as they are today.                            │    │    │
+│  │ └──────────────────────────────────────────────────┘    │    │
+│  │                                                          │    │
+│  │ Training dataset generation:                              │    │
+│  │ ┌──────────────────────────────────────────────────┐    │    │
+│  │ │ Input: labels (churn event on date D),            │    │    │
+│  │ │        features (customer_features)                │    │    │
+│  │ │                                                   │    │    │
+│  │ │ For each label:                                   │    │    │
+│  │ │   Retrieve features as of D - lookback_window     │    │    │
+│  │ │   (e.g., 30 days before churn event)             │    │    │
+│  │ │                                                   │    │    │
+│  │ │ Output: Training dataset with no data leakage     │    │    │
+│  │ └──────────────────────────────────────────────────┘    │    │
+│  └──────────────────────────────────────────────────────────┘    │
+│                                                                  │
+│  FEATURE COMPUTATION PIPELINE:                                   │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                                                          │   │
+│  │ Source Data → Transform → Feature Store                   │   │
+│  │                                                          │   │
+│  │ Example feature definitions:                             │   │
+│  │                                                          │   │
+│  │ Feature: total_orders_30d                                │   │
+│  │ Entity: customer_id                                      │   │
+│  │ Computation:                                             │   │
+│  │   SELECT customer_id,                                    │   │
+│  │          COUNT(*) as total_orders_30d                    │   │
+│  │   FROM orders                                            │   │
+│  │   WHERE order_date >= CURRENT_DATE - INTERVAL '30 days'  │   │
+│  │   GROUP BY customer_id                                   │   │
+│  │ Schedule: Every 1 hour                                   │   │
+│  │ Freshness: 1 hour                                        │   │
+│  │                                                          │   │
+│  │ Feature: lifetime_value                                  │   │
+│  │ Entity: customer_id                                      │   │
+│  │ Computation:                                             │   │
+│  │   SELECT customer_id,                                    │   │
+│  │          SUM(amount) as lifetime_value                   │   │
+│  │   FROM orders                                            │   │
+│  │   WHERE status = 'completed'                             │   │
+│  │   GROUP BY customer_id                                   │   │
+│  │ Schedule: Every 6 hours                                  │   │
+│  │ Freshness: 6 hours                                       │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  FEATURE STATISTICS (auto-computed):                             │
+│  • Count, nulls_count, nulls_percentage                          │
+│  • Mean, median, std_dev, min, max                               │
+│  • Percentiles: p1, p5, p25, p50, p75, p95, p99                 │
+│  • Distinct_count, cardinality                                   │
+│  • Distribution histogram (configurable bins)                    │
+│  • Drift metrics: KS-statistic vs. reference distribution       │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 8. Module 7 Deep-Dive — Collaboration & Operational Workspace
+
+### 8.1 Workspace Specification
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              WORKSPACE ARCHITECTURE                               │
+│                                                                  │
+│  Workspace Types:                                                │
+│  1. TEAM: Persistent workspace for a team (e.g., "Data Science")│
+│  2. PROJECT: Time-bounded workspace for a project                │
+│  3. INCIDENT: Auto-created workspace for incident response       │
+│  4. PERSONAL: Individual user's private workspace                │
+│                                                                  │
+│  Shared Asset Types:                                             │
+│  • Dashboards (with view/edit permissions)                       │
+│  • Datasets (with explore/download permissions)                  │
+│  • Pipelines (with view/run permissions)                         │
+│  • ML Models (with view/deploy permissions)                      │
+│  • Queries (shared saved queries)                                │
+│  • Ontology objects (pinned object collections)                  │
+│  • Notebooks (collaborative data science notebooks)              │
+│  • Files (uploaded documents, images, reports)                   │
+│                                                                  │
+│  Discussion Threads:                                             │
+│  • Each shared asset can have threaded comments                   │
+│  • @mention triggers notification                                 │
+│  • Comments can reference data points (pinned to chart coords)   │
+│  • Rich text with markdown, code blocks, images                  │
+│  • Link to other platform assets: [dataset:customers_cleaned]    │
+│  • Reaction emojis for quick acknowledgment                       │
+│                                                                  │
+│  Notification System:                                            │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ Event Categories:                                         │   │
+│  │                                                          │   │
+│  │ PIPELINE:                                                │   │
+│  │ • pipeline.run.completed                                  │   │
+│  │ • pipeline.run.failed                                     │   │
+│  │ • pipeline.sla.exceeded                                   │   │
+│  │                                                          │   │
+│  │ DATA:                                                    │   │
+│  │ • dataset.updated                                         │   │
+│  │ • dataset.quality.degraded                                │   │
+│  │ • dataset.schema.changed                                  │   │
+│  │ • ingestion.completed                                     │   │
+│  │ • ingestion.failed                                        │   │
+│  │                                                          │   │
+│  │ ML:                                                      │   │
+│  │ • model.trained                                           │   │
+│  │ • model.deployed                                          │   │
+│  │ • model.drift.detected                                    │   │
+│  │ • model.accuracy.degraded                                 │   │
+│  │                                                          │   │
+│  │ SECURITY:                                                │   │
+│  │ • access.denied                                           │   │
+│  │ • policy.violated                                         │   │
+│  │ • anomalous.activity                                      │   │
+│  │                                                          │   │
+│  │ COLLABORATION:                                           │   │
+│  │ • comment.mentioned                                       │   │
+│  │ • asset.shared_with_you                                   │   │
+│  │ • approval.requested                                      │   │
+│  │ • approval.decided                                        │   │
+│  │                                                          │   │
+│  │ Delivery Channels (user-configurable per event type):     │   │
+│  │ • In-app notification center                              │   │
+│  │ • Email                                                   │   │
+│  │ • Slack (via webhook)                                     │   │
+│  │ • Microsoft Teams (via webhook)                           │   │
+│  │ • PagerDuty (for critical alerts)                         │   │
+│  │ • Custom webhook                                          │   │
+│  └──────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 9. Module 8 Deep-Dive — Security, Governance & PETs
+
+### 9.1 Palantir Benchmark: Operational Security & Privacy-Enhancing Technologies
+
+Palantir treats security as a cross-cutting concern spanning every layer. Their approach to privacy-enhancing technologies (PETs) and operational security is a key differentiator in regulated industries (citation:25).
+
+### 9.2 Multi-Layer Security Model
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              MULTI-LAYER SECURITY MODEL                          │
+│                                                                  │
+│  Layer 1: IDENTITY                                               │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ Authentication Methods:                                   │   │
+│  │ • SSO via OIDC (Okta, Auth0, Keycloak, Azure AD)        │   │
+│  │ • SAML 2.0 (enterprise IdP integration)                  │   │
+│  │ • LDAP / Active Directory                                 │   │
+│  │ • API Keys (for programmatic access)                      │   │
+│  │ • Service Accounts (for inter-service communication)      │   │
+│  │                                                          │   │
+│  │ MFA: TOTP, WebAuthn (FIDO2), SMS (fallback only)        │   │
+│  │ Session: JWT tokens (access: 15min, refresh: 8h)         │   │
+│  │ Token structure:                                          │   │
+│  │ {                                                        │   │
+│  │   sub: "user_id",                                        │   │
+│  │   roles: ["data_engineer", "analyst"],                   │   │
+│  │   groups: ["team_finance", "team_data"],                 │   │
+│  │   data_scope: { regions: ["West", "East"],               │   │
+│  │                 domains: ["finance", "customer"] },      │   │
+│  │   clearance: "CONFIDENTIAL",                             │   │
+│  │   exp: 1694234567                                        │   │
+│  │ }                                                        │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  Layer 2: AUTHORIZATION (RBAC + ABAC)                            │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                                                          │   │
+│  │ RBAC Permission Model:                                   │   │
+│  │                                                          │   │
+│  │ Permission = (Role, Resource Type, Action, Scope)        │   │
+│  │                                                          │   │
+│  │ Examples:                                                │   │
+│  │ ("data_engineer", "pipeline", "create", "domain:finance")│   │
+│  │ ("analyst", "dashboard", "view", "own_team")            │   │
+│  │ ("admin", "*", "*", "*")                                 │   │
+│  │                                                          │   │
+│  │ ABAC Policy Model:                                       │   │
+│  │                                                          │   │
+│  │ Policy = (Subject Attributes, Resource Attributes,       │   │
+│  │           Environment Attributes) → Decision             │   │
+│  │                                                          │   │
+│  │ Example Policy:                                          │   │
+│  │ ALLOW READ dataset.classification="CONFIDENTIAL"         │   │
+│  │   WHERE subject.clearance >= "CONFIDENTIAL"              │   │
+│  │   AND subject.department IN dataset.allowed_departments  │   │
+│  │   AND environment.time BETWEEN "08:00" AND "20:00"       │   │
+│  │   AND environment.network IN ["corporate", "vpn"]        │   │
+│  │                                                          │   │
+│  │ Evaluation Algorithm:                                    │   │
+│  │ 1. Collect all applicable policies for the request       │   │
+│  │ 2. Evaluate each policy against the context              │   │
+│  │ 3. Apply combining algorithm: DENY-OVERRIDES             │   │
+│  │    (any DENY → result is DENY)                           │   │
+│  │ 4. If no explicit ALLOW → default DENY                   │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  Layer 3: DATA-LEVEL SECURITY                                    │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                                                          │   │
+│  │ ROW-LEVEL SECURITY:                                      │   │
+│  │ ┌──────────────────────────────────────────────────┐    │   │
+│  │ │ Policy: "Regional data isolation"                 │    │   │
+│  │ │ Rule: User can only see rows where                │    │   │
+│  │ │   region IN user.data_scope.regions               │    │   │
+│  │ │                                                   │    │   │
+│  │ │ Implementation:                                   │    │   │
+│  │ │ Applied as WHERE clause injection:                │    │   │
+│  │ │ SELECT * FROM orders                              │    │   │
+│  │ │ WHERE region IN ('West', 'East')  ← injected     │    │   │
+│  │ │                                                   │    │   │
+│  │ │ Transparent to user: they see "all" data          │    │   │
+│  │ │ (which is actually scoped to their regions)       │    │   │
+│  │ └──────────────────────────────────────────────────┘    │   │
+│  │                                                          │   │
+│  │ COLUMN-LEVEL SECURITY:                                   │   │
+│  │ ┌──────────────────────────────────────────────────┐    │   │
+│  │ │ Policy: "PII column masking"                      │    │   │
+│  │ │ Rule: Columns classified as PII are masked for    │    │   │
+│  │ │   users without PII_ACCESS permission             │    │   │
+│  │ │                                                   │    │   │
+│  │ │ Masking Strategies:                               │    │   │
+│  │ │ • REDACT: Replace with "***REDACTED***"           │    │   │
+│  │ │ • HASH: Replace with SHA-256 hash                 │    │   │
+│  │ │ • LAST4: Show only last 4 characters              │    │   │
+│  │ │ • PARTIAL_EMAIL: "a***@***.com"                   │    │   │
+│  │ │ • NULL: Replace with NULL                         │    │   │
+│  │ │ • TOKENIZE: Replace with reversible token         │    │   │
+│  │ │                                                   │    │   │
+│  │ │ Applied at query execution time (transparent)     │    │   │
+│  │ └──────────────────────────────────────────────────┘    │   │
+│  │                                                          │   │
+│  │ CELL-LEVEL SECURITY:                                     │   │
+│  │ ┌──────────────────────────────────────────────────┐    │   │
+│  │ │ Policy: "Executive salary visibility"             │    │   │
+│  │ │ Rule: salary column visible only for              │    │   │
+│  │ │   employees WHERE user.level >= "VP"              │    │   │
+│  │ │   OR user.id = employee.manager_id                │    │   │
+│  │ │                                                   │    │   │
+│  │ │ Most granular: per-cell visibility based on       │    │   │
+│  │ │ relationship between viewer and data subject      │    │   │
+│  │ └──────────────────────────────────────────────────┘    │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  Layer 4: AUDIT & COMPLIANCE                                     │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ Every action logged:                                      │   │
+│  │ {                                                        │   │
+│  │   "event_id": "evt_abc123",                              │   │
+│  │   "timestamp": "2026-09-09T14:32:01.123Z",               │   │
+│  │   "user_id": "alice_123",                                │   │
+│  │   "user_agent": "Mozilla/5.0...",                        │   │
+│  │   "ip_address": "10.0.1.42",                             │   │
+│  │   "session_id": "sess_xyz789",                           │   │
+│  │   "action": "READ",                                      │   │
+│  │   "resource_type": "dataset",                            │   │
+│  │   "resource_id": "customers_cleaned",                    │   │
+│  │   "columns_accessed": ["email", "name", "segment"],      │   │
+│  │   "rows_returned": 1234,                                 │   │
+│  │   "governance_decisions": {                              │   │
+│  │     "row_level_filter": "region IN ('West','East')",     │   │
+│  │     "column_masking": ["email → HASH"],                  │   │
+│  │     "result": "ALLOW"                                    │   │
+│  │   },                                                     │   │
+│  │   "duration_ms": 45                                      │   │
+│  │ }                                                        │   │
+│  │                                                          │   │
+│  │ Compliance Reports (auto-generated):                     │   │
+│  │ • SOC 2: Access control effectiveness, audit log review  │   │
+│  │ • GDPR: Data access report, DSAR fulfillment tracker     │   │
+│  │ • HIPAA: PHI access log, minimum necessary compliance    │   │
+│  │ • Custom: Configurable report templates                  │   │
+│  └──────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 10. Module 9 Deep-Dive — Administration & Observability
+
+### 10.1 Observability Stack
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              OBSERVABILITY ARCHITECTURE                          │
+│                                                                  │
+│  Three Pillars:                                                  │
+│                                                                  │
+│  1. METRICS (Prometheus + Grafana)                               │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ Application Metrics:                                      │   │
+│  │ • API request rate, latency, error rate (by endpoint)    │   │
+│  │ • Pipeline run duration, success rate, queue depth       │   │
+│  │ • Ingestion throughput, error rate, lag                  │   │
+│  │ • Query execution time, rows scanned, cache hit rate     │   │
+│  │ • ML model serving latency, throughput, error rate       │   │
+│  │ • Ontology query latency, cache hit rate                 │   │
+│  │                                                          │   │
+│  │ Infrastructure Metrics:                                   │   │
+│  │ • CPU, memory, disk, network per pod/node                │   │
+│  │ • Kubernetes: pod restarts, OOM kills, pending pods      │   │
+│  │ • Database: connections, query rate, replication lag      │   │
+│  │ • Kafka: consumer lag, partition count, throughput       │   │
+│  │ • Redis: memory usage, hit rate, eviction rate           │   │
+│  │ • Spark: executor count, shuffle read/write, GC time     │   │
+│  │                                                          │   │
+│  │ Custom Dashboards:                                        │   │
+│  │ • Platform Overview (golden signals)                      │   │
+│  │ • Per-Service Health                                      │   │
+│  │ • Data Pipeline Operations                                │   │
+│  │ • ML Model Performance                                    │   │
+│  │ • Security & Compliance                                   │   │
+│  │ • Cost & Resource Optimization                            │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  2. LOGGING (Structured JSON → Loki/ELK)                        │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ Log Format:                                               │   │
+│  │ {                                                        │   │
+│  │   "timestamp": "2026-09-09T14:32:01.123Z",               │   │
+│  │   "level": "INFO",                                       │   │
+│  │   "service": "ontology-service",                         │   │
+│  │   "trace_id": "abc123def456",                            │   │
+│  │   "span_id": "span_789",                                 │   │
+│  │   "user_id": "alice_123",                                │   │
+│  │   "message": "Ontology query executed",                  │   │
+│  │   "metadata": {                                          │   │
+│  │     "object_type": "Customer",                           │   │
+│  │     "filter_count": 2,                                   │   │
+│  │     "result_count": 1234,                                │   │
+│  │     "duration_ms": 45,                                   │   │
+│  │     "cache_hit": false                                   │   │
+│  │   }                                                      │   │
+│  │ }                                                        │   │
+│  │                                                          │   │
+│  │ Log Levels: DEBUG, INFO, WARN, ERROR, FATAL              │   │
+│  │ Retention: 30 days hot, 1 year warm, 3 years cold (S3)   │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  3. TRACING (OpenTelemetry → Jaeger/Tempo)                      │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ Every request gets a trace_id propagated through:         │   │
+│  │ API Gateway → Service → Database → Cache → Response       │   │
+│  │                                                          │   │
+│  │ Trace Example (API request → Ontology query → Iceberg):   │   │
+│  │ [span_1] API Gateway (2ms)                               │   │
+│  │   └─[span_2] AuthZ Check (1ms)                           │   │
+│  │   └─[span_3] Ontology Service (42ms)                     │   │
+│  │       └─[span_4] Object Type Resolution (3ms)            │   │
+│  │       └─[span_5] Query Translation (5ms)                 │   │
+│  │       └─[span_6] Iceberg Query (30ms)                    │   │
+│  │       └─[span_7] Link Resolution (8ms)                   │   │
+│  │       └─[span_8] Cache Write (1ms)                       │   │
+│  │   └─[span_9] Response Serialization (2ms)                │   │
+│  │                                                          │   │
+│  │ Sampling: 100% for errors, 10% for success (configurable)│   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  ALERTING:                                                       │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ Alert Rules (configurable):                               │   │
+│  │                                                          │   │
+│  │ CRITICAL (page on-call):                                 │   │
+│  │ • API error rate > 5% for 5 minutes                      │   │
+│  │ • Any service completely down                             │   │
+│  │ • Data loss detected                                      │   │
+│  │ • Security breach detected                                │   │
+│  │                                                          │   │
+│  │ WARNING (Slack/email):                                   │   │
+│  │ • API latency p99 > 2s for 10 minutes                    │   │
+│  │ • Pipeline SLA exceeded                                   │   │
+│  │ • ML model drift detected                                │   │
+│  │ • Storage > 80% capacity                                  │   │
+│  │ • Consumer lag > 10,000 messages                         │   │
+│  │                                                          │   │
+│  │ INFO (dashboard only):                                   │   │
+│  │ • Deployment completed                                    │   │
+│  │ • Schema change detected                                  │   │
+│  │ • New user registered                                     │   │
+│  └──────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 11. Module 10 Deep-Dive — API, SDK & Interoperability
+
+### 11.1 API Design Philosophy
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              API DESIGN STANDARDS                                │
+│                                                                  │
+│  REST API Conventions:                                           │
+│  • URL pattern: /api/v{version}/{resource}                       │
+│  • Resource naming: plural nouns (customers, orders, pipelines)  │
+│  • HTTP methods: GET (read), POST (create/action),               │
+│    PUT (full update), PATCH (partial update), DELETE (remove)    │
+│  • Pagination: cursor-based (X-Next-Cursor header)              │
+│  • Filtering: ?filter=field:operator:value                       │
+│  • Sorting: ?sort=field:asc or ?sort=field:desc                  │
+│  • Field selection: ?fields=id,name,email                        │
+│  • Rate limiting headers: X-RateLimit-Limit, X-RateLimit-Remaining│
+│  • Idempotency: POST endpoints support Idempotency-Key header    │
+│                                                                  │
+│  GraphQL API (supplementary):                                    │
+│  • Endpoint: /api/graphql                                       │
+│  • Schema auto-generated from Ontology object types              │
+│  • Supports queries, mutations, subscriptions                    │
+│  • Batching (DataLoader pattern for N+1 prevention)              │
+│  • Depth limiting (max 10 levels)                                │
+│  • Complexity limiting (max 1000 points per query)               │
+│                                                                  │
+│  WebSocket API (real-time):                                      │
+│  • Endpoint: /ws/v1                                              │
+│  • Channels:                                                     │
+│    - pipeline.{id}.status (pipeline run updates)                 │
+│    - dataset.{id}.updates (new data available)                   │
+│    - model.{id}.metrics (serving metrics)                        │
+│    - notifications.{user_id} (user notifications)                │
+│    - dashboard.{id}.refresh (dashboard data updates)             │
+│  • Authentication: JWT token in first message                    │
+│  • Heartbeat: ping/pong every 30 seconds                         │
+│                                                                  │
+│  SDK Libraries:                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ Python SDK (nexus-python):                                │   │
+│  │ pip install nexus-python                                  │   │
+│  │                                                          │   │
+│  │ from nexus import NexusClient, Ontology                  │   │
+│  │                                                          │   │
+│  │ client = NexusClient(api_key="nxs_...")                  │   │
+│  │                                                          │   │
+│  │ # Query objects                                          │   │
+│  │ customers = client.ontology.objects("Customer")           │   │
+│  │   .filter(segment="Premium")                             │   │
+│  │   .filter(lifetime_value__gt=10000)                      │   │
+│  │   .sort("lifetime_value", descending=True)               │   │
+│  │   .limit(50)                                             │   │
+│  │   .include_links("orders")                               │   │
+│  │   .execute()                                             │   │
+│  │                                                          │   │
+│  │ # Execute action                                         │   │
+│  │ client.ontology.actions("updateShipmentETA")              │   │
+│  │   .execute(shipment=shipment_ref,                        │   │
+│  │            new_eta=datetime(2026, 9, 15),                 │   │
+│  │            reason="Weather delay")                        │   │
+│  │                                                          │   │
+│  │ # ML SDK                                                 │   │
+│  │ from nexus.ml import Experiment, Model                    │   │
+│  │                                                          │   │
+│  │ exp = Experiment("churn-prediction")                     │   │
+│  │ with exp.run() as run:                                   │   │
+│  │     model.fit(X_train, y_train)                          │   │
+│  │     run.log_params({"n_estimators": 500})                │   │
+│  │     run.log_metrics({"auc": 0.942})                      │   │
+│  │     run.log_model(model)                                 │   │
+│  │                                                          │   │
+│  │ # Pipeline SDK                                           │   │
+│  │ from nexus.pipelines import Pipeline, Transform          │   │
+│  │                                                          │   │
+│  │ @Transform(inputs=["raw_customers"],                     │   │
+│  │            outputs=["clean_customers"])                   │   │
+│  │ def clean(ctx, raw):                                     │   │
+│  │     return raw.dropDuplicates(["email"])                  │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ TypeScript/JavaScript SDK (nexus-js):                     │   │
+│  │ npm install @nexus/sdk                                    │   │
+│  │                                                          │   │
+│  │ import { NexusClient } from '@nexus/sdk';                 │   │
+│  │                                                          │   │
+│  │ const client = new NexusClient({ apiKey: 'nxs_...' });   │   │
+│  │                                                          │   │
+│  │ const customers = await client.ontology.objects('Customer')│  │
+│  │   .filter({ segment: 'Premium' })                        │   │
+│  │   .sort('lifetime_value', 'desc')                        │   │
+│  │   .limit(50)                                             │   │
+│  │   .execute();                                            │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ Java SDK (nexus-java):                                    │   │
+│  │ Maven: com.nexus:sdk:2.0.0                               │   │
+│  │                                                          │   │
+│  │ NexusClient client = NexusClient.builder()               │   │
+│  │     .apiKey("nxs_...")                                   │   │
+│  │     .build();                                            │   │
+│  │                                                          │   │
+│  │ List<Customer> customers = client.ontology()              │   │
+│  │     .objects("Customer")                                  │   │
+│  │     .filter("segment", Operator.EQ, "Premium")           │   │
+│  │     .sort("lifetime_value", SortOrder.DESC)              │   │
+│  │     .limit(50)                                           │   │
+│  │ .execute();                                              │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ Go SDK (nexus-go):                                        │   │
+│  │ go get github.com/nexus/sdk-go                           │   │
+│  │                                                          │   │
+│  │ client := nexus.NewClient(nexus.WithAPIKey("nxs_..."))   │   │
+│  │                                                          │   │
+│  │ customers, err := client.Ontology().                      │   │
+│  │     Objects("Customer").                                  │   │
+│  │     Filter("segment", nexus.Eq, "Premium").              │   │
+│  │     Sort("lifetime_value", nexus.Desc).                  │   │
+│  │     Limit(50).                                           │   │
+│  │     Execute(ctx)                                         │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  Webhook System:                                                 │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ Register webhooks for platform events:                    │   │
+│  │                                                          │   │
+│  │ POST /api/v1/webhooks                                    │   │
+│  │ {                                                        │   │
+│  │   "url": "https://my-app.com/nexus-webhook",            │   │
+│  │   "events": [                                            │   │
+│  │     "pipeline.run.completed",                            │   │
+│  │     "dataset.updated",                                   │   │
+│  │     "model.deployed"                                     │   │
+│  │   ],                                                     │   │
+│  │   "secret": "whsec_...",                                 │   │
+│  │   "retry_policy": {                                      │   │
+│  │     "max_retries": 3,                                    │   │
+│  │     "backoff": "exponential"                             │   │
+│  │   }                                                      │   │
+│  │ }                                                        │   │
+│  │                                                          │   │
+│  │ Webhook payload includes HMAC-SHA256 signature           │   │
+│  │ for verification                                         │   │
+│  └──────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 12. Benchmark Reference Architecture
+
+### 12.1 Palantir vs. Nexus Feature Parity Matrix
+
+| Capability | Palantir Product | Status | Nexus Module | Confidence |
+|---|---|---|---|---|
+| Data connectivity | Foundry (Data Connection) | Production | Module 1 | 95% |
+| Pipeline orchestration | Foundry (Pipeline Builder) | Production | Module 2 | 90% |
+| Spark-based transforms | Foundry (Code Repository) | Production | Module 2 | 90% |
+| Version control | Foundry (Code/Versioning) | Production | Module 4 | 95% |
+| Ontology (semantic layer) | Foundry (Ontology) | Core differentiator | Module 3 | 85% |
+| Object types & properties | Foundry (Ontology) | Core | Module 3 | 90% |
+| Links & relationships | Foundry (Ontology) | Core | Module 3 | 90% |
+| Actions & functions | Foundry (Ontology) | Core | Module 3 | 80% |
+| Interfaces | Foundry (Ontology) | Advanced | Module 3 | 75% |
+| Data catalog | Foundry (Catalog) | Production | Module 3 | 90% |
+| Visualization (Contour) | Foundry (Contour) | Production | Module 5 | 85% |
+| Ad-hoc queries | Foundry (Quiver) | Production | Module 5 | 85% |
+| AI/ML lifecycle | AIP | Production | Module 6 | 80% |
+| Model serving | AIP | Production | Module 6 | 80% |
+| Feature store | AIP | Production | Module 6 | 75% |
+| AI assistant (NL interface) | AIP (LLM integration) | Production | Module 6 | 70% |
+| Agent framework | AIP (Chatbot Studio) | Production | Module 6 | 65% |
+| RBAC + ABAC | Foundry/Gotham (Security) | Production | Module 8 | 90% |
+| Cell-level security | Foundry | Production | Module 8 | 85% |
+| Audit logging | All products | Production | Module 8 | 95% |
+| Data lineage | Foundry | Production | Module 2 | 85% |
+| Collaboration | Foundry (Spaces) | Production | Module 7 | 80% |
+| API/SDK | All products | Production | Module 10 | 90% |
+| Entity resolution | Gotham/Foundry | Production | Module 3 | 70% |
+
+---
+
+## 13. Performance Targets (Industry Benchmarks)
+
+### 13.1 Comparative Benchmarks
+
+| Operation | Industry Avg | Palantir (Est.) | Snowflake | Databricks | Nexus Target |
+|---|---|---|---|---|---|
+| Simple query (1M rows) | 2-5 sec | < 1 sec | 0.8 sec | 1.2 sec | < 1 sec |
+| Complex join (10M × 50M) | 30-60 sec | < 10 sec | 8 sec | 12 sec | < 10 sec |
+| Dashboard load (cold) | 5-10 sec | < 3 sec | N/A | N/A | < 3 sec |
+| Dashboard widget refresh | 2-5 sec | < 2 sec | N/A | N/A | < 2 sec |
+| ML prediction (real-time) | 50-200 ms | < 50 ms | N/A | N/A | < 50 ms |
+| Data ingestion (1 GB) | 30-120 sec | < 20 sec | N/A | 15 sec | < 20 sec |
+| Pipeline scheduling overhead | 5-15 sec | < 5 sec | N/A | N/A | < 3 sec |
+| Ontology query (single object) | N/A | < 10 ms | N/A | N/A | < 10 ms |
+| Ontology query (filtered list) | N/A | < 100 ms | N/A | N/A | < 100 ms |
+| Search (full-text) | 100-500 ms | < 200 ms | N/A | N/A | < 200 ms |
+| Time travel query (by version) | 2-10 sec | < 2 sec | 1.5 sec | 2 sec | < 2 sec |
+
+### 13.2 Scalability Targets
+
+| Dimension | Small Deployment | Medium Deployment | Large Deployment |
+|---|---|---|---|
+| Users | 50 | 500 | 10,000+ |
+| Datasets | 1,000 | 50,000 | 500,000+ |
+| Total data volume | 1 TB | 100 TB | 1 PB+ |
+| Pipelines | 50 | 1,000 | 10,000+ |
+| Object types | 20 | 500 | 5,000+ |
+| Objects (total) | 10M | 1B | 100B+ |
+| ML models (deployed) | 5 | 50 | 500+ |
+| API requests/sec | 100 | 5,000 | 100,000+ |
+| Kubernetes nodes | 5 | 50 | 500+ |
+| Spark executors | 10 | 200 | 5,000+ |
+
+---
+
+**END OF DEEP-DIVE SPECIFICATION**
+
+---
+
+This deep-dive covers every module with implementation-level detail, real Palantir architectural patterns, concrete data models, execution flows, and performance benchmarks. The key architectural insight — that the **Ontology is the operating system, not a feature** — permeates every module design. Shall I generate database migration scripts, detailed React component trees for any specific screen, or OpenAPI YAML for any API section?
