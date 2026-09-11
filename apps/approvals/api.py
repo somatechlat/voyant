@@ -21,7 +21,7 @@ approval_router = Router(tags=["approvals"], auth=require_permission("read:*"))
 # ── Approval Requests ────────────────────────────────────────────────────────
 
 
-@approval_router.get("/approvals")
+@approval_router.get("")
 def list_pending_approvals(request):
     """
     List pending approval requests for the current user.
@@ -47,7 +47,7 @@ def list_pending_approvals(request):
     ]
 
 
-@approval_router.post("/approvals", auth=require_permission("write:approvals"))
+@approval_router.post("", auth=require_permission("write:approvals"))
 def create_approval_request(request, payload: dict[str, Any]):
     """
     Create a new approval request.
@@ -89,7 +89,7 @@ def create_approval_request(request, payload: dict[str, Any]):
 
 
 @approval_router.put(
-    "/approvals/{approval_id}/approve",
+    "/{approval_id}/approve",
     auth=require_permission("write:approvals"),
 )
 def approve_request(request, approval_id: str, payload: dict[str, Any] | None = None):
@@ -118,7 +118,7 @@ def approve_request(request, approval_id: str, payload: dict[str, Any] | None = 
 
 
 @approval_router.put(
-    "/approvals/{approval_id}/reject",
+    "/{approval_id}/reject",
     auth=require_permission("write:approvals"),
 )
 def reject_request(request, approval_id: str, payload: dict[str, Any]):
@@ -146,7 +146,7 @@ def reject_request(request, approval_id: str, payload: dict[str, Any]):
     return _serialize_request(approval)
 
 
-@approval_router.get("/approvals/history")
+@approval_router.get("/history")
 def list_approval_history(request):
     """
     List approval history (audit trail).
@@ -170,7 +170,7 @@ def list_approval_history(request):
 # ── Approval Rules ───────────────────────────────────────────────────────────
 
 
-@approval_router.get("/approvals/rules")
+@approval_router.get("/rules")
 def list_rules(request):
     """List all approval rules for the tenant."""
     tenant_id = get_tenant_id(request)
@@ -183,7 +183,7 @@ def list_rules(request):
 
 
 @approval_router.post(
-    "/approvals/rules",
+    "/rules",
     auth=require_permission("write:approvals"),
 )
 def create_rule(request, payload: dict[str, Any]):
