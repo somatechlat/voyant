@@ -284,3 +284,70 @@ body {
 .animate-slide-right { animation: slideRight var(--anim-slow) var(--ease); }
 .animate-pulse { animation: pulse 2s var(--ease) infinite; }
 .animate-spin { animation: spin 1s linear infinite; }
+
+/* ==========================================
+   RESPONSIVE BREAKPOINTS
+   ========================================== */
+
+/* Tablet: 768px – 1023px */
+@media (max-width: 1023px) {
+    .voyant-sidebar { display: none; }
+    .voyant-main { margin-left: 0 !important; }
+    .voyant-grid-5 { grid-template-columns: repeat(3, 1fr) !important; }
+    .voyant-grid-4 { grid-template-columns: repeat(2, 1fr) !important; }
+    .voyant-grid-3 { grid-template-columns: repeat(2, 1fr) !important; }
+    .voyant-grid-2 { grid-template-columns: 1fr !important; }
+}
+
+/* Mobile: < 768px */
+@media (max-width: 767px) {
+    .voyant-sidebar { display: none; }
+    .voyant-main { margin-left: 0 !important; padding: 16px !important; }
+    .voyant-grid-5 { grid-template-columns: repeat(2, 1fr) !important; }
+    .voyant-grid-4 { grid-template-columns: repeat(2, 1fr) !important; }
+    .voyant-grid-3 { grid-template-columns: 1fr !important; }
+    .voyant-grid-2 { grid-template-columns: 1fr !important; }
+    .voyant-table { overflow-x: auto; }
+    .voyant-card { padding: 16px !important; }
+    h1 { font-size: 22px !important; }
+}
+
+/* Large desktop: ≥ 1280px */
+@media (min-width: 1280px) {
+    .voyant-grid-5 { grid-template-columns: repeat(5, 1fr); }
+    .voyant-grid-4 { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* ==========================================
+   ACCESSIBILITY — Focus visible
+   ========================================== */
+
+:focus-visible {
+    outline: 2px solid var(--saas-brand);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+    outline: 2px solid var(--saas-brand);
+    outline-offset: 2px;
+}
+
+/* Skip navigation link */
+.skip-nav {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: var(--saas-brand);
+    color: white;
+    padding: 8px 16px;
+    z-index: 10000;
+    transition: top 0.2s;
+}
+.skip-nav:focus {
+    top: 0;
+}

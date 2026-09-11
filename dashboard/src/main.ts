@@ -1,12 +1,20 @@
 import { html, render } from 'lit';
 import { isAuthenticated } from './lib/api';
 import { Router } from './lib/router';
+import { initKeyboard, registerDefaultShortcuts } from './lib/keyboard';
 import './styles/globals.css';
 
 // Components
 import './components/saas-sidebar';
 import './components/saas-stat-card';
 import './components/saas-glass-modal';
+
+// Production UI components
+import './components/voyant-toast';
+import './components/voyant-skeleton';
+import './components/voyant-theme-toggle';
+import './components/voyant-command-palette';
+import './components/voyant-error-boundary';
 
 // Views
 import './views/view-login';
@@ -36,6 +44,17 @@ import './views/view-connectors';
 import './views/view-webhooks';
 import './views/view-streaming';
 import './views/view-alerting';
+
+// Initialize keyboard shortcuts
+initKeyboard();
+registerDefaultShortcuts();
+
+// Mount global UI components
+const toastContainer = document.createElement('voyant-toast-container');
+document.body.appendChild(toastContainer);
+
+const commandPalette = document.createElement('voyant-command-palette');
+document.body.appendChild(commandPalette);
 
 function auth(): boolean {
     if (!isAuthenticated()) { window.location.href = '/admin/login'; return false; }
