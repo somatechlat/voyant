@@ -2,6 +2,7 @@ import { LitElement, html, nothing } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { api } from '../lib/api';
 import '../components/saas-sidebar';
+import '../components/voyant-graph-view';
 
 /* ──────────────────────────────────────────────────────────────────────
    Interfaces
@@ -18,13 +19,14 @@ interface CatalogTable {
     loadingColumns?: boolean;
 }
 
-type GovernanceTab = 'policies' | 'contracts' | 'quotas' | 'catalog';
+type GovernanceTab = 'policies' | 'contracts' | 'quotas' | 'catalog' | 'lineage';
 
 const TABS: Array<{ key: GovernanceTab; label: string }> = [
     { key: 'policies', label: 'Policies' },
     { key: 'contracts', label: 'Contracts' },
     { key: 'quotas', label: 'Quotas' },
     { key: 'catalog', label: 'Catalog' },
+    { key: 'lineage', label: 'Lineage' },
 ];
 
 @customElement('view-governance')
@@ -40,6 +42,14 @@ export class ViewGovernance extends LitElement {
     @state() catalogTables: CatalogTable[] = [];
     @state() catalogLoading = false;
     @state() expandedTable: string | null = null;
+
+    // Lineage state
+    @state() lineageUrn = '';
+    @state() lineageDepth = 3;
+    @state() lineageLoading = false;
+    @state() lineageNodes: Array<{ id: string; label: string; type: string; size?: number; color?: string }> = [];
+    @state() lineageEdges: Array<{ id: string; source: string; target: string; label?: string }> = [];
+    @state() lineageError = '';
 
     createRenderRoot() { return this; }
 
@@ -131,6 +141,7 @@ export class ViewGovernance extends LitElement {
                     ${this.tab === 'contracts' ? this.renderContractsTab() : nothing}
                     ${this.tab === 'quotas' ? this.renderQuotasTab() : nothing}
                     ${this.tab === 'catalog' ? this.renderCatalogTab() : nothing}
+                    ${this.tab === 'lineage' ? this.renderLineageTab() : nothing}
                 </div>`}
         </main>`;
     }
@@ -305,6 +316,93 @@ export class ViewGovernance extends LitElement {
                             </div>` : nothing}
                         </div>`)}
                     </div>`}
+        </div>`;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════
+       Lineage Tab
+       ══════════════════════════════════════════════════════════════════ */
+
+    private async loadLineage() {
+        if (!this.lineageUrn.trim()) return;
+        this.lineageLoading = true;
+        this.lineageError = '';
+        try {
+            const result = await api.get<{
+                nodes: Array<{ urn: string; name: string; node_type: string; platform?: string }>;
+                edges: Array<{ source_urn: string; target_urn: string; relationship?: string }>;
+            }>(`/governance/lineage/${encodeURIComponent(this.lineageUrn)}?depth=${this.lineageDepth}`);
+
+            this.lineageNodes = (result.nodes || []).map(n => ({
+                id: n.urn,
+                label: n.name || n.urn.split('::').pop() || n.urn,
+                type: n.node_type || n.platform || 'entity',
+                size: 10,
+                color: n.node_type === 'dataset' ? '#3B82F6' : n.node_type === 'transformation' ? '#8B5CF6' : '#22C55E',
+            }));
+
+            this.lineageEdges = (result.edges || []).map((e, i) => ({
+                id: `le-${i}`,
+                source: e.source_urn,
+                target: e.target_urn,
+                label: e.relationship || '',
+            }));
+        } catch (err) {
+            this.lineageError = 'Failed to load lineage. Check the URN and try again.';
+            this.lineageNodes = [];
+            this.lineageEdges = [];
+        } finally {
+            this.lineageLoading = false;
+        }
+    }
+
+    private renderLineageTab() {
+        return html`
+        <div class="p-5">
+            <!-- Search bar -->
+            <div class="flex items-center gap-3 mb-4">
+                <input
+                    type="text"
+                    placeholder="Enter dataset URN (e.g. urn:li:dataset:...)"
+                    .value=${this.lineageUrn}
+                    @input=${(e: Event) => { this.lineageUrn = (e.target as HTMLInputElement).value; }}
+                    @keydown=${(e: KeyboardEvent) => { if (e.key === 'Enter') this.loadLineage(); }}
+                    class="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand"
+                    aria-label="Lineage URN input"
+                />
+                <select .value=${String(this.lineageDepth)}
+                    @change=${(e: Event) => { this.lineageDepth = Number((e.target as HTMLSelectElement).value); }}
+                    class="px-3 py-2 border border-gray-200 rounded-lg text-sm" aria-label="Lineage depth">
+                    <option value="1">Depth: 1</option>
+                    <option value="2">Depth: 2</option>
+                    <option value="3" selected>Depth: 3</option>
+                    <option value="5">Depth: 5</option>
+                </select>
+                <button
+                    class="px-4 py-2 text-sm font-semibold bg-brand text-white rounded-lg hover:bg-black transition-colors"
+                    @click=${() => this.loadLineage()}
+                    ?disabled=${this.lineageLoading || !this.lineageUrn.trim()}
+                    aria-label="Load lineage graph"
+                >${this.lineageLoading ? 'Loading...' : 'Load Lineage'}</button>
+            </div>
+
+            ${this.lineageError ? html`<div class="text-red-500 text-sm mb-4" role="alert">${this.lineageError}</div>` : ''}
+
+            ${this.lineageNodes.length > 0 ? html`
+            <div class="mb-3 text-xs text-gray-400">
+                ${this.lineageNodes.length} nodes · ${this.lineageEdges.length} relationships
+            </div>
+            <voyant-graph-view
+                .nodes=${this.lineageNodes}
+                .edges=${this.lineageEdges}
+                apiUrl="/v1"
+            ></voyant-graph-view>
+            ` : !this.lineageLoading && !this.lineageError ? html`
+            <div class="text-center py-16">
+                <div class="text-4xl opacity-20 mb-3">🔗</div>
+                <div class="text-gray-400 text-sm">Enter a dataset URN to visualize its upstream and downstream lineage graph.</div>
+                <div class="text-gray-300 text-xs mt-2">Example: urn:li:dataset:(urn:li:dataPlatform:postgres,my_table,PROD)</div>
+            </div>` : ''}
         </div>`;
     }
 }

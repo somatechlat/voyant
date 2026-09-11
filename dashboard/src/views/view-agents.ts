@@ -143,11 +143,23 @@ const MODEL_OPTIONS = [
 
 @customElement('view-agents')
 export class ViewAgents extends LitElement {
-    @state() tab: 'definitions' | 'sessions' | 'evaluations' = 'definitions';
+    @state() tab: 'definitions' | 'sessions' | 'evaluations' | 'deployments' = 'definitions';
     @state() agents: AgentDef[] = [];
     @state() evaluations: AgentEvalSummary[] = [];
     @state() sessions: LiveSession[] = [];
     @state() loading = true;
+
+    // Deployment monitoring
+    @state() deployments: Array<{
+        id: string; name: string; status: string; endpoint_path: string;
+        invocation_count: number; avg_latency_ms: number;
+        model_name?: string; model_version?: string;
+    }> = [];
+    @state() deploymentMetrics: Record<string, Array<{
+        timestamp: string; latency_p50: number; latency_p95: number;
+        latency_p99: number; throughput_rps: number; error_rate: number;
+    }>> = {};
+    @state() deploymentsLoading = false;
 
     // Agent detail/edit
     @state() selectedAgent: AgentDef | null = null;
@@ -361,6 +373,28 @@ export class ViewAgents extends LitElement {
         } catch { this.evaluations = []; }
     }
 
+    async loadDeployments() {
+        this.deploymentsLoading = true;
+        try {
+            this.deployments = await api.get<Array<{
+                id: string; name: string; status: string; endpoint_path: string;
+                invocation_count: number; avg_latency_ms: number;
+                model_name?: string; model_version?: string;
+            }>>('/ml/endpoints');
+        } catch { this.deployments = []; }
+        finally { this.deploymentsLoading = false; }
+    }
+
+    async loadDeploymentMetrics(endpointId: string) {
+        try {
+            const metrics = await api.get<Array<{
+                timestamp: string; latency_p50: number; latency_p95: number;
+                latency_p99: number; throughput_rps: number; error_rate: number;
+            }>>(`/ml/endpoints/${endpointId}/metrics`);
+            this.deploymentMetrics = { ...this.deploymentMetrics, [endpointId]: metrics };
+        } catch { /* empty */ }
+    }
+
     async loadAgentDetail(id: string) {
         try {
             const detail = await api.get<AgentDef>(`/ml/agents/${id}`);
@@ -518,11 +552,15 @@ export class ViewAgents extends LitElement {
 
             <!-- Tab Bar -->
             <div class="flex gap-1 mb-6 bg-white rounded-lg p-1 border border-gray-100 w-fit" role="tablist" aria-label="Agent sections">
-                ${(['definitions', 'sessions', 'evaluations'] as const).map(t => html`
+                ${(['definitions', 'sessions', 'evaluations', 'deployments'] as const).map(t => html`
                 <button class="px-4 py-2 text-sm font-semibold rounded-md transition-colors ${this.tab === t ? 'bg-brand text-white' : 'text-gray-500 hover:text-ink'}"
                     role="tab" aria-selected=${this.tab === t}
-                    @click=${() => { this.tab = t; if (t === 'evaluations') this.loadEvaluations(); }}>
-                    ${t === 'definitions' ? 'Definitions' : t === 'sessions' ? 'Live Sessions' : 'Evaluations'}
+                    @click=${() => {
+                        this.tab = t;
+                        if (t === 'evaluations') this.loadEvaluations();
+                        if (t === 'deployments') this.loadDeployments();
+                    }}>
+                    ${t === 'definitions' ? 'Definitions' : t === 'sessions' ? 'Live Sessions' : t === 'evaluations' ? 'Evaluations' : 'Deployments'}
                 </button>`)}
             </div>
 
@@ -536,6 +574,9 @@ export class ViewAgents extends LitElement {
 
             <!-- Evaluations Tab -->
             ${this.tab === 'evaluations' && !this.loading ? this.renderEvaluations() : ''}
+
+            <!-- Deployments Tab -->
+            ${this.tab === 'deployments' && !this.loading ? this.renderDeployments() : ''}
 
             ${this.saveResult ? html`
             <div class="fixed bottom-6 right-6 px-4 py-3 rounded-xl shadow-lg text-sm font-semibold z-50 ${this.saveResult.startsWith('Error') ? 'bg-red-600 text-white' : 'bg-green-600 text-white'}">
@@ -664,6 +705,90 @@ export class ViewAgents extends LitElement {
                 </tbody>
             </table>
         </div>`;
+    }
+
+    private renderDeployments() {
+        return html`
+        <div class="flex items-center gap-2 mb-4">
+            <button class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white hover:bg-gray-50" aria-label="Refresh deployments" @click=${() => this.loadDeployments()}>Refresh</button>
+        </div>
+
+        ${this.deploymentsLoading ? html`<div class="text-center text-gray-400 py-8" role="status">Loading deployments...</div>` : ''}
+
+        ${!this.deploymentsLoading && this.deployments.length === 0 ? html`
+        <div class="bg-white rounded-xl border border-gray-100 p-12 text-center" aria-live="polite">
+            <div class="text-4xl opacity-20 mb-3">🚀</div>
+            <div class="text-gray-500">No model deployments yet. Deploy a model from the Model Registry to create an endpoint.</div>
+        </div>` : ''}
+
+        ${this.deployments.length > 0 ? html`
+        <!-- Deployment Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+            ${this.deployments.map(d => html`
+            <div class="bg-white rounded-xl border border-gray-100 p-5 hover:shadow-md transition-shadow cursor-pointer"
+                 @click=${() => this.loadDeploymentMetrics(d.id)}
+                 role="button" tabindex="0" aria-label="Deployment: ${d.name}">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="font-bold text-sm">${d.name}</div>
+                    ${this.statusBadge(d.status)}
+                </div>
+                <div class="text-xs text-gray-400 mb-3 font-mono">${d.endpoint_path || '—'}</div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <div class="text-xs text-gray-400">Invocations</div>
+                        <div class="text-lg font-bold">${this.formatNumber(d.invocation_count)}</div>
+                    </div>
+                    <div>
+                        <div class="text-xs text-gray-400">Avg Latency</div>
+                        <div class="text-lg font-bold ${d.avg_latency_ms > 500 ? 'text-red-500' : d.avg_latency_ms > 200 ? 'text-yellow-500' : 'text-green-500'}">${d.avg_latency_ms?.toFixed(0) || '—'}ms</div>
+                    </div>
+                </div>
+                ${d.model_name ? html`<div class="mt-3 text-xs text-gray-400">Model: <span class="text-gray-600">${d.model_name}</span>${d.model_version ? html` <span class="text-gray-400">v${d.model_version}</span>` : ''}</div>` : ''}
+            </div>`)}
+        </div>
+
+        <!-- Metrics Detail for Selected Endpoint -->
+        ${Object.entries(this.deploymentMetrics).map(([endpointId, metrics]) => {
+            const endpoint = this.deployments.find(d => d.id === endpointId);
+            if (!endpoint || metrics.length === 0) return '';
+            const latest = metrics[metrics.length - 1];
+            return html`
+            <div class="bg-white rounded-xl border border-gray-100 p-5 mb-4">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="font-bold">${endpoint.name} — Recent Metrics</div>
+                    <div class="text-xs text-gray-400">${metrics.length} data points</div>
+                </div>
+                <div class="grid grid-cols-5 gap-4">
+                    <div class="text-center">
+                        <div class="text-xs text-gray-400">P50 Latency</div>
+                        <div class="text-lg font-bold">${latest.latency_p50?.toFixed(0) || '—'}ms</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-xs text-gray-400">P95 Latency</div>
+                        <div class="text-lg font-bold ${latest.latency_p95 > 500 ? 'text-red-500' : ''}">${latest.latency_p95?.toFixed(0) || '—'}ms</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-xs text-gray-400">P99 Latency</div>
+                        <div class="text-lg font-bold">${latest.latency_p99?.toFixed(0) || '—'}ms</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-xs text-gray-400">Throughput</div>
+                        <div class="text-lg font-bold">${latest.throughput_rps?.toFixed(1) || '—'} rps</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-xs text-gray-400">Error Rate</div>
+                        <div class="text-lg font-bold ${(latest.error_rate || 0) > 0.05 ? 'text-red-500' : 'text-green-500'}">${((latest.error_rate || 0) * 100).toFixed(2)}%</div>
+                    </div>
+                </div>
+            </div>`;
+        })}` : ''}
+        `;
+    }
+
+    private formatNumber(n: number): string {
+        if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+        if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+        return String(n);
     }
 
     /* ── Edit/Create Modal ──────────────────────────────────────────────────── */
