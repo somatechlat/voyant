@@ -176,7 +176,7 @@ export class ViewJobs extends LitElement {
             </div>` : ''}
 
             <!-- Jobs Table -->
-            ${this.loading ? html`<div class="text-center text-gray-400 py-16" role="status" aria-live="polite">Loading...</div>` : html`
+            ${this.loading ? html`<div class="text-center text-gray-500 py-16" role="status" aria-live="polite">Loading...</div>` : html`
             <div class="bg-white rounded-xl border border-gray-100 overflow-hidden" aria-live="polite" aria-label="Jobs table">
                 <table class="w-full text-sm" role="table" aria-label="Jobs list">
                     <thead><tr class="border-b border-gray-100 text-left text-xs text-gray-500 uppercase">
@@ -204,7 +204,7 @@ export class ViewJobs extends LitElement {
                         </tr>`)}
                     </tbody>
                 </table>
-                ${this.jobs.length === 0 ? html`<div class="text-center text-gray-400 py-12">No jobs found</div>` : ''}
+                ${this.jobs.length === 0 ? html`<div class="text-center text-gray-500 py-12">No jobs found</div>` : ''}
             </div>`}
 
             <!-- Job Detail Drawer -->
@@ -215,16 +215,16 @@ export class ViewJobs extends LitElement {
                 <div class="relative w-[480px] bg-white h-full overflow-y-auto shadow-2xl border-l border-gray-200" tabindex="-1">
                     <div class="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
                         <h2 class="font-bold text-sm font-mono">${this.selectedJob.job_id.slice(0, 12)}</h2>
-                        <button class="text-gray-400 hover:text-ink" aria-label="Close job detail" @click=${() => { this.selectedJob = null; }}>✕</button>
+                        <button class="text-gray-500 hover:text-ink" aria-label="Close job detail" @click=${() => { this.selectedJob = null; }}>✕</button>
                     </div>
                     <div class="p-6 space-y-4">
                         <div class="grid grid-cols-2 gap-4">
-                            <div><span class="text-xs text-gray-400">Type</span><div class="font-semibold">${this.selectedJob.job_type}</div></div>
-                            <div><span class="text-xs text-gray-400">Status</span><div>${this.statusBadge(this.selectedJob.status)}</div></div>
-                            <div><span class="text-xs text-gray-400">Tenant</span><div>${this.selectedJob.tenant_id}</div></div>
-                            <div><span class="text-xs text-gray-400">Progress</span><div>${this.selectedJob.progress}%</div></div>
-                            <div><span class="text-xs text-gray-400">Source</span><div class="font-mono text-xs">${this.selectedJob.source_id || '—'}</div></div>
-                            <div><span class="text-xs text-gray-400">Created</span><div class="text-xs">${new Date(this.selectedJob.created_at).toLocaleString()}</div></div>
+                            <div><span class="text-xs text-gray-500">Type</span><div class="font-semibold">${this.selectedJob.job_type}</div></div>
+                            <div><span class="text-xs text-gray-500">Status</span><div>${this.statusBadge(this.selectedJob.status)}</div></div>
+                            <div><span class="text-xs text-gray-500">Tenant</span><div>${this.selectedJob.tenant_id}</div></div>
+                            <div><span class="text-xs text-gray-500">Progress</span><div>${this.selectedJob.progress}%</div></div>
+                            <div><span class="text-xs text-gray-500">Source</span><div class="font-mono text-xs">${this.selectedJob.source_id || '—'}</div></div>
+                            <div><span class="text-xs text-gray-500">Created</span><div class="text-xs">${new Date(this.selectedJob.created_at).toLocaleString()}</div></div>
                         </div>
 
                         ${this.selectedJob.parameters && Object.keys(this.selectedJob.parameters).length > 0 ? html`
@@ -253,7 +253,7 @@ export class ViewJobs extends LitElement {
                                 <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                                     <div>
                                         <div class="text-sm font-semibold">${a.artifact_type}</div>
-                                        <div class="text-xs text-gray-400">${a.format} · ${a.size_bytes ? `${(a.size_bytes / 1024).toFixed(1)}KB` : '—'}</div>
+                                        <div class="text-xs text-gray-500">${a.format} · ${a.size_bytes ? `${(a.size_bytes / 1024).toFixed(1)}KB` : '—'}</div>
                                     </div>
                                     <a href="/v1/artifacts/${this.selectedJob?.job_id}/${a.artifact_type}/download?format=${a.format}"
                                        class="px-3 py-1 text-xs font-semibold bg-brand text-white rounded hover:bg-black transition-colors"

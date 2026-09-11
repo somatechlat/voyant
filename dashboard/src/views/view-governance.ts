@@ -134,7 +134,7 @@ export class ViewGovernance extends LitElement {
                 >${t.label}</button>`)}
             </div>
             ${this.loading
-                ? html`<div class="text-center text-gray-400 py-16" role="status" aria-live="polite">Loading...</div>`
+                ? html`<div class="text-center text-gray-500 py-16" role="status" aria-live="polite">Loading...</div>`
                 : html`
                 <div class="bg-white rounded-xl border border-gray-100 overflow-hidden" aria-live="polite">
                     ${this.tab === 'policies' ? this.renderPoliciesTab() : nothing}
@@ -154,7 +154,7 @@ export class ViewGovernance extends LitElement {
         const rows = this.data.policies as Array<Record<string, string>>;
         return html`
         <table class="w-full text-sm" role="table" aria-label="Governance policies">
-            <thead><tr class="border-b border-gray-100 text-left text-xs text-gray-400 uppercase tracking-wider">
+            <thead><tr class="border-b border-gray-100 text-left text-xs text-gray-500 uppercase tracking-wider">
                 <th class="px-5 py-3">Name</th>
                 <th class="px-5 py-3">Type</th>
                 <th class="px-5 py-3">Status</th>
@@ -163,7 +163,7 @@ export class ViewGovernance extends LitElement {
             </tr></thead>
             <tbody>
             ${rows.length === 0
-                ? html`<tr><td colspan="5" class="px-5 py-8 text-center text-gray-400">No policies found.</td></tr>`
+                ? html`<tr><td colspan="5" class="px-5 py-8 text-center text-gray-500">No policies found.</td></tr>`
                 : rows.map(p => html`
                 <tr class="border-b border-gray-50 hover:bg-gray-50">
                     <td class="px-5 py-3 font-semibold">${p.name}</td>
@@ -186,7 +186,7 @@ export class ViewGovernance extends LitElement {
         const rows = this.data.contracts as Array<Record<string, unknown>>;
         return html`
         <table class="w-full text-sm" role="table" aria-label="Governance contracts">
-            <thead><tr class="border-b border-gray-100 text-left text-xs text-gray-400 uppercase tracking-wider">
+            <thead><tr class="border-b border-gray-100 text-left text-xs text-gray-500 uppercase tracking-wider">
                 <th class="px-5 py-3">Name</th>
                 <th class="px-5 py-3">Dataset URN</th>
                 <th class="px-5 py-3">Status</th>
@@ -194,7 +194,7 @@ export class ViewGovernance extends LitElement {
             </tr></thead>
             <tbody>
             ${rows.length === 0
-                ? html`<tr><td colspan="4" class="px-5 py-8 text-center text-gray-400">No contracts found.</td></tr>`
+                ? html`<tr><td colspan="4" class="px-5 py-8 text-center text-gray-500">No contracts found.</td></tr>`
                 : rows.map(c => html`
                 <tr class="border-b border-gray-50 hover:bg-gray-50">
                     <td class="px-5 py-3 font-semibold">${c.name}</td>
@@ -216,7 +216,7 @@ export class ViewGovernance extends LitElement {
         const rows = this.data.quotas as Array<Record<string, unknown>>;
         return html`
         <table class="w-full text-sm" role="table" aria-label="Tenant quotas">
-            <thead><tr class="border-b border-gray-100 text-left text-xs text-gray-400 uppercase tracking-wider">
+            <thead><tr class="border-b border-gray-100 text-left text-xs text-gray-500 uppercase tracking-wider">
                 <th class="px-5 py-3">Tenant</th>
                 <th class="px-5 py-3">Tier</th>
                 <th class="px-5 py-3">Jobs</th>
@@ -225,7 +225,7 @@ export class ViewGovernance extends LitElement {
             </tr></thead>
             <tbody>
             ${rows.length === 0
-                ? html`<tr><td colspan="5" class="px-5 py-8 text-center text-gray-400">No quota data found.</td></tr>`
+                ? html`<tr><td colspan="5" class="px-5 py-8 text-center text-gray-500">No quota data found.</td></tr>`
                 : rows.map(q => html`
                 <tr class="border-b border-gray-50 hover:bg-gray-50">
                     <td class="px-5 py-3 font-semibold">${q.tenant_id}</td>
@@ -266,11 +266,11 @@ export class ViewGovernance extends LitElement {
                 >Browse</button>
             </div>
             ${this.catalogLoading
-                ? html`<div class="text-center text-gray-400 py-12">Loading tables...</div>`
+                ? html`<div class="text-center text-gray-500 py-12">Loading tables...</div>`
                 : this.catalogTables.length === 0
-                    ? html`<div class="text-center text-gray-400 py-12">No tables found. Enter a schema and click Browse.</div>`
+                    ? html`<div class="text-center text-gray-500 py-12">No tables found. Enter a schema and click Browse.</div>`
                     : html`
-                    <div class="text-xs text-gray-400 uppercase tracking-wider mb-3">
+                    <div class="text-xs text-gray-500 uppercase tracking-wider mb-3">
                         ${this.catalogTables.length} table${this.catalogTables.length !== 1 ? 's' : ''}
                         in <span class="font-mono text-gray-600">${this.catalogSchema || 'default'}</span>
                     </div>
@@ -284,23 +284,23 @@ export class ViewGovernance extends LitElement {
                                 @click=${() => this.toggleTableColumns(t.name)}
                             >
                                 <span class="flex items-center gap-2">
-                                    <span class="text-gray-300 text-xs">
+                                    <span class="text-gray-500 text-xs">
                                         ${this.expandedTable === t.name ? '&#9660;' : '&#9654;'}
                                     </span>
                                     <span class="font-semibold text-sm">${t.name}</span>
                                 </span>
-                                <span class="text-xs text-gray-400 font-mono">
+                                <span class="text-xs text-gray-500 font-mono">
                                     ${t.columns ? `${t.columns.length} columns` : ''}
                                 </span>
                             </button>
                             ${this.expandedTable === t.name ? html`
                             <div class="bg-gray-50 border-t border-gray-100">
                                 ${t.loadingColumns
-                                    ? html`<div class="px-6 py-3 text-xs text-gray-400">Loading columns...</div>`
+                                    ? html`<div class="px-6 py-3 text-xs text-gray-500">Loading columns...</div>`
                                     : t.columns && t.columns.length > 0
                                         ? html`
                                         <table class="w-full text-xs">
-                                            <thead><tr class="text-left text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                                            <thead><tr class="text-left text-gray-500 uppercase tracking-wider border-b border-gray-100">
                                                 <th class="px-6 py-2">Column</th>
                                                 <th class="px-6 py-2">Type</th>
                                             </tr></thead>
@@ -312,7 +312,7 @@ export class ViewGovernance extends LitElement {
                                                 </tr>`)}
                                             </tbody>
                                         </table>`
-                                        : html`<div class="px-6 py-3 text-xs text-gray-400">No columns found</div>`}
+                                        : html`<div class="px-6 py-3 text-xs text-gray-500">No columns found</div>`}
                             </div>` : nothing}
                         </div>`)}
                     </div>`}
@@ -389,7 +389,7 @@ export class ViewGovernance extends LitElement {
             ${this.lineageError ? html`<div class="text-red-500 text-sm mb-4" role="alert">${this.lineageError}</div>` : ''}
 
             ${this.lineageNodes.length > 0 ? html`
-            <div class="mb-3 text-xs text-gray-400">
+            <div class="mb-3 text-xs text-gray-500">
                 ${this.lineageNodes.length} nodes · ${this.lineageEdges.length} relationships
             </div>
             <voyant-graph-view
@@ -400,8 +400,8 @@ export class ViewGovernance extends LitElement {
             ` : !this.lineageLoading && !this.lineageError ? html`
             <div class="text-center py-16">
                 <div class="text-4xl opacity-20 mb-3">🔗</div>
-                <div class="text-gray-400 text-sm">Enter a dataset URN to visualize its upstream and downstream lineage graph.</div>
-                <div class="text-gray-300 text-xs mt-2">Example: urn:li:dataset:(urn:li:dataPlatform:postgres,my_table,PROD)</div>
+                <div class="text-gray-500 text-sm">Enter a dataset URN to visualize its upstream and downstream lineage graph.</div>
+                <div class="text-gray-500 text-xs mt-2">Example: urn:li:dataset:(urn:li:dataPlatform:postgres,my_table,PROD)</div>
             </div>` : ''}
         </div>`;
     }

@@ -195,7 +195,7 @@ export class ViewAlerting extends LitElement {
             <div class="flex items-center justify-between mb-6">
                 <div>
                     <h1 class="text-2xl font-black font-display tracking-tight">Alert Rules</h1>
-                    <p class="text-sm text-gray-400 mt-1">Define alerting conditions, manage notification channels, and track alerts</p>
+                    <p class="text-sm text-gray-500 mt-1">Define alerting conditions, manage notification channels, and track alerts</p>
                 </div>
                 <div class="flex gap-2">
                     <button class="px-4 py-1.5 text-sm font-semibold border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors flex items-center gap-2"
@@ -222,7 +222,7 @@ export class ViewAlerting extends LitElement {
             ${this.loading ? html`
             <div class="text-center py-16" role="status" aria-live="polite">
                 <div class="inline-block w-8 h-8 border-2 border-gray-200 border-t-gray-600 rounded-full animate-spin mb-3"></div>
-                <div class="text-sm text-gray-400">Loading alert rules and notifications...</div>
+                <div class="text-sm text-gray-500">Loading alert rules and notifications...</div>
             </div>` : html`
             <!-- Rules Table -->
             ${this.renderRulesTable()}
@@ -243,7 +243,7 @@ export class ViewAlerting extends LitElement {
         <div class="bg-white rounded-xl border border-gray-100 overflow-hidden mb-6" aria-live="polite">
             <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
                 <h2 class="text-sm font-semibold text-gray-700">Rules</h2>
-                <span class="text-xs text-gray-400">${this.rules.length} rules</span>
+                <span class="text-xs text-gray-500">${this.rules.length} rules</span>
             </div>
             <table class="w-full text-sm" role="table" aria-label="Alert rules">
                 <thead><tr class="border-b border-gray-100 text-left text-xs text-gray-500 uppercase">
@@ -257,18 +257,18 @@ export class ViewAlerting extends LitElement {
                 </tr></thead>
                 <tbody>
                 ${this.rules.length === 0 ? html`
-                <tr><td colspan="7" class="px-5 py-16 text-center text-gray-400">
+                <tr><td colspan="7" class="px-5 py-16 text-center text-gray-500">
                     <div class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-gray-100 mb-4">
-                        <svg class="w-7 h-7 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                        <svg class="w-7 h-7 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                     </div>
                     <div class="text-sm font-semibold text-gray-600">No alert rules configured</div>
-                    <div class="text-xs mt-2 text-gray-400">Create a rule to start monitoring metrics and receiving alerts.</div>
+                    <div class="text-xs mt-2 text-gray-500">Create a rule to start monitoring metrics and receiving alerts.</div>
                 </td></tr>` : ''}
                 ${this.rules.map(r => html`
                 <tr class="border-b border-gray-50 hover:bg-gray-50">
                     <td class="px-5 py-3">
                         <div class="font-semibold">${r.name}</div>
-                        ${r.description ? html`<div class="text-xs text-gray-400 mt-0.5 truncate max-w-[250px]">${r.description}</div>` : ''}
+                        ${r.description ? html`<div class="text-xs text-gray-500 mt-0.5 truncate max-w-[250px]">${r.description}</div>` : ''}
                     </td>
                     <td class="px-5 py-3">${this.severityBadge(r.severity)}</td>
                     <td class="px-5 py-3">
@@ -283,7 +283,7 @@ export class ViewAlerting extends LitElement {
                         </button>
                     </td>
                     <td class="px-5 py-3">
-                        <span class="text-sm font-semibold ${r.fire_count > 0 ? 'text-amber-600' : 'text-gray-400'}">${r.fire_count}</span>
+                        <span class="text-sm font-semibold ${r.fire_count > 0 ? 'text-amber-600' : 'text-gray-500'}">${r.fire_count}</span>
                     </td>
                     <td class="px-5 py-3">
                         <div class="flex gap-2">
@@ -304,7 +304,7 @@ export class ViewAlerting extends LitElement {
         <div class="bg-white rounded-xl border border-gray-100 overflow-hidden" aria-live="polite">
             <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
                 <h2 class="text-sm font-semibold text-gray-700">Notifications</h2>
-                <span class="text-xs text-gray-400">${this.notifications.length} notifications</span>
+                <span class="text-xs text-gray-500">${this.notifications.length} notifications</span>
             </div>
             <table class="w-full text-sm" role="table" aria-label="Alert notifications">
                 <thead><tr class="border-b border-gray-100 text-left text-xs text-gray-500 uppercase">
@@ -318,9 +318,9 @@ export class ViewAlerting extends LitElement {
                 </tr></thead>
                 <tbody>
                 ${this.notifications.length === 0 ? html`
-                <tr><td colspan="7" class="px-5 py-12 text-center text-gray-400">
+                <tr><td colspan="7" class="px-5 py-12 text-center text-gray-500">
                     <div class="text-sm font-semibold text-gray-600">No notifications</div>
-                    <div class="text-xs mt-1 text-gray-400">Alert notifications will appear here when rules fire.</div>
+                    <div class="text-xs mt-1 text-gray-500">Alert notifications will appear here when rules fire.</div>
                 </td></tr>` : ''}
                 ${this.notifications.map(n => html`
                 <tr class="border-b border-gray-50 hover:bg-gray-50">
@@ -331,7 +331,7 @@ export class ViewAlerting extends LitElement {
                     <td class="px-5 py-3 text-xs text-gray-500">
                         ${n.acknowledged_by ? html`
                         <div>${n.acknowledged_by}</div>
-                        <div class="text-gray-400">${n.acknowledged_at ? new Date(n.acknowledged_at).toLocaleString() : ''}</div>` : '—'}
+                        <div class="text-gray-500">${n.acknowledged_at ? new Date(n.acknowledged_at).toLocaleString() : ''}</div>` : '—'}
                     </td>
                     <td class="px-5 py-3 text-xs text-gray-500">${new Date(n.created_at).toLocaleString()}</td>
                     <td class="px-5 py-3">
@@ -358,7 +358,7 @@ export class ViewAlerting extends LitElement {
             <div class="relative bg-white rounded-2xl shadow-2xl w-[560px] max-h-[85vh] overflow-y-auto" tabindex="-1">
                 <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
                     <h2 class="font-bold text-lg">Create Alert Rule</h2>
-                    <button class="text-gray-400 hover:text-ink" @click=${() => { this.showCreateModal = false; }}>✕</button>
+                    <button class="text-gray-500 hover:text-ink" @click=${() => { this.showCreateModal = false; }}>✕</button>
                 </div>
                 <div class="p-6 space-y-4">
                     <div>

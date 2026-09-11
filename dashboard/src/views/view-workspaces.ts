@@ -247,7 +247,7 @@ export class ViewWorkspaces extends LitElement {
             <div class="flex items-center justify-between mb-6">
                 <div>
                     <h1 class="text-2xl font-black font-display tracking-tight">Workspaces</h1>
-                    <p class="text-sm text-gray-400 mt-1">Collaborate with your team on shared resources</p>
+                    <p class="text-sm text-gray-500 mt-1">Collaborate with your team on shared resources</p>
                 </div>
                 <button class="px-4 py-1.5 text-sm font-semibold bg-brand text-white rounded-lg hover:bg-black transition-colors"
                     aria-label="Create new workspace" @click=${() => { this.showCreate = true; }}>
@@ -255,11 +255,11 @@ export class ViewWorkspaces extends LitElement {
                 </button>
             </div>
 
-            ${this.loading ? html`<div class="text-center text-gray-400 py-16" role="status" aria-live="polite">Loading...</div>` : html`
+            ${this.loading ? html`<div class="text-center text-gray-500 py-16" role="status" aria-live="polite">Loading...</div>` : html`
             <!-- Workspace Grid -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" aria-live="polite">
                 ${this.workspaces.length === 0 ? html`
-                <div class="col-span-3 text-center text-gray-400 py-12">No workspaces found. Create one to get started.</div>` : ''}
+                <div class="col-span-3 text-center text-gray-500 py-12">No workspaces found. Create one to get started.</div>` : ''}
                 ${this.workspaces.map(ws => html`
                 <div class="bg-white rounded-xl border border-gray-100 p-5 hover:border-brand hover:shadow-md transition-all group cursor-pointer"
                     role="article" tabindex="0" aria-label="Workspace: ${ws.name}"
@@ -268,7 +268,7 @@ export class ViewWorkspaces extends LitElement {
                     <div class="flex items-start justify-between mb-3">
                         <div class="min-w-0 flex-1">
                             <h3 class="font-bold text-sm group-hover:text-brand transition-colors truncate">${ws.name}</h3>
-                            <p class="text-xs text-gray-400 truncate mt-0.5">${ws.description || 'No description'}</p>
+                            <p class="text-xs text-gray-500 truncate mt-0.5">${ws.description || 'No description'}</p>
                         </div>
                         <span class="flex-shrink-0 ml-2 px-2 py-0.5 text-xs rounded border ${ws.is_public ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}">
                             ${ws.is_public ? 'Public' : 'Private'}
@@ -278,7 +278,7 @@ export class ViewWorkspaces extends LitElement {
                     <div class="flex flex-wrap gap-1 mb-3">
                         ${ws.tags.map(t => html`<span class="px-1.5 py-0.5 text-[10px] rounded bg-gray-100 text-gray-500">${t}</span>`)}
                     </div>` : ''}
-                    <div class="flex items-center gap-4 text-xs text-gray-400 pt-3 border-t border-gray-50">
+                    <div class="flex items-center gap-4 text-xs text-gray-500 pt-3 border-t border-gray-50">
                         <span>Owner: ${ws.owner_id}</span>
                         <span>${this.relativeTime(ws.created_at)}</span>
                     </div>
@@ -309,7 +309,7 @@ export class ViewWorkspaces extends LitElement {
             <div class="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden" tabindex="-1">
                 <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                     <h2 class="text-lg font-bold">Create Workspace</h2>
-                    <button class="text-gray-400 hover:text-ink text-xl" aria-label="Close" @click=${() => { this.showCreate = false; }}>✕</button>
+                    <button class="text-gray-500 hover:text-ink text-xl" aria-label="Close" @click=${() => { this.showCreate = false; }}>✕</button>
                 </div>
                 <div class="p-6 space-y-4">
                     <div>
@@ -359,18 +359,18 @@ export class ViewWorkspaces extends LitElement {
                 <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                     <div>
                         <h2 class="text-lg font-bold">${ws.name}</h2>
-                        <p class="text-xs text-gray-400">${ws.is_public ? 'Public' : 'Private'} workspace · Owner: ${ws.owner_id}</p>
+                        <p class="text-xs text-gray-500">${ws.is_public ? 'Public' : 'Private'} workspace · Owner: ${ws.owner_id}</p>
                     </div>
                     <div class="flex gap-2">
                         <button class="text-xs text-red-600 hover:underline" @click=${() => this.deleteWorkspace(ws.id)}>Delete</button>
-                        <button class="text-gray-400 hover:text-ink text-xl" aria-label="Close panel" @click=${() => { this.selectedWs = null; }}>✕</button>
+                        <button class="text-gray-500 hover:text-ink text-xl" aria-label="Close panel" @click=${() => { this.selectedWs = null; }}>✕</button>
                     </div>
                 </div>
 
                 <!-- Detail Tabs -->
                 <div class="flex gap-1 px-6 pt-3 border-b border-gray-100" role="tablist">
                     ${(['overview', 'members', 'assets', 'comments', 'activity'] as const).map(t => html`
-                    <button class="px-3 py-2 text-xs font-semibold rounded-t-md transition-colors ${this.detailTab === t ? 'bg-gray-50 text-brand border-b-2 border-brand' : 'text-gray-400 hover:text-ink'}"
+                    <button class="px-3 py-2 text-xs font-semibold rounded-t-md transition-colors ${this.detailTab === t ? 'bg-gray-50 text-brand border-b-2 border-brand' : 'text-gray-500 hover:text-ink'}"
                         role="tab" aria-selected=${this.detailTab === t}
                         @click=${() => { this.detailTab = t; }}>
                         ${t.charAt(0).toUpperCase() + t.slice(1)}
@@ -379,7 +379,7 @@ export class ViewWorkspaces extends LitElement {
 
                 <!-- Panel Content -->
                 <div class="flex-1 overflow-y-auto p-6">
-                    ${this.detailLoading ? html`<div class="text-center text-gray-400 py-8">Loading...</div>` : ''}
+                    ${this.detailLoading ? html`<div class="text-center text-gray-500 py-8">Loading...</div>` : ''}
                     ${!this.detailLoading && this.detailTab === 'overview' ? this.renderOverviewTab(ws) : ''}
                     ${!this.detailLoading && this.detailTab === 'members' ? this.renderMembersTab() : ''}
                     ${!this.detailLoading && this.detailTab === 'assets' ? this.renderAssetsTab() : ''}
@@ -394,32 +394,32 @@ export class ViewWorkspaces extends LitElement {
         return html`
         <div class="space-y-4">
             <div>
-                <div class="text-xs text-gray-400 uppercase tracking-wider mb-1">Description</div>
+                <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Description</div>
                 <div class="text-sm text-gray-700">${ws.description || 'No description provided'}</div>
             </div>
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <div class="text-xs text-gray-400 uppercase tracking-wider mb-1">Owner</div>
+                    <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Owner</div>
                     <div class="text-sm font-mono">${ws.owner_id}</div>
                 </div>
                 <div>
-                    <div class="text-xs text-gray-400 uppercase tracking-wider mb-1">Visibility</div>
+                    <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Visibility</div>
                     <span class="px-2 py-0.5 text-xs rounded border ${ws.is_public ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}">
                         ${ws.is_public ? 'Public' : 'Private'}
                     </span>
                 </div>
                 <div>
-                    <div class="text-xs text-gray-400 uppercase tracking-wider mb-1">Created</div>
+                    <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Created</div>
                     <div class="text-sm">${new Date(ws.created_at).toLocaleString()}</div>
                 </div>
                 <div>
-                    <div class="text-xs text-gray-400 uppercase tracking-wider mb-1">Last Updated</div>
+                    <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Last Updated</div>
                     <div class="text-sm">${new Date(ws.updated_at).toLocaleString()}</div>
                 </div>
             </div>
             ${ws.tags.length > 0 ? html`
             <div>
-                <div class="text-xs text-gray-400 uppercase tracking-wider mb-1">Tags</div>
+                <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Tags</div>
                 <div class="flex flex-wrap gap-1">
                     ${ws.tags.map(t => html`<span class="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-600">${t}</span>`)}
                 </div>
@@ -448,7 +448,7 @@ export class ViewWorkspaces extends LitElement {
 
             <!-- Member List -->
             <div class="space-y-2">
-                ${this.members.length === 0 ? html`<div class="text-center text-gray-400 py-8">No members yet</div>` : ''}
+                ${this.members.length === 0 ? html`<div class="text-center text-gray-500 py-8">No members yet</div>` : ''}
                 ${this.members.map(m => html`
                 <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div class="flex items-center gap-3">
@@ -457,7 +457,7 @@ export class ViewWorkspaces extends LitElement {
                         </div>
                         <div>
                             <div class="text-sm font-semibold">${m.user_id}</div>
-                            <div class="text-xs text-gray-400">Joined ${this.relativeTime(m.joined_at)}</div>
+                            <div class="text-xs text-gray-500">Joined ${this.relativeTime(m.joined_at)}</div>
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
@@ -474,7 +474,7 @@ export class ViewWorkspaces extends LitElement {
     private renderAssetsTab() {
         return html`
         <div class="space-y-2">
-            ${this.assets.length === 0 ? html`<div class="text-center text-gray-400 py-8">No shared assets</div>` : ''}
+            ${this.assets.length === 0 ? html`<div class="text-center text-gray-500 py-8">No shared assets</div>` : ''}
             ${this.assets.map(a => html`
             <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                 <div class="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center">
@@ -483,9 +483,9 @@ export class ViewWorkspaces extends LitElement {
                 </div>
                 <div class="flex-1 min-w-0">
                     <div class="text-sm font-semibold truncate">${a.asset_id}</div>
-                    <div class="text-xs text-gray-400">${a.asset_type} · Shared by ${a.shared_by}</div>
+                    <div class="text-xs text-gray-500">${a.asset_type} · Shared by ${a.shared_by}</div>
                 </div>
-                <div class="text-xs text-gray-400">${this.relativeTime(a.shared_at)}</div>
+                <div class="text-xs text-gray-500">${this.relativeTime(a.shared_at)}</div>
             </div>`)}
         </div>`;
     }
@@ -505,7 +505,7 @@ export class ViewWorkspaces extends LitElement {
                             ${c.created_by.charAt(0).toUpperCase()}
                         </div>
                         <span class="text-xs font-semibold">${c.created_by}</span>
-                        <span class="text-xs text-gray-400">${this.relativeTime(c.created_at)}</span>
+                        <span class="text-xs text-gray-500">${this.relativeTime(c.created_at)}</span>
                         ${c.mentions.length > 0 ? html`
                         <span class="text-xs text-blue-500">${c.mentions.map(m => '@' + m).join(' ')}</span>` : ''}
                     </div>
@@ -528,7 +528,7 @@ export class ViewWorkspaces extends LitElement {
                     @click=${() => this.postComment()}>Post</button>
             </div>
             <!-- Comment List -->
-            ${this.comments.length === 0 ? html`<div class="text-center text-gray-400 py-8">No comments yet</div>` : ''}
+            ${this.comments.length === 0 ? html`<div class="text-center text-gray-500 py-8">No comments yet</div>` : ''}
             ${topLevel.map(c => renderComment(c))}
         </div>`;
     }
@@ -536,7 +536,7 @@ export class ViewWorkspaces extends LitElement {
     private renderActivityTab() {
         return html`
         <div class="space-y-3">
-            ${this.activity.length === 0 ? html`<div class="text-center text-gray-400 py-8">No activity yet</div>` : ''}
+            ${this.activity.length === 0 ? html`<div class="text-center text-gray-500 py-8">No activity yet</div>` : ''}
             ${this.activity.map(a => html`
             <div class="flex items-start gap-3">
                 <div class="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
@@ -551,7 +551,7 @@ export class ViewWorkspaces extends LitElement {
                         ${a.action === 'asset.shared' ? ` shared a ${a.resource_type}` : ''}
                         ${a.action === 'comment.created' ? ' posted a comment' : ''}
                     </div>
-                    <div class="text-xs text-gray-400 mt-0.5">${this.relativeTime(a.timestamp)}</div>
+                    <div class="text-xs text-gray-500 mt-0.5">${this.relativeTime(a.timestamp)}</div>
                 </div>
             </div>`)}
         </div>`;

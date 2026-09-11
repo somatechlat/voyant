@@ -216,7 +216,7 @@ export class ViewConnectors extends LitElement {
             <div class="flex items-center justify-between mb-6">
                 <div>
                     <h1 class="text-2xl font-black font-display tracking-tight">Data Connectors</h1>
-                    <p class="text-sm text-gray-400 mt-1">Manage data source connections, test connectivity, and discover datasets</p>
+                    <p class="text-sm text-gray-500 mt-1">Manage data source connections, test connectivity, and discover datasets</p>
                 </div>
                 <div class="flex gap-2">
                     <button class="px-4 py-1.5 text-sm font-semibold border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors flex items-center gap-2"
@@ -243,7 +243,7 @@ export class ViewConnectors extends LitElement {
             ${this.loading ? html`
             <div class="text-center py-16" role="status" aria-live="polite">
                 <div class="inline-block w-8 h-8 border-2 border-gray-200 border-t-gray-600 rounded-full animate-spin mb-3"></div>
-                <div class="text-sm text-gray-400">Loading connections...</div>
+                <div class="text-sm text-gray-500">Loading connections...</div>
             </div>` : html`
             <!-- Connections Table -->
             ${this.renderConnectionsTable()}
@@ -264,7 +264,7 @@ export class ViewConnectors extends LitElement {
         <div class="bg-white rounded-xl border border-gray-100 overflow-hidden" aria-live="polite">
             <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
                 <h2 class="text-sm font-semibold text-gray-700">Connections</h2>
-                <span class="text-xs text-gray-400">${this.connections.length} connections</span>
+                <span class="text-xs text-gray-500">${this.connections.length} connections</span>
             </div>
             <table class="w-full text-sm" role="table" aria-label="Data connections">
                 <thead><tr class="border-b border-gray-100 text-left text-xs text-gray-500 uppercase">
@@ -277,12 +277,12 @@ export class ViewConnectors extends LitElement {
                 </tr></thead>
                 <tbody>
                 ${this.connections.length === 0 ? html`
-                <tr><td colspan="6" class="px-5 py-16 text-center text-gray-400">
+                <tr><td colspan="6" class="px-5 py-16 text-center text-gray-500">
                     <div class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-gray-100 mb-4">
-                        <svg class="w-7 h-7 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                        <svg class="w-7 h-7 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
                     </div>
                     <div class="text-sm font-semibold text-gray-600">No connections configured</div>
-                    <div class="text-xs mt-2 text-gray-400">Add a data connector to start ingesting data from external sources.</div>
+                    <div class="text-xs mt-2 text-gray-500">Add a data connector to start ingesting data from external sources.</div>
                 </td></tr>` : ''}
                 ${this.connections.map(c => html`
                 <tr class="border-b border-gray-50 hover:bg-gray-50 cursor-pointer"
@@ -325,7 +325,7 @@ export class ViewConnectors extends LitElement {
                             <span class="inline-flex items-center gap-1.5 text-xs">${this.statusDot(conn.status)} ${conn.status}</span>
                         </div>
                     </div>
-                    <button class="text-gray-400 hover:text-ink" @click=${() => { this.selectedConnection = null; }}>✕</button>
+                    <button class="text-gray-500 hover:text-ink" @click=${() => { this.selectedConnection = null; }}>✕</button>
                 </div>
 
                 <div class="p-6 space-y-6">
@@ -335,7 +335,7 @@ export class ViewConnectors extends LitElement {
                         <div class="grid grid-cols-2 gap-3">
                             ${Object.entries(conn.config || {}).filter(([k]) => k !== 'password' && k !== 'secret_key').map(([k, v]) => html`
                             <div class="p-3 bg-gray-50 rounded-lg">
-                                <div class="text-xs text-gray-400">${k}</div>
+                                <div class="text-xs text-gray-500">${k}</div>
                                 <div class="text-sm font-mono mt-1 truncate">${String(v)}</div>
                             </div>`)}
                         </div>
@@ -344,9 +344,9 @@ export class ViewConnectors extends LitElement {
                     <!-- Datasets -->
                     <div>
                         <h3 class="text-xs font-semibold text-gray-500 uppercase mb-3">Discovered Datasets</h3>
-                        ${this.detailLoading ? html`<div class="text-sm text-gray-400 py-4 text-center">Loading datasets...</div>` : html`
+                        ${this.detailLoading ? html`<div class="text-sm text-gray-500 py-4 text-center">Loading datasets...</div>` : html`
                         ${this.detailDatasets.length === 0 ? html`
-                        <div class="text-sm text-gray-400 py-8 text-center">No datasets discovered. Test the connection to discover available datasets.</div>` : html`
+                        <div class="text-sm text-gray-500 py-8 text-center">No datasets discovered. Test the connection to discover available datasets.</div>` : html`
                         <div class="bg-white rounded-lg border border-gray-100 overflow-hidden">
                             <table class="w-full text-sm">
                                 <thead><tr class="border-b border-gray-100 text-left text-xs text-gray-500 uppercase">
@@ -387,7 +387,7 @@ export class ViewConnectors extends LitElement {
             <div class="relative bg-white rounded-2xl shadow-2xl w-[580px] max-h-[85vh] overflow-y-auto" tabindex="-1">
                 <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
                     <h2 class="font-bold text-lg">Add Connection — Step ${this.wizardStep + 1} of 4</h2>
-                    <button class="text-gray-400 hover:text-ink" @click=${() => this.resetWizard()}>✕</button>
+                    <button class="text-gray-500 hover:text-ink" @click=${() => this.resetWizard()}>✕</button>
                 </div>
 
                 <div class="p-6">
@@ -409,7 +409,7 @@ export class ViewConnectors extends LitElement {
                 <button class="p-4 border-2 rounded-xl text-left transition-colors ${this.wizardType?.id === ct.id ? 'border-gray-900 bg-gray-50' : 'border-gray-200 hover:border-gray-300'}"
                     @click=${() => { this.wizardType = ct; this.wizardConfig = {}; }}>
                     <div class="font-semibold text-sm">${ct.label}</div>
-                    <div class="text-xs text-gray-400 mt-1">${ct.fields.length} fields</div>
+                    <div class="text-xs text-gray-500 mt-1">${ct.fields.length} fields</div>
                 </button>`)}
             </div>
             <div class="flex justify-end mt-6">
@@ -458,7 +458,7 @@ export class ViewConnectors extends LitElement {
             <div class="text-center py-6">
                 ${this.wizardTesting ? html`
                 <div class="inline-block w-8 h-8 border-2 border-gray-200 border-t-gray-600 rounded-full animate-spin mb-3"></div>
-                <div class="text-sm text-gray-400">Testing connection...</div>` : html`
+                <div class="text-sm text-gray-500">Testing connection...</div>` : html`
                 ${this.wizardTestResult ? html`
                 <div class="p-4 rounded-lg ${this.wizardTestResult.healthy ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}">
                     <div class="font-semibold text-sm ${this.wizardTestResult.healthy ? 'text-green-700' : 'text-red-700'}">

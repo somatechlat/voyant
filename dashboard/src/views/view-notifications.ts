@@ -196,7 +196,7 @@ export class ViewNotifications extends LitElement {
             <div class="flex items-center justify-between mb-6">
                 <div>
                     <h1 class="text-2xl font-black font-display tracking-tight">Notifications</h1>
-                    <p class="text-sm text-gray-400 mt-1">Stay informed about system events and updates</p>
+                    <p class="text-sm text-gray-500 mt-1">Stay informed about system events and updates</p>
                 </div>
                 <div class="flex gap-2">
                     ${this.tab === 'notifications' ? html`
@@ -233,16 +233,16 @@ export class ViewNotifications extends LitElement {
             <!-- Summary Cards -->
             <div class="grid grid-cols-3 gap-4 mb-6">
                 <div class="bg-white rounded-xl border border-gray-100 p-5">
-                    <div class="text-xs text-gray-400 uppercase tracking-wider mb-1">Total</div>
+                    <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Total</div>
                     <div class="text-2xl font-bold">${this.totalCount}</div>
                 </div>
                 <div class="bg-white rounded-xl border border-gray-100 p-5">
-                    <div class="text-xs text-gray-400 uppercase tracking-wider mb-1">Unread</div>
+                    <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Unread</div>
                     <div class="text-2xl font-bold text-blue-600">${this.unreadCount}</div>
                 </div>
                 <div class="bg-white rounded-xl border border-gray-100 p-5">
-                    <div class="text-xs text-gray-400 uppercase tracking-wider mb-1">Read</div>
-                    <div class="text-2xl font-bold text-gray-400">${this.readCount}</div>
+                    <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Read</div>
+                    <div class="text-2xl font-bold text-gray-500">${this.readCount}</div>
                 </div>
             </div>
 
@@ -268,10 +268,10 @@ export class ViewNotifications extends LitElement {
                     aria-label="Refresh notifications" @click=${() => this.loadNotifications()}>Refresh</button>
             </div>
 
-            ${this.loading ? html`<div class="text-center text-gray-400 py-16" role="status" aria-live="polite">Loading...</div>` : html`
+            ${this.loading ? html`<div class="text-center text-gray-500 py-16" role="status" aria-live="polite">Loading...</div>` : html`
             <div class="space-y-2" aria-live="polite">
                 ${this.notifications.length === 0 ? html`
-                <div class="bg-white rounded-xl border border-gray-100 p-12 text-center text-gray-400">
+                <div class="bg-white rounded-xl border border-gray-100 p-12 text-center text-gray-500">
                     No notifications found
                 </div>` : ''}
                 ${this.notifications.map(n => html`
@@ -292,7 +292,7 @@ export class ViewNotifications extends LitElement {
                             ${!n.is_read ? html`<span class="w-2 h-2 rounded-full ${TYPE_DOT_COLORS[n.type] || 'bg-blue-500'}"></span>` : ''}
                         </div>
                         <p class="text-xs text-gray-500 mt-0.5 line-clamp-2">${n.message}</p>
-                        <div class="flex items-center gap-3 mt-2 text-xs text-gray-400">
+                        <div class="flex items-center gap-3 mt-2 text-xs text-gray-500">
                             <span class="px-1.5 py-0.5 rounded ${TYPE_COLORS[n.type] || TYPE_COLORS.information}">${n.type}</span>
                             ${n.resource_type ? html`<span>${n.resource_type}</span>` : ''}
                             <span>${this.relativeTime(n.created_at)}</span>
@@ -304,7 +304,7 @@ export class ViewNotifications extends LitElement {
                         <button class="text-xs text-blue-600 hover:underline px-2 py-1"
                             aria-label="Mark as read"
                             @click=${(e: Event) => { e.stopPropagation(); this.markRead(n.id); }}>Mark Read</button>` : html`
-                        <span class="text-xs text-gray-300 px-2 py-1">Read</span>`}
+                        <span class="text-xs text-gray-500 px-2 py-1">Read</span>`}
                     </div>
                 </div>`)}
             </div>`}
@@ -315,7 +315,7 @@ export class ViewNotifications extends LitElement {
 
     private renderPreferencesTab() {
         if (this.prefsLoading) {
-            return html`<div class="text-center text-gray-400 py-16" role="status" aria-live="polite">Loading preferences...</div>`;
+            return html`<div class="text-center text-gray-500 py-16" role="status" aria-live="polite">Loading preferences...</div>`;
         }
 
         // Group preferences by event_type
@@ -330,10 +330,10 @@ export class ViewNotifications extends LitElement {
             <div class="bg-white rounded-xl border border-gray-100 overflow-hidden">
                 <div class="px-5 py-4 border-b border-gray-100">
                     <h2 class="text-sm font-bold">Notification Preferences</h2>
-                    <p class="text-xs text-gray-400 mt-0.5">Control which channels receive notifications for each event type</p>
+                    <p class="text-xs text-gray-500 mt-0.5">Control which channels receive notifications for each event type</p>
                 </div>
                 ${grouped.size === 0 ? html`
-                <div class="px-5 py-12 text-center text-gray-400">No preferences configured</div>` : html`
+                <div class="px-5 py-12 text-center text-gray-500">No preferences configured</div>` : html`
                 <table class="w-full text-sm" role="table" aria-label="Notification preferences">
                     <thead><tr class="border-b border-gray-100 text-left text-xs text-gray-500 uppercase">
                         <th class="px-5 py-3">Event Type</th>
@@ -345,7 +345,7 @@ export class ViewNotifications extends LitElement {
                         <td class="px-5 py-3 font-mono text-xs font-semibold">${eventType}</td>
                         ${CHANNELS.map(ch => {
                             const pref = prefs.find(p => p.channel === ch);
-                            if (!pref) return html`<td class="px-5 py-3 text-center text-gray-300">—</td>`;
+                            if (!pref) return html`<td class="px-5 py-3 text-center text-gray-500">—</td>`;
                             return html`
                             <td class="px-5 py-3 text-center">
                                 <button class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${pref.enabled ? 'bg-brand' : 'bg-gray-200'}"

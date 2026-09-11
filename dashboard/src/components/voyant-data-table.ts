@@ -95,18 +95,18 @@ export class VoyantDataTable extends LitElement {
                     ` : ''}
                     ${this.exportable ? html`
                     <button @click=${this._exportCSV}
-                        style="padding:8px 16px;border-radius:8px;border:1px solid #262626;background:#141414;color:#9CA3AF;font-size:12px;cursor:pointer">
+                        style="padding:8px 16px;border-radius:8px;border:1px solid #262626;background:#141414;color:#4B5563;font-size:12px;cursor:pointer">
                         📥 CSV
                     </button>
                     ` : ''}
-                    <span style="font-size:11px;color:#6B7280">${filtered.length} rows</span>
+                    <span style="font-size:11px;color:#374151">${filtered.length} rows</span>
                 </div>` : ''}
                 <div style="overflow-x:auto;border-radius:12px;border:1px solid #262626;background:#0A0A0A">
                     <table style="width:100%;border-collapse:collapse;font-size:13px">
                         <thead>
                             <tr style="border-bottom:1px solid #262626">
                                 ${this.columns.map(col => html`
-                                <th style="padding:10px 16px;text-align:left;font-size:11px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:0.05em;cursor:${col.sortable !== false ? 'pointer' : 'default'};width:${col.width || 'auto'};white-space:nowrap"
+                                <th style="padding:10px 16px;text-align:left;font-size:11px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:0.05em;cursor:${col.sortable !== false ? 'pointer' : 'default'};width:${col.width || 'auto'};white-space:nowrap"
                                     @click=${col.sortable !== false ? () => this._toggleSort(col.key) : nothing}>
                                     ${col.label}${this.sortKey === col.key ? (this.sortDir === 'asc' ? ' ↑' : ' ↓') : ''}
                                 </th>`)}
@@ -127,19 +127,19 @@ export class VoyantDataTable extends LitElement {
                                 </td>`)}
                             </tr>`)}
                             ${paged.length === 0 ? html`
-                            <tr><td colspan=${this.columns.length} style="text-align:center;padding:48px;color:#6B7280">No data</td></tr>
+                            <tr><td colspan=${this.columns.length} style="text-align:center;padding:48px;color:#374151">No data</td></tr>
                             ` : ''}
                         </tbody>
                     </table>
                 </div>
                 ${totalPages > 1 ? html`
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:12px;color:#6B7280">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:12px;color:#374151">
                     <span>Page ${this.page + 1} of ${totalPages}</span>
                     <div style="display:flex;gap:4px">
                         <button ?disabled=${this.page === 0} @click=${() => this.page--}
-                            style="padding:4px 12px;border-radius:6px;border:1px solid #262626;background:#141414;color:#9CA3AF;cursor:pointer;font-size:12px">←</button>
+                            style="padding:4px 12px;border-radius:6px;border:1px solid #262626;background:#141414;color:#4B5563;cursor:pointer;font-size:12px">←</button>
                         <button ?disabled=${this.page >= totalPages - 1} @click=${() => this.page++}
-                            style="padding:4px 12px;border-radius:6px;border:1px solid #262626;background:#141414;color:#9CA3AF;cursor:pointer;font-size:12px">→</button>
+                            style="padding:4px 12px;border-radius:6px;border:1px solid #262626;background:#141414;color:#4B5563;cursor:pointer;font-size:12px">→</button>
                     </div>
                 </div>` : ''}
             </div>

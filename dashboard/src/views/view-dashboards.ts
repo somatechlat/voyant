@@ -387,7 +387,7 @@ export class ViewDashboards extends LitElement {
                     ${this.wsConnected
                         ? html`<span class="inline-flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
                             <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>Live${this.lastRefresh ? ` · ${this.lastRefresh}` : ''}</span>`
-                        : html`<span class="inline-flex items-center gap-1 text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                        : html`<span class="inline-flex items-center gap-1 text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
                             <span class="w-1.5 h-1.5 rounded-full bg-gray-300"></span>Offline</span>`}
                 </div>
                 <div class="flex gap-2">
@@ -429,17 +429,17 @@ export class ViewDashboards extends LitElement {
             </div>` : nothing}
 
             <!-- Dashboard Grid -->
-            ${this.loading ? html`<div class="text-center text-gray-400 py-16" role="status" aria-live="polite">Loading...</div>` : html`
+            ${this.loading ? html`<div class="text-center text-gray-500 py-16" role="status" aria-live="polite">Loading...</div>` : html`
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" aria-live="polite">
                 ${this.dashboards.length === 0
-                    ? html`<div class="col-span-full text-center text-gray-400 py-16">No dashboards found. Create one to get started.</div>`
+                    ? html`<div class="col-span-full text-center text-gray-500 py-16">No dashboards found. Create one to get started.</div>`
                     : this.dashboards.map(d => html`
                     <div class="bg-white rounded-xl border border-gray-100 p-5 hover:shadow-md transition-shadow cursor-pointer group"
                         role="button" tabindex="0" aria-label="Dashboard: ${d.name}"
                         @click=${() => this.viewDetail(d)} @keydown=${(e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.viewDetail(d); } }}>
                         <div class="flex items-start justify-between mb-3">
                             <div class="h-10 w-10 rounded-lg bg-gray-100 flex items-center justify-center">
-                                <svg class="h-5 w-5 text-gray-400" viewBox="0 0 24 24" fill="none"
+                                <svg class="h-5 w-5 text-gray-500" viewBox="0 0 24 24" fill="none"
                                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
                                     <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
@@ -452,8 +452,8 @@ export class ViewDashboards extends LitElement {
                             </div>
                         </div>
                         <h3 class="font-bold text-sm mb-1">${d.name}</h3>
-                        ${d.description ? html`<p class="text-xs text-gray-400 mb-3 line-clamp-2">${d.description}</p>` : nothing}
-                        <div class="flex items-center gap-3 text-xs text-gray-400">
+                        ${d.description ? html`<p class="text-xs text-gray-500 mb-3 line-clamp-2">${d.description}</p>` : nothing}
+                        <div class="flex items-center gap-3 text-xs text-gray-500">
                             <span>${d.widget_count || 0} widget${(d.widget_count || 0) !== 1 ? 's' : ''}</span>
                             <span>&middot;</span>
                             <span>${new Date(d.updated_at).toLocaleDateString()}</span>
@@ -477,28 +477,28 @@ export class ViewDashboards extends LitElement {
             <div class="relative w-[600px] bg-white h-full overflow-y-auto shadow-2xl border-l border-gray-200" tabindex="-1">
                 <div class="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between z-10">
                     <h2 class="font-bold text-lg">${d.name}</h2>
-                    <button class="text-gray-400 hover:text-ink" aria-label="Close"
+                    <button class="text-gray-500 hover:text-ink" aria-label="Close"
                         @click=${() => { this.selectedDashboard = null; }}>&#10005;</button>
                 </div>
                 <div class="p-6 space-y-6">
                     ${d.description ? html`
                     <div>
-                        <span class="text-xs text-gray-400">Description</span>
+                        <span class="text-xs text-gray-500">Description</span>
                         <p class="text-sm mt-1">${d.description}</p>
                     </div>` : nothing}
 
                     <div class="grid grid-cols-3 gap-4">
                         <div class="bg-gray-50 rounded-lg p-3 text-center">
                             <div class="text-lg font-bold">${d.widget_count || 0}</div>
-                            <div class="text-xs text-gray-400">Widgets</div>
+                            <div class="text-xs text-gray-500">Widgets</div>
                         </div>
                         <div class="bg-gray-50 rounded-lg p-3 text-center">
                             <div class="text-xs font-semibold">${new Date(d.created_at).toLocaleDateString()}</div>
-                            <div class="text-xs text-gray-400">Created</div>
+                            <div class="text-xs text-gray-500">Created</div>
                         </div>
                         <div class="bg-gray-50 rounded-lg p-3 text-center">
                             <div class="text-xs font-semibold">${new Date(d.updated_at).toLocaleDateString()}</div>
-                            <div class="text-xs text-gray-400">Updated</div>
+                            <div class="text-xs text-gray-500">Updated</div>
                         </div>
                     </div>
 
@@ -506,26 +506,26 @@ export class ViewDashboards extends LitElement {
                     <div>
                         <h4 class="text-xs font-semibold text-gray-500 mb-3">Widgets</h4>
                         ${this.detailLoading
-                            ? html`<div class="text-center text-gray-400 py-8">Loading widgets...</div>`
+                            ? html`<div class="text-center text-gray-500 py-8">Loading widgets...</div>`
                             : (d.widgets || []).length === 0
                                 ? html`
                                 <div class="text-center py-8 bg-gray-50 rounded-lg">
-                                    <div class="text-gray-400 text-sm mb-2">No widgets yet</div>
-                                    <p class="text-xs text-gray-300">Open the editor to add widgets via drag & drop</p>
+                                    <div class="text-gray-500 text-sm mb-2">No widgets yet</div>
+                                    <p class="text-xs text-gray-500">Open the editor to add widgets via drag & drop</p>
                                 </div>`
                                 : html`
                                 <div class="grid grid-cols-2 gap-3">
                                     ${(d.widgets || []).map(w => html`
                                     <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
                                         <div class="flex items-center gap-2 mb-2">
-                                            <svg class="h-4 w-4 text-gray-400" viewBox="0 0 24 24" fill="none"
+                                            <svg class="h-4 w-4 text-gray-500" viewBox="0 0 24 24" fill="none"
                                                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                 <path d="${this.widgetIcon(w.type)}"/>
                                             </svg>
                                             <span class="text-sm font-semibold">${w.title}</span>
                                         </div>
-                                        <span class="text-xs text-gray-400 px-1.5 py-0.5 bg-gray-200 rounded">${w.type}</span>
-                                        <span class="text-xs text-gray-300 ml-2">${w.position.w}x${w.position.h}</span>
+                                        <span class="text-xs text-gray-500 px-1.5 py-0.5 bg-gray-200 rounded">${w.type}</span>
+                                        <span class="text-xs text-gray-500 ml-2">${w.position.w}x${w.position.h}</span>
                                     </div>`)}
                                 </div>`}
                     </div>
@@ -597,7 +597,7 @@ export class ViewDashboards extends LitElement {
                 <div class="w-56 flex-shrink-0">
                     <div class="bg-white rounded-xl border border-gray-100 p-4 sticky top-4">
                         <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Widgets</h3>
-                        <p class="text-xs text-gray-400 mb-3">Drag a widget onto the grid</p>
+                        <p class="text-xs text-gray-500 mb-3">Drag a widget onto the grid</p>
                         <div class="space-y-2">
                             ${WIDGET_PALETTE.map(item => html`
                             <div class="flex items-center gap-3 p-3 rounded-lg border border-gray-100 bg-gray-50 cursor-grab hover:border-brand hover:bg-brand/5 transition-colors"
@@ -611,7 +611,7 @@ export class ViewDashboards extends LitElement {
                                 </div>
                                 <div>
                                     <div class="text-sm font-semibold text-gray-700">${item.label}</div>
-                                    <div class="text-xs text-gray-400">${item.defaultW}x${item.defaultH} default</div>
+                                    <div class="text-xs text-gray-500">${item.defaultW}x${item.defaultH} default</div>
                                 </div>
                             </div>`)}
                         </div>
@@ -629,27 +629,27 @@ export class ViewDashboards extends LitElement {
                                 <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                                     Grid Layout
                                 </h3>
-                                <span class="text-xs text-gray-300">${GRID_COLUMNS}-column</span>
+                                <span class="text-xs text-gray-500">${GRID_COLUMNS}-column</span>
                             </div>
-                            <span class="text-xs text-gray-400">${(d.widgets || []).length} widgets</span>
+                            <span class="text-xs text-gray-500">${(d.widgets || []).length} widgets</span>
                         </div>
 
                         <!-- Column Guide -->
                         <div class="grid gap-1 mb-4" style="grid-template-columns: repeat(${GRID_COLUMNS}, 1fr);">
                             ${Array.from({ length: GRID_COLUMNS }, (_, i) => html`
-                            <div class="h-4 bg-gray-50 rounded text-center text-[9px] text-gray-300 leading-4">${i + 1}</div>`)}
+                            <div class="h-4 bg-gray-50 rounded text-center text-[9px] text-gray-500 leading-4">${i + 1}</div>`)}
                         </div>
 
                         <!-- Widget Grid -->
                         ${(d.widgets || []).length === 0
                             ? html`
                             <div class="text-center py-16 border-2 border-dashed border-gray-200 rounded-lg">
-                                <svg class="h-8 w-8 text-gray-300 mx-auto mb-2" viewBox="0 0 24 24" fill="none"
+                                <svg class="h-8 w-8 text-gray-500 mx-auto mb-2" viewBox="0 0 24 24" fill="none"
                                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M12 5v14M5 12h14"/>
                                 </svg>
-                                <p class="text-sm text-gray-400">Drag widgets from the palette to build your dashboard</p>
-                                <p class="text-xs text-gray-300 mt-1">Or click "Widget Palette" to get started</p>
+                                <p class="text-sm text-gray-500">Drag widgets from the palette to build your dashboard</p>
+                                <p class="text-xs text-gray-500 mt-1">Or click "Widget Palette" to get started</p>
                             </div>`
                             : html`
                             <div class="space-y-2">
@@ -663,42 +663,42 @@ export class ViewDashboards extends LitElement {
                                     <!-- Widget Header -->
                                     <div class="flex items-center justify-between px-4 py-2 bg-white border-b border-gray-100">
                                         <div class="flex items-center gap-2">
-                                            <svg class="h-4 w-4 text-gray-400 cursor-grab" viewBox="0 0 24 24" fill="none"
+                                            <svg class="h-4 w-4 text-gray-500 cursor-grab" viewBox="0 0 24 24" fill="none"
                                                 stroke="currentColor" stroke-width="2">
                                                 <circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/>
                                                 <circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/>
                                                 <circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/>
                                             </svg>
-                                            <svg class="h-4 w-4 text-gray-400" viewBox="0 0 24 24" fill="none"
+                                            <svg class="h-4 w-4 text-gray-500" viewBox="0 0 24 24" fill="none"
                                                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                 <path d="${this.widgetIcon(w.type)}"/>
                                             </svg>
                                             <span class="text-sm font-semibold text-gray-700">${w.title}</span>
-                                            <span class="text-[10px] text-gray-400 px-1.5 py-0.5 bg-gray-100 rounded">${w.type}</span>
-                                            <span class="text-[10px] text-gray-300">${w.position.w}x${w.position.h}</span>
+                                            <span class="text-[10px] text-gray-500 px-1.5 py-0.5 bg-gray-100 rounded">${w.type}</span>
+                                            <span class="text-[10px] text-gray-500">${w.position.w}x${w.position.h}</span>
                                         </div>
                                         <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button class="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+                                            <button class="p-1 rounded hover:bg-gray-100 text-gray-500 hover:text-gray-600"
                                                 title="Shrink width" @click=${() => this.resizeWidget(w.id, -1, 0)}>
                                                 <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 12h8"/></svg>
                                             </button>
-                                            <button class="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+                                            <button class="p-1 rounded hover:bg-gray-100 text-gray-500 hover:text-gray-600"
                                                 title="Grow width" @click=${() => this.resizeWidget(w.id, 1, 0)}>
                                                 <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
                                             </button>
-                                            <button class="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+                                            <button class="p-1 rounded hover:bg-gray-100 text-gray-500 hover:text-gray-600"
                                                 title="Shrink height" @click=${() => this.resizeWidget(w.id, 0, -1)}>
                                                 <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 8v8"/></svg>
                                             </button>
-                                            <button class="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+                                            <button class="p-1 rounded hover:bg-gray-100 text-gray-500 hover:text-gray-600"
                                                 title="Grow height" @click=${() => this.resizeWidget(w.id, 0, 1)}>
                                                 <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/></svg>
                                             </button>
-                                            <button class="p-1 rounded hover:bg-blue-50 text-gray-400 hover:text-blue-600"
+                                            <button class="p-1 rounded hover:bg-blue-50 text-gray-500 hover:text-blue-600"
                                                 title="Configure" @click=${() => this.openWidgetConfig(w)}>
                                                 <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
                                             </button>
-                                            <button class="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-600"
+                                            <button class="p-1 rounded hover:bg-red-50 text-gray-500 hover:text-red-600"
                                                 title="Remove" @click=${() => this.removeWidget(w.id)}>
                                                 <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
                                             </button>
@@ -756,13 +756,13 @@ export class ViewDashboards extends LitElement {
                 return html`
                 <div class="w-full h-full flex items-center justify-center border border-dashed border-gray-300 rounded">
                     <div class="text-center">
-                        <svg class="h-6 w-6 text-gray-300 mx-auto mb-1" viewBox="0 0 24 24" fill="none"
+                        <svg class="h-6 w-6 text-gray-500 mx-auto mb-1" viewBox="0 0 24 24" fill="none"
                             stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-                        <span class="text-xs text-gray-400">${(w.config as Record<string, string>)?.url || 'Embed URL'}</span>
+                        <span class="text-xs text-gray-500">${(w.config as Record<string, string>)?.url || 'Embed URL'}</span>
                     </div>
                 </div>`;
             default:
-                return html`<span class="text-xs text-gray-400">Widget</span>`;
+                return html`<span class="text-xs text-gray-500">Widget</span>`;
         }
     }
 
@@ -776,17 +776,17 @@ export class ViewDashboards extends LitElement {
             <div class="relative w-96 bg-white h-full overflow-y-auto shadow-2xl border-l border-gray-200" tabindex="-1">
                 <div class="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between z-10">
                     <h3 class="font-bold text-sm">Configure Widget</h3>
-                    <button class="text-gray-400 hover:text-ink" @click=${() => this.closeWidgetConfig()}>&#10005;</button>
+                    <button class="text-gray-500 hover:text-ink" @click=${() => this.closeWidgetConfig()}>&#10005;</button>
                 </div>
                 <div class="p-5 space-y-5">
                     <!-- Widget Type Badge -->
                     <div class="flex items-center gap-2">
-                        <svg class="h-5 w-5 text-gray-400" viewBox="0 0 24 24" fill="none"
+                        <svg class="h-5 w-5 text-gray-500" viewBox="0 0 24 24" fill="none"
                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="${this.widgetIcon(w.type)}"/>
                         </svg>
                         <span class="text-sm font-semibold text-gray-700">${w.type}</span>
-                        <span class="text-xs text-gray-300">${w.position.w}x${w.position.h}</span>
+                        <span class="text-xs text-gray-500">${w.position.w}x${w.position.h}</span>
                     </div>
 
                     <!-- Title -->
@@ -859,7 +859,7 @@ export class ViewDashboards extends LitElement {
                     <div>
                         <label class="block text-xs font-medium text-gray-500 mb-1">
                             Config JSON
-                            <span class="text-gray-300 font-normal">(advanced)</span>
+                            <span class="text-gray-500 font-normal">(advanced)</span>
                         </label>
                         <textarea class="w-full px-3 py-2 text-xs font-mono border border-gray-200 rounded-lg h-32 resize-y"
                             .value=${this.widgetFormConfig}

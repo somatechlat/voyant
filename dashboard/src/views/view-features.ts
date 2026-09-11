@@ -175,7 +175,7 @@ export class ViewFeatures extends LitElement {
     private servingBadge(enabled: boolean, label: string) {
         return enabled
             ? html`<span class="px-2 py-0.5 text-xs font-medium rounded bg-green-50 text-green-700 border border-green-200">${label}</span>`
-            : html`<span class="px-2 py-0.5 text-xs font-medium rounded bg-gray-50 text-gray-400 border border-gray-200">${label}</span>`;
+            : html`<span class="px-2 py-0.5 text-xs font-medium rounded bg-gray-50 text-gray-500 border border-gray-200">${label}</span>`;
     }
 
     /* ── Render ───────────────────────────────────────────────────────────── */
@@ -188,7 +188,7 @@ export class ViewFeatures extends LitElement {
             <div class="flex items-center justify-between mb-6">
                 <div>
                     <h1 class="text-2xl font-black font-display tracking-tight">Feature Store</h1>
-                    <p class="text-sm text-gray-400 mt-1">Manage feature groups, compute statistics, and serve features online</p>
+                    <p class="text-sm text-gray-500 mt-1">Manage feature groups, compute statistics, and serve features online</p>
                 </div>
                 <div class="flex gap-2">
                     <button class="px-4 py-1.5 text-sm font-semibold border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors flex items-center gap-2"
@@ -215,7 +215,7 @@ export class ViewFeatures extends LitElement {
             ${this.loading ? html`
             <div class="text-center py-16" role="status" aria-live="polite">
                 <div class="inline-block w-8 h-8 border-2 border-gray-200 border-t-gray-600 rounded-full animate-spin mb-3"></div>
-                <div class="text-sm text-gray-400">Loading feature groups...</div>
+                <div class="text-sm text-gray-500">Loading feature groups...</div>
             </div>` : html`
             <!-- Query Panel -->
             ${this.renderQueryPanel()}
@@ -265,12 +265,12 @@ export class ViewFeatures extends LitElement {
                         <td class="px-3 py-2 font-medium">${v.feature_name}</td>
                         <td class="px-3 py-2 text-gray-500">${v.feature_group}</td>
                         <td class="px-3 py-2 font-mono text-xs">${JSON.stringify(v.value)}</td>
-                        <td class="px-3 py-2 text-xs text-gray-400">${new Date(v.computed_at).toLocaleString()}</td>
+                        <td class="px-3 py-2 text-xs text-gray-500">${new Date(v.computed_at).toLocaleString()}</td>
                     </tr>`)}
                     </tbody>
                 </table>
             </div>` : this.queryEntityKeyValue && !this.queryLoading ? html`
-            <div class="mt-3 text-sm text-gray-400 text-center py-4">No features found for this entity.</div>` : ''}
+            <div class="mt-3 text-sm text-gray-500 text-center py-4">No features found for this entity.</div>` : ''}
         </div>`;
     }
 
@@ -281,7 +281,7 @@ export class ViewFeatures extends LitElement {
         <div class="bg-white rounded-xl border border-gray-100 overflow-hidden" aria-live="polite">
             <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
                 <h2 class="text-sm font-semibold text-gray-700">Feature Groups</h2>
-                <span class="text-xs text-gray-400">${this.groups.length} groups</span>
+                <span class="text-xs text-gray-500">${this.groups.length} groups</span>
             </div>
             <table class="w-full text-sm" role="table" aria-label="Feature groups">
                 <thead><tr class="border-b border-gray-100 text-left text-xs text-gray-500 uppercase">
@@ -294,12 +294,12 @@ export class ViewFeatures extends LitElement {
                 </tr></thead>
                 <tbody>
                 ${this.groups.length === 0 ? html`
-                <tr><td colspan="6" class="px-5 py-16 text-center text-gray-400">
+                <tr><td colspan="6" class="px-5 py-16 text-center text-gray-500">
                     <div class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-gray-100 mb-4">
-                        <svg class="w-7 h-7 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                        <svg class="w-7 h-7 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
                     </div>
                     <div class="text-sm font-semibold text-gray-600">No feature groups yet</div>
-                    <div class="text-xs mt-2 text-gray-400">Create a feature group to start organizing and serving features.</div>
+                    <div class="text-xs mt-2 text-gray-500">Create a feature group to start organizing and serving features.</div>
                 </td></tr>` : ''}
                 ${this.groups.map(g => html`
                 <tr class="border-b border-gray-50 hover:bg-gray-50 cursor-pointer"
@@ -309,7 +309,7 @@ export class ViewFeatures extends LitElement {
                     @keydown=${(e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.loadGroupDetail(g.id); } }}>
                     <td class="px-5 py-3">
                         <div class="font-semibold">${g.name}</div>
-                        ${g.description ? html`<div class="text-xs text-gray-400 mt-0.5 truncate max-w-[300px]">${g.description}</div>` : ''}
+                        ${g.description ? html`<div class="text-xs text-gray-500 mt-0.5 truncate max-w-[300px]">${g.description}</div>` : ''}
                     </td>
                     <td class="px-5 py-3"><span class="px-2 py-0.5 text-xs bg-gray-100 rounded font-mono">${g.entity_key}</span></td>
                     <td class="px-5 py-3"><span class="text-sm font-semibold">${g.feature_count}</span></td>
@@ -337,7 +337,7 @@ export class ViewFeatures extends LitElement {
             <div class="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label="Loading feature group details">
                 <div class="absolute inset-0 bg-black/20" @click=${() => { this.selectedGroup = null; }}></div>
                 <div class="relative w-[720px] bg-white h-full flex items-center justify-center shadow-2xl border-l border-gray-200">
-                    <div class="text-gray-400" role="status" aria-live="polite">Loading feature group details...</div>
+                    <div class="text-gray-500" role="status" aria-live="polite">Loading feature group details...</div>
                 </div>
             </div>`;
         }
@@ -359,22 +359,22 @@ export class ViewFeatures extends LitElement {
                             ${this.servingBadge(group.batch_enabled, 'Batch')}
                         </div>
                     </div>
-                    <button class="text-gray-400 hover:text-ink" aria-label="Close" @click=${() => { this.selectedGroup = null; }}>✕</button>
+                    <button class="text-gray-500 hover:text-ink" aria-label="Close" @click=${() => { this.selectedGroup = null; }}>✕</button>
                 </div>
 
                 <div class="p-6 space-y-8">
                     <!-- Group Info -->
                     <div class="grid grid-cols-3 gap-4">
                         <div class="p-3 bg-gray-50 rounded-lg">
-                            <div class="text-xs text-gray-400">Features</div>
+                            <div class="text-xs text-gray-500">Features</div>
                             <div class="text-sm font-semibold mt-1">${group.features?.length ?? group.feature_count}</div>
                         </div>
                         <div class="p-3 bg-gray-50 rounded-lg">
-                            <div class="text-xs text-gray-400">Schedule</div>
+                            <div class="text-xs text-gray-500">Schedule</div>
                             <div class="text-sm font-mono mt-1">${group.schedule || 'Manual'}</div>
                         </div>
                         <div class="p-3 bg-gray-50 rounded-lg">
-                            <div class="text-xs text-gray-400">Created</div>
+                            <div class="text-xs text-gray-500">Created</div>
                             <div class="text-sm mt-1">${new Date(group.created_at).toLocaleDateString()}</div>
                         </div>
                     </div>
@@ -415,7 +415,7 @@ export class ViewFeatures extends LitElement {
                     </div>` : html`
                     <div>
                         <h3 class="text-xs font-semibold text-gray-500 uppercase mb-3">Features</h3>
-                        <div class="text-sm text-gray-400 py-8 text-center">No features defined in this group.</div>
+                        <div class="text-sm text-gray-500 py-8 text-center">No features defined in this group.</div>
                     </div>`}
 
                     <!-- Statistics Section -->
@@ -445,7 +445,7 @@ export class ViewFeatures extends LitElement {
             return html`
             <div>
                 <h3 class="text-xs font-semibold text-gray-500 uppercase mb-3">Statistics</h3>
-                <div class="text-sm text-gray-400 py-8 text-center">No statistics available.</div>
+                <div class="text-sm text-gray-500 py-8 text-center">No statistics available.</div>
             </div>`;
         }
 
@@ -488,7 +488,7 @@ export class ViewFeatures extends LitElement {
             <div class="relative bg-white rounded-2xl shadow-2xl w-[520px] max-h-[80vh] overflow-y-auto" tabindex="-1">
                 <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
                     <h2 class="font-bold text-lg">Create Feature Group</h2>
-                    <button class="text-gray-400 hover:text-ink" @click=${() => { this.showCreateModal = false; }}>✕</button>
+                    <button class="text-gray-500 hover:text-ink" @click=${() => { this.showCreateModal = false; }}>✕</button>
                 </div>
                 <div class="p-6 space-y-4">
                     <div>

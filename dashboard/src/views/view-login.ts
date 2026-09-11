@@ -82,7 +82,7 @@ export class ViewLogin extends LitElement {
                         </svg>
                     </div>
                     <h1 style="font-size:20px;font-weight:700;color:#050505;margin:0">Voyant</h1>
-                    <p style="font-size:13px;color:#6B7280;margin-top:4px">Sign in to your data platform</p>
+                    <p style="font-size:13px;color:#4B5563;margin-top:4px">Sign in to your data platform</p>
                 </div>
 
                 <!-- Form -->
@@ -123,7 +123,7 @@ export class ViewLogin extends LitElement {
                         ${this.loading ? 'Signing in...' : 'Sign In'}
                     </button>
 
-                    <p style="text-align:center;font-size:11px;color:#9CA3AF;margin-top:12px">
+                    <p style="text-align:center;font-size:11px;color:#4B5563;margin-top:12px">
                         Authenticated via Keycloak · JWT + RBAC
                     </p>
                 </form>

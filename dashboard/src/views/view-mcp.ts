@@ -268,7 +268,7 @@ export class ViewMcp extends LitElement {
                 <div class="flex items-center justify-between mb-6">
                     <div>
                         <h1 class="text-2xl font-black font-display tracking-tight">MCP Playground</h1>
-                        <p class="text-sm text-gray-400 mt-1">Explore and test ${this.tools.length} MCP tools across ${TOOL_CATEGORIES.length} categories</p>
+                        <p class="text-sm text-gray-500 mt-1">Explore and test ${this.tools.length} MCP tools across ${TOOL_CATEGORIES.length} categories</p>
                     </div>
                 </div>
 
@@ -278,7 +278,7 @@ export class ViewMcp extends LitElement {
                         <!-- Search -->
                         <div class="relative" role="search" aria-label="Search MCP tools">
                             <input type="text" class="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg bg-white" aria-label="Search tools" placeholder="Search tools..." .value=${this.searchQuery} @input=${(e: Event) => { this.searchQuery = (e.target as HTMLInputElement).value; }} />
-                            <svg class="absolute left-3 top-2.5 h-4 w-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            <svg class="absolute left-3 top-2.5 h-4 w-4 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                         </div>
 
                         <!-- Category Tree -->
@@ -299,7 +299,7 @@ export class ViewMcp extends LitElement {
                                                 <span>${CATEGORY_ICONS[cat] || '📦'}</span>
                                                 <span>${cat}</span>
                                             </span>
-                                            <span class="text-xs text-gray-400">${tools.length}</span>
+                                            <span class="text-xs text-gray-500">${tools.length}</span>
                                         </button>
                                         ${isActive ? html`
                                         <div class="border-t border-gray-50">
@@ -339,9 +339,9 @@ export class ViewMcp extends LitElement {
                             <span class="text-xs font-mono font-semibold text-brand">${t.name}</span>
                             <span class="px-1.5 py-0.5 text-[10px] rounded bg-gray-100 text-gray-500">${t.category}</span>
                         </div>
-                        <svg class="h-4 w-4 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                        <svg class="h-4 w-4 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
                     </div>
-                    <p class="text-xs text-gray-400 mt-0.5">${t.description}</p>
+                    <p class="text-xs text-gray-500 mt-0.5">${t.description}</p>
                 </button>`)}
             </div>
         </div>`;
@@ -373,11 +373,11 @@ export class ViewMcp extends LitElement {
                 <div class="bg-white rounded-xl border border-gray-100 flex-1 overflow-hidden flex flex-col">
                     <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
                         <h3 class="text-xs font-semibold text-gray-500 uppercase">Parameters</h3>
-                        <span class="text-[10px] text-gray-400">${propEntries.length} params · ${required.length} required</span>
+                        <span class="text-[10px] text-gray-500">${propEntries.length} params · ${required.length} required</span>
                     </div>
                     <div class="flex-1 overflow-y-auto p-5 space-y-4">
                         ${propEntries.length === 0 ? html`
-                        <div class="text-sm text-gray-400 text-center py-8">This tool takes no parameters</div>` : ''}
+                        <div class="text-sm text-gray-500 text-center py-8">This tool takes no parameters</div>` : ''}
 
                         ${propEntries.map(([key, schema]) => {
                             const isRequired = required.includes(key);
@@ -387,9 +387,9 @@ export class ViewMcp extends LitElement {
                                 <label class="flex items-center gap-1 mb-1">
                                     <span class="text-xs font-medium text-gray-700 font-mono">${key}</span>
                                     ${isRequired ? html`<span class="text-[10px] text-red-500">*</span>` : ''}
-                                    <span class="text-[10px] text-gray-400 ml-1">${s.type as string}${s.default !== undefined ? ` = ${JSON.stringify(s.default)}` : ''}</span>
+                                    <span class="text-[10px] text-gray-500 ml-1">${s.type as string}${s.default !== undefined ? ` = ${JSON.stringify(s.default)}` : ''}</span>
                                 </label>
-                                ${s.description ? html`<p class="text-[10px] text-gray-400 mb-1">${s.description as string}</p>` : ''}
+                                ${s.description ? html`<p class="text-[10px] text-gray-500 mb-1">${s.description as string}</p>` : ''}
                                 ${s.type === 'boolean' ? html`
                                 <select class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white" @change=${(e: Event) => this.handleParamInput(key, (e.target as HTMLSelectElement).value)}>
                                     <option value="false">false</option>
@@ -448,7 +448,7 @@ export class ViewMcp extends LitElement {
                     <div class="flex-1 overflow-y-auto p-4">
                         ${this.result ? html`
                         <pre class="text-xs font-mono whitespace-pre-wrap ${this.result.success ? 'text-gray-700' : 'text-red-600'}">${JSON.stringify(this.result.data, null, 2)}</pre>` : html`
-                        <div class="text-sm text-gray-400 text-center py-8">Run a tool to see results here</div>`}
+                        <div class="text-sm text-gray-500 text-center py-8">Run a tool to see results here</div>`}
                     </div>
                 </div>
 
@@ -462,8 +462,8 @@ export class ViewMcp extends LitElement {
                         ${this.resultHistory.slice(0, 5).map((r, i) => html`
                         <div class="px-4 py-2 flex items-center justify-between text-xs">
                             <span class="${r.success ? 'text-green-600' : 'text-red-600'}">${r.success ? '✓' : '✗'}</span>
-                            <span class="font-mono text-gray-400">${r.duration_ms}ms</span>
-                            <span class="text-gray-400">${new Date(r.timestamp).toLocaleTimeString()}</span>
+                            <span class="font-mono text-gray-500">${r.duration_ms}ms</span>
+                            <span class="text-gray-500">${new Date(r.timestamp).toLocaleTimeString()}</span>
                         </div>`)}
                     </div>
                 </div>` : ''}

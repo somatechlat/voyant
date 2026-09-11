@@ -44,10 +44,10 @@ export class ViewAudit extends LitElement {
                     <button class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white hover:bg-gray-50" aria-label="Refresh audit log" @click=${() => this.load()}>Refresh</button>
                 </div>
             </div>
-            ${this.loading ? html`<div class="text-center text-gray-400 py-16" role="status" aria-live="polite">Loading...</div>` : html`
+            ${this.loading ? html`<div class="text-center text-gray-500 py-16" role="status" aria-live="polite">Loading...</div>` : html`
             <div class="bg-white rounded-xl border border-gray-100 overflow-hidden" aria-live="polite">
                 <table class="w-full text-sm" role="table" aria-label="Audit log entries">
-                    <thead><tr class="border-b border-gray-100 text-left text-xs text-gray-400 uppercase tracking-wider">
+                    <thead><tr class="border-b border-gray-100 text-left text-xs text-gray-500 uppercase tracking-wider">
                         <th class="px-5 py-3">Actor</th><th class="px-5 py-3">Action</th><th class="px-5 py-3">Resource</th><th class="px-5 py-3">Outcome</th><th class="px-5 py-3">IP</th><th class="px-5 py-3">Time</th>
                     </tr></thead>
                     <tbody>
@@ -57,12 +57,12 @@ export class ViewAudit extends LitElement {
                             <td class="px-5 py-3"><span class="px-2 py-0.5 text-xs bg-gray-100 rounded font-mono">${l.action}</span></td>
                             <td class="px-5 py-3 text-xs">${l.resource_type}:${l.resource_id.slice(0, 8)}</td>
                             <td class="px-5 py-3 font-semibold text-xs ${this.outcomeColor(l.outcome)}">${l.outcome}</td>
-                            <td class="px-5 py-3 text-gray-400 text-xs font-mono">${l.ip_address || '—'}</td>
-                            <td class="px-5 py-3 text-gray-400 text-xs">${new Date(l.created_at).toLocaleString()}</td>
+                            <td class="px-5 py-3 text-gray-500 text-xs font-mono">${l.ip_address || '—'}</td>
+                            <td class="px-5 py-3 text-gray-500 text-xs">${new Date(l.created_at).toLocaleString()}</td>
                         </tr>`)}
                     </tbody>
                 </table>
-                ${this.logs.length === 0 ? html`<div class="text-center text-gray-400 py-12">No audit events</div>` : ''}
+                ${this.logs.length === 0 ? html`<div class="text-center text-gray-500 py-12">No audit events</div>` : ''}
             </div>`}
         </main>`;
     }

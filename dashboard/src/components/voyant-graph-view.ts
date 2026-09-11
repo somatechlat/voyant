@@ -945,7 +945,7 @@ export class VoyantGraphView extends LitElement {
             </div>
 
             <!-- Node count / status -->
-            <div style="position:absolute;bottom:12px;left:50%;transform:translateX(-50%);font-size:10px;color:#9CA3AF;z-index:20;font-family:Inter,sans-serif">
+            <div style="position:absolute;bottom:12px;left:50%;transform:translateX(-50%);font-size:10px;color:#4B5563;z-index:20;font-family:Inter,sans-serif">
                 ${this._simNodes.length} nodes · ${this.edges.length} edges · ${this._layoutMode} layout
             </div>
 
@@ -953,7 +953,7 @@ export class VoyantGraphView extends LitElement {
             ${this._simNodes.length === 0 ? html`
             <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px">
                 <div style="font-size:32px;opacity:0.2">🕸️</div>
-                <div style="font-size:13px;color:#9CA3AF">No data to visualize</div>
+                <div style="font-size:13px;color:#4B5563">No data to visualize</div>
             </div>` : ''}
         </div>`;
     }

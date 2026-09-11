@@ -187,7 +187,7 @@ export class ViewDrift extends LitElement {
             <div class="flex items-center justify-between mb-6">
                 <div>
                     <h1 class="text-2xl font-black font-display tracking-tight">Model Drift Monitoring</h1>
-                    <p class="text-sm text-gray-400 mt-1">Track feature drift, prediction distribution shifts, and model health</p>
+                    <p class="text-sm text-gray-500 mt-1">Track feature drift, prediction distribution shifts, and model health</p>
                 </div>
                 <button class="px-4 py-1.5 text-sm font-semibold border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors flex items-center gap-2"
                     aria-label="Refresh drift data" @click=${() => this.loadData()}>
@@ -199,7 +199,7 @@ export class ViewDrift extends LitElement {
                 </button>
             </div>
 
-            ${this.loading ? html`<div class="text-center text-gray-400 py-16" role="status" aria-live="polite">Loading deployments...</div>` : ''}
+            ${this.loading ? html`<div class="text-center text-gray-500 py-16" role="status" aria-live="polite">Loading deployments...</div>` : ''}
 
             ${!this.loading ? html`
             <!-- Summary Cards -->
@@ -221,7 +221,7 @@ export class ViewDrift extends LitElement {
             { label: 'Total Deployments Monitored', value: this.summary.total_deployments, icon: 'grid', color: 'text-gray-900', bg: 'bg-white' },
             { label: 'Models with Drift', value: this.summary.models_with_drift, icon: 'alert', color: this.summary.models_with_drift > 0 ? 'text-amber-600' : 'text-green-600', bg: this.summary.models_with_drift > 0 ? 'bg-amber-50' : 'bg-green-50' },
             { label: 'Healthy Models', value: this.summary.healthy_models, icon: 'check', color: 'text-green-600', bg: 'bg-green-50' },
-            { label: 'Alerts (24h)', value: this.summary.alerts_24h, icon: 'bell', color: this.summary.alerts_24h > 0 ? 'text-red-600' : 'text-gray-400', bg: this.summary.alerts_24h > 0 ? 'bg-red-50' : 'bg-white' },
+            { label: 'Alerts (24h)', value: this.summary.alerts_24h, icon: 'bell', color: this.summary.alerts_24h > 0 ? 'text-red-600' : 'text-gray-500', bg: this.summary.alerts_24h > 0 ? 'bg-red-50' : 'bg-white' },
         ];
 
         return html`
@@ -229,7 +229,7 @@ export class ViewDrift extends LitElement {
             ${cards.map(c => html`
             <div class="bg-white rounded-xl border border-gray-100 p-5 flex items-start justify-between">
                 <div>
-                    <div class="text-xs font-medium text-gray-400 uppercase tracking-wider">${c.label}</div>
+                    <div class="text-xs font-medium text-gray-500 uppercase tracking-wider">${c.label}</div>
                     <div class="text-3xl font-black font-display mt-2 ${c.color}">${c.value}</div>
                 </div>
                 <div class="h-10 w-10 rounded-lg ${c.bg} flex items-center justify-center">
@@ -249,7 +249,7 @@ export class ViewDrift extends LitElement {
         <div class="bg-white rounded-xl border border-gray-100 overflow-hidden" aria-live="polite">
             <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
                 <h2 class="text-sm font-semibold text-gray-700">Drift Overview</h2>
-                <span class="text-xs text-gray-400">${this.deployments.length} deployments</span>
+                <span class="text-xs text-gray-500">${this.deployments.length} deployments</span>
             </div>
             <table class="w-full text-sm" role="table" aria-label="Drift overview">
                 <thead><tr class="border-b border-gray-100 text-left text-xs text-gray-500 uppercase">
@@ -263,12 +263,12 @@ export class ViewDrift extends LitElement {
                 </tr></thead>
                 <tbody>
                 ${this.deployments.length === 0 ? html`
-                <tr><td colspan="7" class="px-5 py-16 text-center text-gray-400">
+                <tr><td colspan="7" class="px-5 py-16 text-center text-gray-500">
                     <div class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-gray-100 mb-4">
-                        <svg class="w-7 h-7 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                        <svg class="w-7 h-7 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
                     </div>
                     <div class="text-sm font-semibold text-gray-600">No deployments found</div>
-                    <div class="text-xs mt-2 text-gray-400">ML deployments will appear here once models are deployed for monitoring.</div>
+                    <div class="text-xs mt-2 text-gray-500">ML deployments will appear here once models are deployed for monitoring.</div>
                 </td></tr>` : ''}
                 ${this.deployments.map(d => html`
                 <tr class="border-b border-gray-50 hover:bg-gray-50 cursor-pointer"
@@ -288,7 +288,7 @@ export class ViewDrift extends LitElement {
                     <td class="px-5 py-3">${this.statusBadge(d.status)}</td>
                     <td class="px-5 py-3 text-xs text-gray-500">${d.last_check ? new Date(d.last_check).toLocaleString() : '—'}</td>
                     <td class="px-5 py-3">
-                        <span class="text-sm font-semibold ${d.features_drifted_count > 0 ? 'text-amber-600' : 'text-gray-400'}">${d.features_drifted_count}</span>
+                        <span class="text-sm font-semibold ${d.features_drifted_count > 0 ? 'text-amber-600' : 'text-gray-500'}">${d.features_drifted_count}</span>
                     </td>
                     <td class="px-5 py-3" @click=${(e: Event) => e.stopPropagation()}>
                         <div class="flex gap-2">
@@ -318,7 +318,7 @@ export class ViewDrift extends LitElement {
             <div class="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label="Loading drift details">
                 <div class="absolute inset-0 bg-black/20" @click=${() => { this.selectedDeployment = null; }}></div>
                 <div class="relative w-[720px] bg-white h-full flex items-center justify-center shadow-2xl border-l border-gray-200">
-                    <div class="text-gray-400" role="status" aria-live="polite">Loading drift details...</div>
+                    <div class="text-gray-500" role="status" aria-live="polite">Loading drift details...</div>
                 </div>
             </div>`;
         }
@@ -337,26 +337,26 @@ export class ViewDrift extends LitElement {
                         <h2 class="font-bold text-lg">${dep.model_name}</h2>
                         <div class="flex items-center gap-2 mt-1">
                             ${this.statusBadge(dep.status)}
-                            <span class="text-xs text-gray-400 font-mono">${dep.version}</span>
-                            <span class="text-xs text-gray-400 font-mono">${dep.endpoint}</span>
+                            <span class="text-xs text-gray-500 font-mono">${dep.version}</span>
+                            <span class="text-xs text-gray-500 font-mono">${dep.endpoint}</span>
                         </div>
                     </div>
-                    <button class="text-gray-400 hover:text-ink" aria-label="Close drift detail" @click=${() => { this.selectedDeployment = null; }}>✕</button>
+                    <button class="text-gray-500 hover:text-ink" aria-label="Close drift detail" @click=${() => { this.selectedDeployment = null; }}>✕</button>
                 </div>
 
                 <div class="p-6 space-y-8">
                     <!-- Model Info Summary -->
                     <div class="grid grid-cols-3 gap-4">
                         <div class="p-3 bg-gray-50 rounded-lg">
-                            <div class="text-xs text-gray-400">Last Check</div>
+                            <div class="text-xs text-gray-500">Last Check</div>
                             <div class="text-sm font-semibold mt-1">${dep.last_check ? new Date(dep.last_check).toLocaleString() : '—'}</div>
                         </div>
                         <div class="p-3 bg-gray-50 rounded-lg">
-                            <div class="text-xs text-gray-400">Features Drifted</div>
+                            <div class="text-xs text-gray-500">Features Drifted</div>
                             <div class="text-sm font-semibold mt-1 ${dep.features_drifted_count > 0 ? 'text-amber-600' : ''}">${dep.features_drifted_count}</div>
                         </div>
                         <div class="p-3 bg-gray-50 rounded-lg">
-                            <div class="text-xs text-gray-400">Status</div>
+                            <div class="text-xs text-gray-500">Status</div>
                             <div class="mt-1">${this.statusBadge(dep.status)}</div>
                         </div>
                     </div>
@@ -389,7 +389,7 @@ export class ViewDrift extends LitElement {
                     </div>` : html`
                     <div>
                         <h3 class="text-xs font-semibold text-gray-500 uppercase mb-3">Feature Drift</h3>
-                        <div class="text-sm text-gray-400 py-8 text-center">No feature drift data available</div>
+                        <div class="text-sm text-gray-500 py-8 text-center">No feature drift data available</div>
                     </div>`}
 
                     <!-- Prediction Distribution Chart -->
@@ -397,7 +397,7 @@ export class ViewDrift extends LitElement {
                     <div>
                         <h3 class="text-xs font-semibold text-gray-500 uppercase mb-3">Prediction Distribution</h3>
                         <div class="bg-white rounded-lg border border-gray-100 p-4">
-                            <div class="text-xs text-gray-400 mb-2">Training vs Current distribution comparison</div>
+                            <div class="text-xs text-gray-500 mb-2">Training vs Current distribution comparison</div>
                             <voyant-chart
                                 type="bar"
                                 .data=${{
@@ -418,7 +418,7 @@ export class ViewDrift extends LitElement {
                     <div>
                         <h3 class="text-xs font-semibold text-gray-500 uppercase mb-3">Latency Over Time</h3>
                         <div class="bg-white rounded-lg border border-gray-100 p-4">
-                            <div class="text-xs text-gray-400 mb-2">p50 / p95 / p99 response latency</div>
+                            <div class="text-xs text-gray-500 mb-2">p50 / p95 / p99 response latency</div>
                             <voyant-chart
                                 type="line"
                                 .data=${{
@@ -454,8 +454,8 @@ export class ViewDrift extends LitElement {
                                 <div class="flex-1 min-w-0">
                                     <div class="text-sm text-gray-700">${a.message}</div>
                                     <div class="flex items-center gap-2 mt-1">
-                                        <span class="text-xs text-gray-400">${new Date(a.timestamp).toLocaleString()}</span>
-                                        ${a.feature ? html`<span class="text-xs font-mono text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">${a.feature}</span>` : ''}
+                                        <span class="text-xs text-gray-500">${new Date(a.timestamp).toLocaleString()}</span>
+                                        ${a.feature ? html`<span class="text-xs font-mono text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">${a.feature}</span>` : ''}
                                     </div>
                                 </div>
                             </div>`)}
@@ -463,7 +463,7 @@ export class ViewDrift extends LitElement {
                     </div>` : html`
                     <div>
                         <h3 class="text-xs font-semibold text-gray-500 uppercase mb-3">Alert History</h3>
-                        <div class="text-sm text-gray-400 py-8 text-center">No alerts recorded</div>
+                        <div class="text-sm text-gray-500 py-8 text-center">No alerts recorded</div>
                     </div>`}
 
                     <!-- Actions Footer -->

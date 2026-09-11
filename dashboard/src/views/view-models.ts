@@ -220,7 +220,7 @@ export class ViewModels extends LitElement {
             <div class="flex items-center justify-between mb-6">
                 <div>
                     <h1 class="text-2xl font-black font-display tracking-tight">Model Serving</h1>
-                    <p class="text-sm text-gray-400 mt-1">Manage model registry, endpoints, predictions, and drift monitoring</p>
+                    <p class="text-sm text-gray-500 mt-1">Manage model registry, endpoints, predictions, and drift monitoring</p>
                 </div>
                 <div class="flex gap-2">
                     <button class="px-4 py-1.5 text-sm font-semibold border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors flex items-center gap-2"
@@ -247,7 +247,7 @@ export class ViewModels extends LitElement {
             ${this.loading ? html`
             <div class="text-center py-16" role="status" aria-live="polite">
                 <div class="inline-block w-8 h-8 border-2 border-gray-200 border-t-gray-600 rounded-full animate-spin mb-3"></div>
-                <div class="text-sm text-gray-400">Loading models and endpoints...</div>
+                <div class="text-sm text-gray-500">Loading models and endpoints...</div>
             </div>` : html`
             <!-- Predict Section -->
             ${this.renderPredictSection()}
@@ -306,7 +306,7 @@ export class ViewModels extends LitElement {
         <div class="bg-white rounded-xl border border-gray-100 overflow-hidden mb-6" aria-live="polite">
             <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
                 <h2 class="text-sm font-semibold text-gray-700">Registered Models</h2>
-                <span class="text-xs text-gray-400">${this.models.length} models</span>
+                <span class="text-xs text-gray-500">${this.models.length} models</span>
             </div>
             <table class="w-full text-sm" role="table" aria-label="Registered models">
                 <thead><tr class="border-b border-gray-100 text-left text-xs text-gray-500 uppercase">
@@ -318,12 +318,12 @@ export class ViewModels extends LitElement {
                 </tr></thead>
                 <tbody>
                 ${this.models.length === 0 ? html`
-                <tr><td colspan="5" class="px-5 py-16 text-center text-gray-400">
+                <tr><td colspan="5" class="px-5 py-16 text-center text-gray-500">
                     <div class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-gray-100 mb-4">
-                        <svg class="w-7 h-7 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                        <svg class="w-7 h-7 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
                     </div>
                     <div class="text-sm font-semibold text-gray-600">No models registered</div>
-                    <div class="text-xs mt-2 text-gray-400">Register a model to start deploying and serving predictions.</div>
+                    <div class="text-xs mt-2 text-gray-500">Register a model to start deploying and serving predictions.</div>
                 </td></tr>` : ''}
                 ${this.models.map(m => html`
                 <tr class="border-b border-gray-50 hover:bg-gray-50 cursor-pointer"
@@ -332,7 +332,7 @@ export class ViewModels extends LitElement {
                     @keydown=${(e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.loadModelDetail(m.id); } }}>
                     <td class="px-5 py-3">
                         <div class="font-semibold">${m.name}</div>
-                        ${m.description ? html`<div class="text-xs text-gray-400 mt-0.5 truncate max-w-[300px]">${m.description}</div>` : ''}
+                        ${m.description ? html`<div class="text-xs text-gray-500 mt-0.5 truncate max-w-[300px]">${m.description}</div>` : ''}
                     </td>
                     <td class="px-5 py-3"><span class="text-sm font-semibold">${m.version_count}</span></td>
                     <td class="px-5 py-3">${this.stageBadge(m.latest_stage)}</td>
@@ -353,7 +353,7 @@ export class ViewModels extends LitElement {
         <div class="bg-white rounded-xl border border-gray-100 overflow-hidden" aria-live="polite">
             <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
                 <h2 class="text-sm font-semibold text-gray-700">Serving Endpoints</h2>
-                <span class="text-xs text-gray-400">${this.endpoints.length} endpoints</span>
+                <span class="text-xs text-gray-500">${this.endpoints.length} endpoints</span>
             </div>
             <table class="w-full text-sm" role="table" aria-label="Serving endpoints">
                 <thead><tr class="border-b border-gray-100 text-left text-xs text-gray-500 uppercase">
@@ -366,15 +366,15 @@ export class ViewModels extends LitElement {
                 </tr></thead>
                 <tbody>
                 ${this.endpoints.length === 0 ? html`
-                <tr><td colspan="6" class="px-5 py-12 text-center text-gray-400">
+                <tr><td colspan="6" class="px-5 py-12 text-center text-gray-500">
                     <div class="text-sm font-semibold text-gray-600">No endpoints configured</div>
-                    <div class="text-xs mt-1 text-gray-400">Deploy a model to create a serving endpoint.</div>
+                    <div class="text-xs mt-1 text-gray-500">Deploy a model to create a serving endpoint.</div>
                 </td></tr>` : ''}
                 ${this.endpoints.map(ep => html`
                 <tr class="border-b border-gray-50 hover:bg-gray-50">
                     <td class="px-5 py-3">
                         <div class="font-semibold">${ep.name}</div>
-                        <div class="text-xs font-mono text-gray-400 mt-0.5">${ep.endpoint_path}</div>
+                        <div class="text-xs font-mono text-gray-500 mt-0.5">${ep.endpoint_path}</div>
                     </td>
                     <td class="px-5 py-3">${this.statusBadge(ep.status)}</td>
                     <td class="px-5 py-3 text-xs font-mono">${ep.model_version ? `v${ep.model_version}` : '—'}</td>
@@ -410,8 +410,8 @@ export class ViewModels extends LitElement {
                     ${report.features_drifted} / ${report.features_checked} drifted
                 </span>
             </div>
-            ${this.driftLoading ? html`<div class="p-8 text-center text-gray-400">Loading drift data...</div>` : html`
-            ${report.results.length === 0 ? html`<div class="p-8 text-center text-gray-400">No drift data available.</div>` : html`
+            ${this.driftLoading ? html`<div class="p-8 text-center text-gray-500">Loading drift data...</div>` : html`
+            ${report.results.length === 0 ? html`<div class="p-8 text-center text-gray-500">No drift data available.</div>` : html`
             <table class="w-full text-sm">
                 <thead><tr class="border-b border-gray-100 text-left text-xs text-gray-500 uppercase">
                     <th class="px-5 py-2.5">Feature</th>
@@ -450,8 +450,8 @@ export class ViewModels extends LitElement {
                     <span>Avg Latency: <strong>${m.avg_latency_ms.toFixed(1)}ms</strong></span>
                 </div>
             </div>
-            ${this.metricsLoading ? html`<div class="p-8 text-center text-gray-400">Loading metrics...</div>` : html`
-            ${m.metrics.length === 0 ? html`<div class="p-8 text-center text-gray-400">No metrics data available.</div>` : html`
+            ${this.metricsLoading ? html`<div class="p-8 text-center text-gray-500">Loading metrics...</div>` : html`
+            ${m.metrics.length === 0 ? html`<div class="p-8 text-center text-gray-500">No metrics data available.</div>` : html`
             <div class="p-4">
                 <voyant-chart
                     type="line"
@@ -478,7 +478,7 @@ export class ViewModels extends LitElement {
             <div class="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true">
                 <div class="absolute inset-0 bg-black/20" @click=${() => { this.selectedModel = null; }}></div>
                 <div class="relative w-[640px] bg-white h-full flex items-center justify-center shadow-2xl border-l border-gray-200">
-                    <div class="text-gray-400" role="status">Loading model details...</div>
+                    <div class="text-gray-500" role="status">Loading model details...</div>
                 </div>
             </div>`;
         }
@@ -493,9 +493,9 @@ export class ViewModels extends LitElement {
                 <div class="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between z-10">
                     <div>
                         <h2 class="font-bold text-lg">${model.name}</h2>
-                        <div class="text-xs text-gray-400 mt-1">${model.versions.length} version(s)</div>
+                        <div class="text-xs text-gray-500 mt-1">${model.versions.length} version(s)</div>
                     </div>
-                    <button class="text-gray-400 hover:text-ink" @click=${() => { this.selectedModel = null; }}>✕</button>
+                    <button class="text-gray-500 hover:text-ink" @click=${() => { this.selectedModel = null; }}>✕</button>
                 </div>
 
                 <div class="p-6 space-y-6">
@@ -529,7 +529,7 @@ export class ViewModels extends LitElement {
                             </table>
                         </div>
                     </div>` : html`
-                    <div class="text-sm text-gray-400 py-8 text-center">No versions available.</div>`}
+                    <div class="text-sm text-gray-500 py-8 text-center">No versions available.</div>`}
 
                     <div class="flex gap-2 pt-4 border-t border-gray-100">
                         <button class="px-4 py-2 text-sm border border-gray-200 rounded-lg bg-white hover:bg-gray-50"

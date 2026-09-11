@@ -537,7 +537,7 @@ export class ViewAgents extends LitElement {
             <div class="flex items-center justify-between mb-6">
                 <div>
                     <h1 class="text-2xl font-black font-display tracking-tight">Agent Control Center</h1>
-                    <p class="text-sm text-gray-400 mt-1">Define, test, and evaluate AI agents with MCP tool access</p>
+                    <p class="text-sm text-gray-500 mt-1">Define, test, and evaluate AI agents with MCP tool access</p>
                 </div>
                 <div class="flex gap-2">
                     <!-- Connection status indicator -->
@@ -564,7 +564,7 @@ export class ViewAgents extends LitElement {
                 </button>`)}
             </div>
 
-            ${this.loading ? html`<div class="text-center text-gray-400 py-16" role="status" aria-live="polite">Loading...</div>` : ''}
+            ${this.loading ? html`<div class="text-center text-gray-500 py-16" role="status" aria-live="polite">Loading...</div>` : ''}
 
             <!-- Definitions Tab -->
             ${this.tab === 'definitions' && !this.loading ? this.renderDefinitions() : ''}
@@ -604,21 +604,21 @@ export class ViewAgents extends LitElement {
                 </tr></thead>
                 <tbody>
                 ${this.agents.length === 0 ? html`
-                <tr><td colspan="6" class="px-5 py-12 text-center text-gray-400">
+                <tr><td colspan="6" class="px-5 py-12 text-center text-gray-500">
                     No agents defined. Click "+ New Agent" to create one.
                 </td></tr>` : ''}
                 ${this.agents.map(a => html`
                 <tr class="border-b border-gray-50 hover:bg-gray-50 cursor-pointer" role="button" tabindex="0" aria-label="Agent: ${a.name}" @click=${() => this.loadAgentDetail(a.id)} @keydown=${(e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.loadAgentDetail(a.id); } }}>
                     <td class="px-5 py-3">
                         <div class="font-semibold">${a.name}</div>
-                        <div class="text-xs text-gray-400 truncate max-w-xs">${a.description || 'No description'}</div>
+                        <div class="text-xs text-gray-500 truncate max-w-xs">${a.description || 'No description'}</div>
                     </td>
                     <td class="px-5 py-3">
                         <span class="px-2 py-0.5 text-xs bg-gray-100 rounded font-mono">${a.model_name}</span>
                     </td>
                     <td class="px-5 py-3">
                         <span class="text-sm font-semibold">${a.tools_count ?? a.tools?.length ?? 0}</span>
-                        <span class="text-xs text-gray-400 ml-1">tools</span>
+                        <span class="text-xs text-gray-500 ml-1">tools</span>
                     </td>
                     <td class="px-5 py-3">${this.statusBadge(a.status)}</td>
                     <td class="px-5 py-3 text-xs text-gray-500">${new Date(a.created_at).toLocaleDateString()}</td>
@@ -647,12 +647,12 @@ export class ViewAgents extends LitElement {
                 </tr></thead>
                 <tbody>
                 ${this.sessions.length === 0 ? html`
-                <tr><td colspan="6" class="px-5 py-16 text-center text-gray-400">
+                <tr><td colspan="6" class="px-5 py-16 text-center text-gray-500">
                     <div class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-gray-100 mb-4">
-                        <svg class="w-7 h-7 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                        <svg class="w-7 h-7 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                     </div>
                     <div class="text-sm font-semibold text-gray-600">No active sessions</div>
-                    <div class="text-xs mt-2 max-w-sm mx-auto text-gray-400">Agent sessions will appear here in real-time once WebSocket integration is complete. Check back soon for live session tracking.</div>
+                    <div class="text-xs mt-2 max-w-sm mx-auto text-gray-500">Agent sessions will appear here in real-time once WebSocket integration is complete. Check back soon for live session tracking.</div>
                 </td></tr>` : ''}
                 ${this.sessions.map(s => html`
                 <tr class="border-b border-gray-50 hover:bg-gray-50">
@@ -687,7 +687,7 @@ export class ViewAgents extends LitElement {
                 </tr></thead>
                 <tbody>
                 ${this.evaluations.length === 0 ? html`
-                <tr><td colspan="7" class="px-5 py-12 text-center text-gray-400">
+                <tr><td colspan="7" class="px-5 py-12 text-center text-gray-500">
                     No evaluations yet. Create one to test your agents.
                 </td></tr>` : ''}
                 ${this.evaluations.map(e => html`
@@ -713,7 +713,7 @@ export class ViewAgents extends LitElement {
             <button class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white hover:bg-gray-50" aria-label="Refresh deployments" @click=${() => this.loadDeployments()}>Refresh</button>
         </div>
 
-        ${this.deploymentsLoading ? html`<div class="text-center text-gray-400 py-8" role="status">Loading deployments...</div>` : ''}
+        ${this.deploymentsLoading ? html`<div class="text-center text-gray-500 py-8" role="status">Loading deployments...</div>` : ''}
 
         ${!this.deploymentsLoading && this.deployments.length === 0 ? html`
         <div class="bg-white rounded-xl border border-gray-100 p-12 text-center" aria-live="polite">
@@ -732,18 +732,18 @@ export class ViewAgents extends LitElement {
                     <div class="font-bold text-sm">${d.name}</div>
                     ${this.statusBadge(d.status)}
                 </div>
-                <div class="text-xs text-gray-400 mb-3 font-mono">${d.endpoint_path || '—'}</div>
+                <div class="text-xs text-gray-500 mb-3 font-mono">${d.endpoint_path || '—'}</div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <div class="text-xs text-gray-400">Invocations</div>
+                        <div class="text-xs text-gray-500">Invocations</div>
                         <div class="text-lg font-bold">${this.formatNumber(d.invocation_count)}</div>
                     </div>
                     <div>
-                        <div class="text-xs text-gray-400">Avg Latency</div>
+                        <div class="text-xs text-gray-500">Avg Latency</div>
                         <div class="text-lg font-bold ${d.avg_latency_ms > 500 ? 'text-red-500' : d.avg_latency_ms > 200 ? 'text-yellow-500' : 'text-green-500'}">${d.avg_latency_ms?.toFixed(0) || '—'}ms</div>
                     </div>
                 </div>
-                ${d.model_name ? html`<div class="mt-3 text-xs text-gray-400">Model: <span class="text-gray-600">${d.model_name}</span>${d.model_version ? html` <span class="text-gray-400">v${d.model_version}</span>` : ''}</div>` : ''}
+                ${d.model_name ? html`<div class="mt-3 text-xs text-gray-500">Model: <span class="text-gray-600">${d.model_name}</span>${d.model_version ? html` <span class="text-gray-500">v${d.model_version}</span>` : ''}</div>` : ''}
             </div>`)}
         </div>
 
@@ -756,27 +756,27 @@ export class ViewAgents extends LitElement {
             <div class="bg-white rounded-xl border border-gray-100 p-5 mb-4">
                 <div class="flex items-center justify-between mb-4">
                     <div class="font-bold">${endpoint.name} — Recent Metrics</div>
-                    <div class="text-xs text-gray-400">${metrics.length} data points</div>
+                    <div class="text-xs text-gray-500">${metrics.length} data points</div>
                 </div>
                 <div class="grid grid-cols-5 gap-4">
                     <div class="text-center">
-                        <div class="text-xs text-gray-400">P50 Latency</div>
+                        <div class="text-xs text-gray-500">P50 Latency</div>
                         <div class="text-lg font-bold">${latest.latency_p50?.toFixed(0) || '—'}ms</div>
                     </div>
                     <div class="text-center">
-                        <div class="text-xs text-gray-400">P95 Latency</div>
+                        <div class="text-xs text-gray-500">P95 Latency</div>
                         <div class="text-lg font-bold ${latest.latency_p95 > 500 ? 'text-red-500' : ''}">${latest.latency_p95?.toFixed(0) || '—'}ms</div>
                     </div>
                     <div class="text-center">
-                        <div class="text-xs text-gray-400">P99 Latency</div>
+                        <div class="text-xs text-gray-500">P99 Latency</div>
                         <div class="text-lg font-bold">${latest.latency_p99?.toFixed(0) || '—'}ms</div>
                     </div>
                     <div class="text-center">
-                        <div class="text-xs text-gray-400">Throughput</div>
+                        <div class="text-xs text-gray-500">Throughput</div>
                         <div class="text-lg font-bold">${latest.throughput_rps?.toFixed(1) || '—'} rps</div>
                     </div>
                     <div class="text-center">
-                        <div class="text-xs text-gray-400">Error Rate</div>
+                        <div class="text-xs text-gray-500">Error Rate</div>
                         <div class="text-lg font-bold ${(latest.error_rate || 0) > 0.05 ? 'text-red-500' : 'text-green-500'}">${((latest.error_rate || 0) * 100).toFixed(2)}%</div>
                     </div>
                 </div>
@@ -803,7 +803,7 @@ export class ViewAgents extends LitElement {
                 <!-- Header -->
                 <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                     <h2 class="text-lg font-bold">${a.id ? 'Edit Agent' : 'Create Agent'}</h2>
-                    <button class="text-gray-400 hover:text-ink text-xl" aria-label="Close dialog" @click=${() => { this.showEditModal = false; }}>✕</button>
+                    <button class="text-gray-500 hover:text-ink text-xl" aria-label="Close dialog" @click=${() => { this.showEditModal = false; }}>✕</button>
                 </div>
 
                 <!-- Body -->
@@ -880,7 +880,7 @@ export class ViewAgents extends LitElement {
                                             <span class="text-xs font-mono font-semibold">${t.name}</span>
                                             <span class="px-1.5 py-0.5 text-[10px] rounded bg-gray-100 text-gray-500">${t.category}</span>
                                         </div>
-                                        <div class="text-xs text-gray-400 truncate">${t.description}</div>
+                                        <div class="text-xs text-gray-500 truncate">${t.description}</div>
                                     </div>
                                 </label>`;
                             })}
@@ -896,13 +896,13 @@ export class ViewAgents extends LitElement {
                                 this.editAgent = { ...this.editAgent, guardrails: val };
                             } catch { /* ignore parse errors while typing */ }
                         }}></textarea>
-                        <p class="text-[10px] text-gray-400 mt-1">max_queries_per_session, blocked_tables, max_sql_rows, blocked_tools, require_approval, cost_limit_usd</p>
+                        <p class="text-[10px] text-gray-500 mt-1">max_queries_per_session, blocked_tables, max_sql_rows, blocked_tools, require_approval, cost_limit_usd</p>
                     </div>
                 </div>
 
                 <!-- Footer -->
                 <div class="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50">
-                    <span class="text-xs text-gray-400">${this.saveResult}</span>
+                    <span class="text-xs text-gray-500">${this.saveResult}</span>
                     <div class="flex gap-2">
                         <button class="px-4 py-2 text-sm border border-gray-200 rounded-lg bg-white hover:bg-gray-50" @click=${() => { this.showEditModal = false; }}>Cancel</button>
                         <button class="px-4 py-2 text-sm font-semibold bg-brand text-white rounded-lg hover:bg-black transition-colors ${this.saving ? 'opacity-50' : ''}" ?disabled=${this.saving} @click=${() => this.saveAgent()}>
@@ -924,7 +924,7 @@ export class ViewAgents extends LitElement {
             <div class="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden" tabindex="-1">
                 <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                     <h2 class="text-lg font-bold">Create Evaluation</h2>
-                    <button class="text-gray-400 hover:text-ink text-xl" aria-label="Close dialog" @click=${() => { this.showEvalModal = false; }}>✕</button>
+                    <button class="text-gray-500 hover:text-ink text-xl" aria-label="Close dialog" @click=${() => { this.showEvalModal = false; }}>✕</button>
                 </div>
                 <div class="p-6 space-y-4">
                     <div>
@@ -966,10 +966,10 @@ export class ViewAgents extends LitElement {
                         <h2 class="font-bold text-lg">${a.name}</h2>
                         <div class="flex items-center gap-2 mt-1">
                             ${this.statusBadge(a.status)}
-                            <span class="text-xs text-gray-400 font-mono">${a.model_name}</span>
+                            <span class="text-xs text-gray-500 font-mono">${a.model_name}</span>
                         </div>
                     </div>
-                    <button class="text-gray-400 hover:text-ink" aria-label="Close agent detail" @click=${() => { this.selectedAgent = null; }}>✕</button>
+                    <button class="text-gray-500 hover:text-ink" aria-label="Close agent detail" @click=${() => { this.selectedAgent = null; }}>✕</button>
                 </div>
                 <div class="p-6 space-y-6">
                     ${a.description ? html`
@@ -979,10 +979,10 @@ export class ViewAgents extends LitElement {
                     </div>` : ''}
 
                     <div class="grid grid-cols-2 gap-4">
-                        <div><span class="text-xs text-gray-400">Provider</span><div class="font-semibold text-sm">${a.model_provider}</div></div>
-                        <div><span class="text-xs text-gray-400">Temperature</span><div class="font-semibold text-sm">${a.temperature}</div></div>
-                        <div><span class="text-xs text-gray-400">Max Tokens</span><div class="font-semibold text-sm">${a.max_tokens?.toLocaleString()}</div></div>
-                        <div><span class="text-xs text-gray-400">Created</span><div class="text-sm">${new Date(a.created_at).toLocaleString()}</div></div>
+                        <div><span class="text-xs text-gray-500">Provider</span><div class="font-semibold text-sm">${a.model_provider}</div></div>
+                        <div><span class="text-xs text-gray-500">Temperature</span><div class="font-semibold text-sm">${a.temperature}</div></div>
+                        <div><span class="text-xs text-gray-500">Max Tokens</span><div class="font-semibold text-sm">${a.max_tokens?.toLocaleString()}</div></div>
+                        <div><span class="text-xs text-gray-500">Created</span><div class="text-sm">${new Date(a.created_at).toLocaleString()}</div></div>
                     </div>
 
                     <div>
@@ -1012,7 +1012,7 @@ export class ViewAgents extends LitElement {
                             <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                                 <div>
                                     <div class="text-sm font-semibold">${e.name}</div>
-                                    <div class="text-xs text-gray-400">${e.run_count} runs</div>
+                                    <div class="text-xs text-gray-500">${e.run_count} runs</div>
                                 </div>
                                 <div class="flex items-center gap-3">
                                     ${this.scoreBar(e.overall_score)}

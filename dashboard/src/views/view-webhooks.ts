@@ -171,7 +171,7 @@ export class ViewWebhooks extends LitElement {
             <div class="flex items-center justify-between mb-6">
                 <div>
                     <h1 class="text-2xl font-black font-display tracking-tight">Webhooks</h1>
-                    <p class="text-sm text-gray-400 mt-1">Manage webhook subscriptions and monitor delivery history</p>
+                    <p class="text-sm text-gray-500 mt-1">Manage webhook subscriptions and monitor delivery history</p>
                 </div>
                 <div class="flex gap-2">
                     <button class="px-4 py-1.5 text-sm font-semibold border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors flex items-center gap-2"
@@ -198,7 +198,7 @@ export class ViewWebhooks extends LitElement {
             ${this.loading ? html`
             <div class="text-center py-16" role="status" aria-live="polite">
                 <div class="inline-block w-8 h-8 border-2 border-gray-200 border-t-gray-600 rounded-full animate-spin mb-3"></div>
-                <div class="text-sm text-gray-400">Loading webhooks...</div>
+                <div class="text-sm text-gray-500">Loading webhooks...</div>
             </div>` : html`
             <!-- Webhooks Table -->
             ${this.renderWebhooksTable()}
@@ -219,7 +219,7 @@ export class ViewWebhooks extends LitElement {
         <div class="bg-white rounded-xl border border-gray-100 overflow-hidden" aria-live="polite">
             <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
                 <h2 class="text-sm font-semibold text-gray-700">Webhook Subscriptions</h2>
-                <span class="text-xs text-gray-400">${this.webhooks.length} webhooks</span>
+                <span class="text-xs text-gray-500">${this.webhooks.length} webhooks</span>
             </div>
             <table class="w-full text-sm" role="table" aria-label="Webhooks">
                 <thead><tr class="border-b border-gray-100 text-left text-xs text-gray-500 uppercase">
@@ -232,30 +232,30 @@ export class ViewWebhooks extends LitElement {
                 </tr></thead>
                 <tbody>
                 ${this.webhooks.length === 0 ? html`
-                <tr><td colspan="6" class="px-5 py-16 text-center text-gray-400">
+                <tr><td colspan="6" class="px-5 py-16 text-center text-gray-500">
                     <div class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-gray-100 mb-4">
-                        <svg class="w-7 h-7 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                        <svg class="w-7 h-7 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                     </div>
                     <div class="text-sm font-semibold text-gray-600">No webhooks configured</div>
-                    <div class="text-xs mt-2 text-gray-400">Create a webhook to receive event notifications via HTTP POST.</div>
+                    <div class="text-xs mt-2 text-gray-500">Create a webhook to receive event notifications via HTTP POST.</div>
                 </td></tr>` : ''}
                 ${this.webhooks.map(wh => html`
                 <tr class="border-b border-gray-50 hover:bg-gray-50">
                     <td class="px-5 py-3">
                         <div class="font-mono text-xs truncate max-w-[280px]">${wh.url}</div>
-                        ${wh.description ? html`<div class="text-xs text-gray-400 mt-0.5 truncate max-w-[280px]">${wh.description}</div>` : ''}
+                        ${wh.description ? html`<div class="text-xs text-gray-500 mt-0.5 truncate max-w-[280px]">${wh.description}</div>` : ''}
                     </td>
                     <td class="px-5 py-3">
                         <div class="flex flex-wrap gap-1">
                             ${(wh.events || []).slice(0, 3).map(evt => html`
                             <span class="px-1.5 py-0.5 text-xs bg-gray-100 rounded font-mono">${evt}</span>`)}
-                            ${(wh.events || []).length > 3 ? html`<span class="px-1.5 py-0.5 text-xs text-gray-400">+${wh.events.length - 3}</span>` : ''}
+                            ${(wh.events || []).length > 3 ? html`<span class="px-1.5 py-0.5 text-xs text-gray-500">+${wh.events.length - 3}</span>` : ''}
                         </div>
                     </td>
                     <td class="px-5 py-3">${this.statusBadge(wh.status)}</td>
                     <td class="px-5 py-3 text-xs text-gray-500">${wh.last_triggered_at ? new Date(wh.last_triggered_at).toLocaleString() : '—'}</td>
                     <td class="px-5 py-3">
-                        <span class="text-sm font-semibold ${wh.failure_count > 0 ? 'text-red-600' : 'text-gray-400'}">${wh.failure_count}</span>
+                        <span class="text-sm font-semibold ${wh.failure_count > 0 ? 'text-red-600' : 'text-gray-500'}">${wh.failure_count}</span>
                     </td>
                     <td class="px-5 py-3">
                         <div class="flex gap-2">
@@ -283,12 +283,12 @@ export class ViewWebhooks extends LitElement {
         <div class="bg-white rounded-xl border border-gray-100 overflow-hidden mt-6">
             <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
                 <h2 class="text-sm font-semibold text-gray-700">Delivery History — <span class="font-mono text-xs">${wh.url}</span></h2>
-                <span class="text-xs text-gray-400">${this.deliveries.length} deliveries</span>
+                <span class="text-xs text-gray-500">${this.deliveries.length} deliveries</span>
             </div>
             ${this.deliveriesLoading ? html`
-            <div class="p-8 text-center text-gray-400">Loading deliveries...</div>` : html`
+            <div class="p-8 text-center text-gray-500">Loading deliveries...</div>` : html`
             ${this.deliveries.length === 0 ? html`
-            <div class="p-8 text-center text-gray-400">No deliveries recorded for this webhook.</div>` : html`
+            <div class="p-8 text-center text-gray-500">No deliveries recorded for this webhook.</div>` : html`
             <table class="w-full text-sm">
                 <thead><tr class="border-b border-gray-100 text-left text-xs text-gray-500 uppercase">
                     <th class="px-5 py-2.5">Event Type</th>
@@ -323,7 +323,7 @@ export class ViewWebhooks extends LitElement {
             <div class="relative bg-white rounded-2xl shadow-2xl w-[560px] max-h-[85vh] overflow-y-auto" tabindex="-1">
                 <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
                     <h2 class="font-bold text-lg">Create Webhook</h2>
-                    <button class="text-gray-400 hover:text-ink" @click=${() => { this.showCreateModal = false; }}>✕</button>
+                    <button class="text-gray-500 hover:text-ink" @click=${() => { this.showCreateModal = false; }}>✕</button>
                 </div>
                 <div class="p-6 space-y-4">
                     <div>

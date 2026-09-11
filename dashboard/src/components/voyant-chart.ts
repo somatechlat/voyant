@@ -82,7 +82,7 @@ export class VoyantChart extends LitElement {
         const base: Record<string, unknown> = {
             backgroundColor: 'transparent',
             color: colors,
-            textStyle: { fontFamily: 'Inter, system-ui, sans-serif', color: '#9CA3AF' },
+            textStyle: { fontFamily: 'Inter, system-ui, sans-serif', color: '#4B5563' },
             grid: { left: 48, right: 24, top: 40, bottom: 40, containLabel: true },
             tooltip: {
                 trigger: this.type === 'pie' ? 'item' : 'axis',
@@ -91,7 +91,7 @@ export class VoyantChart extends LitElement {
                 textStyle: { color: '#FAFAFA', fontSize: 12 },
             },
             legend: {
-                textStyle: { color: '#9CA3AF', fontSize: 11 },
+                textStyle: { color: '#4B5563', fontSize: 11 },
                 top: 4,
                 right: 4,
             },
@@ -100,8 +100,8 @@ export class VoyantChart extends LitElement {
         let typeConfig: Record<string, unknown> = {};
         if (this.type === 'line' || this.type === 'area') {
             typeConfig = {
-                xAxis: { type: 'category', data: this.data.labels as string[], axisLine: { lineStyle: { color: '#262626' } }, axisLabel: { color: '#9CA3AF' } },
-                yAxis: { type: 'value', splitLine: { lineStyle: { color: '#1A1A1A' } }, axisLabel: { color: '#9CA3AF' } },
+                xAxis: { type: 'category', data: this.data.labels as string[], axisLine: { lineStyle: { color: '#262626' } }, axisLabel: { color: '#4B5563' } },
+                yAxis: { type: 'value', splitLine: { lineStyle: { color: '#1A1A1A' } }, axisLabel: { color: '#4B5563' } },
                 series: (this.data.datasets as Array<Record<string, unknown>> || []).map(ds => ({
                     type: 'line',
                     name: ds.name,
@@ -114,8 +114,8 @@ export class VoyantChart extends LitElement {
             };
         } else if (this.type === 'bar') {
             typeConfig = {
-                xAxis: { type: 'category', data: this.data.labels as string[], axisLine: { lineStyle: { color: '#262626' } }, axisLabel: { color: '#9CA3AF' } },
-                yAxis: { type: 'value', splitLine: { lineStyle: { color: '#1A1A1A' } }, axisLabel: { color: '#9CA3AF' } },
+                xAxis: { type: 'category', data: this.data.labels as string[], axisLine: { lineStyle: { color: '#262626' } }, axisLabel: { color: '#4B5563' } },
+                yAxis: { type: 'value', splitLine: { lineStyle: { color: '#1A1A1A' } }, axisLabel: { color: '#4B5563' } },
                 series: (this.data.datasets as Array<Record<string, unknown>> || []).map(ds => ({
                     type: 'bar',
                     name: ds.name,
@@ -132,7 +132,7 @@ export class VoyantChart extends LitElement {
                     data: (this.data.items as Array<{ name: string; value: number }> || []).map((item, i) => ({
                         ...item, itemStyle: { color: colors[i % colors.length] },
                     })),
-                    label: { color: '#9CA3AF', fontSize: 11 },
+                    label: { color: '#4B5563', fontSize: 11 },
                     emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.3)' } },
                 }],
             };
@@ -147,15 +147,15 @@ export class VoyantChart extends LitElement {
                     axisLabel: { show: false },
                     pointer: { show: false },
                     anchor: { show: false },
-                    title: { fontSize: 12, color: '#9CA3AF', offsetCenter: [0, '70%'] },
+                    title: { fontSize: 12, color: '#4B5563', offsetCenter: [0, '70%'] },
                     detail: { fontSize: 28, fontWeight: 'bold', color: '#FAFAFA', offsetCenter: [0, '0%'] },
                     data: [{ value: (this.data.value as number) || 0, name: (this.data.name as string) || '' }],
                 }],
             };
         } else if (this.type === 'scatter') {
             typeConfig = {
-                xAxis: { type: 'value', splitLine: { lineStyle: { color: '#1A1A1A' } }, axisLabel: { color: '#9CA3AF' } },
-                yAxis: { type: 'value', splitLine: { lineStyle: { color: '#1A1A1A' } }, axisLabel: { color: '#9CA3AF' } },
+                xAxis: { type: 'value', splitLine: { lineStyle: { color: '#1A1A1A' } }, axisLabel: { color: '#4B5563' } },
+                yAxis: { type: 'value', splitLine: { lineStyle: { color: '#1A1A1A' } }, axisLabel: { color: '#4B5563' } },
                 series: (this.data.datasets as Array<Record<string, unknown>> || []).map(ds => ({
                     type: 'scatter',
                     name: ds.name,

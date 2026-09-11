@@ -699,7 +699,7 @@ export class ViewPipelines extends LitElement {
                 </div>
             </div>` : nothing}
 
-            ${this.loading ? html`<div class="text-center text-gray-400 py-16">Loading...</div>` : html`
+            ${this.loading ? html`<div class="text-center text-gray-500 py-16">Loading...</div>` : html`
             <div class="bg-white rounded-xl border border-gray-100 overflow-hidden">
                 <table class="w-full text-sm">
                     <thead><tr class="border-b border-gray-100 text-left text-xs text-gray-500 uppercase">
@@ -713,13 +713,13 @@ export class ViewPipelines extends LitElement {
                     </tr></thead>
                     <tbody>
                     ${this.pipelines.length === 0
-                        ? html`<tr><td colspan="7" class="px-4 py-12 text-center text-gray-400">No pipelines found. Create one to get started.</td></tr>`
+                        ? html`<tr><td colspan="7" class="px-4 py-12 text-center text-gray-500">No pipelines found. Create one to get started.</td></tr>`
                         : this.pipelines.map(p => html`
                         <tr class="border-b border-gray-50 hover:bg-gray-50">
                             <td class="px-4 py-3">
                                 <button class="font-semibold text-blue-600 hover:underline text-left"
                                     @click=${() => this.openEditor(p)}>${p.name}</button>
-                                ${p.description ? html`<div class="text-xs text-gray-400">${p.description}</div>` : nothing}
+                                ${p.description ? html`<div class="text-xs text-gray-500">${p.description}</div>` : nothing}
                             </td>
                             <td class="px-4 py-3">${this.statusBadge(p.status)}</td>
                             <td class="px-4 py-3 font-mono text-xs">${p.schedule || 'Manual'}</td>
@@ -750,10 +750,10 @@ export class ViewPipelines extends LitElement {
         return html`
         <!-- Top bar -->
         <div class="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-2 flex items-center gap-4">
-            <button class="text-gray-400 hover:text-ink text-lg" @click=${() => this.closeEditor()}>&larr;</button>
+            <button class="text-gray-500 hover:text-ink text-lg" @click=${() => this.closeEditor()}>&larr;</button>
             <h2 class="font-bold text-base flex-1">${pipeline.name}</h2>
             ${this.statusBadge(pipeline.status)}
-            <span class="text-xs text-gray-400">${this.dagNodes.length} nodes &middot; ${this.dagEdges.length} edges</span>
+            <span class="text-xs text-gray-500">${this.dagNodes.length} nodes &middot; ${this.dagEdges.length} edges</span>
             <button class="px-3 py-1.5 text-xs border border-gray-200 rounded-lg bg-white hover:bg-gray-50"
                 @click=${() => this.exportPipeline()}>Export JSON</button>
             <button class="px-3 py-1.5 text-xs border border-blue-200 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100"
@@ -798,7 +798,7 @@ export class ViewPipelines extends LitElement {
                     <div class="text-xs text-amber-600 mb-1">⚠ ${w.message}</div>`)}
                     ${this.dagValidation.execution_order.length > 0 ? html`
                     <div class="mt-2">
-                        <div class="text-xs text-gray-400 mb-1">Execution order:</div>
+                        <div class="text-xs text-gray-500 mb-1">Execution order:</div>
                         ${this.dagValidation.execution_order.map((id, i) => {
                             const node = this.dagNodes.find(n => n.id === id);
                             return html`<div class="text-xs text-gray-600">${i + 1}. ${node?.name || id.slice(0, 8)}</div>`;
@@ -807,7 +807,7 @@ export class ViewPipelines extends LitElement {
                 </div>` : nothing}
 
                 <!-- Help -->
-                <div class="mt-4 pt-3 border-t border-gray-100 text-xs text-gray-400 space-y-1">
+                <div class="mt-4 pt-3 border-t border-gray-100 text-xs text-gray-500 space-y-1">
                     <div><b>Click</b> node = select</div>
                     <div><b>Drag</b> node = move</div>
                     <div><b>Drag</b> canvas = pan</div>
@@ -909,7 +909,7 @@ export class ViewPipelines extends LitElement {
                                 <div style="width:32px;height:32px;border-radius:8px;background:${color}15;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">${icon}</div>
                                 <div style="flex:1;min-width:0">
                                     <div style="font-size:12px;font-weight:600;color:#1F2937;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${node.name}</div>
-                                    <div style="font-size:10px;color:#9CA3AF">${node.step_type}</div>
+                                    <div style="font-size:10px;color:#4B5563">${node.step_type}</div>
                                 </div>
                             </div>
 
@@ -927,7 +927,7 @@ export class ViewPipelines extends LitElement {
                     ${this.dagNodes.length === 0 ? html`
                     <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center">
                         <div style="font-size:48px;opacity:0.15;margin-bottom:12px">⬡</div>
-                        <div style="font-size:14px;color:#9CA3AF;margin-bottom:4px">Drag nodes from the palette to build your pipeline</div>
+                        <div style="font-size:14px;color:#4B5563;margin-bottom:4px">Drag nodes from the palette to build your pipeline</div>
                         <div style="font-size:12px;color:#CBD5E1">or click a palette item to add it at center</div>
                     </div>` : nothing}
                 </div>
@@ -945,7 +945,7 @@ export class ViewPipelines extends LitElement {
         if (!node) {
             return html`
             <div class="w-72 bg-white border-l border-gray-200 p-4 overflow-y-auto flex-shrink-0">
-                <div class="text-center text-gray-400 py-12">
+                <div class="text-center text-gray-500 py-12">
                     <div style="font-size:32px;opacity:0.2;margin-bottom:8px">⚙️</div>
                     <div class="text-sm">Select a node to configure</div>
                 </div>
@@ -963,10 +963,10 @@ export class ViewPipelines extends LitElement {
                     <div class="w-8 h-8 rounded-lg flex items-center justify-center text-lg" style="background:${color}15">${paletteItem?.icon || '⬡'}</div>
                     <div>
                         <div class="font-semibold text-sm">${node.name}</div>
-                        <div class="text-xs text-gray-400">${node.step_type}</div>
+                        <div class="text-xs text-gray-500">${node.step_type}</div>
                     </div>
                 </div>
-                <div class="text-xs text-gray-400 mb-2">ID: ${node.id.slice(0, 12)}...</div>
+                <div class="text-xs text-gray-500 mb-2">ID: ${node.id.slice(0, 12)}...</div>
             </div>
 
             <div class="p-4 space-y-4">
@@ -1048,7 +1048,7 @@ export class ViewPipelines extends LitElement {
                         return html`
                         ${incoming.length > 0 ? html`
                         <div class="mb-2">
-                            <div class="text-xs text-gray-400 mb-1">Inputs:</div>
+                            <div class="text-xs text-gray-500 mb-1">Inputs:</div>
                             ${incoming.map(e => {
                                 const srcNode = this.dagNodes.find(n => n.id === e.source);
                                 return html`<div class="text-xs flex items-center gap-1 mb-0.5">
@@ -1059,7 +1059,7 @@ export class ViewPipelines extends LitElement {
                         </div>` : nothing}
                         ${outgoing.length > 0 ? html`
                         <div>
-                            <div class="text-xs text-gray-400 mb-1">Outputs:</div>
+                            <div class="text-xs text-gray-500 mb-1">Outputs:</div>
                             ${outgoing.map(e => {
                                 const tgtNode = this.dagNodes.find(n => n.id === e.target);
                                 return html`<div class="text-xs flex items-center gap-1 mb-0.5">
@@ -1069,7 +1069,7 @@ export class ViewPipelines extends LitElement {
                             })}
                         </div>` : nothing}
                         ${incoming.length === 0 && outgoing.length === 0 ? html`
-                        <div class="text-xs text-gray-400">No connections</div>` : nothing}`;
+                        <div class="text-xs text-gray-500">No connections</div>` : nothing}`;
                     })()}
                 </div>
 
@@ -1095,13 +1095,13 @@ export class ViewPipelines extends LitElement {
         <div class="w-80 bg-white border-l border-gray-200 overflow-y-auto flex-shrink-0">
             <div class="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
                 <h4 class="text-sm font-semibold">Run History</h4>
-                <button class="text-gray-400 hover:text-ink text-sm" @click=${() => { this.showRunHistory = false; }}>×</button>
+                <button class="text-gray-500 hover:text-ink text-sm" @click=${() => { this.showRunHistory = false; }}>×</button>
             </div>
             <div class="p-3">
                 ${this.runsLoading ? html`
-                <div class="text-center text-gray-400 py-8 text-xs">Loading runs...</div>` :
+                <div class="text-center text-gray-500 py-8 text-xs">Loading runs...</div>` :
                 this.pipelineRuns.length === 0 ? html`
-                <div class="text-center text-gray-400 py-8 text-xs">No runs yet</div>` : html`
+                <div class="text-center text-gray-500 py-8 text-xs">No runs yet</div>` : html`
                 <div class="space-y-2">
                     ${this.pipelineRuns.map(run => html`
                     <div class="p-3 rounded-lg border border-gray-100 hover:border-gray-200 bg-gray-50">
@@ -1115,7 +1115,7 @@ export class ViewPipelines extends LitElement {
                             <div>Steps: ${run.steps_completed}/${run.steps_total}</div>
                             <div>Duration: ${this.formatDuration(run.started_at, run.completed_at)}</div>
                         </div>
-                        <div class="text-xs text-gray-400 mt-1.5">${run.started_at ? new Date(run.started_at).toLocaleString() : 'Not started'}</div>
+                        <div class="text-xs text-gray-500 mt-1.5">${run.started_at ? new Date(run.started_at).toLocaleString() : 'Not started'}</div>
                         ${run.error_message ? html`
                         <div class="text-xs text-red-500 mt-1.5 truncate">${run.error_message}</div>` : nothing}
                     </div>`)}

@@ -200,7 +200,7 @@ export class ViewStreaming extends LitElement {
             <div class="flex items-center justify-between mb-6">
                 <div>
                     <h1 class="text-2xl font-black font-display tracking-tight">Streaming Monitor</h1>
-                    <p class="text-sm text-gray-400 mt-1">Manage Flink cluster, streaming jobs, checkpoints, and metrics</p>
+                    <p class="text-sm text-gray-500 mt-1">Manage Flink cluster, streaming jobs, checkpoints, and metrics</p>
                 </div>
                 <div class="flex gap-2">
                     <button class="px-4 py-1.5 text-sm font-semibold border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors flex items-center gap-2"
@@ -227,7 +227,7 @@ export class ViewStreaming extends LitElement {
             ${this.loading ? html`
             <div class="text-center py-16" role="status" aria-live="polite">
                 <div class="inline-block w-8 h-8 border-2 border-gray-200 border-t-gray-600 rounded-full animate-spin mb-3"></div>
-                <div class="text-sm text-gray-400">Connecting to Flink cluster...</div>
+                <div class="text-sm text-gray-500">Connecting to Flink cluster...</div>
             </div>` : html`
             <!-- Cluster Overview -->
             ${this.renderClusterOverview()}
@@ -251,9 +251,9 @@ export class ViewStreaming extends LitElement {
         const c = this.cluster;
         const cards = [
             { label: 'TaskManagers', value: c.taskmanagers, color: 'text-gray-900' },
-            { label: 'Jobs Running', value: c.jobs_running, color: c.jobs_running > 0 ? 'text-green-600' : 'text-gray-400' },
+            { label: 'Jobs Running', value: c.jobs_running, color: c.jobs_running > 0 ? 'text-green-600' : 'text-gray-500' },
             { label: 'Jobs Finished', value: c.jobs_finished, color: 'text-blue-600' },
-            { label: 'Jobs Failed', value: c.jobs_failed, color: c.jobs_failed > 0 ? 'text-red-600' : 'text-gray-400' },
+            { label: 'Jobs Failed', value: c.jobs_failed, color: c.jobs_failed > 0 ? 'text-red-600' : 'text-gray-500' },
             { label: 'Total Slots', value: c.slots_total, color: 'text-gray-900' },
             { label: 'Available Slots', value: c.slots_available, color: c.slots_available > 0 ? 'text-green-600' : 'text-amber-600' },
         ];
@@ -262,7 +262,7 @@ export class ViewStreaming extends LitElement {
         <div class="grid grid-cols-6 gap-3 mb-6">
             ${cards.map(card => html`
             <div class="bg-white rounded-xl border border-gray-100 p-4">
-                <div class="text-xs font-medium text-gray-400 uppercase tracking-wider">${card.label}</div>
+                <div class="text-xs font-medium text-gray-500 uppercase tracking-wider">${card.label}</div>
                 <div class="text-2xl font-black font-display mt-1 ${card.color}">${card.value}</div>
             </div>`)}
         </div>`;
@@ -275,7 +275,7 @@ export class ViewStreaming extends LitElement {
         <div class="bg-white rounded-xl border border-gray-100 overflow-hidden" aria-live="polite">
             <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
                 <h2 class="text-sm font-semibold text-gray-700">Flink Jobs</h2>
-                <span class="text-xs text-gray-400">${this.jobs.length} jobs</span>
+                <span class="text-xs text-gray-500">${this.jobs.length} jobs</span>
             </div>
             <table class="w-full text-sm" role="table" aria-label="Flink jobs">
                 <thead><tr class="border-b border-gray-100 text-left text-xs text-gray-500 uppercase">
@@ -287,12 +287,12 @@ export class ViewStreaming extends LitElement {
                 </tr></thead>
                 <tbody>
                 ${this.jobs.length === 0 ? html`
-                <tr><td colspan="5" class="px-5 py-16 text-center text-gray-400">
+                <tr><td colspan="5" class="px-5 py-16 text-center text-gray-500">
                     <div class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-gray-100 mb-4">
-                        <svg class="w-7 h-7 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                        <svg class="w-7 h-7 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
                     </div>
                     <div class="text-sm font-semibold text-gray-600">No streaming jobs</div>
-                    <div class="text-xs mt-2 text-gray-400">Submit a Flink job to start streaming analytics.</div>
+                    <div class="text-xs mt-2 text-gray-500">Submit a Flink job to start streaming analytics.</div>
                 </td></tr>` : ''}
                 ${this.jobs.map(j => html`
                 <tr class="border-b border-gray-50 hover:bg-gray-50 cursor-pointer"
@@ -326,7 +326,7 @@ export class ViewStreaming extends LitElement {
             <div class="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true">
                 <div class="absolute inset-0 bg-black/20" @click=${() => { this.selectedJob = null; }}></div>
                 <div class="relative w-[720px] bg-white h-full flex items-center justify-center shadow-2xl border-l border-gray-200">
-                    <div class="text-gray-400" role="status">Loading job details...</div>
+                    <div class="text-gray-500" role="status">Loading job details...</div>
                 </div>
             </div>`;
         }
@@ -343,25 +343,25 @@ export class ViewStreaming extends LitElement {
                         <h2 class="font-bold text-lg">${job.name || 'Unnamed Job'}</h2>
                         <div class="flex items-center gap-2 mt-1">
                             ${this.stateBadge(job.state)}
-                            <span class="text-xs font-mono text-gray-400">${job.job_id}</span>
+                            <span class="text-xs font-mono text-gray-500">${job.job_id}</span>
                         </div>
                     </div>
-                    <button class="text-gray-400 hover:text-ink" @click=${() => { this.selectedJob = null; }}>✕</button>
+                    <button class="text-gray-500 hover:text-ink" @click=${() => { this.selectedJob = null; }}>✕</button>
                 </div>
 
                 <div class="p-6 space-y-8">
                     <!-- Job Info -->
                     <div class="grid grid-cols-3 gap-4">
                         <div class="p-3 bg-gray-50 rounded-lg">
-                            <div class="text-xs text-gray-400">Start Time</div>
+                            <div class="text-xs text-gray-500">Start Time</div>
                             <div class="text-sm mt-1">${this.formatTimestamp(job.start_time)}</div>
                         </div>
                         <div class="p-3 bg-gray-50 rounded-lg">
-                            <div class="text-xs text-gray-400">Duration</div>
+                            <div class="text-xs text-gray-500">Duration</div>
                             <div class="text-sm font-semibold mt-1">${this.formatDuration(job.duration)}</div>
                         </div>
                         <div class="p-3 bg-gray-50 rounded-lg">
-                            <div class="text-xs text-gray-400">Tasks</div>
+                            <div class="text-xs text-gray-500">Tasks</div>
                             <div class="text-sm font-semibold mt-1">${job.tasks_running} / ${job.tasks_total} running</div>
                         </div>
                     </div>
@@ -415,15 +415,15 @@ export class ViewStreaming extends LitElement {
                         <h3 class="text-xs font-semibold text-gray-500 uppercase mb-3">Checkpoints</h3>
                         <div class="grid grid-cols-3 gap-3 mb-3">
                             <div class="p-3 bg-gray-50 rounded-lg">
-                                <div class="text-xs text-gray-400">Latest Completed</div>
+                                <div class="text-xs text-gray-500">Latest Completed</div>
                                 <div class="text-sm font-mono mt-1">#${this.selectedCheckpoints.latest_completed_id}</div>
                             </div>
                             <div class="p-3 bg-gray-50 rounded-lg">
-                                <div class="text-xs text-gray-400">Duration</div>
+                                <div class="text-xs text-gray-500">Duration</div>
                                 <div class="text-sm font-mono mt-1">${this.selectedCheckpoints.latest_completed_duration}ms</div>
                             </div>
                             <div class="p-3 bg-gray-50 rounded-lg">
-                                <div class="text-xs text-gray-400">Size</div>
+                                <div class="text-xs text-gray-500">Size</div>
                                 <div class="text-sm font-mono mt-1">${(this.selectedCheckpoints.latest_completed_size / 1024).toFixed(1)}KB</div>
                             </div>
                         </div>
@@ -484,7 +484,7 @@ export class ViewStreaming extends LitElement {
             <div class="relative bg-white rounded-2xl shadow-2xl w-[520px]" tabindex="-1">
                 <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
                     <h2 class="font-bold text-lg">Submit Streaming Job</h2>
-                    <button class="text-gray-400 hover:text-ink" @click=${() => { this.showSubmitModal = false; }}>✕</button>
+                    <button class="text-gray-500 hover:text-ink" @click=${() => { this.showSubmitModal = false; }}>✕</button>
                 </div>
                 <div class="p-6 space-y-4">
                     <div>

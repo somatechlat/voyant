@@ -22,10 +22,10 @@ export class VoyantDetailPanel extends LitElement {
                 <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #262626;position:sticky;top:0;background:#141414;z-index:1">
                     <div>
                         <div style="font-size:16px;font-weight:700;color:#FAFAFA">${this.title}</div>
-                        ${this.subtitle ? html`<div style="font-size:12px;color:#6B7280;margin-top:2px">${this.subtitle}</div>` : ''}
+                        ${this.subtitle ? html`<div style="font-size:12px;color:#374151;margin-top:2px">${this.subtitle}</div>` : ''}
                     </div>
                     <button @click=${this._close}
-                        style="width:28px;height:28px;border-radius:6px;border:1px solid #262626;background:transparent;color:#9CA3AF;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">×</button>
+                        style="width:28px;height:28px;border-radius:6px;border:1px solid #262626;background:transparent;color:#4B5563;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">×</button>
                 </div>
                 <div style="padding:20px">
                     <slot></slot>

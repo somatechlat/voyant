@@ -217,7 +217,7 @@ export class ViewApprovals extends LitElement {
             <div class="flex items-center justify-between mb-6">
                 <div>
                     <h1 class="text-2xl font-black font-display tracking-tight">Approvals</h1>
-                    <p class="text-sm text-gray-400 mt-1">Review and manage approval requests</p>
+                    <p class="text-sm text-gray-500 mt-1">Review and manage approval requests</p>
                 </div>
             </div>
 
@@ -261,19 +261,19 @@ export class ViewApprovals extends LitElement {
             <!-- Summary Cards -->
             <div class="grid grid-cols-4 gap-4 mb-6">
                 <div class="bg-white rounded-xl border border-gray-100 p-5">
-                    <div class="text-xs text-gray-400 uppercase tracking-wider mb-1">Pending</div>
+                    <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Pending</div>
                     <div class="text-2xl font-bold text-amber-600">${this.pendingCount}</div>
                 </div>
                 <div class="bg-white rounded-xl border border-gray-100 p-5">
-                    <div class="text-xs text-gray-400 uppercase tracking-wider mb-1">Approved Today</div>
+                    <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Approved Today</div>
                     <div class="text-2xl font-bold text-green-600">${this.approvedTodayCount}</div>
                 </div>
                 <div class="bg-white rounded-xl border border-gray-100 p-5">
-                    <div class="text-xs text-gray-400 uppercase tracking-wider mb-1">Rejected Today</div>
+                    <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Rejected Today</div>
                     <div class="text-2xl font-bold text-red-600">${this.rejectedTodayCount}</div>
                 </div>
                 <div class="bg-white rounded-xl border border-gray-100 p-5">
-                    <div class="text-xs text-gray-400 uppercase tracking-wider mb-1">Total</div>
+                    <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Total</div>
                     <div class="text-2xl font-bold">${this.requests.length}</div>
                 </div>
             </div>
@@ -292,7 +292,7 @@ export class ViewApprovals extends LitElement {
                     aria-label="Refresh approvals" @click=${() => this.loadRequests()}>Refresh</button>
             </div>
 
-            ${this.loading ? html`<div class="text-center text-gray-400 py-16" role="status" aria-live="polite">Loading...</div>` : html`
+            ${this.loading ? html`<div class="text-center text-gray-500 py-16" role="status" aria-live="polite">Loading...</div>` : html`
             <div class="bg-white rounded-xl border border-gray-100 overflow-hidden" aria-live="polite">
                 <table class="w-full text-sm" role="table" aria-label="Approval requests">
                     <thead><tr class="border-b border-gray-100 text-left text-xs text-gray-500 uppercase">
@@ -305,7 +305,7 @@ export class ViewApprovals extends LitElement {
                     </tr></thead>
                     <tbody>
                     ${this.requests.length === 0 ? html`
-                    <tr><td colspan="6" class="px-5 py-12 text-center text-gray-400">
+                    <tr><td colspan="6" class="px-5 py-12 text-center text-gray-500">
                         No approval requests found
                     </td></tr>` : ''}
                     ${this.requests.map(r => html`
@@ -315,7 +315,7 @@ export class ViewApprovals extends LitElement {
                         @keydown=${(e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.selectedRequest = r; this.actionReason = ''; } }}>
                         <td class="px-5 py-3">
                             <div class="flex items-center gap-2">
-                                <svg class="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <svg class="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <g innerHTML="${REQUEST_TYPE_ICONS[r.request_type] || REQUEST_TYPE_ICONS.action_execution}"></g>
                                 </svg>
                                 <span class="text-xs font-mono">${REQUEST_TYPE_LABELS[r.request_type] || r.request_type}</span>
@@ -331,7 +331,7 @@ export class ViewApprovals extends LitElement {
                                 <button class="text-xs text-green-600 hover:underline"
                                     @click=${() => { this.selectedRequest = r; this.actionReason = ''; }}>Review</button>
                             </div>` : html`
-                            <span class="text-xs text-gray-400">—</span>`}
+                            <span class="text-xs text-gray-500">—</span>`}
                         </td>
                     </tr>`)}
                     </tbody>
@@ -351,7 +351,7 @@ export class ViewApprovals extends LitElement {
                     @click=${() => this.loadRules()}>Refresh</button>
             </div>
 
-            ${this.loading ? html`<div class="text-center text-gray-400 py-16" role="status">Loading...</div>` : html`
+            ${this.loading ? html`<div class="text-center text-gray-500 py-16" role="status">Loading...</div>` : html`
             <div class="bg-white rounded-xl border border-gray-100 overflow-hidden">
                 <table class="w-full text-sm" role="table" aria-label="Approval rules">
                     <thead><tr class="border-b border-gray-100 text-left text-xs text-gray-500 uppercase">
@@ -364,7 +364,7 @@ export class ViewApprovals extends LitElement {
                     </tr></thead>
                     <tbody>
                     ${this.rules.length === 0 ? html`
-                    <tr><td colspan="6" class="px-5 py-12 text-center text-gray-400">
+                    <tr><td colspan="6" class="px-5 py-12 text-center text-gray-500">
                         No approval rules configured. Create one to get started.
                     </td></tr>` : ''}
                     ${this.rules.map(r => html`
@@ -395,7 +395,7 @@ export class ViewApprovals extends LitElement {
                     @click=${() => this.loadHistory()}>Refresh</button>
             </div>
 
-            ${this.loading ? html`<div class="text-center text-gray-400 py-16" role="status">Loading...</div>` : html`
+            ${this.loading ? html`<div class="text-center text-gray-500 py-16" role="status">Loading...</div>` : html`
             <div class="bg-white rounded-xl border border-gray-100 overflow-hidden">
                 <table class="w-full text-sm" role="table" aria-label="Approval history">
                     <thead><tr class="border-b border-gray-100 text-left text-xs text-gray-500 uppercase">
@@ -409,7 +409,7 @@ export class ViewApprovals extends LitElement {
                     </tr></thead>
                     <tbody>
                     ${this.history.length === 0 ? html`
-                    <tr><td colspan="7" class="px-5 py-12 text-center text-gray-400">
+                    <tr><td colspan="7" class="px-5 py-12 text-center text-gray-500">
                         No resolved approvals
                     </td></tr>` : ''}
                     ${this.history.map(r => html`
@@ -442,11 +442,11 @@ export class ViewApprovals extends LitElement {
                 <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                     <div>
                         <h2 class="text-lg font-bold">Approval Request</h2>
-                        <p class="text-xs text-gray-400 font-mono">${r.id}</p>
+                        <p class="text-xs text-gray-500 font-mono">${r.id}</p>
                     </div>
                     <div class="flex items-center gap-2">
                         <span class="px-2 py-0.5 text-xs font-medium rounded border ${STATUS_COLORS[r.status] || STATUS_COLORS.pending}">${r.status}</span>
-                        <button class="text-gray-400 hover:text-ink text-xl" aria-label="Close panel" @click=${() => { this.selectedRequest = null; }}>✕</button>
+                        <button class="text-gray-500 hover:text-ink text-xl" aria-label="Close panel" @click=${() => { this.selectedRequest = null; }}>✕</button>
                     </div>
                 </div>
 
@@ -454,63 +454,63 @@ export class ViewApprovals extends LitElement {
                 <div class="flex-1 overflow-y-auto p-6 space-y-5">
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <div class="text-xs text-gray-400 uppercase tracking-wider mb-1">Request Type</div>
+                            <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Request Type</div>
                             <div class="flex items-center gap-2">
-                                <svg class="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <svg class="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <g innerHTML="${REQUEST_TYPE_ICONS[r.request_type] || REQUEST_TYPE_ICONS.action_execution}"></g>
                                 </svg>
                                 <span class="text-sm font-semibold">${REQUEST_TYPE_LABELS[r.request_type] || r.request_type}</span>
                             </div>
                         </div>
                         <div>
-                            <div class="text-xs text-gray-400 uppercase tracking-wider mb-1">Status</div>
+                            <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Status</div>
                             <span class="px-2 py-0.5 text-xs font-medium rounded border ${STATUS_COLORS[r.status] || STATUS_COLORS.pending}">${r.status}</span>
                         </div>
                         <div>
-                            <div class="text-xs text-gray-400 uppercase tracking-wider mb-1">Resource</div>
+                            <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Resource</div>
                             <div class="text-sm font-mono">${r.resource_type}:${r.resource_id.slice(0, 12)}</div>
                         </div>
                         <div>
-                            <div class="text-xs text-gray-400 uppercase tracking-wider mb-1">Requester</div>
+                            <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Requester</div>
                             <div class="text-sm font-mono">${r.requester_id}</div>
                         </div>
                         ${r.approver_id ? html`
                         <div>
-                            <div class="text-xs text-gray-400 uppercase tracking-wider mb-1">Approver</div>
+                            <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Approver</div>
                             <div class="text-sm font-mono">${r.approver_id}</div>
                         </div>` : ''}
                         <div>
-                            <div class="text-xs text-gray-400 uppercase tracking-wider mb-1">Created</div>
+                            <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Created</div>
                             <div class="text-sm">${new Date(r.created_at).toLocaleString()}</div>
                         </div>
                         ${r.approved_at ? html`
                         <div>
-                            <div class="text-xs text-gray-400 uppercase tracking-wider mb-1">Resolved</div>
+                            <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Resolved</div>
                             <div class="text-sm">${new Date(r.approved_at).toLocaleString()}</div>
                         </div>` : ''}
                         ${r.expires_at ? html`
                         <div>
-                            <div class="text-xs text-gray-400 uppercase tracking-wider mb-1">Expires</div>
+                            <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Expires</div>
                             <div class="text-sm">${new Date(r.expires_at).toLocaleString()}</div>
                         </div>` : ''}
                     </div>
 
                     ${r.reason ? html`
                     <div>
-                        <div class="text-xs text-gray-400 uppercase tracking-wider mb-1">Reason</div>
+                        <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Reason</div>
                         <div class="text-sm text-gray-700 bg-gray-50 rounded-lg p-3">${r.reason}</div>
                     </div>` : ''}
 
                     ${Object.keys(r.metadata).length > 0 ? html`
                     <div>
-                        <div class="text-xs text-gray-400 uppercase tracking-wider mb-1">Metadata</div>
+                        <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Metadata</div>
                         <pre class="text-xs font-mono text-gray-600 bg-gray-50 rounded-lg p-3 overflow-x-auto">${JSON.stringify(r.metadata, null, 2)}</pre>
                     </div>` : ''}
 
                     <!-- Action Section (pending only) -->
                     ${isPending ? html`
                     <div class="border-t border-gray-100 pt-5">
-                        <div class="text-xs text-gray-400 uppercase tracking-wider mb-2">Take Action</div>
+                        <div class="text-xs text-gray-500 uppercase tracking-wider mb-2">Take Action</div>
                         <textarea class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg h-20 resize-none mb-3"
                             placeholder="Reason for approval or rejection (optional for approve, recommended for reject)"
                             .value=${this.actionReason}
@@ -541,7 +541,7 @@ export class ViewApprovals extends LitElement {
             <div class="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden" tabindex="-1">
                 <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                     <h2 class="text-lg font-bold">Create Approval Rule</h2>
-                    <button class="text-gray-400 hover:text-ink text-xl" aria-label="Close" @click=${() => { this.showCreateRule = false; }}>✕</button>
+                    <button class="text-gray-500 hover:text-ink text-xl" aria-label="Close" @click=${() => { this.showCreateRule = false; }}>✕</button>
                 </div>
                 <div class="p-6 space-y-4">
                     <div>
