@@ -136,7 +136,7 @@ Voyant v4.0 is a unified data intelligence platform combining Palantir's ontolog
 | ONT-F-026 | Action Types with parameters, rules, side effects | Done | P1 |
 | ONT-F-029 | Functions (Python/TS business logic) | Done | P1 |
 | ONT-F-031 | Multi-hop link traversal (up to 10 hops) | Done | P0 |
-| ONT-F-036 | Object Type Groups for organization | Missing | P2 |
+| ONT-F-036 | Object Type Groups for organization | Done | P2 |
 
 **Voyant Catalog (M3) completion: 17/18 done (94%). Remaining: Object Type Groups.**
 
