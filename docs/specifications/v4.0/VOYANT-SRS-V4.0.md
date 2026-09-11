@@ -142,7 +142,7 @@ Voyant v4.0 is a unified data intelligence platform combining Palantir's ontolog
 
 ### 3.2 Voyant Analyze (M5) — Data Intelligence (DATA-F-001 to DATA-F-014)
 
-| ID | Requirement | v3.0 Status | Priority |
+| ID | Requirement | v4.0 Status | Priority |
 |----|-------------|-------------|----------|
 | DATA-F-001 | Source registration (Postgres, MySQL, S3, API, file) | Done | P0 |
 | DATA-F-002 | Ingestion via Airbyte connectors | Done | P0 |
@@ -152,73 +152,75 @@ Voyant v4.0 is a unified data intelligence platform combining Palantir's ontolog
 | DATA-F-007 | Anomaly detection (Isolation Forest) | Done | P0 |
 | DATA-F-008 | Time series forecasting | Done | P0 |
 | DATA-F-010 | Web scraping (HTTP, browser, OCR, PDF, transcription) | Done | P0 |
-| DATA-F-012 | Pipeline builder (visual DAG) | Missing | P1 |
-| DATA-F-014 | Streaming analytics via Apache Flink | Stub | P2 |
+| DATA-F-012 | Pipeline builder (visual DAG) | Done | P1 |
+| DATA-F-014 | Streaming analytics via Apache Flink | Partial | P2 |
 
-**Voyant Analyze (M5) P0 completion: 6/7 done (86%).**
+**Voyant Analyze (M5): 8/10 done (80%). Remaining: Data quality evaluation polish, Flink streaming beyond stub.**
 
 ### 3.3 Voyant ML (M6) — ML/AI Platform (ML-F-001 to ML-F-009)
 
-| ID | Requirement | v3.0 Status | Priority |
+| ID | Requirement | v4.0 Status | Priority |
 |----|-------------|-------------|----------|
 | ML-F-001 | Experiment creation and tracking | Done | P1 |
 | ML-F-002 | Run logging (params, metrics, artifacts) | Done | P1 |
 | ML-F-003 | Model registry with versioning | Done | P1 |
-| ML-F-004 | Model serving endpoints (real-time + batch) | Missing | P1 |
+| ML-F-004 | Model serving endpoints (real-time + batch) | Done | P1 |
 | ML-F-005 | MLflow-compatible API | Done | P1 |
 | ML-F-006 | Agent definition (prompt, model, tools, guardrails) | Done | P1 |
 | ML-F-007 | Agent evaluation with AI judge | Done | P1 |
-| ML-F-008 | Agent deployment and monitoring | Missing | P1 |
+| ML-F-008 | Agent deployment and monitoring | Partial | P1 |
 
-**Voyant ML (M6): 6/8 done (75%). Remaining: Model serving endpoints, Agent deployment/monitoring.**
+**Voyant ML (M6): 7/8 done (88%). Remaining: Agent deployment monitoring dashboard.**
 
 ### 3.4 Voyant Shield (M9) — Governance (GOV-F-001 to GOV-F-009)
 
-| ID | Requirement | v3.0 Status | Priority |
+| ID | Requirement | v4.0 Status | Priority |
 |----|-------------|-------------|----------|
-| GOV-F-001 | Unified catalog with schemas and securable objects | Partial | P1 |
+| GOV-F-001 | Unified catalog with schemas and securable objects | Done | P1 |
 | GOV-F-002 | RBAC with roles and permissions | Done | P0 |
 | GOV-F-003 | Row-level security filters | Done | P1 |
 | GOV-F-004 | Column-level masking | Done | P1 |
 | GOV-F-005 | Audit logging for all operations | Done | P0 |
-| GOV-F-006 | Data lineage tracking | Partial | P1 |
-| GOV-F-008 | Access policy definition with fine-grained privileges | Partial | P1 |
+| GOV-F-006 | Data lineage tracking | Done | P1 |
+| GOV-F-008 | Access policy definition with fine-grained privileges | Done | P1 |
 
-**Voyant Shield (M9): 4/7 done (64%). Remaining: Unified catalog, Data lineage, Access policy refinement.**
+**Voyant Shield (M9): 7/7 done (100%). All governance features implemented.**
 
 ### 3.5 UI/UX (UI-F-001 to UI-F-012)
 
-| ID | Requirement | v3.0 Status | Priority |
+| ID | Requirement | v4.0 Status | Priority |
 |----|-------------|-------------|----------|
-| UI-F-001 | Ontology Explorer (table, grid, map, graph views) | Partial (table only) | P0 |
-| UI-F-002 | Object Type Builder (visual schema designer) | Missing | P0 |
-| UI-F-003 | Link Type Builder with visual relationship editor | Missing | P1 |
-| UI-F-004 | Action Builder with parameter configuration | Missing | P1 |
-| UI-F-005 | Function Editor with Monaco code editor | Missing | P1 |
-| UI-F-006 | Search Bar with semantic + full-text search | Partial | P0 |
-| UI-F-007 | Filter Builder with visual condition editor | Missing | P0 |
-| UI-F-008 | Dashboard Builder with chart/table/widget | Missing | P2 |
-| UI-F-009 | Graph View with force-directed visualization | Missing | P1 |
-| UI-F-012 | WCAG 2.1 AA accessibility | Missing | P2 |
+| UI-F-001 | Ontology Explorer (table, grid, map, graph views) | Done (table, grid, graph) | P0 |
+| UI-F-002 | Object Type Builder (visual schema designer) | Done | P0 |
+| UI-F-003 | Link Type Builder with visual relationship editor | Done | P1 |
+| UI-F-004 | Action Builder with parameter configuration | Done | P1 |
+| UI-F-005 | Function Editor with Monaco code editor | Done | P1 |
+| UI-F-006 | Search Bar with semantic + full-text search | Done | P0 |
+| UI-F-007 | Filter Builder with visual condition editor | Done | P0 |
+| UI-F-008 | Dashboard Builder with chart/table/widget | Done | P2 |
+| UI-F-009 | Graph View with force-directed visualization | Done | P1 |
+| UI-F-012 | WCAG 2.1 AA accessibility | Partial | P2 |
 
-**UI P0 completion: 1/4 done (25%).**
+**UI/UX: 9/10 done (90%). Remaining: WCAG2.1 AA compliance audit.**
 
 ### 3.6 Voyant Scrape (M8) — Scraper Module (SCR-F-001 to SCR-F-030)
 
-See `docs/specifications/srs/VOYANT_SCRAPER_SRS_V4.md` for full specification.
+See `docs/specifications/v4.0/VOYANT-SCRAPER-SRS-V4.0.md` and `docs/specifications/v4.0/VOYANT-MOD-SCRAPE-V4.0.md` for full specification.
 
-**Voyant Scrape (M8) P0 completion: 6/13 features met (46%). Gap: Visual builder, templates, CAPTCHA solving.**
+**Voyant Scrape (M8): 21/30 done (70%). ISO spec: 24/24 implemented. Remaining: advanced CAPTCHA tiers, some proxy features.**
 
 ### 3.7 Voyant API (M12) — API Surface (API-F-001 to API-F-006)
 
-| ID | Requirement | v3.0 Status | Priority |
+| ID | Requirement | v4.0 Status | Priority |
 |----|-------------|-------------|----------|
-| API-F-001 | REST API (~120 endpoints) | ~240 endpoints | P0 |
-| API-F-002 | MCP tools (80+ tools) | 80 tools | P0 |
-| API-F-003 | OSDK (TypeScript + Python) | Missing | P1 |
+| API-F-001 | REST API (~120 endpoints) | Done (~240 endpoints) | P0 |
+| API-F-002 | MCP tools (80+ tools) | Done (80 tools) | P0 |
+| API-F-003 | OSDK (TypeScript + Python) | Done | P1 |
 | API-F-004 | WebSocket API for real-time subscriptions | Done | P1 |
-| API-F-005 | CLI tool | Missing | P2 |
+| API-F-005 | CLI tool | Done | P2 |
 | API-F-006 | Event-driven integration via Kafka | Partial | P1 |
+
+**Voyant API (M12): 5/6 done (83%). Remaining: Kafka event integration polish.**
 
 ---
 
