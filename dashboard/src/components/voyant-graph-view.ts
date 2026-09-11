@@ -71,6 +71,7 @@ export class VoyantGraphView extends LitElement {
 
     /* ---- internal state ---- */
     @state() private _selectedNode: SimNode | null = null;
+    @state() private _selectedNodeIds: Set<string> = new Set();
     @state() private _layoutMode: LayoutMode = 'force';
     @state() private _searchQuery = '';
     @state() private _zoom = 1;
@@ -93,6 +94,20 @@ export class VoyantGraphView extends LitElement {
     private _panStartPanX = 0;
     private _panStartPanY = 0;
     private _containerRef: HTMLElement | null = null;
+
+    /* ---- lasso selection ---- */
+    private _lassoActive = false;
+    private _lassoStartX = 0;
+    private _lassoStartY = 0;
+    @state() private _lassoEndX = 0;
+    @state() private _lassoEndY = 0;
+
+    /* ---- edge creation drag ---- */
+    private _edgeDragActive = false;
+    private _edgeDragSourceId = '';
+    @state() private _edgeDragX = 0;
+    @state() private _edgeDragY = 0;
+    private _edgeDragHoverTarget = '';
 
     /* ── Shadow DOM disabled (spec) ── */
     createRenderRoot() { return this; }
@@ -119,6 +134,9 @@ export class VoyantGraphView extends LitElement {
     updated(changed: Map<string, unknown>) {
         if (changed.has('nodes') || changed.has('edges')) {
             this._initSimulation();
+        }
+        if (!this._containerRef) {
+            this._containerRef = this.renderRoot.querySelector('#graph-container') as HTMLElement;
         }
     }
 
@@ -326,8 +344,38 @@ export class VoyantGraphView extends LitElement {
     };
 
     private _onContainerMouseDown = (e: MouseEvent) => {
-        // Only pan on empty space (not on a node)
+        // Only act on empty space (not on a node)
         if ((e.target as HTMLElement).closest('.graph-node')) return;
+
+        if (e.shiftKey) {
+            // Lasso selection: draw rectangle
+            this._lassoActive = true;
+            const rect = this._containerRef?.getBoundingClientRect();
+            if (!rect) return;
+            this._lassoStartX = e.clientX - rect.left;
+            this._lassoStartY = e.clientY - rect.top;
+            this._lassoEndX = this._lassoStartX;
+            this._lassoEndY = this._lassoStartY;
+
+            const onMove = (ev: MouseEvent) => {
+                if (!this._lassoActive) return;
+                this._lassoEndX = ev.clientX - rect.left;
+                this._lassoEndY = ev.clientY - rect.top;
+            };
+            const onUp = () => {
+                if (this._lassoActive) {
+                    this._applyLassoSelection();
+                    this._lassoActive = false;
+                }
+                window.removeEventListener('mousemove', onMove);
+                window.removeEventListener('mouseup', onUp);
+            };
+            window.addEventListener('mousemove', onMove);
+            window.addEventListener('mouseup', onUp);
+            return;
+        }
+
+        // Pan mode
         this._panning = true;
         this._panStartX = e.clientX;
         this._panStartY = e.clientY;
@@ -346,6 +394,203 @@ export class VoyantGraphView extends LitElement {
         window.addEventListener('mousemove', onMove);
         window.addEventListener('mouseup', onUp);
     };
+
+    private _applyLassoSelection() {
+        // Convert screen lasso coords to graph coords
+        const x1 = (Math.min(this._lassoStartX, this._lassoEndX) - this._panX) / this._zoom;
+        const y1 = (Math.min(this._lassoStartY, this._lassoEndY) - this._panY) / this._zoom;
+        const x2 = (Math.max(this._lassoStartX, this._lassoEndX) - this._panX) / this._zoom;
+        const y2 = (Math.max(this._lassoStartY, this._lassoEndY) - this._panY) / this._zoom;
+
+        const selected = new Set<string>();
+        for (const node of this._simNodes) {
+            if (node.x >= x1 && node.x <= x2 && node.y >= y1 && node.y <= y2) {
+                selected.add(node.id);
+            }
+        }
+        this._selectedNodeIds = selected;
+        this._selectedNode = selected.size === 1 ? this._simNodeMap.get([...selected][0]) || null : null;
+        this.dispatchEvent(new CustomEvent('selection-change', { detail: { selectedIds: selected } }));
+    }
+
+    /* ────────────────────────────────────────────
+       Edge creation by drag
+       ──────────────────────────────────────────── */
+
+    private _onOutputPortMouseDown(node: SimNode, e: MouseEvent) {
+        e.stopPropagation();
+        this._edgeDragActive = true;
+        this._edgeDragSourceId = node.id;
+        const rect = this._containerRef?.getBoundingClientRect();
+        if (!rect) return;
+
+        const onMove = (ev: MouseEvent) => {
+            this._edgeDragX = (ev.clientX - rect.left - this._panX) / this._zoom;
+            this._edgeDragY = (ev.clientY - rect.top - this._panY) / this._zoom;
+            // Check if hovering over an input port
+            const target = document.elementFromPoint(ev.clientX, ev.clientY);
+            this._edgeDragHoverTarget = target?.closest('.graph-node')?.getAttribute('data-node-id') || '';
+        };
+        const onUp = () => {
+            if (this._edgeDragActive && this._edgeDragHoverTarget && this._edgeDragHoverTarget !== this._edgeDragSourceId) {
+                // Check for duplicate edge
+                const exists = this.edges.some(e =>
+                    (e.source === this._edgeDragSourceId && e.target === this._edgeDragHoverTarget) ||
+                    (e.target === this._edgeDragSourceId && e.source === this._edgeDragHoverTarget)
+                );
+                if (!exists) {
+                    this.dispatchEvent(new CustomEvent('edge-create', {
+                        detail: { source: this._edgeDragSourceId, target: this._edgeDragHoverTarget },
+                        bubbles: true,
+                        composed: true,
+                    }));
+                }
+            }
+            this._edgeDragActive = false;
+            this._edgeDragSourceId = '';
+            this._edgeDragHoverTarget = '';
+            window.removeEventListener('mousemove', onMove);
+            window.removeEventListener('mouseup', onUp);
+        };
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', onUp);
+    }
+
+    /* ────────────────────────────────────────────
+       Export to PNG/SVG
+       ──────────────────────────────────────────── */
+
+    private async _exportPNG() {
+        const svgEl = this._buildExportSVG();
+        const svgData = new XMLSerializer().serializeToString(svgEl);
+        const canvas = document.createElement('canvas');
+        const scale = 2; // 2x for retina
+        canvas.width = this._canvasW * scale;
+        canvas.height = this._canvasH * scale;
+        const ctx = canvas.getContext('2d')!;
+        ctx.scale(scale, scale);
+        const img = new Image();
+        const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        return new Promise<void>((resolve) => {
+            img.onload = () => {
+                ctx.fillStyle = '#FAFAFA';
+                ctx.fillRect(0, 0, this._canvasW, this._canvasH);
+                ctx.drawImage(img, 0, 0, this._canvasW, this._canvasH);
+                URL.revokeObjectURL(url);
+                canvas.toBlob((pngBlob) => {
+                    if (pngBlob) {
+                        const a = document.createElement('a');
+                        a.href = URL.createObjectURL(pngBlob);
+                        a.download = 'voyant-graph.png';
+                        a.click();
+                        URL.revokeObjectURL(a.href);
+                    }
+                    resolve();
+                }, 'image/png');
+            };
+            img.src = url;
+        });
+    }
+
+    private _exportSVG() {
+        const svgEl = this._buildExportSVG();
+        const svgData = new XMLSerializer().serializeToString(svgEl);
+        const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'voyant-graph.svg';
+        a.click();
+        URL.revokeObjectURL(a.href);
+    }
+
+    private _buildExportSVG(): SVGSVGElement {
+        // Compute bounds
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (const n of this._simNodes) {
+            const r = this._nodeRadius(n);
+            minX = Math.min(minX, n.x - r);
+            minY = Math.min(minY, n.y - r);
+            maxX = Math.max(maxX, n.x + r);
+            maxY = Math.max(maxY, n.y + r);
+        }
+        const pad = 40;
+        const w = (maxX - minX + pad * 2) || this._canvasW;
+        const h = (maxY - minY + pad * 2) || this._canvasH;
+        const ox = minX - pad;
+        const oy = minY - pad;
+
+        const ns = 'http://www.w3.org/2000/svg';
+        const svgEl = document.createElementNS(ns, 'svg');
+        svgEl.setAttribute('xmlns', ns);
+        svgEl.setAttribute('width', String(w));
+        svgEl.setAttribute('height', String(h));
+        svgEl.setAttribute('viewBox', `${ox} ${oy} ${w} ${h}`);
+
+        // Background
+        const bg = document.createElementNS(ns, 'rect');
+        bg.setAttribute('x', String(ox));
+        bg.setAttribute('y', String(oy));
+        bg.setAttribute('width', String(w));
+        bg.setAttribute('height', String(h));
+        bg.setAttribute('fill', '#FAFAFA');
+        svgEl.appendChild(bg);
+
+        // Edges
+        for (const edge of this.edges) {
+            const s = this._simNodeMap.get(edge.source);
+            const t = this._simNodeMap.get(edge.target);
+            if (!s || !t) continue;
+            const dx = t.x - s.x;
+            const dy = t.y - s.y;
+            const len = Math.sqrt(dx * dx + dy * dy) || 1;
+            const offX = (-dy / len) * 15;
+            const offY = (dx / len) * 15;
+            const mx = (s.x + t.x) / 2;
+            const my = (s.y + t.y) / 2;
+            const path = document.createElementNS(ns, 'path');
+            path.setAttribute('d', `M ${s.x} ${s.y} Q ${mx + offX} ${my + offY} ${t.x} ${t.y}`);
+            path.setAttribute('fill', 'none');
+            path.setAttribute('stroke', '#D1D5DB');
+            path.setAttribute('stroke-width', '2');
+            svgEl.appendChild(path);
+            if (edge.label) {
+                const text = document.createElementNS(ns, 'text');
+                text.setAttribute('x', String(mx + offX * 0.5));
+                text.setAttribute('y', String(my + offY * 0.5 - 4));
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('fill', '#9CA3AF');
+                text.setAttribute('font-size', '9');
+                text.setAttribute('font-family', 'Inter,sans-serif');
+                text.textContent = edge.label;
+                svgEl.appendChild(text);
+            }
+        }
+
+        // Nodes
+        for (const node of this._simNodes) {
+            const r = this._nodeRadius(node);
+            const color = this._getNodeColor(node);
+            const circle = document.createElementNS(ns, 'circle');
+            circle.setAttribute('cx', String(node.x));
+            circle.setAttribute('cy', String(node.y));
+            circle.setAttribute('r', String(r));
+            circle.setAttribute('fill', color);
+            svgEl.appendChild(circle);
+            const text = document.createElementNS(ns, 'text');
+            text.setAttribute('x', String(node.x));
+            text.setAttribute('y', String(node.y + 4));
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('fill', 'white');
+            text.setAttribute('font-size', String(r > 35 ? '12' : '10'));
+            text.setAttribute('font-weight', '700');
+            text.setAttribute('font-family', 'Inter,sans-serif');
+            text.textContent = node.label;
+            svgEl.appendChild(text);
+        }
+
+        return svgEl;
+    }
 
     private _zoomToFit() {
         if (this._simNodes.length === 0) {
@@ -378,9 +623,23 @@ export class VoyantGraphView extends LitElement {
        Node interaction
        ──────────────────────────────────────────── */
 
-    private _onNodeClick(node: SimNode) {
-        this._selectedNode = node;
-        this.dispatchEvent(new CustomEvent('node-click', { detail: node }));
+    private _onNodeClick(node: SimNode, e?: MouseEvent) {
+        if (e?.shiftKey) {
+            // Multi-select: toggle node in selection set
+            const newSet = new Set(this._selectedNodeIds);
+            if (newSet.has(node.id)) {
+                newSet.delete(node.id);
+            } else {
+                newSet.add(node.id);
+            }
+            this._selectedNodeIds = newSet;
+            this._selectedNode = newSet.size === 1 ? this._simNodeMap.get([...newSet][0]) || null : null;
+        } else {
+            // Single select
+            this._selectedNode = node;
+            this._selectedNodeIds = new Set([node.id]);
+        }
+        this.dispatchEvent(new CustomEvent('node-click', { detail: { node, selectedIds: this._selectedNodeIds } }));
     }
 
     private _onNodeDblClick(node: SimNode) {
@@ -523,9 +782,9 @@ export class VoyantGraphView extends LitElement {
 
         return html`
         <div
+            id="graph-container"
             style="position:relative;width:100%;height:520px;background:#FAFAFA;border-radius:12px;overflow:hidden;cursor:${this._panning ? 'grabbing' : 'grab'}"
             @mousedown=${this._onContainerMouseDown}
-            ${/* capture ref for coordinate transforms */ ''}
         >
             <!-- Controls bar -->
             <div style="position:absolute;top:8px;left:8px;right:8px;display:flex;gap:6px;align-items:center;z-index:30;pointer-events:auto">
@@ -559,6 +818,14 @@ export class VoyantGraphView extends LitElement {
                 <button @click=${() => this._zoomToFit()}
                     style="padding:5px 10px;border:1px solid #E5E7EB;border-radius:6px;background:white;font-size:11px;cursor:pointer;font-family:Inter,sans-serif;color:#374151"
                     title="Zoom to fit">⊞ Fit</button>
+
+                <!-- Export buttons -->
+                <button @click=${() => this._exportPNG()}
+                    style="padding:5px 10px;border:1px solid #E5E7EB;border-radius:6px;background:white;font-size:11px;cursor:pointer;font-family:Inter,sans-serif;color:#374151"
+                    title="Export as PNG">📷 PNG</button>
+                <button @click=${() => this._exportSVG()}
+                    style="padding:5px 10px;border:1px solid #E5E7EB;border-radius:6px;background:white;font-size:11px;cursor:pointer;font-family:Inter,sans-serif;color:#374151"
+                    title="Export as SVG">📐 SVG</button>
             </div>
 
             <!-- Main graph canvas with zoom/pan transform -->
@@ -605,37 +872,68 @@ export class VoyantGraphView extends LitElement {
                             opacity="${dimmed ? 0.3 : 0.8}"
                         />`;
                     })}
+                    <!-- Temporary edge during drag -->
+                    ${this._edgeDragActive && this._edgeDragSourceId ? (() => {
+                        const source = this._simNodeMap.get(this._edgeDragSourceId);
+                        if (!source) return svg``;
+                        const sr = this._nodeRadius(source);
+                        const sx = source.x + sr;
+                        const sy = source.y;
+                        return svg`<line
+                            x1="${sx}" y1="${sy}"
+                            x2="${this._edgeDragX}" y2="${this._edgeDragY}"
+                            stroke="#3B82F6" stroke-width="2" stroke-dasharray="6 3"
+                        />`;
+                    })() : ''}
                 </svg>
 
                 <!-- Nodes -->
                 ${this._simNodes.map(node => {
                     const color = this._getNodeColor(node);
                     const r = this._nodeRadius(node);
-                    const isSelected = this._selectedNode?.id === node.id;
+                    const isSelected = this._selectedNode?.id === node.id || this._selectedNodeIds.has(node.id);
                     const matched = this._isMatch(node);
                     const dimmed = searchActive && !matched;
 
                     return html`
                     <div
                         class="graph-node"
+                        data-node-id="${node.id}"
                         style="position:absolute;left:${node.x - r}px;top:${node.y - r}px;width:${r * 2}px;height:${r * 2}px;cursor:pointer;transition:transform 150ms;z-index:${isSelected ? 10 : 1};opacity:${dimmed ? 0.2 : 1}"
-                        @click=${() => this._onNodeClick(node)}
+                        @click=${(e: MouseEvent) => this._onNodeClick(node, e)}
                         @dblclick=${() => this._onNodeDblClick(node)}
                         @mousedown=${(e: MouseEvent) => this._onNodeDragStart(node, e)}
                         @mouseenter=${(e: Event) => { if (!dimmed) (e.currentTarget as HTMLElement).style.transform = 'scale(1.1)'; }}
                         @mouseleave=${(e: Event) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; }}
                     >
-                        <div style="width:100%;height:100%;border-radius:50%;background:${color};${isSelected ? `box-shadow:0 0 0 4px ${color}40,0 4px 12px rgba(0,0,0,0.15);` : 'box-shadow:0 2px 8px rgba(0,0,0,0.1);'}display:flex;flex-direction:column;align-items:center;justify-content:center">
+                        <div style="width:100%;height:100%;border-radius:50%;background:${color};${isSelected ? `box-shadow:0 0 0 4px ${color}40,0 0 0 2px #3B82F6,0 4px 12px rgba(0,0,0,0.15);` : 'box-shadow:0 2px 8px rgba(0,0,0,0.1);'}display:flex;flex-direction:column;align-items:center;justify-content:center">
                             <div style="color:white;font-size:${r > 35 ? '12' : '10'}px;font-weight:700;text-align:center;line-height:1.2;padding:4px">${node.label}</div>
                             ${node.size ? html`<div style="color:rgba(255,255,255,0.75);font-size:9px">${node.size}</div>` : ''}
                         </div>
                         ${node.expanded ? html`<div style="position:absolute;top:-4px;right:-4px;width:10px;height:10px;border-radius:50%;background:#22C55E;border:2px solid white"></div>` : ''}
+                        <!-- Output port (right) -->
+                        <div
+                            class="output-port"
+                            style="position:absolute;right:-6px;top:50%;transform:translateY(-50%);width:12px;height:12px;border-radius:50%;background:#3B82F6;border:2px solid white;cursor:crosshair;z-index:15"
+                            @mousedown=${(e: MouseEvent) => this._onOutputPortMouseDown(node, e)}
+                        ></div>
+                        <!-- Input port (left) -->
+                        <div
+                            class="input-port"
+                            style="position:absolute;left:-6px;top:50%;transform:translateY(-50%);width:12px;height:12px;border-radius:50%;background:${this._edgeDragHoverTarget === node.id ? '#22C55E' : '#9CA3AF'};border:2px solid white;z-index:15"
+                        ></div>
                     </div>`;
                 })}
             </div>
 
             <!-- Minimap (SVG overlay, fixed position) -->
             ${this._renderMinimap()}
+
+            <!-- Lasso rectangle -->
+            ${this._lassoActive ? html`<div style="position:absolute;left:${Math.min(this._lassoStartX, this._lassoEndX)}px;top:${Math.min(this._lassoStartY, this._lassoEndY)}px;width:${Math.abs(this._lassoEndX - this._lassoStartX)}px;height:${Math.abs(this._lassoEndY - this._lassoStartY)}px;border:2px dashed #3B82F6;background:rgba(59,130,246,0.08);border-radius:4px;pointer-events:none;z-index:25"></div>` : ''}
+
+            <!-- Multi-select indicator -->
+            ${this._selectedNodeIds.size > 1 ? html`<div style="position:absolute;top:44px;left:8px;background:#3B82F6;color:white;padding:4px 10px;border-radius:6px;font-size:11px;font-family:Inter,sans-serif;z-index:30">${this._selectedNodeIds.size} nodes selected</div>` : ''}
 
             <!-- Legend -->
             <div style="position:absolute;bottom:12px;left:12px;background:white;border:1px solid #E5E7EB;border-radius:8px;padding:8px 12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);z-index:20">

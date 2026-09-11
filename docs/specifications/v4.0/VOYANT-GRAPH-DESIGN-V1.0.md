@@ -121,10 +121,10 @@ The Graph Designer operates within the Voyant Ontology module:
 | FR-GRAPH-010 | System SHALL support right-click context menu (View Objects, Create Object, Edit Type, Delete Type, Execute Action) | Must | DONE |
 | FR-GRAPH-011 | System SHALL support hover tooltip (type name, instance count, property count) | Must | DONE |
 | FR-GRAPH-012 | System SHALL support search (type-ahead, highlight matching nodes, dim others) | Must | DONE |
-| FR-GRAPH-013 | System SHALL support drag-to-reposition nodes | Should | NOT BUILT |
-| FR-GRAPH-014 | System SHALL support multi-select (Shift+click or lasso) | Should | NOT BUILT |
-| FR-GRAPH-015 | System SHALL support edge creation by dragging from output port to input port | Should | NOT BUILT |
-| FR-GRAPH-016 | System SHALL support export to PNG/SVG | Should | NOT BUILT |
+| FR-GRAPH-013 | System SHALL support drag-to-reposition nodes | Should | DONE |
+| FR-GRAPH-014 | System SHALL support multi-select (Shift+click or lasso) | Should | DONE |
+| FR-GRAPH-015 | System SHALL support edge creation by dragging from output port to input port | Should | DONE |
+| FR-GRAPH-016 | System SHALL support export to PNG/SVG | Should | DONE |
 | FR-GRAPH-017 | System SHALL pause physics simulation when tab is not visible | Must | DONE |
 | FR-GRAPH-018 | System SHALL render 100 nodes in <100ms, 1000 nodes in <500ms | Must | DONE |
 
