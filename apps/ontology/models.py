@@ -84,6 +84,54 @@ class ObjectType(TenantModel, UUIDModel):
         return f"{self.name} (v{self.version})"
 
 
+class ObjectTypeGroup(TenantModel, UUIDModel):
+    """
+    Named group for organizing Object Types.
+
+    ONT-F-036: Object Type Groups for organization.
+    Allows users to categorize object types into logical groups
+    (e.g. 'Customer Data', 'Operations', 'Financial').
+    """
+
+    name = models.CharField(
+        max_length=255,
+        help_text="Group name",
+    )
+    description = models.TextField(
+        blank=True,
+        default="",
+        help_text="Group description",
+    )
+    color = models.CharField(
+        max_length=7,
+        default="#6B7280",
+        help_text="Hex color for visual identification (e.g. #FF4D00)",
+    )
+    icon = models.CharField(
+        max_length=50,
+        blank=True,
+        default="",
+        help_text="Icon identifier (e.g. emoji or icon name)",
+    )
+    object_types = models.ManyToManyField(
+        ObjectType,
+        blank=True,
+        related_name="groups",
+        help_text="Object types belonging to this group",
+    )
+    order = models.PositiveIntegerField(
+        default=0,
+        help_text="Sort order for display",
+    )
+
+    class Meta(TenantModel.Meta, UUIDModel.Meta):
+        db_table = "ontology_object_type_group"
+        ordering = ["order", "name"]
+
+    def __str__(self) -> str:
+        return self.name
+
+
 class PropertyType(models.TextChoices):
     """ONT-F-002: Supported property types."""
 

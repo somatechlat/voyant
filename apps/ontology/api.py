@@ -2001,3 +2001,178 @@ def diff_dataset_versions(
     except Exception as exc:
         logger.exception("diff_dataset_versions failed")
         raise HttpError(500, str(exc))
+
+
+# ── Object Type Groups (ONT-F-036) ──────────────────────────────────────────
+
+
+class ObjectTypeGroupIn(Schema):
+    name: str
+    description: str = ""
+    color: str = "#6B7280"
+    icon: str = ""
+    order: int = 0
+
+
+class ObjectTypeGroupOut(Schema):
+    id: str
+    name: str
+    description: str
+    color: str
+    icon: str
+    order: int
+    object_type_count: int
+    created_at: str
+    updated_at: str
+
+
+@ontology_router.get("/groups", response=list[ObjectTypeGroupOut])
+def list_object_type_groups(request):
+    """List all object type groups for the current tenant."""
+    from apps.ontology.models import ObjectTypeGroup
+
+    tenant_id = get_tenant_id(request)
+    groups = ObjectTypeGroup.objects.filter(tenant_id=tenant_id).order_by("order", "name")
+    return [
+        ObjectTypeGroupOut(
+            id=str(g.id),
+            name=g.name,
+            description=g.description,
+            color=g.color,
+            icon=g.icon,
+            order=g.order,
+            object_type_count=g.object_types.count(),
+            created_at=g.created_at.isoformat(),
+            updated_at=g.updated_at.isoformat(),
+        )
+        for g in groups
+    ]
+
+
+@ontology_router.post("/groups", response={201: ObjectTypeGroupOut}, auth=require_permission("write:ontology"))
+def create_object_type_group(request, payload: ObjectTypeGroupIn):
+    """Create a new object type group."""
+    from apps.ontology.models import ObjectTypeGroup
+
+    tenant_id = get_tenant_id(request)
+    group = ObjectTypeGroup.objects.create(
+        tenant_id=tenant_id,
+        name=payload.name,
+        description=payload.description,
+        color=payload.color,
+        icon=payload.icon,
+        order=payload.order,
+    )
+    return 201, ObjectTypeGroupOut(
+        id=str(group.id),
+        name=group.name,
+        description=group.description,
+        color=group.color,
+        icon=group.icon,
+        order=group.order,
+        object_type_count=0,
+        created_at=group.created_at.isoformat(),
+        updated_at=group.updated_at.isoformat(),
+    )
+
+
+@ontology_router.get("/groups/{group_id}", response=ObjectTypeGroupOut)
+def get_object_type_group(request, group_id: str):
+    """Get a single object type group."""
+    from apps.ontology.models import ObjectTypeGroup
+
+    tenant_id = get_tenant_id(request)
+    try:
+        group = ObjectTypeGroup.objects.get(id=group_id, tenant_id=tenant_id)
+    except ObjectTypeGroup.DoesNotExist:
+        raise HttpError(404, f"Group {group_id} not found")
+    return ObjectTypeGroupOut(
+        id=str(group.id),
+        name=group.name,
+        description=group.description,
+        color=group.color,
+        icon=group.icon,
+        order=group.order,
+        object_type_count=group.object_types.count(),
+        created_at=group.created_at.isoformat(),
+        updated_at=group.updated_at.isoformat(),
+    )
+
+
+@ontology_router.put("/groups/{group_id}", response=ObjectTypeGroupOut, auth=require_permission("write:ontology"))
+def update_object_type_group(request, group_id: str, payload: ObjectTypeGroupIn):
+    """Update an object type group."""
+    from apps.ontology.models import ObjectTypeGroup
+
+    tenant_id = get_tenant_id(request)
+    try:
+        group = ObjectTypeGroup.objects.get(id=group_id, tenant_id=tenant_id)
+    except ObjectTypeGroup.DoesNotExist:
+        raise HttpError(404, f"Group {group_id} not found")
+    group.name = payload.name
+    group.description = payload.description
+    group.color = payload.color
+    group.icon = payload.icon
+    group.order = payload.order
+    group.save()
+    return ObjectTypeGroupOut(
+        id=str(group.id),
+        name=group.name,
+        description=group.description,
+        color=group.color,
+        icon=group.icon,
+        order=group.order,
+        object_type_count=group.object_types.count(),
+        created_at=group.created_at.isoformat(),
+        updated_at=group.updated_at.isoformat(),
+    )
+
+
+@ontology_router.delete("/groups/{group_id}", auth=require_permission("write:ontology"))
+def delete_object_type_group(request, group_id: str):
+    """Delete an object type group."""
+    from apps.ontology.models import ObjectTypeGroup
+
+    tenant_id = get_tenant_id(request)
+    try:
+        group = ObjectTypeGroup.objects.get(id=group_id, tenant_id=tenant_id)
+    except ObjectTypeGroup.DoesNotExist:
+        raise HttpError(404, f"Group {group_id} not found")
+    group.delete()
+    return {"deleted": True, "id": group_id}
+
+
+@ontology_router.post("/groups/{group_id}/types/{type_id}", auth=require_permission("write:ontology"))
+def add_type_to_group(request, group_id: str, type_id: str):
+    """Add an object type to a group."""
+    from apps.ontology.models import ObjectType, ObjectTypeGroup
+
+    tenant_id = get_tenant_id(request)
+    try:
+        group = ObjectTypeGroup.objects.get(id=group_id, tenant_id=tenant_id)
+    except ObjectTypeGroup.DoesNotExist:
+        raise HttpError(404, f"Group {group_id} not found")
+    try:
+        obj_type = ObjectType.objects.get(id=type_id, tenant_id=tenant_id)
+    except ObjectType.DoesNotExist:
+        raise HttpError(404, f"Object type {type_id} not found")
+    group.object_types.add(obj_type)
+    return {"added": True, "group_id": group_id, "type_id": type_id}
+
+
+@ontology_router.delete("/groups/{group_id}/types/{type_id}", auth=require_permission("write:ontology"))
+def remove_type_from_group(request, group_id: str, type_id: str):
+    """Remove an object type from a group."""
+    from apps.ontology.models import ObjectType, ObjectTypeGroup
+
+    tenant_id = get_tenant_id(request)
+    try:
+        group = ObjectTypeGroup.objects.get(id=group_id, tenant_id=tenant_id)
+    except ObjectTypeGroup.DoesNotExist:
+        raise HttpError(404, f"Group {group_id} not found")
+    try:
+        obj_type = ObjectType.objects.get(id=type_id, tenant_id=tenant_id)
+    except ObjectType.DoesNotExist:
+        raise HttpError(404, f"Object type {type_id} not found")
+    group.object_types.remove(obj_type)
+    return {"removed": True, "group_id": group_id, "type_id": type_id}
