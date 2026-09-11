@@ -226,6 +226,14 @@ export class ViewOntology extends LitElement {
     @state() editInstanceProps: Record<string, string> = {};
     @state() editInstanceSubmitting = false;
 
+    /* ── Grid Drag-to-Create-Link State ──────────────────────────────── */
+    private _gridDragActive = false;
+    private _gridDragSourceId = '';
+    private _gridDragSourceName = '';
+    @state() private _gridDragX = 0;
+    @state() private _gridDragY = 0;
+    @state() private _gridDragTargetId = '';
+
     createRenderRoot() { return this; }
 
     async connectedCallback() {
@@ -297,6 +305,60 @@ export class ViewOntology extends LitElement {
         }
         if (tab === 'link-instances' && this.linkInstances.length === 0) {
             this._loadLinkInstances();
+        }
+    }
+
+    /* ── Grid Drag-to-Create-Link ─────────────────────────────────────── */
+
+    private _onGridCardDragStart(typeId: string, typeName: string, e: DragEvent) {
+        this._gridDragActive = true;
+        this._gridDragSourceId = typeId;
+        this._gridDragSourceName = typeName;
+        if (e.dataTransfer) {
+            e.dataTransfer.setData('text/plain', typeId);
+            e.dataTransfer.effectAllowed = 'link';
+        }
+    }
+
+    private _onGridCardDragOver(e: DragEvent) {
+        e.preventDefault();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = 'link';
+    }
+
+    private _onGridCardDragEnter(typeId: string, e: DragEvent) {
+        e.preventDefault();
+        this._gridDragTargetId = typeId;
+    }
+
+    private _onGridCardDragLeave() {
+        this._gridDragTargetId = '';
+    }
+
+    private _onGridCardDrop(targetId: string, targetName: string, e: DragEvent) {
+        e.preventDefault();
+        const sourceId = e.dataTransfer?.getData('text/plain') || this._gridDragSourceId;
+        if (sourceId && sourceId !== targetId) {
+            // Open link builder pre-filled with source and target
+            this._openLinkBuilderWith(sourceId, targetName);
+        }
+        this._gridDragActive = false;
+        this._gridDragSourceId = '';
+        this._gridDragSourceName = '';
+        this._gridDragTargetId = '';
+    }
+
+    private _openLinkBuilderWith(sourceTypeName: string, targetTypeName: string) {
+        // Find the type objects
+        const sourceType = this.types.find(t => t.id === sourceTypeName || t.name === sourceTypeName);
+        const targetType = this.types.find(t => t.name === targetTypeName);
+        if (sourceType && targetType) {
+            this._openTypeDetail(sourceType);
+            // Pre-fill link creation — navigate to link type builder
+            this.dispatchEvent(new CustomEvent('create-link', {
+                detail: { source: sourceType.name, target: targetType.name },
+                bubbles: true,
+                composed: true,
+            }));
         }
     }
 
@@ -1082,8 +1144,9 @@ export class ViewOntology extends LitElement {
                         class="voyant-card"
                         role="button"
                         tabindex="0"
-                        aria-label="Object type: ${t.name}"
-                        style="padding:20px;cursor:pointer;transition:all 0.2s cubic-bezier(0.4,0,0.2,1)"
+                        aria-label="Object type: ${t.name}. Drag to create link."
+                        draggable="true"
+                        style="padding:20px;cursor:pointer;transition:all 0.2s cubic-bezier(0.4,0,0.2,1);${this._gridDragTargetId === t.id ? `outline:2px dashed #3B82F6;outline-offset:2px;background:rgba(59,130,246,0.05);` : ''}"
                         @click=${() => this._openTypeDetail(t)}
                         @keydown=${(e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this._openTypeDetail(t); } }}
                         @mouseenter=${(e: Event) => {
@@ -1096,6 +1159,11 @@ export class ViewOntology extends LitElement {
                             el.style.borderColor = '';
                             el.style.boxShadow = '';
                         }}
+                        @dragstart=${(e: DragEvent) => this._onGridCardDragStart(t.id, t.name, e)}
+                        @dragover=${(e: DragEvent) => this._onGridCardDragOver(e)}
+                        @dragenter=${(e: DragEvent) => this._onGridCardDragEnter(t.id, e)}
+                        @dragleave=${() => this._onGridCardDragLeave()}
+                        @drop=${(e: DragEvent) => this._onGridCardDrop(t.id, t.name, e)}
                     >
                         <!-- Card Header -->
                         <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
