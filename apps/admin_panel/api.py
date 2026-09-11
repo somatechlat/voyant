@@ -477,7 +477,9 @@ def list_quotas(request):
         artifacts_limit = policy.get_limit(ResourceType.TOTAL_STORAGE_MB)
         sources_limit = policy.get_limit(ResourceType.WORKFLOWS_PER_DAY)
 
-        _default = type("", (), {"current_usage": 0})()
+        class _DefaultUsage:
+            current_usage = 0
+        _default = _DefaultUsage()
 
         result.append(
             QuotaInfo(
